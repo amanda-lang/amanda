@@ -1,10 +1,34 @@
 from enum import Enum
 
 class TokenType(Enum):
+    #ARIT OPERATORS
     PLUS = "PLUS"
     MINUS = "MINUS"
-    INTEGER = "INTEGER"
+    STAR = "STAR"
+    SLASH = "SLASH"
+    MODULO = "%"
 
+    #OPERANDS
+    INTEGER = "INTEGER"
+    DECIMAL = "DECIMAL"
+    STRING = "STRING"
+    IDENTIFIER = "IDENTIFIER"
+
+    #GENERAL P
+    LPAR = "LPAR"
+    RPAR = "RPAR"
+    DOT = "DOT"
+    SEMI = "SEMI"
+    COMMA = "COMMA"
+
+    #LOGIC OP
+    LESS = "LESS"
+    GREATER = "GREATER"
+    LESSEQ = "LESSEQ"
+    GREATEREQ = "GREATEREQ"
+    NOTEQUAL = "NOTEQUAL"
+    EQUAL = "EQUAL"
+    DOUBLEEQUAL = "DOUBLEEQUAL"
 
 class Token:
     def __init__(self,token,lexeme):
