@@ -1,25 +1,22 @@
 
-
+<program> := <block>
+<block> := <declarations> SEMI <block>| <assignments> SEMI <block> | <expression> SEMI <block> | EMPTY
 <op> := + | - | * | / | %
-<TERM> := INTEGER|DECIMAL|IDENTIFIER
-<expression> := number <expression_1> | LPAR <expression> RPAR <expression_1>
-<expression_1> := number| <op> <expression> <expression_1> | LPAR <expression> RPAR | EMPTY
+<term> := INTEGER|DECIMAL|IDENTIFIER
+<expression> := <term> <expression_1> | LPAR <expression> RPAR <expression_1>
+<expression_1> := <term> <expression_1> | <op> <expression> <expression_1> | EMPTY
 <parameter> := INTEGER | DECIMAL | STRING | IDENTIFIER | <expression>
 <actual_parameter_section> := <parameter> {,<parameter>}
 <function_call> := identifier LPAR <actual_parameter_section> RPAR SEMI
-
-
+<declarations> := DECL IDENTIFIER IDENTIFIER
+<assignments> := IDENTIFIER EQUAL <term>  | IDENTIFIER EQUAL STRING | IDENTIFIER EQUAL <expression>
 
 programa em PTscript:
 
 
 decl int a;
 decl int b;
-
+2+4;
+decl int c;
 a = 2+4;
 b = a+100;
-
-<declarations> :=
-<assignment> := IDENTIFIER <assignment> <expression>
-
-<program> :=
