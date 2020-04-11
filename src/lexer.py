@@ -180,9 +180,10 @@ class Lexer:
 
 
 
-lexer = Lexer("test.pts")
-token = lexer.get_next_token()
 
-while token.token != Lexer.EOF:
-    print(token)
+if __name__ == "__main__":
+    lexer = Lexer("test.pts")
     token = lexer.get_next_token()
+    while token.token != Lexer.EOF:
+        print(token)
+        token = lexer.get_next_token()
