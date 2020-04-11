@@ -45,7 +45,18 @@ class LexerTestCase(unittest.TestCase):
         self.assertEqual(float(token.lexeme),234.21234,msg="REAL Test Failed")
 
 
-    def test
+    def test_string(self):
+        self.test_file.write("'Rambo jndjnsjndnsjns'\n")
+        self.test_file.write('"Ramboeiro"\n')
+        self.test_file.close()
+        lexer = Lexer("sample.pts")
+        token = lexer.get_next_token()
+        self.assertEqual(token.token,TokenType.STRING,msg="STRING Test Failed")
+        self.assertEqual(token.lexeme,"Rambo jndjnsjndnsjns",msg="STRING value test Failed")
+        token = lexer.get_next_token()
+        self.assertEqual(token.token,TokenType.STRING,msg="STRING Test Failed")
+        self.assertEqual(token.lexeme,"Ramboeiro",msg="STRING value Test Failed")
+
 
 runner = unittest.TextTestRunner()
-runner.run(LexerTestCase("test_number"))
+runner.run(LexerTestCase("test_string"))

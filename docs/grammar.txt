@@ -1,7 +1,7 @@
 
 
 <op> := + | - | * | / | %
-<CONSTANT> := INTEGER|DECIMAL|STRING|IDENTIFIER
+<TERM> := INTEGER|DECIMAL|IDENTIFIER
 <expression> := number <expression_1> | LPAR <expression> RPAR <expression_1>
 <expression_1> := number| <op> <expression> <expression_1> | LPAR <expression> RPAR | EMPTY
 <parameter> := INTEGER | DECIMAL | STRING | IDENTIFIER | <expression>
@@ -18,3 +18,8 @@ decl int b;
 
 a = 2+4;
 b = a+100;
+
+<declarations> :=
+<assignment> := IDENTIFIER <assignment> <expression>
+
+<program> :=

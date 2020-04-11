@@ -110,11 +110,12 @@ class Lexer:
         result = ""
         symbol = self.current_char
         self.advance()
-        while self.current_char != symbol and self.current_char  != Lexer.EOF:
+        while self.current_char != symbol :
+            if self.current_char == Lexer.EOF:
+                self.error()
             result += self.current_char
             self.advance()
-        if self.current_char == Lexer.EOF:
-            self.error()
+        self.advance()
         return Token(TokenType.STRING,result)
 
 
@@ -163,6 +164,7 @@ class Lexer:
 
         #Strings
         if self.current_char == "'" or self.current_char == '"':
+            print(f"This char {self.current_char}")
             return self.string()
 
         #Ids
