@@ -13,7 +13,3 @@ class Token:
 
     def __str__(self):
         return "<Type: %s, Lexeme: %s>"%(self.token.value,self.lexeme)
-
-
-token = Token(TokenType.PLUS,"+")
-print(token)
