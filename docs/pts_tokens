@@ -1,0 +1,28 @@
+*OPERATORS*
+PLUS : +
+MINUS: -
+STAR : *
+SLASH : /
+MODULO : %
+
+*OPERANDS*
+INTEGER : 123
+DECIMAL : 1.24
+STRING : "Stacks" | ''
+IDENTIFIER: node
+
+*GENERAL*
+LPAR : (
+RPAR : )
+DOT : .
+SEMI : ;
+COMMA : ,
+
+*LOGIC*
+LESS : <
+GREATER : >
+LESSEQ : <=
+GREATEREQ : >=
+NOTEQUAL : !=
+EQUAL : =
+DOUBLEEQUAL : ==
