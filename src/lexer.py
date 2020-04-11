@@ -5,7 +5,7 @@ class Lexer:
     EOF = "__eof__"
 
     def __init__(self,src_file):
-        self.current_line = 1
+        self.line = 1
         self.pos = -1
         self.file = open(src_file,"r")
         self.current_token = None
@@ -126,21 +126,22 @@ class Lexer:
         return Token(TokenType.IDENTIFIER,result)
 
     def delimeters(self):
+        char = self.current_char
         if self.current_char == ")":
             self.advance()
-            return Token(TokenType.RPAR,self.current_char)
+            return Token(TokenType.RPAR,char)
         elif self.current_char == "(":
             self.advance()
-            return Token(TokenType.LPAR,self.current_char)
+            return Token(TokenType.LPAR,char)
         elif self.current_char == ".":
             self.advance()
-            return Token(TokenType.DOT,self.current_char)
+            return Token(TokenType.DOT,char)
         elif self.current_char == ";":
             self.advance()
-            return Token(TokenType.SEMI,self.current_char)
+            return Token(TokenType.SEMI,char)
         elif self.current_char == ",":
             self.advance()
-            return Token(TokenType.COMMA,self.current_char)
+            return Token(TokenType.COMMA,char)
 
 
 
