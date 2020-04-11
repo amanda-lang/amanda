@@ -30,6 +30,9 @@ class TokenType(Enum):
     EQUAL = "EQUAL"
     DOUBLEEQUAL = "DOUBLEEQUAL"
 
+    #KEYWORDS
+    DECL = "DECL"
+
 class Token:
     def __init__(self,token,lexeme):
         self.token = token
