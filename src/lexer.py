@@ -124,6 +124,8 @@ class Lexer:
         while self.current_char.isalnum() or self.current_char == "_":
             result += self.current_char
             self.advance()
+        if result == "decl":
+            return Token(TokenType.DECL,"decl")
         return Token(TokenType.IDENTIFIER,result)
 
     def delimeters(self):
