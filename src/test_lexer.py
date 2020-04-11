@@ -52,10 +52,13 @@ class LexerTestCase(unittest.TestCase):
         lexer = Lexer("sample.pts")
         token = lexer.get_next_token()
         self.assertEqual(token.token,TokenType.STRING,msg="STRING Test Failed")
-        self.assertEqual(token.lexeme,"Rambo jndjnsjndnsjns",msg="STRING value test Failed")
+        self.assertEqual(token.lexeme,"'Rambo jndjnsjndnsjns'",msg="STRING value test Failed")
         token = lexer.get_next_token()
         self.assertEqual(token.token,TokenType.STRING,msg="STRING Test Failed")
-        self.assertEqual(token.lexeme,"Ramboeiro",msg="STRING value Test Failed")
+        self.assertEqual(token.lexeme,'"Ramboeiro"',msg="STRING value Test Failed")
+
+    def test_identifier(self):
+        pass
 
 
 runner = unittest.TextTestRunner()

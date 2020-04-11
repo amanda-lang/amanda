@@ -116,7 +116,7 @@ class Lexer:
             result += self.current_char
             self.advance()
         self.advance()
-        return Token(TokenType.STRING,result)
+        return Token(TokenType.STRING,f"{symbol}{result}{symbol}")
 
 
     def identifier(self):
@@ -164,7 +164,6 @@ class Lexer:
 
         #Strings
         if self.current_char == "'" or self.current_char == '"':
-            print(f"This char {self.current_char}")
             return self.string()
 
         #Ids
