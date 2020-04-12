@@ -1,7 +1,12 @@
 import unittest
 import os
-from src.components.lexer import Lexer
-from src.components.tokens import TokenType,Token
+import sys
+from parser.lexer import Lexer
+from parser.tokens import TokenType,Token
+
+TEST_MODULE = "../parser/"
+
+
 
 class LexerTestCase(unittest.TestCase):
 
