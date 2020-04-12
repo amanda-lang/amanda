@@ -1,7 +1,7 @@
 import unittest
 import os
-from lexer import Lexer
-from tokens import TokenType,Token
+from src.components.lexer import Lexer
+from src.components.tokens import TokenType,Token
 
 class LexerTestCase(unittest.TestCase):
 
@@ -97,4 +97,5 @@ class LexerTestCase(unittest.TestCase):
         self.assertEqual(token.token,TokenType.LPAR,msg="LPAR Test Failed")
         self.assertEqual(token.lexeme,"(",msg="LPAR value test Failed")
 
-unittest.main()
+if __name__=="__main__":
+    unittest.main()
