@@ -1,4 +1,4 @@
-from .tokens import TokenType,Token
+from parser.tokens import TokenType,Token
 
 
 class Lexer:
