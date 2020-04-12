@@ -1,4 +1,0 @@
-decl int a;
-decl int b;
-a = 2+4;
-b = a+100;
