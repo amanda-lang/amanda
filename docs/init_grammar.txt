@@ -1,0 +1,9 @@
+<program> := <instruction>
+<instruction> := { <expression> SEMI }
+<operator> := PLUS | MINUS | STAR | SLASH | MODULO
+<constant> := INTEGER
+<sign> := + | -
+<expression> := LPAR <expression> RPAR <expression_end> | <constant>  <expression_end>
+                | <sign> <constant>  <expression_end>
+
+<expression_end> := <operator> <expression> <expression_end> | EMPTY
