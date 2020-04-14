@@ -63,7 +63,7 @@ class LexerTestCase(unittest.TestCase):
         self.assertEqual(token.lexeme,'"Ramboeiro"',msg="STRING value Test Failed")
 
     def test_identifier(self):
-        self.test_file.write("_test1\ntest\ntest2\n__test3\ndecl")
+        self.test_file.write("_test1\ntest\ntest2\n__test3\ndecl\nmostra")
         self.test_file.close()
         lexer = Lexer("sample.pts")
         token = lexer.get_next_token()
@@ -79,8 +79,11 @@ class LexerTestCase(unittest.TestCase):
         self.assertEqual(token.token,TokenType.IDENTIFIER,msg="ID Test Failed")
         self.assertEqual(token.lexeme,"__test3",msg="ID value test Failed")
         token = lexer.get_next_token()
-        self.assertEqual(token.token,TokenType.DECL,msg="ID Test Failed")
-        self.assertEqual(token.lexeme,"decl",msg="ID value test Failed")
+        self.assertEqual(token.token,TokenType.DECL,msg="DECL Test Failed")
+        self.assertEqual(token.lexeme,"decl",msg="DECL value test Failed")
+        token = lexer.get_next_token()
+        self.assertEqual(token.token,TokenType.MOSTRA,msg="ID Test Failed")
+        self.assertEqual(token.lexeme,"mostra",msg="MOSTRA value test Failed")
 
     def test_delimeters(self):
         self.test_file.write(".\n,\n;\n)\n(\n")
