@@ -1,0 +1,46 @@
+$* this is
+a multiline comment *$
+
+
+
+$ This is a variable declaration
+decl int a;
+
+$ or this
+declara int b;
+
+$ this is an array
+vector int aug[3];
+
+$ this is an assignment
+a recebe 10;
+
+
+
+$ or short form
+b = 90 + a;
+
+$ Expressions
+b recebe (2+a)*b; $ Don't forget the semi!!!!!
+b = b*2;
+
+
+
+$ function declarations
+defina soma(int a,int b):int {
+
+  retorna a+b;
+}
+
+$ or for 'procedure'
+defina divisao(int a,int b){
+
+  decl real resultado = a/b;
+  mostra resultado;
+}
+
+
+$ Function call
+
+mostra soma(a+b,b);
+divisao(a,b);

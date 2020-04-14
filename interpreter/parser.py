@@ -133,13 +133,6 @@ class Parser:
         return node
 
 
-    def expression_end(self):
-        current = self.lookahead.token
-        if current in (TT.PLUS, TT.MINUS, TT.STAR, TT.SLASH, TT.MODULO):
-            self.operator()
-            self.expression()
-            self.expression_end()
-
     def mult_operator(self):
         current = self.lookahead.token
         if current == TT.STAR:

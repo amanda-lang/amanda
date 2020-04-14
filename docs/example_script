@@ -1,6 +1,0 @@
-
-decl int a;
-decl int b;
-a = 10;
-b = 90;
-mostra(a+b);
