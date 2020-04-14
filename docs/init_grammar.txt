@@ -2,8 +2,9 @@
 <block> :=  (<expression>|<statement) SEMI <block> | EMPTY
 <statement> := <mostra_statement>
 <mostra_statement> := mostra <expression>
-<expression> := LPAR <expression> RPAR <expression_end> | <sign> <expression>  <expression_end>
-                | INTEGER <expression_end>
+<expression> := <term> {<add_operator> <term>}*
+ <term> := <factor> {<multi_operator> <term>}*
+ <factor> := INTEGER | LPAR <expression> RPAR | <add_operator> <factor>
 <expression_end> := <operator> <expression> <expression_end> | EMPTY
-<operator> := <sign> | STAR | SLASH | MODULO
-<sign> := PLUS | MINUS
+mult_operator := STAR | SLASH | MODULO
+<add_operator> := PLUS | MINUS
