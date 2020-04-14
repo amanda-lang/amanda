@@ -1,7 +1,7 @@
 import unittest
 from interpreter.lexer import Lexer
 from interpreter.tests.test_lexer import LexerTestCase
-
+from interpreter.parser import Parser
 TEST_FILE = "./interpreter/test.pts"
 
 
@@ -17,5 +17,12 @@ def run_tests():
     unittest.main()
 
 
+def run_parser():
+    lexer = Lexer(TEST_FILE)
+    parser = Parser(lexer)
+    parser.parse()
 
-run_tests()
+
+
+run_parser()
+#run_tests()

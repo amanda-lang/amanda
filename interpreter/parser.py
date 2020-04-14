@@ -1,5 +1,46 @@
 from interpreter.lexer import Lexer
 from interpreter.tokens import TokenType as TT
+from interpreter.tokens import Token
+
+
+
+#Base class for all ASTNodes
+class ASTNode:
+
+    def __init__(self,token=None):
+        self.token = token
+
+# Class for all binary operations
+class BinOpNode(ASTNode):
+    def __init__(self,token,left,right):
+        super().__init__(token)
+        self.right = right
+        self.left = left
+
+
+class Block(ASTNode):
+    def __init__(self):
+        self.children = []
+
+    def add_child(self,node):
+        self.children.append(node)
+
+#Base class for visitor objects
+class Visitor:
+
+    ''' Dispatcher method that chooses the correct
+        visiting method'''
+
+    def visit(self,node):
+        node_class = type(node).__name__
+        method_name = f"visit_{node_class}"
+        visitor_method = getattr(self,method_name,self.bad_visit)
+        return visitor_method(node)
+
+    def bad_visit(self,node):
+        raise Exception("Unkwown node type")
+
+
 
 
 '''*Class used to parse input file
@@ -11,14 +52,17 @@ class Parser:
     def __init__(self,lexer):
         self.lexer = lexer
         self.lookahead = lexer.get_token()
-        #Start parsing from program
-        self.program()
 
     def consume(self,token_t):
         if self.lookahead.token == token_t:
             print(f"Parser consumed {token_t}")
             self.lookahead = self.lexer.get_token()
-        raise Exception(f"ParseError: expected {token_t.value} but got {self.lookahead.token.value}")
+        else:
+            raise Exception(f"ParseError: expected {token_t.value} but got {self.lookahead.token.value} on line {self.lexer.line}")
+
+    #function that triggers parsing
+    def parse(self):
+        self.program()
 
     def program(self):
         self.block()
@@ -91,3 +135,23 @@ class Parser:
             self.consume(TT.PLUS)
         elif current == TT.MINUS:
             self.consume(TT.MINUS)
+
+
+'''
+*interpreter class contains everything needed
+*to run a PTScript
+*it is a high-level interpreter and it is
+* not designed for powerful stuff
+'''
+
+class PTInterpreter(Visitor):
+
+    def __init__(self,parser):
+        self.parser = parser
+        self.program = self.parser.parse()
+
+    def execute(self):
+        self.visit(self.program)
+
+    def visit_BinOpNode(self,node):
+        pass
