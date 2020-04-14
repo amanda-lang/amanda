@@ -32,6 +32,7 @@ class TokenType(Enum):
 
     #KEYWORDS
     DECL = "DECL"
+    MOSTRA = "MOSTRA"
 
 class Token:
     def __init__(self,token,lexeme):
