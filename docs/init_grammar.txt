@@ -2,7 +2,7 @@
 <block> :=  <expression> SEMI <block> | <statement> SEMI <block> | EMPTY
 <operator> := PLUS | MINUS | STAR | SLASH | MODULO
 <constant> := INTEGER
-<sign> := + | -
+<sign> := PLUS | MINUS
 <expression> := LPAR <expression> RPAR <expression_end> | {<sign>} <expression>  <expression_end>
                 | <constant> <expression_end>
 <expression_end> := <operator> <expression> <expression_end> | EMPTY

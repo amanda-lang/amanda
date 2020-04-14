@@ -1,4 +1,6 @@
+import os
 from parser.tokens import TokenType,Token
+
 
 
 class Lexer:
@@ -181,14 +183,3 @@ class Lexer:
         if self.current_char == Lexer.EOF:
             return Token(Lexer.EOF,"")
         self.error()
-
-
-
-
-
-if __name__ == "__main__":
-    lexer = Lexer("test.pts")
-    token = lexer.get_next_token()
-    while token.token != Lexer.EOF:
-        print(token)
-        token = lexer.get_next_token()
