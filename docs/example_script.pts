@@ -4,13 +4,13 @@ a multiline comment *$
 
 
 $ This is a variable declaration
-decl int a;
+declara int a;
 
-$ or this
-declara int b;
+$ or short form
+decl int b;
 
 $ this is an array
-vector int aug[3];
+vector int vet[3];
 
 $ this is an assignment
 a recebe 10;
@@ -35,9 +35,15 @@ defina soma(int a,int b):int {
 $ or for 'procedure'
 defina divisao(int a,int b){
 
-  decl real resultado = a/b;
-  mostra resultado;
+  mostra a/b;
 }
+
+$ or short form
+def divisao(int a,int b){
+
+  mostra a/b;
+}
+
 
 
 $ Function call

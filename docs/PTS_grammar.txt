@@ -3,14 +3,22 @@ program
   ;
 
 block
-  : ((expression|statement) SEMI )*
+  : ((expression | statement |function_declaration) SEMI )*
   ;
 
 statement
-  :
-  | declaration
-  | function_declaration
+  : declaration
+  | assignment_statement
   | mostra_statement
+  | retorna_statement
+  ;
+
+assignment_statement
+  : IDENTIFIER EQUAL expression
+  ;
+
+retorna_statement
+  : RETORNA expression
   ;
 
 mostra_statement
@@ -27,6 +35,7 @@ term
 
 factor
   : INTEGER
+  | DECIMAL
   | LPAR expression RPAR
   | add_operator factor
   | IDENTIFIER (LPAR actual_parameters? RPAR)?
@@ -53,7 +62,7 @@ declaration
   ;
 
 simple_declaration
-  : DECL type IDENTIFIER
+  : DECL type IDENTIFIER (EQUAL expression)?
   ;
 
 array_declaration
@@ -67,6 +76,9 @@ type
 function_declaration
   : DEFINA IDENTIFIER LPAR formal_parameter_section? RPAR (DOUBLECOL type)? LBRACES function_block RBRACES
   ;
+
+function_block
+  : ((expression | statement)  SEMI )*
 
 formal_parameter_section
   : type IDENTIFIER (COMMA type IDENTIFIER)*
