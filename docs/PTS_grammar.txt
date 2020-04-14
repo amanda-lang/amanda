@@ -6,24 +6,6 @@ block
   : ((expression|statement) SEMI )*
   ;
 
-type
-  : IDENTIFIER
-  ;
-
-
-simple_declaration
-  : DECL type IDENTIFIER
-  ;
-
-array_declaration
-  : VECTOR type IDENTIFIER LBRACKETS [ INTEGER ]
-  ;
-
-declaration
-  : simple_declaration
-  | array_declaration
-  ;
-
 statement
   :
   | declaration
@@ -43,16 +25,15 @@ term
   : factor (multi_operator term)*
   ;
 
-
-actual_parameters
-  : IDENTIFIER (COMMA IDENTIFIER)*
-  ;
-
 factor
   : INTEGER
   | LPAR expression RPAR
   | add_operator factor
   | IDENTIFIER (LPAR actual_parameters? RPAR)?
+  ;
+
+actual_parameters
+  : IDENTIFIER (COMMA IDENTIFIER)*
   ;
 
 mult_operator
@@ -66,12 +47,27 @@ add_operator
   | MINUS
   ;
 
-
-formal_parameter_section
-  : type IDENTIFIER (COMMA type IDENTIFIER)*
+declaration
+  : simple_declaration
+  | array_declaration
   ;
 
+simple_declaration
+  : DECL type IDENTIFIER
+  ;
+
+array_declaration
+  : VECTOR type IDENTIFIER LBRACKETS INTEGER RBRACKETS
+  ;
+
+type
+  : IDENTIFIER
+  ;
 
 function_declaration
   : DEFINA IDENTIFIER LPAR formal_parameter_section? RPAR (DOUBLECOL type)? LBRACES function_block RBRACES
+  ;
+
+formal_parameter_section
+  : type IDENTIFIER (COMMA type IDENTIFIER)*
   ;
