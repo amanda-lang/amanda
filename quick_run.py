@@ -7,7 +7,7 @@ TEST_FILE = "./interpreter/test.pts"
 
 def run_lexer():
     lexer = Lexer(TEST_FILE)
-    token = lexer.get_next_token()
+    token = lexer.get_token()
     while token.token != Lexer.EOF:
         print(token)
         token = lexer.get_next_token()
