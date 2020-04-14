@@ -1,9 +1,9 @@
 <program> := <block>
-<block> :=  (<expression>|<statement) SEMI <block> | EMPTY
+<block> :=  ((<expression>|<statement) SEMI )*
 <statement> := <mostra_statement>
 <mostra_statement> := mostra <expression>
-<expression> := <term> {<add_operator> <term>}*
- <term> := <factor> {<multi_operator> <term>}*
+<expression> := <term> (<add_operator> <term>)*
+ <term> := <factor> (<multi_operator> <term>)*
  <factor> := INTEGER | LPAR <expression> RPAR | <add_operator> <factor>
 <expression_end> := <operator> <expression> <expression_end> | EMPTY
 mult_operator := STAR | SLASH | MODULO

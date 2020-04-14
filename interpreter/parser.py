@@ -12,10 +12,16 @@ class ASTNode:
 
 # Class for all binary operations
 class BinOpNode(ASTNode):
-    def __init__(self,token,left,right):
+    def __init__(self,token,left=None,right=None):
         super().__init__(token)
         self.right = right
         self.left = left
+
+
+class NumNode(ASTNode):
+    def __init__(self,token):
+        super().__init__(token)
+        self.value = int(self.token.lexeme)
 
 
 class Block(ASTNode):
@@ -32,7 +38,7 @@ class Visitor:
         visiting method'''
 
     def visit(self,node):
-        node_class = type(node).__name__
+        node_class = type(node).__name__.lower
         method_name = f"visit_{node_class}"
         visitor_method = getattr(self,method_name,self.bad_visit)
         return visitor_method(node)
@@ -62,23 +68,23 @@ class Parser:
 
     #function that triggers parsing
     def parse(self):
-        self.program()
+        program = self.program()
+        return program
 
     def program(self):
-        self.block()
+        return self.block()
 
     def block(self):
+        block_node = Block()
         current = self.lookahead.token
-        if ( current in (TT.LPAR,TT.PLUS,
-            TT.MINUS,TT.INTEGER) ):
-            self.expression()
+        while current in (TT.LPAR,TT.INTEGER,TT.MOSTRA):
+            if current in (TT.LPAR,TT.INTEGER):
+                block_node.add_child(self.expression())
+            elif current == TT.MOSTRA:
+                block_node.add_child(self.statement())
             self.consume(TT.SEMI)
-            self.block()
-
-        elif current == TT.MOSTRA:
-            self.statement()
-            self.consume(TT.SEMI)
-            self.block()
+            current = self.lookahead.token
+        return block_node
 
     def statement(self):
         current = self.lookahead.token
@@ -91,23 +97,40 @@ class Parser:
 
 
     def expression(self):
+        node = self.term()
         current = self.lookahead.token
-        if current == TT.LPAR:
-            self.consume(TT.LPAR)
-            self.expression()
-            self.consume(TT.RPAR)
-            self.expression_end()
+        while current in (TT.PLUS,TT.MINUS):
+            op = self.lookahead
+            node = BinOpNode(current,left=node)
+            self.add_operator()
+            node.right = self.term()
+            current = self.lookahead.token
+        return node
 
-        elif current in (TT.PLUS,TT.MINUS):
-            self.sign()
-            self.expression()
-            self.expression_end()
+    def term(self):
+        node = self.factor()
+        current = self.lookahead.token
+        while current in (TT.STAR,TT.SLASH,TT.MODULO):
+            op = self.lookahead
+            node = BinOpNode(current,left=node)
+            self.mult_operator()
+            node.right = self.term()
+            current = self.lookahead.token
+        return node
 
-        elif current == TT.INTEGER:
+    def factor(self):
+        current = self.lookahead.token
+        node = None
+        if current == TT.INTEGER:
+            node = NumNode(self.lookahead)
             self.consume(TT.INTEGER)
-            self.expression_end()
+        elif current == TT.LPAR:
+            self.consume(TT.LPAR)
+            node = self.expression()
+            self.consume(TT.RPAR)
         else:
             raise Exception("ParseError: Illegal start of expression")
+        return node
 
 
     def expression_end(self):
@@ -117,11 +140,9 @@ class Parser:
             self.expression()
             self.expression_end()
 
-    def operator(self):
+    def mult_operator(self):
         current = self.lookahead.token
-        if current in (TT.PLUS,TT.MINUS):
-            self.sign()
-        elif current == TT.STAR:
+        if current == TT.STAR:
             self.consume(TT.STAR)
         elif current == TT.SLASH:
             self.consume(TT.SLASH)
@@ -129,7 +150,7 @@ class Parser:
             self.consume(TT.MODULO)
 
 
-    def sign(self):
+    def add_operator(self):
         current = self.lookahead.token
         if current == TT.PLUS:
             self.consume(TT.PLUS)
@@ -153,5 +174,5 @@ class PTInterpreter(Visitor):
     def execute(self):
         self.visit(self.program)
 
-    def visit_BinOpNode(self,node):
+    def visit_Binopnode(self,node):
         pass
