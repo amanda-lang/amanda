@@ -7,7 +7,7 @@ class Lexer:
     EOF = "__eof__"
 
     def __init__(self,src_file):
-        self.line = 1
+        self.line = 0
         self.pos = -1
         self.file = open(src_file,"r")
         self.current_token = None
@@ -152,7 +152,7 @@ class Lexer:
 
 
 
-    def get_next_token(self):
+    def get_token(self):
         if self.current_char.isspace():
             self.whitespace()
 
