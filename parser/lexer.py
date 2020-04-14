@@ -126,6 +126,8 @@ class Lexer:
             self.advance()
         if result == "decl":
             return Token(TokenType.DECL,"decl")
+        elif result == "mostra":
+            return Token(TokenType.MOSTRA,"mostra")
         return Token(TokenType.IDENTIFIER,result)
 
     def delimeters(self):
