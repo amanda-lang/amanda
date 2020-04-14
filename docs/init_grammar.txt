@@ -1,10 +1,9 @@
 <program> := <block>
-<block> :=  <expression> SEMI <block> | <statement> SEMI <block> | EMPTY
-<operator> := PLUS | MINUS | STAR | SLASH | MODULO
-<constant> := INTEGER
-<sign> := PLUS | MINUS
-<expression> := LPAR <expression> RPAR <expression_end> | {<sign>} <expression>  <expression_end>
-                | <constant> <expression_end>
-<expression_end> := <operator> <expression> <expression_end> | EMPTY
+<block> :=  (<expression>|<statement) SEMI <block> | EMPTY
 <statement> := <mostra_statement>
 <mostra_statement> := mostra <expression>
+<expression> := LPAR <expression> RPAR <expression_end> | <sign> <expression>  <expression_end>
+                | INTEGER <expression_end>
+<expression_end> := <operator> <expression> <expression_end> | EMPTY
+<operator> := <sign> | STAR | SLASH | MODULO
+<sign> := PLUS | MINUS
