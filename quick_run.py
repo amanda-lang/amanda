@@ -1,9 +1,21 @@
-from parser.lexer import Lexer
-TEST_FILE = "./parser/test.pts"
+import unittest
+from interpreter.lexer import Lexer
+from interpreter.tests.test_lexer import LexerTestCase
 
-if __name__ == "__main__":
+TEST_FILE = "./interpreter/test.pts"
+
+
+def run_lexer():
     lexer = Lexer(TEST_FILE)
     token = lexer.get_next_token()
     while token.token != Lexer.EOF:
         print(token)
         token = lexer.get_next_token()
+
+
+def run_tests():
+    unittest.main()
+
+
+
+run_tests()

@@ -1,5 +1,5 @@
 import os
-from parser.tokens import TokenType,Token
+from interpreter.tokens import TokenType,Token
 
 
 

@@ -1,8 +1,8 @@
 import unittest
 import os
 import sys
-from parser.lexer import Lexer
-from parser.tokens import TokenType,Token
+from interpreter.lexer import Lexer
+from interpreter.tokens import TokenType,Token
 
 TEST_MODULE = "../parser/"
 
