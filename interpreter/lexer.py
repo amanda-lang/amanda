@@ -1,6 +1,6 @@
 import os
 from interpreter.tokens import TokenType,Token
-
+from interpreter.tokens import KEYWORDS as TK_KEYWORDS
 
 
 class Lexer:
@@ -11,9 +11,12 @@ class Lexer:
         self.pos = -1
         self.file = open(src_file,"r")
         self.current_token = None
-        self.current_char = self.file.read(1)
+        self.current_char = None
+        self.advance()
 
     def advance(self):
+        if self.current_char == Lexer.EOF:
+            return
         self.current_char = self.file.read(1)
         if self.current_char == "":
             self.current_char = Lexer.EOF
@@ -24,16 +27,45 @@ class Lexer:
         self.file.seek(last_position)
         return next_char
 
-    def error(self):
-        raise Exception("Error during lexing phase")
+    def error(self,message):
+        raise Exception(message)
 
 
 
     def whitespace(self):
-        while self.current_char.isspace() and self.current_char is not None:
+        while self.current_char.isspace() and self.current_char != Lexer.EOF:
             if self.current_char == "\n":
                 self.line += 1
             self.advance()
+        if self.current_char == "$":
+            self.comment()
+
+    def comment(self):
+        if self.Lookahead() == "*":
+            #Advance past *
+            self.advance()
+            self.advance()
+            while True:
+                if self.current_char == "*" and self.Lookahead()=="$":
+                    #Skip the $
+                    self.advance()
+                    self.advance()
+                    if self.current_char.isspace():
+                        self.whitespace()
+                    break
+                elif self.current_char == Lexer.EOF:
+                    break
+                elif self.current_char == "\n":
+                    self.line += 1
+                self.advance()
+            #Advance twice to skip  * and $
+        else:
+            while self.current_char != "\n" and self.current_char != Lexer.EOF:
+                self.advance()
+            if self.current_char == "\n":
+                self.whitespace()
+
+
 
     def arit_operators(self):
         if self.current_char == "+":
@@ -126,10 +158,8 @@ class Lexer:
         while self.current_char.isalnum() or self.current_char == "_":
             result += self.current_char
             self.advance()
-        if result == "decl":
-            return Token(TokenType.DECL,"decl")
-        elif result == "mostra":
-            return Token(TokenType.MOSTRA,"mostra")
+        if TK_KEYWORDS.get(result) is not None:
+            return TK_KEYWORDS.get(result)
         return Token(TokenType.IDENTIFIER,result)
 
     def delimeters(self):
@@ -149,13 +179,30 @@ class Lexer:
         elif self.current_char == ",":
             self.advance()
             return Token(TokenType.COMMA,char)
-
+        elif self.current_char == "{":
+            self.advance()
+            return Token(TokenType.LBRACE,char)
+        elif self.current_char == "}":
+            self.advance()
+            return Token(TokenType.RBRACE,char)
+        elif self.current_char == "[":
+            self.advance()
+            return Token(TokenType.LBRACKET,char)
+        elif self.current_char == "]":
+            self.advance()
+            return Token(TokenType.RBRACKET,char)
+        elif self.current_char == ":":
+            self.advance()
+            return Token(TokenType.COLON,char)
 
 
     def get_token(self):
+
+        if self.current_char == "$":
+            self.comment()
+
         if self.current_char.isspace():
             self.whitespace()
-
         #arit_operators
         if self.current_char in ["+","-","*","/","%"]:
             return self.arit_operators()
@@ -177,9 +224,11 @@ class Lexer:
             return self.identifier()
 
         #delims
-        if self.current_char in ["(",")",".",";",","]:
+        if ( self.current_char in ( "(",")",".",";",","
+            ,"{","}","[","]",":" ) ):
             return self.delimeters()
 
         if self.current_char == Lexer.EOF:
+            self.file.close()
             return Token(Lexer.EOF,"")
-        self.error()
+        self.error("Error during tokenization")

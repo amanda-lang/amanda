@@ -44,4 +44,4 @@ LBRACE : {
 RBRACE : }
 LBRACKET : [
 RBRACKET : ]
-CIFRÃO : $
+COLON : ":"

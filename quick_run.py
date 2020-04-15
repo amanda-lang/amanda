@@ -2,7 +2,7 @@ import unittest
 from interpreter.lexer import Lexer
 from interpreter.tests.test_lexer import LexerTestCase
 from interpreter.parser import Parser
-TEST_FILE = "./interpreter/test.pts"
+TEST_FILE = "./docs/hello_world.pts"
 
 
 def run_lexer():
@@ -10,7 +10,7 @@ def run_lexer():
     token = lexer.get_token()
     while token.token != Lexer.EOF:
         print(token)
-        token = lexer.get_next_token()
+        token = lexer.get_token()
 
 
 def run_tests():
@@ -25,4 +25,5 @@ def run_parser():
 
 
 #run_parser()
-run_tests()
+#run_tests()
+run_lexer()

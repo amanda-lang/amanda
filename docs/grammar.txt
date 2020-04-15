@@ -85,4 +85,4 @@ formal_parameter_section
   ;
 
 COMMENT:
-  : ($ ANYTHING $  | $* ANYTHING *$)
+  : ("$" ANYTHING "$"  | "$*" ANYTHING "*$")

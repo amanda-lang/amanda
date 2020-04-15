@@ -20,7 +20,11 @@ class TokenType(Enum):
     DOT = "DOT"
     SEMI = "SEMI"
     COMMA = "COMMA"
-
+    LBRACE = "LBRACE"
+    RBRACE = "RBRACE"
+    LBRACKET = "LBRACKET"
+    RBRACKET = "RBRACKET"
+    COLON = "COLON"
     #LOGIC OP
     LESS = "LESS"
     GREATER = "GREATER"
@@ -33,6 +37,10 @@ class TokenType(Enum):
     #KEYWORDS
     DECL = "DECL"
     MOSTRA = "MOSTRA"
+    VERDADEIRO = "VERDADEIRO"
+    FALSO = "FALSO"
+    RETORNA = "RETORNA"
+    DEFINA = "DEFINA"
 
 class Token:
     def __init__(self,token,lexeme):
@@ -41,3 +49,15 @@ class Token:
 
     def __str__(self):
         return "<Type: %s, Lexeme: %s>"%(self.token.value,self.lexeme)
+
+KEYWORDS = {
+    "decl" : Token(TokenType.DECL,"decl"),
+    "defina" : Token(TokenType.DEFINA,"defina"),
+    "def" : Token(TokenType.DEFINA,"defina"),
+    "declara": Token(TokenType.DECL,"declara"), #Same as decl
+    "mostra": Token(TokenType.MOSTRA,"mostra"),
+    "verdadeiro": Token(TokenType.VERDADEIRO,"verdadeiro"),
+    "falso": Token(TokenType.FALSO,"falso"),
+    "recebe": Token(TokenType.EQUAL,"recebe") , # same as equals
+    "retorna": Token(TokenType.RETORNA,"retorna"),
+}
