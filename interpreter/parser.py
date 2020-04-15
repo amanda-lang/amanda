@@ -1,35 +1,9 @@
 from interpreter.lexer import Lexer
 from interpreter.tokens import TokenType as TT
 from interpreter.tokens import Token
+import interpreter.ast_nodes as AST
 
 
-
-#Base class for all ASTNodes
-class ASTNode:
-
-    def __init__(self,token=None):
-        self.token = token
-
-# Class for all binary operations
-class BinOpNode(ASTNode):
-    def __init__(self,token,left=None,right=None):
-        super().__init__(token)
-        self.right = right
-        self.left = left
-
-
-class NumNode(ASTNode):
-    def __init__(self,token):
-        super().__init__(token)
-        self.value = int(self.token.lexeme)
-
-
-class Block(ASTNode):
-    def __init__(self):
-        self.children = []
-
-    def add_child(self,node):
-        self.children.append(node)
 
 #Base class for visitor objects
 class Visitor:
@@ -75,7 +49,7 @@ class Parser:
         return self.block()
 
     def block(self):
-        block_node = Block()
+        block_node = AST.Block()
         current = self.lookahead.token
         while current in (TT.LPAR,TT.INTEGER,TT.MOSTRA):
             if current in (TT.LPAR,TT.INTEGER):
@@ -101,7 +75,7 @@ class Parser:
         current = self.lookahead.token
         while current in (TT.PLUS,TT.MINUS):
             op = self.lookahead
-            node = BinOpNode(current,left=node)
+            node = AST.BinOpNode(current,left=node)
             self.add_operator()
             node.right = self.term()
             current = self.lookahead.token
@@ -112,7 +86,7 @@ class Parser:
         current = self.lookahead.token
         while current in (TT.STAR,TT.SLASH,TT.MODULO):
             op = self.lookahead
-            node = BinOpNode(current,left=node)
+            node = AST.BinOpNode(current,left=node)
             self.mult_operator()
             node.right = self.term()
             current = self.lookahead.token
@@ -122,7 +96,7 @@ class Parser:
         current = self.lookahead.token
         node = None
         if current == TT.INTEGER:
-            node = NumNode(self.lookahead)
+            node = AST.IntNode(self.lookahead)
             self.consume(TT.INTEGER)
         elif current == TT.LPAR:
             self.consume(TT.LPAR)

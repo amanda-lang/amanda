@@ -36,9 +36,10 @@ term
 factor
   : INTEGER
   | REAL
+  | STRING
   | LPAR expression RPAR
   | add_operator factor
-  | IDENTIFIER (LPAR actual_parameters? RPAR)?
+  | IDENTIFIER ( (LPAR actual_parameters? RPAR)? | ([INTEGER])? )
   ;
 
 actual_parameters
