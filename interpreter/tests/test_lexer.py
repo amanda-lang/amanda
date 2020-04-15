@@ -105,6 +105,9 @@ class LexerTestCase(unittest.TestCase):
         token = lexer.get_token()
         self.assertEqual(token.token,TokenType.DECL,msg="DECLARA Test Failed")
         self.assertEqual(token.lexeme,"declara",msg="DECLARA value test Failed")
+        token = lexer.get_token()
+        self.assertEqual(token.token,TokenType.VECTOR,msg="VECTOR Test Failed")
+        self.assertEqual(token.lexeme,"vector",msg="VECTOR value test Failed")
 
     def test_delimeters(self):
         self.test_file.write(".\n,\n;\n)\n(\n{\n}\n[\n]\n:")

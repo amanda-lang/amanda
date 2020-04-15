@@ -41,6 +41,7 @@ class TokenType(Enum):
     FALSO = "FALSO"
     RETORNA = "RETORNA"
     DEFINA = "DEFINA"
+    VECTOR = "VECTOR"
 
 class Token:
     def __init__(self,token,lexeme):
@@ -60,4 +61,5 @@ KEYWORDS = {
     "falso": Token(TokenType.FALSO,"falso"),
     "recebe": Token(TokenType.EQUAL,"recebe") , # same as equals
     "retorna": Token(TokenType.RETORNA,"retorna"),
+    "vector" : Token(TokenType.VECTOR,"vector")
 }

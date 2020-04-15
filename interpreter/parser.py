@@ -5,24 +5,6 @@ import interpreter.ast_nodes as AST
 
 
 
-#Base class for visitor objects
-class Visitor:
-
-    ''' Dispatcher method that chooses the correct
-        visiting method'''
-
-    def visit(self,node):
-        node_class = type(node).__name__.lower
-        method_name = f"visit_{node_class}"
-        visitor_method = getattr(self,method_name,self.bad_visit)
-        return visitor_method(node)
-
-    def bad_visit(self,node):
-        raise Exception("Unkwown node type")
-
-
-
-
 '''*Class used to parse input file
    *Each method of this file is a rule defined in the grammar '''
 
@@ -51,7 +33,7 @@ class Parser:
     def block(self):
         block_node = AST.Block()
         current = self.lookahead.token
-        while current in (TT.LPAR,TT.INTEGER,TT.MOSTRA):
+        while ( current in (TT.LPAR,TT.INTEGER,TT.MOSTRA,TT.VEC) ):
             if current in (TT.LPAR,TT.INTEGER):
                 block_node.add_child(self.expression())
             elif current == TT.MOSTRA:
@@ -132,7 +114,7 @@ class Parser:
 * not designed for powerful stuff
 '''
 
-class PTInterpreter(Visitor):
+class PTInterpreter(AST.Visitor):
 
     def __init__(self,parser):
         self.parser = parser
