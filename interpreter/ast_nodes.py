@@ -82,10 +82,11 @@ class FunctionCall(ExpNode):
         self.fargs = fargs
 
 class FunctionDecl(ASTNode):
-    def __init__(self,token,type=None,params=None):
+    def __init__(self,token,block=None,type=None,params=None):
         super().__init__(token)
         self.params = params
         self.type = type
+        self.block = block
 
 class ParamNode(ASTNode):
     def __init__(self,token,identifier=None):

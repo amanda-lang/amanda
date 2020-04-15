@@ -8,13 +8,8 @@ block
 
 statement
   : declaration
-  | assignment_statement
   | mostra_statement
   | retorna_statement
-  ;
-
-assignment_statement
-  : IDENTIFIER EQUAL expression
   ;
 
 retorna_statement
@@ -39,11 +34,23 @@ factor
   | STRING
   | LPAR expression RPAR
   | add_operator factor
-  | IDENTIFIER ( (LPAR actual_parameters? RPAR)? | ([INTEGER])? )
+  | IDENTIFIER ( function_call | array_ref | assignment ) ?
+  ;
+
+function_call
+  : LPAR actual_parameters? RPAR
+  ;
+
+array_ref
+  : LBRACKET expression RBRACKET
   ;
 
 actual_parameters
-  : IDENTIFIER (COMMA IDENTIFIER)*
+  : expression (COMMA expression)*
+  ;
+
+assignment
+  : EQUAL expression
   ;
 
 mult_operator
@@ -67,7 +74,7 @@ simple_declaration
   ;
 
 array_declaration
-  : VECTOR type IDENTIFIER LBRACKET INTEGER RBRACKET
+  : VECTOR type IDENTIFIER LBRACKET expression RBRACKET
   ;
 
 type
@@ -79,7 +86,7 @@ function_declaration
   ;
 
 function_block
-  : ((expression | statement)  SEMI )*
+  : ( ( expression | statement)  SEMI )*
 
 formal_parameter_section
   : type IDENTIFIER (COMMA type IDENTIFIER)*
