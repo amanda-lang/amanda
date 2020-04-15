@@ -52,23 +52,52 @@ class VarRefNode(ExpNode):
     def __init__(self,token):
         super().__init__(token)
 
-class VarDeclNode(ExpNode):
+class VarDeclNode(ASTNode):
     def __init__(self,token,type=None,identifier=None):
         super().__init__(token)
         self.type = type
         self.id = identifier
 
 class ArrayDeclNode(ASTNode):
-    def __init__(self,token,type=None,identifier=None,size=0):
+    def __init__(self,token,type=None,size=0):
         super().__init__(token)
         self.type = type
-        self.id = identifier
+        self.id = self.token
         self.size = 0
 
 class AssignNode(ASTNode):
-    def __init__(self,token,t):
+    def __init__(self,token,left=None,right=None):
         super().__init__(token)
+        self.left = left
+        self.right = right
 
+class Statement(ASTNode):
+    def __init__(self,token,exp=None):
+        super().__init__(token)
+        self.exp = exp
+
+class FunctionCall(ExpNode):
+    def __init__(self,token=None,fargs=None):
+        super().__init__(token)
+        self.fargs = fargs
+
+class FunctionDecl(ASTNode):
+    def __init__(self,token,type=None,params=None):
+        super().__init__(token)
+        self.params = params
+        self.type = type
+
+class ParamNode(ASTNode):
+    def __init__(self,token,identifier=None):
+        super().__init__(token)
+        self.type = self.token
+        self.id = identifier
+
+class ArrayRef(ExpNode):
+    def __init__(self,token,index=None):
+        super().__init__(token)
+        self.id = self.token
+        self.index = index
 
 
 
