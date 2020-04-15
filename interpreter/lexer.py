@@ -229,6 +229,7 @@ class Lexer:
             return self.delimeters()
 
         if self.current_char == Lexer.EOF:
-            self.file.close()
+            if self.file.readable():
+                self.file.close()
             return Token(Lexer.EOF,"")
         self.error("Error during tokenization")
