@@ -53,7 +53,7 @@ class Token:
 KEYWORDS = {
     "decl" : Token(TokenType.DECL,"decl"),
     "defina" : Token(TokenType.DEFINA,"defina"),
-    "def" : Token(TokenType.DEFINA,"defina"),
+    "def" : Token(TokenType.DEFINA,"def"),
     "declara": Token(TokenType.DECL,"declara"), #Same as decl
     "mostra": Token(TokenType.MOSTRA,"mostra"),
     "verdadeiro": Token(TokenType.VERDADEIRO,"verdadeiro"),
