@@ -46,7 +46,7 @@ class LexerTestCase(unittest.TestCase):
         self.assertEqual(token.token,TokenType.INTEGER,msg="INTEGER Test Failed")
         self.assertEqual(int(token.lexeme),3242131,msg="INTEGER Test Failed")
         token = lexer.get_token()
-        self.assertEqual(token.token,TokenType.DECIMAL,msg="REAL Test Failed")
+        self.assertEqual(token.token,TokenType.REAL,msg="REAL Test Failed")
         self.assertEqual(float(token.lexeme),234.21234,msg="REAL Test Failed")
 
 

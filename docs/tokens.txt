@@ -16,17 +16,21 @@ NOTEQUAL : !=
 DOUBLEEQUAL : ==
 
 *ASSIGNMENT*
-EQUAL : =
+EQUAL : = | recebe
 
 *KEYWORDS*
-DECL : decl
-MOSTRA : mosta
+DECL : decl | declara
+MOSTRA : mostra
+VERDADEIRO : verdadeiro
+FALSO : falso
+RECEBE : recebe
+RETORNA : retorna
 
 
 
 *OPERANDS*
 INTEGER : [0-9]+ -> 122324242
-DECIMAL : [0-9]+(.)[0-9]+ -> 23.4
+REAL : [0-9]+(.)[0-9]+ -> 23.4
 STRING : ("|') ([0-9]|EVERY_ASCII)* ("|')
 IDENTIFIER: ([0-9]|_)([0-9]|[a-z]|[A-Z]|_)* -> _Stacks
 
@@ -36,3 +40,8 @@ RPAR : )
 DOT : .
 SEMI : ;
 COMMA : ,
+LBRACE : {
+RBRACE : }
+LBRACKET : [
+RBRACKET : ]
+CIFRÃO : $

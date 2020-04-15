@@ -103,7 +103,7 @@ class Lexer:
                     result += self.current_char
                     self.advance()
         if "." in result:
-            return Token(TokenType.DECIMAL,float(result))
+            return Token(TokenType.REAL,float(result))
         return Token(TokenType.INTEGER,int(result))
 
 

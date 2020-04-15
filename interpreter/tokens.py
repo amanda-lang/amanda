@@ -10,7 +10,7 @@ class TokenType(Enum):
 
     #OPERANDS
     INTEGER = "INTEGER"
-    DECIMAL = "DECIMAL"
+    REAL = "REAL"
     STRING = "STRING"
     IDENTIFIER = "IDENTIFIER"
 

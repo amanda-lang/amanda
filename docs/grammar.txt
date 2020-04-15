@@ -3,7 +3,7 @@ program
   ;
 
 block
-  : ((expression | statement |function_declaration) SEMI )*
+  : ( ((expression | statement) SEMI ) | function_declaration )*
   ;
 
 statement
@@ -35,7 +35,7 @@ term
 
 factor
   : INTEGER
-  | DECIMAL
+  | REAL
   | LPAR expression RPAR
   | add_operator factor
   | IDENTIFIER (LPAR actual_parameters? RPAR)?
@@ -66,7 +66,7 @@ simple_declaration
   ;
 
 array_declaration
-  : VECTOR type IDENTIFIER LBRACKETS INTEGER RBRACKETS
+  : VECTOR type IDENTIFIER LBRACKET INTEGER RBRACKET
   ;
 
 type
@@ -74,7 +74,7 @@ type
   ;
 
 function_declaration
-  : DEFINA IDENTIFIER LPAR formal_parameter_section? RPAR (DOUBLECOL type)? LBRACES function_block RBRACES
+  : DEFINA IDENTIFIER LPAR formal_parameter_section? RPAR (DOUBLECOL type)? LBRACE function_block RBRACE
   ;
 
 function_block
@@ -83,3 +83,6 @@ function_block
 formal_parameter_section
   : type IDENTIFIER (COMMA type IDENTIFIER)*
   ;
+
+COMMENT:
+  : ($ ANYTHING $  | $* ANYTHING *$)

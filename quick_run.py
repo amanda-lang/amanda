@@ -24,5 +24,5 @@ def run_parser():
 
 
 
-run_parser()
-#run_tests()
+#run_parser()
+run_tests()
