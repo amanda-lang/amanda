@@ -55,7 +55,7 @@ function_call
   ;
 
 array_ref
-  : LBRACKET expression RBRACKET
+  : LBRACKET expression RBRACKET EQUAL expression?
   ;
 
 actual_parameters

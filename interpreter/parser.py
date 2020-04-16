@@ -21,7 +21,7 @@ class Parser:
             print(f"Parser consumed {self.lookahead}")
             self.lookahead = self.lexer.get_token()
         else:
-            raise Exception(f"ParseError: expected {token_t.value} but got {self.lookahead.token.value} on line {self.lexer.line}")
+            raise Exception(f"ParseError: expected {token_t.value} but got {self.lookahead} on line {self.lexer.line}")
 
     #function that triggers parsing
     def parse(self):
@@ -135,6 +135,10 @@ class Parser:
                     self.consume(TT.LBRACKET)
                     node = AST.ArrayRef(id=token,index=self.expression())
                     self.consume(TT.RBRACKET)
+                    if self.lookahead.token ==TT.EQUAL:
+                        token = self.lookahead
+                        self.consume(TT.EQUAL)
+                        node = AST.AssignNode(token,left=node,right=self.expression())
                 elif self.lookahead.token == TT.EQUAL:
                     equal = self.lookahead
                     self.consume(TT.EQUAL)
