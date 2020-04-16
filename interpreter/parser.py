@@ -212,7 +212,7 @@ class Parser:
     def function_block(self):
         block_node = AST.Block()
         while ( self.lookahead.token in (TT.LPAR,TT.INTEGER,TT.MOSTRA,TT.RETORNA,
-                TT.IDENTIFIER,TT.VECTOR,TT.REAL,
+                TT.IDENTIFIER,TT.VECTOR,TT.REAL,TT.DECL,
                 TT.STRING,TT.PLUS,TT.MINUS) ):
             if (self.lookahead.token in (TT.LPAR,TT.INTEGER,TT.REAL,TT.STRING,
                 TT.IDENTIFIER,TT.PLUS,TT.MINUS)):

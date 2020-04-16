@@ -41,6 +41,51 @@ class ParserTestCase(unittest.TestCase):
         parser = Parser(Lexer(self.buffer))
         parser.parse()
 
+    def test_statement(self):
+        phrases = ["mostra 2-1;","retorna eval(2*1+((21-1)*12));","retorna a[0];",
+            "retorna a[0]=id;","mostra a+b-c*array[1]%(-a)/(-c)+eval(2+1,5);"
+        ]
+        for phrase in phrases:
+            print(phrase,file=self.buffer)
+        #self.buffer.writelines(phrases)
+        self.buffer.seek(0)
+        parser = Parser(Lexer(self.buffer))
+        parser.parse()
+
+    def test_function_decl(self):
+        phrases = ['''
+            defina test(int a,int b): int{
+                2-1;
+                decl int soma = a+b;
+                mostra a+b-c*array[1]%(-a)/(-c)+eval(2+1,5);
+                retorna -soma+(2*2%1);
+            }
+            def test(int a,int b): int{
+                2-1;
+                decl int soma = a+b;
+                mostra a+b-c*array[1]%(-a)/(-c)+eval(2+1,5);
+                retorna -soma+(2*2%1);
+            }
+            defina test(int a,int b): int{
+            }
+            defina test(): int{
+            }
+            defina test(){
+            }
+            def test(int a,int b){
+            }
+            def test(int a,int b,real c,string c){
+            }
+        '''
+        ]
+        for phrase in phrases:
+            print(phrase,file=self.buffer)
+        #self.buffer.writelines(phrases)
+        self.buffer.seek(0)
+        parser = Parser(Lexer(self.buffer))
+        parser.parse()
+
+
 
 
 if __name__=="__main__":
