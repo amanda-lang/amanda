@@ -12,6 +12,19 @@ statement
   | retorna_statement
   ;
 
+declaration
+  : var_declaration
+  | array_declaration
+  ;
+
+var_declaration
+  : DECL type IDENTIFIER assignment?
+  ;
+
+array_declaration
+  : VECTOR type IDENTIFIER LBRACKET expression RBRACKET
+  ;
+
 retorna_statement
   : RETORNA expression
   ;
@@ -64,25 +77,13 @@ add_operator
   | MINUS
   ;
 
-declaration
-  : simple_declaration
-  | array_declaration
-  ;
-
-simple_declaration
-  : DECL type IDENTIFIER (EQUAL expression)?
-  ;
-
-array_declaration
-  : VECTOR type IDENTIFIER LBRACKET expression RBRACKET
-  ;
 
 type
   : IDENTIFIER
   ;
 
 function_declaration
-  : DEFINA IDENTIFIER LPAR formal_parameter_section? RPAR (DOUBLECOL type)? LBRACE function_block RBRACE
+  : DEFINA IDENTIFIER LPAR formal_parameter_section? RPAR (COL type)? LBRACE function_block RBRACE
   ;
 
 function_block

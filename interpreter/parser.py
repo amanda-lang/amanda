@@ -33,23 +33,79 @@ class Parser:
     def block(self):
         block_node = AST.Block()
         current = self.lookahead.token
-        while ( current in (TT.LPAR,TT.INTEGER,TT.MOSTRA,TT.VEC) ):
-            if current in (TT.LPAR,TT.INTEGER):
+        while ( current in (TT.LPAR,TT.INTEGER,TT.MOSTRA,TT.RETORNA,
+                TT.DECL,TT.IDENTIFIER,TT.DEFINA,TT.VECTOR,
+                TT.REAL,TT.STRING,TT.PLUS,TT.MINUS) ):
+
+            if (current in (TT.LPAR,TT.INTEGER,TT.REAL,TT.STRING,
+                TT.IDENTIFIER,TT.PLUS,TT.MINUS)):
                 block_node.add_child(self.expression())
-            elif current == TT.MOSTRA:
+                self.consume(TT.SEMI)
+            elif current in (TT.MOSTRA,TT.RETORNA,TT.DECL,TT.VECTOR):
                 block_node.add_child(self.statement())
-            self.consume(TT.SEMI)
+                self.consume(TT.SEMI)
+            elif current == TT.DEFINA:
+                block_node.add_child(self.function_decl())
+
             current = self.lookahead.token
         return block_node
 
     def statement(self):
         current = self.lookahead.token
+        if current in (TT.DECL,TT.VECTOR):
+            return self.declaration()
         if current == TT.MOSTRA:
-            self.mostra_statement()
+            return self.mostra_statement()
+        elif current == TT.RETORNA:
+            return self.retorna_statement()
+
+    def declaration(self):
+        current = self.lookahead.token
+        if current == TT.DECL:
+            return var_decl()
+        elif current == TT.VECTOR:
+            return array_decl()
+
+    def var_decl(self):
+        token = self.lookahead
+        self.consume(TT.DECL)
+        type = self.lookahead
+        self.consume(TT.IDENTIFIER)
+        id = self.lookahead
+        self.consume(TT.IDENTIFIER)
+        if self.lookahead.token == TT.EQUAL:
+            assign = self.lookahead
+            self.consume(TT.EQUAL)
+            right = self.expression()
+            assign = AST.AssignNode(assign,left=id,right=right)
+            return AST.VarDeclNode(token,id=id,type=type,assign=assign)
+        return AST.VarDeclNode(token,id=id,type=type)
+
+    def array_decl(self):
+        token = self.lookahead
+        self.consume(TT.VECTOR)
+        type = self.lookahead
+        self.consume(TT.IDENTIFIER)
+        id = self.lookahead
+        self.consume(TT.IDENTIFIER)
+        self.consume(TT.LBRACKET)
+        size = self.expression()
+        self.consume(TT.RBRACKET)
+        return AST.ArrayDeclNode(token,id=id,type=type,size=size)
+
 
     def mostra_statement(self):
+        token = self.lookahead
         self.consume(TT.MOSTRA)
-        self.expression()
+        exp = self.expression()
+        return AST.Statement(token,exp)
+
+    def retorna_statement(self):
+        token = self.lookahead
+        self.consume(TT.RETORNA)
+        exp = self.expression()
+        return AST.Statement(token,exp)
+
 
 
     def expression(self):
@@ -77,16 +133,101 @@ class Parser:
     def factor(self):
         current = self.lookahead.token
         node = None
-        if current == TT.INTEGER:
-            node = AST.IntNode(self.lookahead)
-            self.consume(TT.INTEGER)
+        if current in (TT.INTEGER,TT.REAL,TT.STRING,TT.IDENTIFIER):
+            if current == TT.IDENTIFIER:
+                token = self.lookahead
+                self.consume(TT.IDENTIFIER)
+                if self.lookahead.token == TT.LPAR:
+                    node = AST.FunctionCall(id=token,fargs=self.function_call())
+                elif self.lookahead.token == TT.LBRACKET:
+                    self.consume(TT.LBRACKET)
+                    node = AST.ArrayRef(id=token,index=self.expression())
+                    self.consume(TT.RBRACKET)
+                elif self.lookahead.token == TT.EQUAL:
+                    equal = self.lookahead
+                    self.consume(TT.EQUAL)
+                    node = AST.AssignNode(token=equal,left=token,right=self.expression())
+                else: fargs
+                    node = AST.ExpNode(token)
+            else:
+                node = AST.ExpNode(self.lookahead)
+                self.consume(current)
         elif current == TT.LPAR:
             self.consume(TT.LPAR)
             node = self.expression()
             self.consume(TT.RPAR)
+        elif current in (TT.PLUS,TT.MINUS):
+            token = self.lookahead
+            self.consume(current)
+            node = AST.UnaryOpNode(token,operand=self.factor)
         else:
             raise Exception("ParseError: Illegal start of expression")
         return node
+
+    def function_call(self):
+        self.consume(TT.LPAR)
+        current = self.lookahead.token
+        params = []
+        if ( current in (TT.LPAR,TT.INTEGER,TT.MOSTRA,TT.RETORNA,
+            TT.DECL,TT.IDENTIFIER,TT.DEFINA,TT.VECTOR,
+            TT.REAL,TT.STRING,TT.PLUS,TT.MINUS) ):
+            params.append(self.expression())
+            current = self.lookahead.token
+            while current = TT.COMMA:
+                self.consume(TT.COMMA)
+                params.append(self.expression())
+                current = self.lookahead.token
+        self.consume(TT.RPAR)
+        return params
+
+    def function_decl(self):
+        self.consume(TT.DEFINA)
+        id = self.lookahead
+        self.consume(TT.IDENTIFIER)
+        self.consume(TT.LPAR)
+        params = self.formal_params()
+        self.consume(TT.RPAR)
+        type = None
+        if self.lookahead.token == TT.COLON:
+            self.consume(TT.COLON)
+            type = self.lookahead
+            self.consume(TT.IDENTIFIER)
+        self.consume(TT.LBRACE)
+        block = self.function_block()
+        self.consume(TT.RBRACE)
+        return AST.FunctionDecl(id=id,block=block,type=type,params=params)
+
+
+    def formal_params(self):
+        params = []
+        if self.lookahead.token == TT.IDENTIFIER:
+            type = self.lookahead
+            self.consume(TT.IDENTIFIER)
+            id = self.lookahead
+            self.consume(TT.IDENTIFIER)
+            params.append(AST.ParamNode(type,id))
+            while self.lookahead.token == TT.COMMA:
+                self.consume(TT.COMMA)
+                type = self.lookahead
+                self.consume(TT.IDENTIFIER)
+                id = self.lookahead
+                self.consume(TT.IDENTIFIER)
+                params.append(AST.ParamNode(type,id))
+        return params
+
+    def function_block(self):
+        block_node = AST.Block()
+        current = self.lookahead.token
+        while ( self.lookahead.token in (TT.LPAR,TT.INTEGER,TT.MOSTRA,TT.RETORNA,
+                TT.IDENTIFIER,TT.DEFINA,TT.VECTOR,TT.REAL,
+                TT.STRING,TT.PLUS,TT.MINUS) ):
+            if (current in (TT.LPAR,TT.INTEGER,TT.REAL,TT.STRING,
+                TT.IDENTIFIER,TT.PLUS,TT.MINUS)):
+                block_node.add_child(self.expression())
+            elif current in (TT.MOSTRA,TT.RETORNA,TT.DECL,TT.VECTOR):
+                block_node.add_child(self.statement())
+            self.consume(TT.SEMI)
+        return block_node
 
 
     def mult_operator(self):

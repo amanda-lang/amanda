@@ -1,4 +1,4 @@
-
+from interpreter.tokens import Token
 #Base class for all ASTNodes
 class ASTNode:
 
@@ -32,37 +32,18 @@ class UnaryOpNode(ExpNode):
         self.operand = operand
 
 
-class IntNode(ExpNode):
-    def __init__(self,token):
-        super().__init__(token)
-        self.eval_type =ASTNode.EVAL_TYPE["int"]
-
-
-class RealNode(ExpNode):
-    def __init__(self,token):
-        super().__init__(token)
-        self.eval_type =ASTNode.EVAL_TYPE["real"]
-
-class StringNode(ExpNode):
-    def __init__(self,token):
-        super().__init__(token)
-        self.eval_type =ASTNode.EVAL_TYPE["string"]
-
-class VarRefNode(ExpNode):
-    def __init__(self,token):
-        super().__init__(token)
-
 class VarDeclNode(ASTNode):
-    def __init__(self,token,type=None,identifier=None):
+    def __init__(self,token,id=None,type=None,assign=None):
         super().__init__(token)
         self.type = type
-        self.id = identifier
+        self.assign = assign
+        self.id = id
 
 class ArrayDeclNode(ASTNode):
-    def __init__(self,token,type=None,size=0):
+    def __init__(self,token,id=None,type=None,size=0):
         super().__init__(token)
         self.type = type
-        self.id = self.token
+        self.id = id
         self.size = 0
 
 class AssignNode(ASTNode):
@@ -77,30 +58,30 @@ class Statement(ASTNode):
         self.exp = exp
 
 class FunctionCall(ExpNode):
-    def __init__(self,token=None,fargs=None):
-        super().__init__(token)
+    def __init__(self,id=None,fargs=[]):
+        super().__init__(Token("FUNCTION_CALL",None))
+        self.id = id
         self.fargs = fargs
 
 class FunctionDecl(ASTNode):
-    def __init__(self,token,block=None,type=None,params=None):
-        super().__init__(token)
+    def __init__(self,id=None,block=None,type=None,params=[]):
+        super().__init__(Token("FUNCTION_DECL",None))
+        self.id = id
         self.params = params
         self.type = type
         self.block = block
 
 class ParamNode(ASTNode):
-    def __init__(self,token,identifier=None):
-        super().__init__(token)
-        self.type = self.token
-        self.id = identifier
+    def __init__(self,type=None,id=None):
+        super().__init__(Token("FUNCTION_PARAM",None))
+        self.type = type
+        self.id = id
 
 class ArrayRef(ExpNode):
-    def __init__(self,token,index=None):
-        super().__init__(token)
-        self.id = self.token
+    def __init__(self,id=None,index=None):
+        super().__init__(Token("ARRAY_REF",None))
+        self.id = self.id
         self.index = index
-
-
 
 
 class Block(ASTNode):
