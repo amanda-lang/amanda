@@ -32,22 +32,18 @@ class Parser:
 
     def block(self):
         block_node = AST.Block()
-        current = self.lookahead.token
-        while ( current in (TT.LPAR,TT.INTEGER,TT.MOSTRA,TT.RETORNA,
+        while ( self.lookahead.token in (TT.LPAR,TT.INTEGER,TT.MOSTRA,TT.RETORNA,
                 TT.DECL,TT.IDENTIFIER,TT.DEFINA,TT.VECTOR,
                 TT.REAL,TT.STRING,TT.PLUS,TT.MINUS) ):
-
-            if (current in (TT.LPAR,TT.INTEGER,TT.REAL,TT.STRING,
+            if (self.lookahead.token in (TT.LPAR,TT.INTEGER,TT.REAL,TT.STRING,
                 TT.IDENTIFIER,TT.PLUS,TT.MINUS)):
                 block_node.add_child(self.expression())
                 self.consume(TT.SEMI)
-            elif current in (TT.MOSTRA,TT.RETORNA,TT.DECL,TT.VECTOR):
+            elif self.lookahead.token in (TT.MOSTRA,TT.RETORNA,TT.DECL,TT.VECTOR):
                 block_node.add_child(self.statement())
                 self.consume(TT.SEMI)
-            elif current == TT.DEFINA:
+            elif self.lookahead.token == TT.DEFINA:
                 block_node.add_child(self.function_decl())
-
-            current = self.lookahead.token
         return block_node
 
     def statement(self):
@@ -111,23 +107,20 @@ class Parser:
     def expression(self):
         node = self.term()
         current = self.lookahead.token
-        while current in (TT.PLUS,TT.MINUS):
+        while self.lookahead.token in (TT.PLUS,TT.MINUS):
             op = self.lookahead
             node = AST.BinOpNode(current,left=node)
             self.add_operator()
             node.right = self.term()
-            current = self.lookahead.token
         return node
 
     def term(self):
         node = self.factor()
-        current = self.lookahead.token
-        while current in (TT.STAR,TT.SLASH,TT.MODULO):
+        while self.lookahead.token in (TT.STAR,TT.SLASH,TT.MODULO):
             op = self.lookahead
             node = AST.BinOpNode(current,left=node)
             self.mult_operator()
             node.right = self.term()
-            current = self.lookahead.token
         return node
 
     def factor(self):
@@ -167,16 +160,15 @@ class Parser:
     def function_call(self):
         self.consume(TT.LPAR)
         current = self.lookahead.token
-        params = []
+        args = []
         if ( current in (TT.LPAR,TT.INTEGER,TT.MOSTRA,TT.RETORNA,
             TT.DECL,TT.IDENTIFIER,TT.DEFINA,TT.VECTOR,
             TT.REAL,TT.STRING,TT.PLUS,TT.MINUS) ):
-            params.append(self.expression())
+            args.append(self.expression())
             current = self.lookahead.token
-            while current = TT.COMMA:
+            while self.lookahead.token == TT.COMMA:
                 self.consume(TT.COMMA)
-                params.append(self.expression())
-                current = self.lookahead.token
+                args.append(self.expression())
         self.consume(TT.RPAR)
         return params
 
@@ -217,14 +209,13 @@ class Parser:
 
     def function_block(self):
         block_node = AST.Block()
-        current = self.lookahead.token
         while ( self.lookahead.token in (TT.LPAR,TT.INTEGER,TT.MOSTRA,TT.RETORNA,
                 TT.IDENTIFIER,TT.DEFINA,TT.VECTOR,TT.REAL,
                 TT.STRING,TT.PLUS,TT.MINUS) ):
-            if (current in (TT.LPAR,TT.INTEGER,TT.REAL,TT.STRING,
+            if (self.lookahead.token in (TT.LPAR,TT.INTEGER,TT.REAL,TT.STRING,
                 TT.IDENTIFIER,TT.PLUS,TT.MINUS)):
                 block_node.add_child(self.expression())
-            elif current in (TT.MOSTRA,TT.RETORNA,TT.DECL,TT.VECTOR):
+            elif self.lookahead.token in (TT.MOSTRA,TT.RETORNA,TT.DECL,TT.VECTOR):
                 block_node.add_child(self.statement())
             self.consume(TT.SEMI)
         return block_node
