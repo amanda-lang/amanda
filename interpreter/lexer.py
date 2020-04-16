@@ -9,9 +9,12 @@ class Lexer:
     def __init__(self,src_file):
         self.line = 0
         self.pos = -1
-        self.file = open(src_file,"r")
         self.current_token = None
         self.current_char = None
+        if type(src_file).__name__ == type("string").__name__:
+            self.file = open(src_file,"r")
+        else:
+            self.file = src_file
         self.advance()
 
     def advance(self):

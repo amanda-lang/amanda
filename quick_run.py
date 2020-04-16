@@ -2,6 +2,7 @@ import unittest
 from interpreter.lexer import Lexer
 from interpreter.tests.test_lexer import LexerTestCase
 from interpreter.parser import Parser
+from io import StringIO
 TEST_FILE = "./docs/hello_world.pts"
 
 
@@ -20,10 +21,10 @@ def run_tests():
 def run_parser():
     lexer = Lexer(TEST_FILE)
     parser = Parser(lexer)
-    parser.parse()
+    parser.parse().visit()
 
 
 
-run_parser()
-#run_tests()
+#run_parser()
+run_tests()
 #run_lexer()

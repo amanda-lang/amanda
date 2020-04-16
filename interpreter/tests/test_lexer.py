@@ -4,7 +4,6 @@ import sys
 from interpreter.lexer import Lexer
 from interpreter.tokens import TokenType,Token
 
-TEST_MODULE = "../parser/"
 
 
 
@@ -63,7 +62,7 @@ class LexerTestCase(unittest.TestCase):
         self.assertEqual(token.lexeme,'"Ramboeiro"',msg="STRING value Test Failed")
 
     def test_identifier(self):
-        self.test_file.write("_test1\ntest\ntest2\n__test3\ndecl\nmostra\nverdadeiro\nfalso\nretorna\ndefina\ndef\nrecebe\ndeclara\n")
+        self.test_file.write("_test1\ntest\ntest2\n__test3\ndecl\nmostra\nverdadeiro\nfalso\nretorna\ndefina\ndef\nrecebe\ndeclara\nvector")
         self.test_file.close()
         lexer = Lexer("sample.pts")
         token = lexer.get_token()

@@ -14,6 +14,7 @@ class Parser:
     def __init__(self,lexer):
         self.lexer = lexer
         self.lookahead = lexer.get_token()
+        self.program_tree = None
 
     def consume(self,token_t):
         if self.lookahead.token == token_t:
@@ -24,8 +25,8 @@ class Parser:
 
     #function that triggers parsing
     def parse(self):
-        program = self.program()
-        return program
+        self.program_tree = self.program()
+        return self.program_tree
 
     def program(self):
         return self.block()
