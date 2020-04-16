@@ -17,7 +17,7 @@ class Parser:
 
     def consume(self,token_t):
         if self.lookahead.token == token_t:
-            print(f"Parser consumed {token_t}")
+            print(f"Parser consumed {self.lookahead}")
             self.lookahead = self.lexer.get_token()
         else:
             raise Exception(f"ParseError: expected {token_t.value} but got {self.lookahead.token.value} on line {self.lexer.line}")
@@ -109,18 +109,16 @@ class Parser:
         current = self.lookahead.token
         while self.lookahead.token in (TT.PLUS,TT.MINUS):
             op = self.lookahead
-            node = AST.BinOpNode(op,left=node)
             self.add_operator()
-            node.right = self.term()
+            node = AST.BinOpNode(op,left=node,right=self.term())
         return node
 
     def term(self):
         node = self.factor()
         while self.lookahead.token in (TT.STAR,TT.SLASH,TT.MODULO):
             op = self.lookahead
-            node = AST.BinOpNode(op,left=node)
             self.mult_operator()
-            node.right = self.term()
+            node = AST.BinOpNode(op,left=node,right=self.term())
         return node
 
     def factor(self):
