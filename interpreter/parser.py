@@ -58,9 +58,9 @@ class Parser:
     def declaration(self):
         current = self.lookahead.token
         if current == TT.DECL:
-            return var_decl()
+            return self.var_decl()
         elif current == TT.VECTOR:
-            return array_decl()
+            return self.array_decl()
 
     def var_decl(self):
         token = self.lookahead
@@ -109,7 +109,7 @@ class Parser:
         current = self.lookahead.token
         while self.lookahead.token in (TT.PLUS,TT.MINUS):
             op = self.lookahead
-            node = AST.BinOpNode(current,left=node)
+            node = AST.BinOpNode(op,left=node)
             self.add_operator()
             node.right = self.term()
         return node
@@ -118,7 +118,7 @@ class Parser:
         node = self.factor()
         while self.lookahead.token in (TT.STAR,TT.SLASH,TT.MODULO):
             op = self.lookahead
-            node = AST.BinOpNode(current,left=node)
+            node = AST.BinOpNode(op,left=node)
             self.mult_operator()
             node.right = self.term()
         return node
@@ -140,7 +140,7 @@ class Parser:
                     equal = self.lookahead
                     self.consume(TT.EQUAL)
                     node = AST.AssignNode(token=equal,left=token,right=self.expression())
-                else: fargs
+                else:
                     node = AST.ExpNode(token)
             else:
                 node = AST.ExpNode(self.lookahead)
@@ -152,7 +152,7 @@ class Parser:
         elif current in (TT.PLUS,TT.MINUS):
             token = self.lookahead
             self.consume(current)
-            node = AST.UnaryOpNode(token,operand=self.factor)
+            node = AST.UnaryOpNode(token,operand=self.factor())
         else:
             raise Exception("ParseError: Illegal start of expression")
         return node
@@ -165,12 +165,11 @@ class Parser:
             TT.DECL,TT.IDENTIFIER,TT.DEFINA,TT.VECTOR,
             TT.REAL,TT.STRING,TT.PLUS,TT.MINUS) ):
             args.append(self.expression())
-            current = self.lookahead.token
             while self.lookahead.token == TT.COMMA:
                 self.consume(TT.COMMA)
                 args.append(self.expression())
         self.consume(TT.RPAR)
-        return params
+        return args
 
     def function_decl(self):
         self.consume(TT.DEFINA)
@@ -210,7 +209,7 @@ class Parser:
     def function_block(self):
         block_node = AST.Block()
         while ( self.lookahead.token in (TT.LPAR,TT.INTEGER,TT.MOSTRA,TT.RETORNA,
-                TT.IDENTIFIER,TT.DEFINA,TT.VECTOR,TT.REAL,
+                TT.IDENTIFIER,TT.VECTOR,TT.REAL,
                 TT.STRING,TT.PLUS,TT.MINUS) ):
             if (self.lookahead.token in (TT.LPAR,TT.INTEGER,TT.REAL,TT.STRING,
                 TT.IDENTIFIER,TT.PLUS,TT.MINUS)):

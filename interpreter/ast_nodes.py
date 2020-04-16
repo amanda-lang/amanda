@@ -15,7 +15,7 @@ class ASTNode:
 
 class ExpNode(ASTNode):
     def __init__(self,token=None):
-        super().__init(token)
+        super().__init__(token)
         self.eval_type = None
 
 
@@ -80,7 +80,7 @@ class ParamNode(ASTNode):
 class ArrayRef(ExpNode):
     def __init__(self,id=None,index=None):
         super().__init__(Token("ARRAY_REF",None))
-        self.id = self.id
+        self.id = id
         self.index = index
 
 

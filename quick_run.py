@@ -24,6 +24,6 @@ def run_parser():
 
 
 
-#run_parser()
+run_parser()
 #run_tests()
-run_lexer()
+#run_lexer()
