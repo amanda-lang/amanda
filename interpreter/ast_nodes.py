@@ -135,10 +135,11 @@ class FunctionDecl(ASTNode):
 
 
 class ParamNode(ASTNode):
-    def __init__(self,type=None,id=None):
+    def __init__(self,type=None,id=None,is_array=False):
         super().__init__(Token("FUNCTION_PARAM",None))
         self.type = type
         self.id = id
+        self.is_array = is_array
 
     def __str__(self):
         return f"{self.type} {self.id}"

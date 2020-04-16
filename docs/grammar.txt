@@ -90,7 +90,11 @@ function_block
   : ( ( expression | statement)  SEMI )*
 
 formal_parameter_section
-  : type IDENTIFIER (COMMA type IDENTIFIER)*
+  : type array_spec? IDENTIFIER (COMMA type IDENTIFIER)*
+  ;
+
+array_spec
+  : LBRACKET RBRACKET
   ;
 
 COMMENT:

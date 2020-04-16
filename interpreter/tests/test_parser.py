@@ -75,6 +75,10 @@ class ParserTestCase(unittest.TestCase):
             def test(int a,int b){
             }
             def test(int a,int b,real c,string c){
+            
+            }
+            def copier(int a,int [] b){
+
             }
         '''
         ]

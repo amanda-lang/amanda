@@ -3,6 +3,7 @@ from interpreter.lexer import Lexer
 from interpreter.tests.test_lexer import LexerTestCase
 from interpreter.parser import Parser
 from io import StringIO
+import dis
 TEST_FILE = "./docs/hello_world.pts"
 
 
@@ -24,7 +25,6 @@ def run_parser():
     parser.parse().visit()
 
 
-
 #run_parser()
-run_tests()
+#run_tests()
 #run_lexer()

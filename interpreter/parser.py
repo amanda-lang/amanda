@@ -196,18 +196,29 @@ class Parser:
         params = []
         if self.lookahead.token == TT.IDENTIFIER:
             type = self.lookahead
+            is_array = False
             self.consume(TT.IDENTIFIER)
+            if self.lookahead.token == TT.LBRACKET:
+                self.consume(TT.LBRACKET)
+                self.consume(TT.RBRACKET)
+                is_array = True
             id = self.lookahead
             self.consume(TT.IDENTIFIER)
-            params.append(AST.ParamNode(type,id))
+            params.append(AST.ParamNode(type,id,is_array))
             while self.lookahead.token == TT.COMMA:
                 self.consume(TT.COMMA)
                 type = self.lookahead
+                is_array = False
                 self.consume(TT.IDENTIFIER)
+                if self.lookahead.token == TT.LBRACKET:
+                    self.consume(TT.LBRACKET)
+                    self.consume(TT.RBRACKET)
+                    is_array = True
                 id = self.lookahead
                 self.consume(TT.IDENTIFIER)
-                params.append(AST.ParamNode(type,id))
+                params.append(AST.ParamNode(type,id,is_array=False))
         return params
+
 
     def function_block(self):
         block_node = AST.Block()
