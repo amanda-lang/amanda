@@ -1,7 +1,6 @@
 from interpreter.lexer import Lexer
 from interpreter.tokens import TokenType as TT
 from interpreter.tokens import Token
-from interpreter.symtab import VariableSymbol,BuiltInType,Scope,ArraySymbol,FunctionSymbol
 import interpreter.ast_nodes as AST
 
 
@@ -251,23 +250,3 @@ class Parser:
             self.consume(TT.PLUS)
         elif current == TT.MINUS:
             self.consume(TT.MINUS)
-
-
-'''
-*interpreter class contains everything needed
-*to run a PTScript
-*it is a high-level interpreter and it is
-* not designed for powerful stuff
-'''
-
-class PTInterpreter(AST.Visitor):
-
-    def __init__(self,parser):
-        self.parser = parser
-        self.program = self.parser.parse()
-
-    def execute(self):
-        self.visit(self.program)
-
-    def visit_Binopnode(self,node):
-        pass
