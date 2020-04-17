@@ -31,6 +31,7 @@ def run_sem_analysis():
     parser = Parser(lexer)
     intp = PTInterpreter(parser)
     intp.load_symbols()
+    print(intp.current_scope)
 
 #run_parser()
 #run_tests()

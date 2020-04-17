@@ -163,7 +163,6 @@ class Visitor:
 
     def visit(self,node):
         node_class = type(node).__name__.lower()
-        print(node_class)
         method_name = f"visit_{node_class}"
         visitor_method = getattr(self,method_name,self.general_visit)
         return visitor_method(node)

@@ -43,18 +43,22 @@ d = c = a = assign(a);
 $ function declarations
 defina soma(int a,int b):int {
 
+  decl int ab;
+  decl real angola;
+
   retorna a+b;
 }
 
 $ or for 'procedure'
 defina divisao(int a,int b){
 
+  vector int tem[3];
   mostra a/b;
 }
 
 $ or short form
 def divisao2(int a,int b){
-
+  vector int tem[3];
   mostra a/b;
 }
 
