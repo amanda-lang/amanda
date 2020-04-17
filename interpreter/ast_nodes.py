@@ -168,4 +168,4 @@ class Visitor:
         return visitor_method(node)
 
     def bad_visit(self,node):
-        raise Exception("Unkwown node type")
+        pass

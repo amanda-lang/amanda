@@ -1,6 +1,7 @@
 from interpreter.lexer import Lexer
 from interpreter.tokens import TokenType as TT
 from interpreter.tokens import Token
+from interpreter.symtab import VariableSymbol,BuiltInType,Scope,ArraySymbol,FunctionSymbol
 import interpreter.ast_nodes as AST
 
 
