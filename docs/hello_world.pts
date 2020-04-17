@@ -26,7 +26,8 @@ b recebe vet[2];
 $ this is an assignment
 a recebe 10;
 
-
+b = b+b;
+b = --2-5;
 
 $ or short form
 b = 90 + a;
@@ -34,7 +35,8 @@ b = 90 + a;
 $ Expressions
 b recebe (2+a)*b; $ Don't forget the semi!!!!!
 b = b*2;
-b(a,b);
+$ b(a,b);
+$ mostra b=c=a;
 
 
 
@@ -54,10 +56,9 @@ defina divisao(int a,int b){
   mostra a/b;
 }
 
-c = divisao(a,b);
 
 $ or short form
-def divisao2(int a,int b){
+def divisao2(int a,int b): int{
   vector int tem[3];
   mostra a/b;
 }

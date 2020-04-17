@@ -2,7 +2,7 @@ import unittest
 from interpreter.lexer import Lexer
 from interpreter.tests.test_lexer import LexerTestCase
 from interpreter.parser import Parser
-from interpreter.pt_intp import PTInterpreter
+from interpreter.semantic import Analyzer
 from io import StringIO
 import dis
 TEST_FILE = "./docs/hello_world.pts"
@@ -29,7 +29,7 @@ def run_parser():
 def run_sem_analysis():
     lexer = Lexer(TEST_FILE)
     parser = Parser(lexer)
-    intp = PTInterpreter(parser)
+    intp = Analyzer(parser)
     intp.load_symbols()
     print(intp.current_scope)
 
