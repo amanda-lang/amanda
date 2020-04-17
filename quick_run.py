@@ -1,10 +1,13 @@
 import unittest
+import sys
+import dis
+
 from interpreter.lexer import Lexer
 from interpreter.tests.test_lexer import LexerTestCase
 from interpreter.parser import Parser
 from interpreter.semantic import Analyzer
+import interpreter.error as ERR
 from io import StringIO
-import dis
 TEST_FILE = "./docs/hello_world.pts"
 
 
@@ -34,6 +37,16 @@ def run_sem_analysis():
     print(intp.current_scope)
 
 #run_parser()
-run_tests()
+#run_tests()
 #run_lexer()
-#run_sem_analysis()
+
+try:
+    run_sem_analysis()
+except ERR.LexerError as e:
+    sys.stderr.write(e.message+"\n\n")
+    sys.exit()
+except ERR.ParserError as e:
+    sys.stderr.write(str(e))
+    sys.exit()
+except ERR.SemanticError as e:
+    pass

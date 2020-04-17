@@ -2,7 +2,7 @@ from interpreter.lexer import Lexer
 from interpreter.tokens import TokenType as TT
 from interpreter.tokens import Token
 import interpreter.ast_nodes as AST
-
+from interpreter.error import ParserError,Error
 
 
 '''*Class used to parse input file
@@ -20,7 +20,10 @@ class Parser:
             #print(f"Parser consumed {self.lookahead}")
             self.lookahead = self.lexer.get_token()
         else:
-            raise Exception(f"ParseError: expected {token_t.value} but got {self.lookahead} on line {self.lexer.line}")
+            self.error(self.lookahead.lexeme,f"O programa esperava o símbolo {token_t.value}")
+
+    def error(self,symbol,message=None):
+        raise ParserError(message,self.lexer.line,symbol)
 
     #function that triggers parsing
     def parse(self):
@@ -155,7 +158,7 @@ class Parser:
             self.consume(current)
             node = AST.UnaryOpNode(token,operand=self.factor())
         else:
-            raise Exception("ParseError: Illegal start of expression")
+            self.error(self.lookahead,Error.ILLEGAL_EXPRESSION)
         return node
 
     def function_call(self):

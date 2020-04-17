@@ -1,6 +1,5 @@
 $* this is
 a multiline comment *$
-
 $* these are the different types:
  int,real,bool,string *$
 $ The two bool types

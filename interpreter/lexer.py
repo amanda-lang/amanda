@@ -1,7 +1,7 @@
 import os
 from interpreter.tokens import TokenType,Token
 from interpreter.tokens import KEYWORDS as TK_KEYWORDS
-
+from interpreter.error import LexerError
 
 class Lexer:
     EOF = "__eof__"
@@ -33,7 +33,7 @@ class Lexer:
         return next_char
 
     def error(self,message):
-        raise Exception(message)
+        raise LexerError(message=f"Erro sintático na linha {self.line}: O símbolo '{self.current_char}' não foi reconhecido")
 
 
 
