@@ -140,7 +140,7 @@ class Parser:
                 elif self.lookahead.token == TT.EQUAL:
                     equal = self.lookahead
                     self.consume(TT.EQUAL)
-                    node = AST.AssignNode(token=equal,left=token,right=self.expression())
+                    node = AST.AssignNode(token=equal,left=AST.ExpNode(token),right=self.expression())
                 else:
                     node = AST.ExpNode(token)
             else:

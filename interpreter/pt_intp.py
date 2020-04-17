@@ -5,19 +5,20 @@ import interpreter.ast_nodes as AST
 import interpreter.symtab as SYM
 
 BUILT_IN ={
- "int" : "INTEGER",
- "real": "REAL",
- "string": "STRING",
- "bool":"BOOLEAN",
- "vazio":"VAZIO"
+ "int" : 0,
+ "real": 1,
+ "string": 2,
+ "bool":3,
+ "vazio":4
 }
 
 
 '''
-*interpreter class contains everything needed
-*to run a PTScript
-*it is a high-level interpreter and it is
-* not designed for powerful stuff
+Class that performs semantic analysis on a PTScript script
+It does this in two passes:
+* First it populates the symbol table, creates a scope tree, resolves references
+and computes static expression types
+*the second enforces type safety rules
 '''
 
 class PTInterpreter(AST.Visitor):
@@ -90,3 +91,43 @@ class PTInterpreter(AST.Visitor):
             return SYM.ArraySymbol(name,var_type)
         else:
             return SYM.VariableSymbol(name,var_type)
+
+
+    def visit_expnode(self,node):
+        if node.token.token == TT.IDENTIFIER:
+            name = node.token.lexeme
+            sym = self.current_scope.resolve(name)
+            if sym == None:
+                raise Exception(f"SemanticError: reference to undeclared identifier '{name}'")
+
+
+    def visit_binopnode(self,node):
+        self.visit(node.left)
+        self.visit(node.right)
+
+    def visit_assignnode(self,node):
+        self.visit(node.left)
+        self.visit(node.right)
+        #Do stuff here
+
+    def visit_statement(self,node):
+        self.visit(node.exp)
+
+
+    def visit_functioncall(self,node):
+        id = node.id.lexeme
+        sym = self.current_scope.resolve(id)
+        if sym == None:
+            raise Exception(f"SemanticError: reference to undeclared function '{id}'")
+        elif not isinstance(sym,SYM.FunctionSymbol):
+            raise Exception(f"Trying to call non function '{id}' as function")
+        node.eval_type = sym.type.name
+        
+    def visit_arrayref(self,node):
+        id = node.id.lexeme
+        sym = self.current_scope.resolve(id)
+        if sym == None:
+            raise Exception(f"SemanticError: reference to undeclared function '{id}'")
+        elif not isinstance(sym,SYM.ArraySymbol):
+            raise Exception(f"SemanticError: trying to reference non array '{id}' with index")
+        node.eval_type = sym.type.name

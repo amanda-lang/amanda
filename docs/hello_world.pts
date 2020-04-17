@@ -3,10 +3,10 @@ a multiline comment *$
 
 $* these are the different types:
  int,real,bool,string *$
-
 $ The two bool types
 decl bool l = "verdadeiro";
 decl bool a = "falso";
+
 
 $ A string
 decl string nome = "Stenio";
@@ -34,9 +34,7 @@ b = 90 + a;
 $ Expressions
 b recebe (2+a)*b; $ Don't forget the semi!!!!!
 b = b*2;
-c = --2--5;
-c = divisao(a,b);
-d = c = a = assign(a);
+b(a,b);
 
 
 
@@ -55,6 +53,8 @@ defina divisao(int a,int b){
   vector int tem[3];
   mostra a/b;
 }
+
+c = divisao(a,b);
 
 $ or short form
 def divisao2(int a,int b){
