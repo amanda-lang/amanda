@@ -34,6 +34,6 @@ def run_sem_analysis():
     print(intp.current_scope)
 
 #run_parser()
-#run_tests()
+run_tests()
 #run_lexer()
-run_sem_analysis()
+#run_sem_analysis()

@@ -148,7 +148,8 @@ class LexerTestCase(unittest.TestCase):
         self.test_file.close()
         lexer = Lexer("sample.pts")
         lexer.get_token()
-        self.assertEqual(lexer.line,5)
+        self.assertEqual(lexer.line,6)
+        self.assertEqual(lexer.pos,1)
 
     def test_whitespace(self):
         self.test_file.write("\n\n$This is a one line comment\n$*this is a multilinecomment*$\n\n")

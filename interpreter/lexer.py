@@ -7,8 +7,8 @@ class Lexer:
     EOF = "__eof__"
 
     def __init__(self,src_file):
-        self.line = 0
-        self.pos = -1
+        self.line = 1
+        self.pos = 1
         self.current_token = None
         self.current_char = None
         if type(src_file).__name__ == type("string").__name__:
@@ -23,6 +23,8 @@ class Lexer:
         self.current_char = self.file.read(1)
         if self.current_char == "":
             self.current_char = Lexer.EOF
+        else:
+            self.pos += 1
 
     def Lookahead(self):
         last_position = self.file.tell()
@@ -39,6 +41,7 @@ class Lexer:
         while self.current_char.isspace() and self.current_char != Lexer.EOF:
             if self.current_char == "\n":
                 self.line += 1
+                self.pos = 1
             self.advance()
         if self.current_char == "$":
             self.comment()
