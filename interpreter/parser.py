@@ -14,19 +14,17 @@ class Parser:
     def __init__(self,lexer):
         self.lexer = lexer
         self.lookahead = lexer.get_token()
-        self.program_tree = None
 
     def consume(self,token_t):
         if self.lookahead.token == token_t:
-            print(f"Parser consumed {self.lookahead}")
+            #print(f"Parser consumed {self.lookahead}")
             self.lookahead = self.lexer.get_token()
         else:
             raise Exception(f"ParseError: expected {token_t.value} but got {self.lookahead} on line {self.lexer.line}")
 
     #function that triggers parsing
     def parse(self):
-        self.program_tree = self.program()
-        return self.program_tree
+        return self.program()
 
     def program(self):
         return self.block()
@@ -181,7 +179,7 @@ class Parser:
         self.consume(TT.LPAR)
         params = self.formal_params()
         self.consume(TT.RPAR)
-        type = None
+        type = Token("VAZIO","vazio")
         if self.lookahead.token == TT.COLON:
             self.consume(TT.COLON)
             type = self.lookahead

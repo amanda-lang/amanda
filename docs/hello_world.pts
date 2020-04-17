@@ -12,7 +12,7 @@ $ A string
 decl string nome = "Stenio";
 
 $ This is a variable declaration
-declara int a;
+declara int antonio;
 
 $ or short form
 decl int b;
@@ -53,7 +53,7 @@ defina divisao(int a,int b){
 }
 
 $ or short form
-def divisao(int a,int b){
+def divisao2(int a,int b){
 
   mostra a/b;
 }

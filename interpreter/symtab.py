@@ -15,14 +15,17 @@ class Scope(SymbolTable):
         super().__init__()
         self.name = name
         self.enclosing_scope = enclosing_scope
-        self.symtab = SymbolTable()
 
     def resolve(self,name):
-        symbol = super.resolve(name)
+        symbol = super().resolve(name)
         if symbol == None:
             if self.enclosing_scope is not None:
-                return self.enclosing_scope.resolve()
-        return None
+                return self.enclosing_scope.resolve(name)
+            else:
+                return None
+        return symbol
+
+
 
 
 #Abstract base class for all symbols
