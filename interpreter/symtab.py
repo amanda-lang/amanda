@@ -70,7 +70,7 @@ class VariableSymbol(Symbol):
 class FunctionSymbol(Symbol):
     def __init__(self,name,type,params):
         super().__init__(name,type)
-        self.params = params #list of symbols
+        self.params = params #dict of symbols
 
     def __str__(self):
         params = ",".join(self.params)

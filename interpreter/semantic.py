@@ -54,7 +54,7 @@ class Analyzer(AST.Visitor):
 
     def init__builtins(self):
         for type in BUILT_IN:
-            self.current_scope.define(type,SYM.BuiltInType(BUILT_IN[type]))
+            self.current_scope.define(type,SYM.BuiltInType(BUILT_IN[type],type))
 
 
     def error(self,message,token):
@@ -162,20 +162,33 @@ class Analyzer(AST.Visitor):
 
 
     def visit_functioncall(self,node):
+        for arg in node.fargs:
+            self.visit(arg)
         id = node.id.lexeme
         sym = self.current_scope.resolve(id)
         if sym == None:
-            self.error(f"A função '{id}' não foi definida",node.id)
+            self.error(f"Função '{id}' não foi definida",node.id)
         elif not isinstance(sym,SYM.FunctionSymbol):
-            self.error(f"O identificador '{id}' não é uma função",node.id)
+            self.error(f"Identificador '{id}' não é uma função",node.id)
+        elif len(node.fargs) != len(sym.params):
+            self.error(f"Número incorrecto de argumentos para a função {node.id.lexeme}. Esperava {len(sym.params)} argumentos, porém recebeu {len(node.fargs)}",node.id)
+        for i,param in enumerate(sym.params.values()):
+            if param.type.name != node.fargs[i].eval_type:
+                print(param.type.type)
+                self.error(f"O argumento {i+1} da função {node.id.lexeme} deve ser do tipo '{param.type.type}'",node.id)
         node.eval_type = sym.type.name
 
 
     def visit_arrayref(self,node):
+        self.visit(node.index)
         id = node.id.lexeme
         sym = self.current_scope.resolve(id)
+        #Semantic checks start here
         if sym == None:
             self.error(f"O identificador '{id}' não foi declarado",node.id)
         elif not isinstance(sym,SYM.ArraySymbol):
-            self.error(f"O identificador '{id}' não é um vector",node.token)
+            self.error(f"O identificador '{id}' não é um vector",node.id)
+        #index = node.in
+        if node.index.eval_type != BUILT_IN["int"]:
+            self.error(f"O índice de um vector deve ser um inteiro",node.id)
         node.eval_type = sym.type.name

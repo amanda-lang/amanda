@@ -20,6 +20,7 @@ vector int vet[3];
 $ Access element
 b recebe vet[2];
 
+b recebe vet[3+4];
 $ this is an assignment
 a recebe 10;
 
@@ -46,7 +47,7 @@ defina soma(int a,int b):int {
 }
 
 $ or for 'procedure'
-defina divisao(int a,int b){
+defina divisao(string a,int b){
 
   vector int tem[3];
   mostra a/b;
@@ -54,7 +55,7 @@ defina divisao(int a,int b){
 
 
 $ or short form
-def divisao2(int a,int b): int{
+def divisao2(string a,int b): int{
   vector int tem[3];
   mostra a/b;
 }
@@ -62,7 +63,5 @@ def divisao2(int a,int b): int{
 
 
 $ Function call
-mostra soma(a+b,b);
-divisao(a,b);
-
-decl angola a;
+mostra soma(1+b,2+2);
+divisao("si",b);
