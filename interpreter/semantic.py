@@ -151,6 +151,8 @@ class Analyzer(AST.Visitor):
 
     def visit_unaryopnode(self,node):
         self.visit(node.operand)
+        if node.operand.eval_type != BUILT_IN["int"] and node.operand.eval_type != BUILT_IN["real"]:
+            self.error(f"Operação inválida. O Operador unário '{node.token.lexeme}' só pode ser usado com tipos numéricos",node.token)
         node.eval_type = node.operand.eval_type
 
 
