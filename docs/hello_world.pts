@@ -8,7 +8,7 @@ decl texto a = "falso";
 
 
 $ decl int a;
-
+l=a="teste";
 $ A string
 decl texto nome = "Stenio";
 a=l;
@@ -30,15 +30,12 @@ a recebe '10';
 b = b+b;
 b = --2-5;
 $ or short form
-b = 90 + a;
+b = 90 + 10;
 
 $ Expressions
-b recebe (2+a)*b; $ Don't forget the semi!!!!!
-b = b*2;
+$ b recebe (2+a)*b; $ Don't forget the semi!!!!!
+$ b = b*2;
 
-
-
-$retorna a;
 
 
 $ function declarations
@@ -47,14 +44,14 @@ defina soma(int a,int b): int{
   decl int ab;
   decl real angola;
 
-  retorna ab;
+  retorna ab=10;
 }
 
 $ or for 'procedure'
 defina divisao(texto a,int b){
 
   vector int tem[3];
-  retorna a/b;
+  mostra a/b;
 }
 
 

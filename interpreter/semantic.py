@@ -159,7 +159,7 @@ class Analyzer(AST.Visitor):
         self.visit(node.left)
         if node.left.eval_type != node.right.eval_type:
             self.error(f"Atribuição inválida. incompatibilidade entre os operandos da atribuição [{node.left.eval_type} = {node.right.eval_type}]",node.token)
-        self.eval_type = node.right.eval_type
+        node.eval_type = node.right.eval_type
         #Do stuff here
 
     def visit_statement(self,node):
@@ -167,6 +167,8 @@ class Analyzer(AST.Visitor):
         self.visit(node.exp)
         token = node.token.token
         #check if return statement is inside a function
+        if isinstance(node.exp,AST.AssignNode):
+            self.error(f"instrução inválida. A instrução '{node.token.lexeme}' não pode ser usada com uma expressão de atribuição",node.token)
         if token == TT.RETORNA:
             if self.current_scope.name == Analyzer.GLOBAL:
                 self.error(f"O comando 'retorna' só pode ser usado dentro de uma função",node.token)
@@ -176,6 +178,7 @@ class Analyzer(AST.Visitor):
                     self.error(f"Expressão de retorno inválida. Procedimentos não podem retornar valores",node.token)
                 elif function.type.name != node.exp.eval_type:
                     self.error(f"Expressão de retorno inválida. Esperava-se um retorno do tipo '{function.type.type}'",node.token)
+
 
 
     def visit_functioncall(self,node):
