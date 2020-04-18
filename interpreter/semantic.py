@@ -151,8 +151,8 @@ class Analyzer(AST.Visitor):
 
 
     def visit_assignnode(self,node):
-        self.visit(node.left)
         self.visit(node.right)
+        self.visit(node.left)
         if node.left.eval_type != node.right.eval_type:
             self.error(f"Atribuição inválida. incompatibilidade entre os operandos da atribuição [{node.left.eval_type} = {node.right.eval_type}]",node.token)
         self.eval_type = node.right.eval_type

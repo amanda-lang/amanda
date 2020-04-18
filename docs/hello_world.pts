@@ -25,7 +25,7 @@ b recebe vet[2];
 
 b recebe vet[3+4];
 $ this is an assignment
-a recebe 10;
+a recebe '10';
 
 b = b+b;
 b = --2-5;
