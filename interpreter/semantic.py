@@ -77,7 +77,9 @@ class Analyzer(AST.Visitor):
             self.error(f"O tipo de dados '{node.type.lexeme}' não foi definido",node.type)
         name = node.id.lexeme
         symbol = SYM.VariableSymbol(name,var_type)
-        self.current_scope.define(name,symbol)
+        if self.current_scope.symbols.get(name) is not None:
+            self.error(f"O identificador '{name}' já foi declarado neste escopo",node.id)
+        self.current_scope.define(name,symbol,node.id)
         if node.assign != None:
             self.visit(node.assign)
 
@@ -87,7 +89,9 @@ class Analyzer(AST.Visitor):
             self.error(f"O tipo de dados '{node.type.lexeme}' não foi definido",node.type)
         name = node.id.lexeme
         symbol = SYM.ArraySymbol(name,var_type,node.size)
-        self.current_scope.define(name,symbol)
+        if self.current_scope.symbols.get(name) is not None:
+            self.error(f"O identificador '{name}' já foi declarado neste escopo",node.id)
+        self.current_scope.define(name,symbol,node.id)
 
 
     def visit_functiondecl(self,node):

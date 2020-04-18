@@ -32,9 +32,7 @@ class Scope(SymbolTable):
                 return None
         return symbol
 
-    def define(self,name,symbol):
-        if super().resolve(name) != None:
-            raise Exception(f"SemanticError: the identifier '{name} has already been declared in this scope'")
+    def define(self,name,symbol,token=None):
         super().define(name,symbol)
 
     def __str__(self):
