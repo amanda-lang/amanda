@@ -46,10 +46,12 @@ and computes static expression types
 
 class Analyzer(AST.Visitor):
 
+    GLOBAL = "GLOBAL_SCOPE"
+
     def __init__(self,parser):
         self.parser = parser
         self.program = self.parser.parse()
-        self.current_scope = SYM.Scope("Global_scope")
+        self.current_scope = SYM.Scope(Analyzer.GLOBAL)
         self.init__builtins()
 
     def init__builtins(self):
@@ -62,8 +64,6 @@ class Analyzer(AST.Visitor):
 
 
     def eval_arit_op(self,opand1,op,opand2):
-        print(opand1.token)
-        print(opand2.token)
         return type_results[arit_types[opand1.eval_type]][arit_types[opand2.eval_type]]
 
     def load_symbols(self):
@@ -140,7 +140,6 @@ class Analyzer(AST.Visitor):
         elif node.token.token == TT.STRING:
             node.eval_type = BUILT_IN["string"]
 
-
     def visit_binopnode(self,node):
         self.visit(node.left)
         self.visit(node.right)
@@ -159,6 +158,10 @@ class Analyzer(AST.Visitor):
 
     def visit_statement(self,node):
         self.visit(node.exp)
+        #check if return statement is inside a function
+        token = node.token.token
+        print(self.current_scope.name,token,node.token.line)
+
 
 
     def visit_functioncall(self,node):
@@ -174,7 +177,6 @@ class Analyzer(AST.Visitor):
             self.error(f"Número incorrecto de argumentos para a função {node.id.lexeme}. Esperava {len(sym.params)} argumentos, porém recebeu {len(node.fargs)}",node.id)
         for i,param in enumerate(sym.params.values()):
             if param.type.name != node.fargs[i].eval_type:
-                print(param.type.type)
                 self.error(f"O argumento {i+1} da função {node.id.lexeme} deve ser do tipo '{param.type.type}'",node.id)
         node.eval_type = sym.type.name
 

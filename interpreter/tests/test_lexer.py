@@ -1,6 +1,7 @@
 import unittest
 import os
 import sys
+from io import StringIO
 from interpreter.lexer import Lexer
 from interpreter.tokens import TokenType,Token
 
@@ -152,14 +153,19 @@ class LexerTestCase(unittest.TestCase):
         self.assertEqual(lexer.pos,1)
 
     def test_token_line(self):
-        self.test_file.write("abc;\nadb\n")
+        buffer = StringIO()
+        load = ["retorna","retorna","retorna"]
+        for text in load:
+            print(text,end="\n",file=buffer)
+        buffer.seek(0)
         self.test_file.close()
-        lexer = Lexer("sample.pts")
+        lexer = Lexer(buffer)
         token = lexer.get_token()
         self.assertEqual(token.line,1)
-        lexer.get_token()
         token = lexer.get_token()
         self.assertEqual(token.line,2)
+        token = lexer.get_token()
+        self.assertEqual(token.line,3)
 
     def test_whitespace(self):
         self.test_file.write("\n\n$This is a one line comment\n$*this is a multilinecomment*$\n\n")

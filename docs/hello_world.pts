@@ -32,9 +32,10 @@ b = 90 + a;
 $ Expressions
 b recebe (2+a)*b; $ Don't forget the semi!!!!!
 b = b*2;
-$ b(a,b);
-$ mostra b=c=a;
 
+
+
+retorna a;
 
 
 $ function declarations

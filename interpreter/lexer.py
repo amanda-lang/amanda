@@ -53,7 +53,7 @@ class Lexer:
             self.advance()
             while True:
                 if self.current_char == "*" and self.Lookahead()=="$":
-                    #Skip the $
+                    #Advance twice to skip  * and $
                     self.advance()
                     self.advance()
                     if self.current_char.isspace():
@@ -62,9 +62,9 @@ class Lexer:
                 elif self.current_char == Lexer.EOF:
                     break
                 elif self.current_char == "\n":
-                    self.line += 1
+                    self.whitespace()
                 self.advance()
-            #Advance twice to skip  * and $
+
         else:
             while self.current_char != "\n" and self.current_char != Lexer.EOF:
                 self.advance()
