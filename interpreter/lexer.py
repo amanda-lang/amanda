@@ -1,4 +1,5 @@
 import os
+import copy
 from interpreter.tokens import TokenType,Token
 from interpreter.tokens import KEYWORDS as TK_KEYWORDS
 from interpreter.error import LexerError
@@ -165,7 +166,7 @@ class Lexer:
             result += self.current_char
             self.advance()
         if TK_KEYWORDS.get(result) is not None:
-            token = TK_KEYWORDS.get(result)
+            token = copy.copy(TK_KEYWORDS.get(result))
             token.line = self.line
             token.col = self.pos
             return token

@@ -27,10 +27,8 @@ class Parser:
 
     #function that triggers parsing
     def parse(self):
-        return self.program()
-
-    def program(self):
         return self.block()
+
 
     def block(self):
         block_node = AST.Block()

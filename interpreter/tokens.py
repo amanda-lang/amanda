@@ -51,7 +51,7 @@ class Token:
         self.col = col
 
     def __str__(self):
-        return "<Type: %s, Lexeme: %s>"%(self.token.value,self.lexeme)
+        return "<Type: %s, Lexeme: %s Line:%s>"%(self.token.value,self.lexeme,self.line)
 
 KEYWORDS = {
     "decl" : Token(TokenType.DECL,"decl"),

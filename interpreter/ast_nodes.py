@@ -105,7 +105,11 @@ class Statement(ASTNode):
         self.exp = exp
 
     def visit(self):
-        print(f"Stament: {self.token.lexeme} {self.exp}")
+        print(f"Statement: {self.token.lexeme} {self.token.line}")
+
+    def __str__(self):
+        return f"Statement: {self.token.lexeme} {self.token.line}"
+
 
 class FunctionCall(ExpNode):
     def __init__(self,id=None,fargs=[]):

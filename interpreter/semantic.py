@@ -33,9 +33,6 @@ type_results = [
 ]
 
 
-
-
-
 '''
 Class that performs semantic analysis on a PTScript script
 It does this in two passes:
@@ -157,12 +154,11 @@ class Analyzer(AST.Visitor):
         #Do stuff here
 
     def visit_statement(self,node):
-        self.visit(node.exp)
+        #self.visit(node.exp)
+        #node.visit()
         #check if return statement is inside a function
-        token = node.token.token
-        print(self.current_scope.name,token,node.token.line)
-
-
+        token = node.token.line
+        print(token)
 
     def visit_functioncall(self,node):
         for arg in node.fargs:
