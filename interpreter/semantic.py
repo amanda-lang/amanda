@@ -3,6 +3,7 @@ from interpreter.tokens import TokenType as TT
 from interpreter.tokens import Token
 import interpreter.ast_nodes as AST
 import interpreter.symtab as SYM
+from interpreter.error import SemanticError
 
 BUILT_IN ={
  "int" : "INTEGER",
@@ -56,6 +57,10 @@ class Analyzer(AST.Visitor):
             self.current_scope.define(type,SYM.BuiltInType(BUILT_IN[type]))
 
 
+    def error(self,message,token):
+        raise SemanticError(message,token.line)
+
+
     def eval_arit_op(self,opand1,op,opand2):
         print(opand1.token)
         print(opand2.token)
@@ -72,7 +77,7 @@ class Analyzer(AST.Visitor):
     def visit_vardeclnode(self,node):
         var_type = self.current_scope.resolve(node.type.lexeme)
         if var_type == None:
-            raise Exception(f"SemanticError: could not resolve type '{node.type.lexeme}'")
+            self.error(f"O tipo de dados '{node.type.lexeme}' não foi definido",node.type)
         name = node.id.lexeme
         symbol = SYM.VariableSymbol(name,var_type)
         self.current_scope.define(name,symbol)
@@ -80,7 +85,7 @@ class Analyzer(AST.Visitor):
     def visit_arraydeclnode(self,node):
         var_type = self.current_scope.resolve(node.type.lexeme)
         if var_type == None:
-            raise Exception(f"SemanticError: could not resolve type '{node.type.lexeme}'")
+            self.error(f"O tipo de dados '{node.type.lexeme}' não foi definido",node.type)
         name = node.id.lexeme
         symbol = SYM.ArraySymbol(name,var_type,node.size)
         self.current_scope.define(name,symbol)
@@ -89,17 +94,17 @@ class Analyzer(AST.Visitor):
     def visit_functiondecl(self,node):
         function_type =  self.current_scope.resolve(node.type.lexeme)
         if function_type == None:
-            raise Exception(f"SemanticError: could not resolve function return type '{node.type.lexeme}'")
+            self.error(f"O tipo de dados '{node.type.lexeme}' não foi definido",node.type)
         name = node.id.lexeme
         if self.current_scope.resolve(name) is not None:
-            raise Exception(f"SemanticError: the function '{name}' has already been declared'")
+            self.error(f"A função '{name}' já foi definida neste escopo",node.id)
         #push_scope
         self.current_scope = SYM.Scope(name,self.current_scope)
         params = {}
         for param in node.params:
             param_name = param.id.lexeme
-            if params.get(name) is not None:
-                raise Exception(f"SemanticError: Parameter {param_name} has already been specified")
+            if params.get(param_name) is not None:
+                self.error(f"O parâmetro '{param_name}' já foi especificado nesta função",node.id)
             param_symbol = self.visit(param)
             params[param_name] = param_symbol
 
@@ -107,13 +112,13 @@ class Analyzer(AST.Visitor):
         self.current_scope.enclosing_scope.define(name,symbol)
         self.visit(node.block)
         #leave_scope
-        print(self.current_scope)
+        #print(self.current_scope)
         self.current_scope = self.current_scope.enclosing_scope
 
     def visit_paramnode(self,node):
         var_type = self.current_scope.resolve(node.type.lexeme)
         if var_type == None:
-            raise Exception(f"SemanticError: could not resolve type '{node.type.lexeme}'")
+            self.error(f"O tipo de dados '{node.type.lexeme}' não foi definido",node.type)
         name = node.id.lexeme
         if node.is_array:
             return SYM.ArraySymbol(name,var_type)
@@ -126,7 +131,7 @@ class Analyzer(AST.Visitor):
             name = node.token.lexeme
             sym = self.current_scope.resolve(name)
             if sym == None:
-                raise Exception(f"SemanticError: reference to undeclared identifier '{name}'")
+                self.error(f"O identificador '{name}' não foi declarado",node.token)
             node.eval_type = sym.type.name
         elif node.token.token == TT.INTEGER:
             node.eval_type = BUILT_IN["int"]
@@ -135,21 +140,16 @@ class Analyzer(AST.Visitor):
         elif node.token.token == TT.STRING:
             node.eval_type = BUILT_IN["string"]
 
-        print(f"{node.eval_type} {node.token.lexeme}")
-
 
     def visit_binopnode(self,node):
         self.visit(node.left)
         self.visit(node.right)
         #Evaluate type of binary
         node.eval_type = self.eval_arit_op(node.left,node.token,node.right)
-        print(f"{node.eval_type} {node.token.lexeme}")
 
     def visit_unaryopnode(self,node):
         self.visit(node.operand)
         node.eval_type = node.operand.eval_type
-        print(f"{node.eval_type} {node.token.lexeme}")
-
 
 
     def visit_assignnode(self,node):
@@ -165,18 +165,17 @@ class Analyzer(AST.Visitor):
         id = node.id.lexeme
         sym = self.current_scope.resolve(id)
         if sym == None:
-            raise Exception(f"SemanticError: reference to undeclared function '{id}'")
+            self.error(f"A função '{id}' não foi definida",node.id)
         elif not isinstance(sym,SYM.FunctionSymbol):
-            raise Exception(f"Trying to call non function '{id}' as function")
+            self.error(f"O identificador '{id}' não é uma função",node.id)
         node.eval_type = sym.type.name
-        print(f"function: {node.eval_type} {id}")
 
 
     def visit_arrayref(self,node):
         id = node.id.lexeme
         sym = self.current_scope.resolve(id)
         if sym == None:
-            raise Exception(f"SemanticError: reference to undeclared function '{id}'")
+            self.error(f"O identificador '{id}' não foi declarado",node.id)
         elif not isinstance(sym,SYM.ArraySymbol):
-            raise Exception(f"SemanticError: trying to reference non array '{id}' with index")
+            self.error(f"O identificador '{id}' não é um vector",node.token)
         node.eval_type = sym.type.name

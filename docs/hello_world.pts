@@ -25,7 +25,6 @@ a recebe 10;
 
 b = b+b;
 b = --2-5;
-
 $ or short form
 b = 90 + a;
 
@@ -63,6 +62,7 @@ def divisao2(int a,int b): int{
 
 
 $ Function call
-
 mostra soma(a+b,b);
 divisao(a,b);
+
+decl angola a;

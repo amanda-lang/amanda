@@ -41,13 +41,8 @@ def run_sem_analysis():
 #run_lexer()
 
 try:
-    run_tests()
-    #run_sem_analysis()
-except ERR.LexerError as e:
+    #run_tests()
+    run_sem_analysis()
+except ERR.Error as e:
     sys.stderr.write(str(e))
     sys.exit()
-except ERR.ParserError as e:
-    sys.stderr.write(str(e))
-    sys.exit()
-except ERR.SemanticError as e:
-    pass
