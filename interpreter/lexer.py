@@ -33,7 +33,7 @@ class Lexer:
         return next_char
 
     def error(self,message):
-        raise LexerError(message=f"Erro sintático na linha {self.line}: O símbolo '{self.current_char}' não foi reconhecido")
+        raise LexerError(f"O símbolo '{self.current_char}' não foi reconhecido",self.line)
 
 
 
@@ -76,54 +76,54 @@ class Lexer:
     def arit_operators(self):
         if self.current_char == "+":
             self.advance()
-            return Token(TokenType.PLUS,"+")
+            return Token(TokenType.PLUS,"+",self.line,self.pos)
 
         elif self.current_char == "-":
             self.advance()
-            return Token(TokenType.MINUS,"-")
+            return Token(TokenType.MINUS,"-",self.line,self.pos)
 
         elif self.current_char == "*":
             self.advance()
-            return Token(TokenType.STAR,"*")
+            return Token(TokenType.STAR,"*",self.line,self.pos)
 
         elif self.current_char == "/":
             self.advance()
-            return Token(TokenType.SLASH,"/")
+            return Token(TokenType.SLASH,"/",self.line,self.pos)
 
         elif self.current_char == "%":
             self.advance()
-            return Token(TokenType.MODULO,"%")
+            return Token(TokenType.MODULO,"%",self.line,self.pos)
 
     def logic_operators(self):
         if self.current_char == "<":
             if self.Lookahead() == "=":
                 self.advance()
                 self.advance()
-                return Token(TokenType.LESSEQ,"<=")
+                return Token(TokenType.LESSEQ,"<=",self.line,self.pos)
             self.advance()
-            return Token(TokenType.LESS,"<")
+            return Token(TokenType.LESS,"<",self.line,self.pos)
 
         elif self.current_char == ">":
             if self.Lookahead() == "=":
                 self.advance()
                 self.advance()
-                return Token(TokenType.GREATEREQ,">=")
+                return Token(TokenType.GREATEREQ,">=",self.line,self.pos)
             self.advance()
-            return Token(TokenType.GREATER,">")
+            return Token(TokenType.GREATER,">",self.line,self.pos)
 
         elif self.current_char == "=":
             if self.Lookahead() == "=":
                 self.advance()
                 self.advance()
-                return Token(TokenType.DOUBLEEQUAL,"==")
+                return Token(TokenType.DOUBLEEQUAL,"==",self.line,self.pos)
             self.advance()
-            return Token(TokenType.EQUAL,"=")
+            return Token(TokenType.EQUAL,"=",self.line,self.pos)
 
         elif self.current_char == "!":
             if self.Lookahead() == "=":
                 self.advance()
                 self.advance()
-                return Token(TokenType.NOTEQUAL,"!=")
+                return Token(TokenType.NOTEQUAL,"!=",self.line,self.pos)
             self.error()
 
 
@@ -141,8 +141,8 @@ class Lexer:
                     result += self.current_char
                     self.advance()
         if "." in result:
-            return Token(TokenType.REAL,float(result))
-        return Token(TokenType.INTEGER,int(result))
+            return Token(TokenType.REAL,float(result),self.line,self.pos)
+        return Token(TokenType.INTEGER,int(result),self.line,self.pos)
 
 
 
@@ -156,7 +156,7 @@ class Lexer:
             result += self.current_char
             self.advance()
         self.advance()
-        return Token(TokenType.STRING,f"{symbol}{result}{symbol}")
+        return Token(TokenType.STRING,f"{symbol}{result}{symbol}",self.line,self.pos)
 
 
     def identifier(self):
@@ -165,41 +165,44 @@ class Lexer:
             result += self.current_char
             self.advance()
         if TK_KEYWORDS.get(result) is not None:
-            return TK_KEYWORDS.get(result)
-        return Token(TokenType.IDENTIFIER,result)
+            token = TK_KEYWORDS.get(result)
+            token.line = self.line
+            token.col = self.pos
+            return token
+        return Token(TokenType.IDENTIFIER,result,self.line,self.pos)
 
     def delimeters(self):
         char = self.current_char
         if self.current_char == ")":
             self.advance()
-            return Token(TokenType.RPAR,char)
+            return Token(TokenType.RPAR,char,self.line,self.pos)
         elif self.current_char == "(":
             self.advance()
-            return Token(TokenType.LPAR,char)
+            return Token(TokenType.LPAR,char,self.line,self.pos)
         elif self.current_char == ".":
             self.advance()
-            return Token(TokenType.DOT,char)
+            return Token(TokenType.DOT,char,self.line,self.pos)
         elif self.current_char == ";":
             self.advance()
-            return Token(TokenType.SEMI,char)
+            return Token(TokenType.SEMI,char,self.line,self.pos)
         elif self.current_char == ",":
             self.advance()
-            return Token(TokenType.COMMA,char)
+            return Token(TokenType.COMMA,char,self.line,self.pos)
         elif self.current_char == "{":
             self.advance()
-            return Token(TokenType.LBRACE,char)
+            return Token(TokenType.LBRACE,char,self.line,self.pos)
         elif self.current_char == "}":
             self.advance()
-            return Token(TokenType.RBRACE,char)
+            return Token(TokenType.RBRACE,char,self.line,self.pos)
         elif self.current_char == "[":
             self.advance()
-            return Token(TokenType.LBRACKET,char)
+            return Token(TokenType.LBRACKET,char,self.line,self.pos)
         elif self.current_char == "]":
             self.advance()
-            return Token(TokenType.RBRACKET,char)
+            return Token(TokenType.RBRACKET,char,self.line,self.pos)
         elif self.current_char == ":":
             self.advance()
-            return Token(TokenType.COLON,char)
+            return Token(TokenType.COLON,char,self.line,self.pos)
 
 
     def get_token(self):

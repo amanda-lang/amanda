@@ -6,13 +6,11 @@ $ The two bool types
 decl bool l = "verdadeiro";
 decl bool a = "falso";
 
-
 $ A string
 decl string nome = "Stenio";
 
 $ This is a variable declaration
 declara int antonio;
-
 $ or short form
 decl int b;
 

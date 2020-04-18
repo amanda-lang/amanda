@@ -44,9 +44,11 @@ class TokenType(Enum):
     VECTOR = "VECTOR"
 
 class Token:
-    def __init__(self,token,lexeme):
+    def __init__(self,token,lexeme,line=0,col=0):
         self.token = token
         self.lexeme = lexeme
+        self.line = line
+        self.col = col
 
     def __str__(self):
         return "<Type: %s, Lexeme: %s>"%(self.token.value,self.lexeme)

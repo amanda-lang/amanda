@@ -20,10 +20,10 @@ class Parser:
             #print(f"Parser consumed {self.lookahead}")
             self.lookahead = self.lexer.get_token()
         else:
-            self.error(self.lookahead.lexeme,f"O programa esperava o símbolo {token_t.value}")
+            self.error(f"O programa esperava o símbolo {token_t.value},porém recebeu o símbolo '{self.lookahead.lexeme}'")
 
-    def error(self,symbol,message=None):
-        raise ParserError(message,self.lexer.line,symbol)
+    def error(self,message=None):
+        raise ParserError(message,self.lexer.line)
 
     #function that triggers parsing
     def parse(self):
@@ -158,7 +158,7 @@ class Parser:
             self.consume(current)
             node = AST.UnaryOpNode(token,operand=self.factor())
         else:
-            self.error(self.lookahead,Error.ILLEGAL_EXPRESSION)
+            self.error(f"{Error.ILLEGAL_EXPRESSION} causado pelo símbolo '{self.lookahead.lexeme}'" )
         return node
 
     def function_call(self):

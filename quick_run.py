@@ -41,9 +41,10 @@ def run_sem_analysis():
 #run_lexer()
 
 try:
-    run_sem_analysis()
+    run_tests()
+    #run_sem_analysis()
 except ERR.LexerError as e:
-    sys.stderr.write(e.message+"\n\n")
+    sys.stderr.write(str(e))
     sys.exit()
 except ERR.ParserError as e:
     sys.stderr.write(str(e))
