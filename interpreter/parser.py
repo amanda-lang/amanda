@@ -73,7 +73,7 @@ class Parser:
             assign = self.lookahead
             self.consume(TT.EQUAL)
             right = self.expression()
-            assign = AST.AssignNode(assign,left=id,right=right)
+            assign = AST.AssignNode(assign,left=AST.ExpNode(id),right=right)
             return AST.VarDeclNode(token,id=id,type=type,assign=assign)
         return AST.VarDeclNode(token,id=id,type=type)
 

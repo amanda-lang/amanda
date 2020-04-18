@@ -89,7 +89,7 @@ class ArrayDeclNode(ASTNode):
     def visit(self):
         print(f"Array declaration: {self.id} [{self.size}]")
 
-class AssignNode(ASTNode):
+class AssignNode(ExpNode):
     def __init__(self,token,left=None,right=None):
         super().__init__(token)
         self.left = left

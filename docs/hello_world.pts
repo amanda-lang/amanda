@@ -1,14 +1,17 @@
 $* this is
 a multiline comment *$
 $* these are the different types:
- int,real,bool,string *$
+ int,real,bool,texto *$
 $ The two bool types
-decl bool l = "verdadeiro";
-decl bool a = "falso";
+decl texto l = "verdadeiro";
+decl texto a = "falso";
+
+
+
 
 $ A string
-decl string nome = "Stenio";
-
+decl texto nome = "Stenio";
+a=l;
 $ This is a variable declaration
 declara int antonio;
 $ or short form
@@ -39,7 +42,7 @@ $retorna a;
 
 
 $ function declarations
-defina soma(int a,int b):int {
+defina soma(int a,int b): int{
 
   decl int ab;
   decl real angola;
@@ -48,7 +51,7 @@ defina soma(int a,int b):int {
 }
 
 $ or for 'procedure'
-defina divisao(string a,int b){
+defina divisao(texto a,int b){
 
   vector int tem[3];
   retorna a/b;
@@ -56,7 +59,7 @@ defina divisao(string a,int b){
 
 
 $ or short form
-def divisao2(string a,int b): int{
+def divisao2(texto a,int b): int{
   vector int tem[3];
   mostra a/b;
 }

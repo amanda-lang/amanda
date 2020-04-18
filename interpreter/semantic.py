@@ -6,18 +6,18 @@ import interpreter.symtab as SYM
 from interpreter.error import SemanticError
 
 BUILT_IN ={
- "int" : "INTEGER",
- "real": "REAL",
- "string": "STRING",
- "bool":"BOOLEAN",
+ "int" : "inteiro",
+ "real": "real",
+ "texto": "texto",
+ "bool":"booleano",
  "vazio":"VAZIO"
 }
 
 arit_types ={
- "INTEGER" : 0,
- "REAL": 1,
- "STRING": 2,
- "BOOLEAN": 3,
+ "inteiro" : 0,
+ "real": 1,
+ "texto": 2,
+ "booleano": 3,
  "VAZIO": 4,
  None:4
 }
@@ -27,7 +27,7 @@ arit_types ={
 type_results = [
     [BUILT_IN["int"],BUILT_IN["vazio"],BUILT_IN["vazio"],BUILT_IN["vazio"],BUILT_IN["vazio"]],
     [BUILT_IN["vazio"],BUILT_IN["real"],BUILT_IN["vazio"],BUILT_IN["vazio"],BUILT_IN["vazio"]],
-    [BUILT_IN["vazio"],BUILT_IN["vazio"],BUILT_IN["string"],BUILT_IN["vazio"],BUILT_IN["vazio"]],
+    [BUILT_IN["vazio"],BUILT_IN["vazio"],BUILT_IN["texto"],BUILT_IN["vazio"],BUILT_IN["vazio"]],
     [BUILT_IN["vazio"],BUILT_IN["vazio"],BUILT_IN["vazio"],BUILT_IN["bool"],BUILT_IN["vazio"]],
     [BUILT_IN["vazio"],BUILT_IN["vazio"],BUILT_IN["vazio"],BUILT_IN["vazio"],BUILT_IN["vazio"]]
 ]
@@ -78,6 +78,8 @@ class Analyzer(AST.Visitor):
         name = node.id.lexeme
         symbol = SYM.VariableSymbol(name,var_type)
         self.current_scope.define(name,symbol)
+        if node.assign != None:
+            self.visit(node.assign)
 
     def visit_arraydeclnode(self,node):
         var_type = self.current_scope.resolve(node.type.lexeme)
@@ -135,7 +137,7 @@ class Analyzer(AST.Visitor):
         elif node.token.token == TT.REAL:
             node.eval_type = BUILT_IN["real"]
         elif node.token.token == TT.STRING:
-            node.eval_type = BUILT_IN["string"]
+            node.eval_type = BUILT_IN["texto"]
 
     def visit_binopnode(self,node):
         self.visit(node.left)
@@ -151,6 +153,9 @@ class Analyzer(AST.Visitor):
     def visit_assignnode(self,node):
         self.visit(node.left)
         self.visit(node.right)
+        if node.left.eval_type != node.right.eval_type:
+            self.error(f"Atribuição inválida. incompatibilidade entre os operandos da atribuição [{node.left.eval_type} = {node.right.eval_type}]",node.token)
+        self.eval_type = node.right.eval_type
         #Do stuff here
 
     def visit_statement(self,node):
