@@ -44,14 +44,14 @@ defina soma(int a,int b):int {
   decl int ab;
   decl real angola;
 
-  retorna a+b;
+  retorna ab;
 }
 
 $ or for 'procedure'
 defina divisao(string a,int b){
 
   vector int tem[3];
-  mostra a/b;
+  retorna a/b;
 }
 
 

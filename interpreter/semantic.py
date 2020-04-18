@@ -161,6 +161,14 @@ class Analyzer(AST.Visitor):
         if token == TT.RETORNA:
             if self.current_scope.name == Analyzer.GLOBAL:
                 self.error(f"O comando 'retorna' só pode ser usado dentro de uma função",node.token)
+            else:
+                function = self.current_scope.enclosing_scope.resolve(self.current_scope.name)
+                if function.type.name == BUILT_IN["vazio"]:
+                    self.error(f"Expressão de retorno inválida. Procedimentos não podem retornar valores",node.token)
+                elif function.type.name != node.exp.eval_type:
+                    self.error(f"Expressão de retorno inválida. Esperava-se um retorno do tipo '{function.type.type}'",node.token)
+
+
     def visit_functioncall(self,node):
         for arg in node.fargs:
             self.visit(arg)
