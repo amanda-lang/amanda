@@ -132,7 +132,15 @@ class Analyzer(AST.Visitor):
     def visit_expnode(self,node):
         if node.token.token == TT.IDENTIFIER:
             name = node.token.lexeme
-            sym = self.current_scope.resolve(name)
+            sym = None
+            if self.current_scope.name != Analyzer.GLOBAL:
+                #Get the function symbol and use that to get the args
+                function = self.current_scope.enclosing_scope.resolve(self.current_scope.name)
+                sym = function.params.get(name)
+                if sym == None:
+                    sym = self.current_scope.resolve(name)
+            else:
+                sym = self.current_scope.resolve(name)
             if sym == None:
                 self.error(f"O identificador '{name}' não foi declarado",node.token)
             node.eval_type = sym.type.name
@@ -148,6 +156,12 @@ class Analyzer(AST.Visitor):
         self.visit(node.right)
         #Evaluate type of binary
         node.eval_type = self.eval_arit_op(node.left,node.token,node.right)
+        #Validate binary ops
+        if node.eval_type == BUILT_IN["vazio"]:
+            self.error(f"Operação inválida. Os operandos possuem tipos incompatíveis: {node.left.eval_type} '{node.token.lexeme}' {node.right.eval_type}",node.token)
+        if node.eval_type == BUILT_IN["texto"]:
+            if node.token.token != TT.PLUS:
+                self.error(f"Operação inválida. O tipo 'texto' não suporta a operações com o operador '{node.token.lexeme}'",node.token)
 
     def visit_unaryopnode(self,node):
         self.visit(node.operand)
@@ -162,7 +176,6 @@ class Analyzer(AST.Visitor):
         if node.left.eval_type != node.right.eval_type:
             self.error(f"Atribuição inválida. incompatibilidade entre os operandos da atribuição [{node.left.eval_type} = {node.right.eval_type}]",node.token)
         node.eval_type = node.right.eval_type
-        #Do stuff here
 
     def visit_statement(self,node):
         #self.visit(node.exp)

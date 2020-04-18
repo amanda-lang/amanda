@@ -6,8 +6,7 @@ $ The two bool types
 decl texto l = "verdadeiro";
 decl texto a = "falso";
 
-
-+"texto";
+"teste" + "teste";
 $ decl int a;
 l=a="teste";
 $ A string
@@ -45,19 +44,19 @@ defina soma(int a,int b): int{
   decl int ab;
   decl real angola;
 
-  retorna ab=10;
+  retorna ab;
 }
 
 $ or for 'procedure'
 defina divisao(texto a,int b){
 
   vector int tem[3];
-  mostra a/b;
+  mostra 3/b;
 }
 
 
 $ or short form
-def divisao2(texto a,int b): int{
+def divisao2(int a,int b): int{
   vector int tem[3];
   mostra a/b;
 }
