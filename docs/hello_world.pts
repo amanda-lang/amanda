@@ -35,7 +35,7 @@ b = b*2;
 
 
 
-retorna a;
+$retorna a;
 
 
 $ function declarations

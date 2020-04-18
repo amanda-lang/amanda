@@ -155,11 +155,12 @@ class Analyzer(AST.Visitor):
 
     def visit_statement(self,node):
         #self.visit(node.exp)
-        #node.visit()
+        self.visit(node.exp)
+        token = node.token.token
         #check if return statement is inside a function
-        token = node.token.line
-        print(token)
-
+        if token == TT.RETORNA:
+            if self.current_scope.name == Analyzer.GLOBAL:
+                self.error(f"O comando 'retorna' só pode ser usado dentro de uma função",node.token)
     def visit_functioncall(self,node):
         for arg in node.fargs:
             self.visit(arg)
