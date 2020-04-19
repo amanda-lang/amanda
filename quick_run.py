@@ -7,8 +7,8 @@ from interpreter.tests.test_lexer import LexerTestCase
 from interpreter.parser import Parser
 from interpreter.semantic import Analyzer
 import interpreter.error as ERR
-from io import StringIO
-TEST_FILE = "./docs/hello_world.pts"
+from interpreter.pypti import Interpreter
+TEST_FILE = "./docs/calc.pts"
 
 
 def run_lexer():
@@ -33,16 +33,20 @@ def run_sem_analysis():
     lexer = Lexer(TEST_FILE)
     parser = Parser(lexer)
     intp = Analyzer(parser)
-    intp.load_symbols()
+    intp.check_program()
     print(intp.current_scope)
 
-#run_parser()
-#run_tests()
-#run_lexer()
+def run_pypti():
+    lexer = Lexer(TEST_FILE)
+    parser = Parser(lexer)
+    analyzer = Analyzer(parser)
+    analyzer.check_program()
+    intp = Interpreter(analyzer.program)
+
 
 try:
     #run_tests()
-    run_sem_analysis()
+    run_pypti()
 except ERR.Error as e:
     sys.stderr.write(str(e))
     sys.exit()

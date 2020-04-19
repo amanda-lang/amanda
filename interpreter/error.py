@@ -3,7 +3,7 @@ class Error(Exception):
 
     ILLEGAL_EXPRESSION = "Início inválido de expressão"
     ID_NOT_FOUND = "Identificador não declarado"
-    
+
     def __init__(self,message,line):
         self.message = message
         self.line = line
@@ -29,3 +29,10 @@ class ParserError(Error):
 class SemanticError(Error):
     def __str__(self):
         return f"\n\nErro semântico na linha {self.line}: {self.message}.\n\n"
+
+
+
+
+class RunTimeError(Error):
+    def __str__(self):
+        return f"\n\nErro de execução na linha {self.line}: {self.message}.\n\n"
