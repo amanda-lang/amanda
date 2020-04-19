@@ -63,7 +63,7 @@ class Analyzer(AST.Visitor):
     def eval_arit_op(self,opand1,op,opand2):
         return type_results[arit_types[opand1.eval_type]][arit_types[opand2.eval_type]]
 
-    def load_symbols(self):
+    def check_program(self):
         self.visit(self.program)
 
 
