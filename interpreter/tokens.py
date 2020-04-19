@@ -35,6 +35,7 @@ class TokenType(Enum):
     DOUBLEEQUAL = "DOUBLEEQUAL"
     AND = "AND"
     OR = "OR"
+    NOT = "NOT"
 
     #KEYWORDS
     DECL = "DECL"

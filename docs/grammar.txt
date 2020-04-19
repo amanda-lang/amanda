@@ -41,6 +41,7 @@ comp_op
   : GREATER
   | LESSEQ
   | GREATEREQ
+  | LESSEQ
 
 
 eq_op
@@ -62,11 +63,11 @@ comparison
   ;
 
 addition
-  : term (add_operator term)*
+  : term ( add_operator term)*
   ;
 
 term
-  : factor (multi_operator term)*
+  : factor ( multi_operator term)*
   ;
 
 factor
@@ -76,7 +77,7 @@ factor
   | VERDADEIRO
   | FALSO
   | LPAR expression RPAR
-  | add_operator factor
+  | ( add_operator | NOT ) factor
   | IDENTIFIER ( function_call | array_ref | assignment ) ?
   ;
 
@@ -100,11 +101,13 @@ mult_operator
   : STAR
   | SLASH
   | MODULO
+  | AND
   ;
 
 add_operator
   : PLUS
   | MINUS
+  | OR
   ;
 
 

@@ -16,7 +16,7 @@ class LexerTestCase(unittest.TestCase):
         os.remove("sample.pts")
 
     def test_logic_operators(self):
-        self.test_file.write(">\n<\n<=\n>=\n!=\n==\n=")
+        self.test_file.write(">\n<\n<=\n>=\n!=\n==\n=\ne\nou\n!")
         self.test_file.close()
         lexer = Lexer("sample.pts")
         self.assertEqual(lexer.get_token().token,TokenType.GREATER,msg="GREATER Test Failed")
@@ -26,6 +26,9 @@ class LexerTestCase(unittest.TestCase):
         self.assertEqual(lexer.get_token().token,TokenType.NOTEQUAL,msg="NOTEQUAL Test Failed")
         self.assertEqual(lexer.get_token().token,TokenType.DOUBLEEQUAL,msg="DOUBLEEQUAL Test Failed")
         self.assertEqual(lexer.get_token().token,TokenType.EQUAL,msg="EQUAL Test Failed")
+        self.assertEqual(lexer.get_token().token,TokenType.AND,msg="AND Test Failed")
+        self.assertEqual(lexer.get_token().token,TokenType.OR,msg="OR Test Failed")
+        self.assertEqual(lexer.get_token().token,TokenType.NOT,msg="NOT Test Failed")
 
     def test_arit_operators(self):
         self.test_file.write("+\n-\n*\n/\n%")

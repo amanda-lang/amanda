@@ -46,7 +46,8 @@ def run_pypti():
 
 try:
     #run_tests()
-    run_pypti()
+    #run_pypti()
+    run_tests()
 except ERR.Error as e:
     sys.stderr.write(str(e))
     sys.exit()

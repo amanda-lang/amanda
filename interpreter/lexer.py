@@ -125,7 +125,8 @@ class Lexer:
                 self.advance()
                 self.advance()
                 return Token(TokenType.NOTEQUAL,"!=",self.line,self.pos)
-            self.error()
+            self.advance()
+            return Token(TokenType.NOT,"!",self.line,self.pos)
 
 
     def number(self):

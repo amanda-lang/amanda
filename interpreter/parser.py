@@ -103,19 +103,59 @@ class Parser:
         return AST.Statement(token,exp)
 
 
+    def eq_operator(self):
+        current = self.lookahead.token
+        if current == TT.DOUBLEEQUAL:
+            self.consume(TT.DOUBLEEQUAL)
+        elif current == TT.NOTEQUAL:
+            self.consume(TT.NOTEQUAL)
 
     def expression(self):
+        node = self.comparison()
+        current = self.lookahead.token
+        while self.lookahead.token in (TT.DOUBLEEQUAL,TT.NOTEQUAL):
+            op = self.lookahead
+            self.eq_operator()
+            node = AST.BinOpNode(op,left=node,right=self.comparison())
+        return node
+
+    def comp_operator(self):
+        current = self.lookahead.token
+        if current == TT.GREATER:
+            self.consume(TT.GREATER)
+        elif current == TT.GREATEREQ:
+            self.consume(TT.GREATEREQ)
+        elif current == TT.LESS:
+            self.consume(TT.LESS)
+        elif current == TT.LESSEQ:
+            self.consume(TT.LESSEQ)
+
+
+    def comparison(self):
+        node = self.addition()
+        current = self.lookahead.token
+        while self.lookahead.token in (TT.GREATER,TT.GREATEREQ,TT.LESS,TT.LESSEQ):
+            op = self.lookahead
+            self.comp_operator()
+            node = AST.BinOpNode(op,left=node,right=self.addition())
+        return node
+
+    def addition(self):
         node = self.term()
         current = self.lookahead.token
-        while self.lookahead.token in (TT.PLUS,TT.MINUS):
+        while self.lookahead.token in (TT.PLUS,TT.MINUS,TT.OR):
             op = self.lookahead
-            self.add_operator()
+            if current == TT.OR:
+                self.consume(TT.OR)
+            else:
+                self.add_operator()
             node = AST.BinOpNode(op,left=node,right=self.term())
         return node
 
+
     def term(self):
         node = self.factor()
-        while self.lookahead.token in (TT.STAR,TT.SLASH,TT.MODULO):
+        while self.lookahead.token in (TT.STAR,TT.SLASH,TT.MODULO,TT.AND):
             op = self.lookahead
             self.mult_operator()
             node = AST.BinOpNode(op,left=node,right=self.term())
@@ -124,7 +164,7 @@ class Parser:
     def factor(self):
         current = self.lookahead.token
         node = None
-        if current in (TT.INTEGER,TT.REAL,TT.STRING,TT.IDENTIFIER):
+        if current in (TT.INTEGER,TT.REAL,TT.STRING,TT.IDENTIFIER,TT.VERDADEIRO,TT.FALSO):
             if current == TT.IDENTIFIER:
                 token = self.lookahead
                 self.consume(TT.IDENTIFIER)
@@ -151,7 +191,7 @@ class Parser:
             self.consume(TT.LPAR)
             node = self.expression()
             self.consume(TT.RPAR)
-        elif current in (TT.PLUS,TT.MINUS):
+        elif current in (TT.PLUS,TT.MINUS,TT.NOT):
             token = self.lookahead
             self.consume(current)
             node = AST.UnaryOpNode(token,operand=self.factor())
@@ -235,6 +275,8 @@ class Parser:
 
     def mult_operator(self):
         current = self.lookahead.token
+        if current == TT.AND:
+            self.consume(TT.AND)
         if current == TT.STAR:
             self.consume(TT.STAR)
         elif current == TT.SLASH:
