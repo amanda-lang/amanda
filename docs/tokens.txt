@@ -14,6 +14,8 @@ LESSEQ : <=
 GREATEREQ : >=
 NOTEQUAL : !=
 DOUBLEEQUAL : ==
+AND : e
+OR : ou
 
 *ASSIGNMENT*
 EQUAL : = | recebe

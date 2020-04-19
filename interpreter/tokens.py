@@ -33,6 +33,8 @@ class TokenType(Enum):
     NOTEQUAL = "NOTEQUAL"
     EQUAL = "EQUAL"
     DOUBLEEQUAL = "DOUBLEEQUAL"
+    AND = "AND"
+    OR = "OR"
 
     #KEYWORDS
     DECL = "DECL"
@@ -63,5 +65,7 @@ KEYWORDS = {
     "falso": Token(TokenType.FALSO,"falso"),
     "recebe": Token(TokenType.EQUAL,"recebe") , # same as equals
     "retorna": Token(TokenType.RETORNA,"retorna"),
-    "vector" : Token(TokenType.VECTOR,"vector")
+    "vector" : Token(TokenType.VECTOR,"vector"),
+    "e" : Token(TokenType.AND,"e"),
+    "ou" : Token(TokenType.OR,"ou")
 }

@@ -33,7 +33,35 @@ mostra_statement
   : MOSTRA expression
   ;
 
+
+re
+  : expression (relop expression)*
+
+comp_op
+  : GREATER
+  | LESSEQ
+  | GREATEREQ
+
+
+eq_op
+  : NOTEQUAL
+  | DOUBLEEQUAL
+  ;
+
+
 expression
+  :  equality
+  ;
+
+equality
+  : comparison (eq_op comparison)*
+  ;
+
+comparison
+  : addition (comp_op addition)*
+  ;
+
+addition
   : term (add_operator term)*
   ;
 
@@ -45,6 +73,8 @@ factor
   : INTEGER
   | REAL
   | STRING
+  | VERDADEIRO
+  | FALSO
   | LPAR expression RPAR
   | add_operator factor
   | IDENTIFIER ( function_call | array_ref | assignment ) ?
