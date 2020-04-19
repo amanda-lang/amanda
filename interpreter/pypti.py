@@ -1,3 +1,4 @@
+import ast
 from interpreter.lexer import Lexer
 from interpreter.tokens import TokenType as TT
 from interpreter.tokens import Token
@@ -98,9 +99,7 @@ class Interpreter(AST.Visitor):
                 return float(node.token.lexeme)
             elif type == SEM.BUILT_IN["texto"]:
                 #format the string lol
-                value = str(node.token.lexeme).replace("'","")
-                value = str(node.token.lexeme).replace("\"","")
-                return value
+                return ast.literal_eval(node.token.lexeme)
 
     def exec_statement(self,node):
         expr = self.execute(node.exp)
