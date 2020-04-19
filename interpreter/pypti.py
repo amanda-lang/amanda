@@ -20,10 +20,13 @@ class Enviroment:
         self.memory.define(name,value)
 
     def resolve(self,name):
-        value = self.memory.get(name)
+        value = self.memory.resolve(name)
         if value is None and self.previous is not None:
             return self.previous.resolve(name)
         return value
+
+    def __str__(self):
+        return str(self.memory)
 
 
 #Stack that will hold the currently executing Enviroment
@@ -43,6 +46,8 @@ class Stack:
 
 class Interpreter(AST.Visitor):
     GLOBAL_MEMORY = "GLOBAL"
+    #something like null
+    NONE_TYPE = "NONE"
 
     def __init__(self,program):
 
@@ -60,9 +65,43 @@ class Interpreter(AST.Visitor):
         visitor_method = getattr(self,method_name,self.generic_exec)
         return visitor_method(node)
 
+    def resolve(self,node):
+        node_class = type(node).__name__.lower()
+        method_name = f"resolve_{node_class}"
+        visitor_method = getattr(self,method_name,self.generic_exec)
+        return visitor_method(node)
+
     def exec_block(self,node):
         for child in node.children:
             self.execute(child)
+
+
+    def exec_vardeclnode(self,node):
+        name = node.id.lexeme
+        type = node.type.lexeme
+        memory = self.call_stack.peek()
+        if type == "int":
+            memory.define(name,0)
+        elif type == "real":
+            memory.define(name,0.0)
+        elif type == "texto":
+            memory.define(name,"")
+        else:
+            memory.define(name,Interpreter.NONE_TYPE)
+        if node.assign is not None:
+            self.execute(node.assign)
+
+    def exec_assignnode(self,node):
+        value = self.execute(node.right)
+        name = self.resolve(node.left)
+        memory = self.call_stack.peek()
+        memory.define(name,value)
+        return value
+
+    def resolve_expnode(self,node):
+        return node.token.lexeme
+
+
 
     def exec_binopnode(self,node):
         left = self.execute(node.left)
@@ -105,8 +144,7 @@ class Interpreter(AST.Visitor):
         expr = self.execute(node.exp)
         token = node.token.token
         if token == TT.MOSTRA:
-            print(expr)
-
+            print(expr,end="\n\n")
 
 
     def generic_exec(self):

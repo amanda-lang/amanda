@@ -7,7 +7,7 @@ from interpreter.tests.test_lexer import LexerTestCase
 from interpreter.parser import Parser
 from interpreter.semantic import Analyzer
 import interpreter.error as ERR
-from interpreter.pypti import Interpreter
+from interpreter.pypti import Interpreter,Enviroment
 TEST_FILE = "./docs/calc.pts"
 
 
