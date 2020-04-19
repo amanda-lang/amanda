@@ -6,6 +6,7 @@ $ The two bool types
 decl texto l = "verdadeiro";
 decl texto a = "falso";
 
+
 "teste" + "teste";
 $ decl int a;
 l=a="teste";

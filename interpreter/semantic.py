@@ -81,6 +81,8 @@ class Analyzer(AST.Visitor):
             self.error(f"O identificador '{name}' já foi declarado neste escopo",node.id)
         self.current_scope.define(name,symbol,node.id)
         if node.assign != None:
+            if node.assign.right.token.lexeme == name:
+                self.error(f"Erro ao inicializar variável. Não pode referenciar uma variável durante a sua declaração",node.id)
             self.visit(node.assign)
 
     def visit_arraydeclnode(self,node):
