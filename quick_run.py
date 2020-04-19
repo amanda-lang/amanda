@@ -42,7 +42,7 @@ def run_pypti():
     analyzer = Analyzer(parser)
     analyzer.check_program()
     intp = Interpreter(analyzer.program)
-
+    intp.interpret()
 
 try:
     #run_tests()

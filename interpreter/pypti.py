@@ -31,7 +31,7 @@ class Stack:
         self.stack = []
 
     def push(self,item):
-        self.stack.append()
+        self.stack.append(item)
 
     def pop(self):
         self.stack.pop(-1)
@@ -47,7 +47,7 @@ class Interpreter(AST.Visitor):
 
         self.program = program # Checked AST
         self.call_stack = Stack()
-        self.call_stack.push(Enviroment(Interpreter.GLOBAL))
+        self.call_stack.push(Enviroment(Interpreter.GLOBAL_MEMORY))
 
     def interpret(self):
         self.execute(self.program)
@@ -64,8 +64,8 @@ class Interpreter(AST.Visitor):
             self.execute(child)
 
     def exec_binopnode(self,node):
-        left = self.execute(left)
-        right = self.execute(right)
+        left = self.execute(node.left)
+        right = self.execute(node.right)
         op = node.token.token
         if op == TT.PLUS:
             return left + right
@@ -95,8 +95,12 @@ class Interpreter(AST.Visitor):
             if type == SEM.BUILT_IN["int"]:
                 return int(node.token.lexeme)
             elif type == SEM.BUILT_IN["real"]:
-                return float(node.token.lexem)
-            return node.token.lexeme
+                return float(node.token.lexeme)
+            elif type == SEM.BUILT_IN["texto"]:
+                #format the string lol
+                value = str(node.token.lexeme).replace("'","")
+                value = str(node.token.lexeme).replace("\"","")
+                return value
 
     def exec_statement(self,node):
         expr = self.execute(node.exp)
