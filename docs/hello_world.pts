@@ -43,7 +43,7 @@ $ b = b*2;
 
 
 $ function declarations
-defina soma(int a,int b): int{
+defina soma(bool a,int b): int{
 
   decl int ab;
   decl real angola;
@@ -51,6 +51,10 @@ defina soma(int a,int b): int{
 
   retorna ab;
 }
+
+
+
+decl real resultado = 2.0 + soma(1,2);
 
 $ or for 'procedure'
 defina divisao(texto a,int b){

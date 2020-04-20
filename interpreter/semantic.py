@@ -261,9 +261,11 @@ class Analyzer(AST.Visitor):
             self.error(f"Identificador '{id}' não é uma função",node.id)
         elif len(node.fargs) != len(sym.params):
             self.error(f"Número incorrecto de argumentos para a função {node.id.lexeme}. Esperava {len(sym.params)} argumentos, porém recebeu {len(node.fargs)}",node.id)
+        #Type promotion for parameter
         for i,param in enumerate(sym.params.values()):
-            if param.type.name != node.fargs[i].eval_type:
-                self.error(f"O argumento {i+1} da função {node.id.lexeme} deve ser do tipo '{param.type.type}'",node.id)
+            node.fargs[i].prom_type = type_promotion[node.fargs[i].eval_type.value][param.type.name.value]
+            if param.type.name != node.fargs[i].eval_type and node.fargs[i].prom_type == Type.VAZIO:
+                self.error(f"O argumento {i+1} da função {node.id.lexeme} deve ser do tipo '{param.type.name}'",node.id)
         node.eval_type = sym.type.name
 
 
