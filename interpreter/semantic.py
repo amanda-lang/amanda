@@ -220,9 +220,16 @@ class Analyzer(AST.Visitor):
     def visit_assignnode(self,node):
         self.visit(node.right)
         self.visit(node.left)
-        if node.left.eval_type != node.right.eval_type:
+
+        #Set node types
+        node.eval_type = node.left.eval_type
+        node.prom_type = Type.VAZIO
+        #Set promotion type for right side
+        node.right.prom_type = type_promotion[node.right.eval_type.value][node.left.eval_type.value]
+
+        if node.left.eval_type != node.right.eval_type and node.right.prom_type == Type.VAZIO:
             self.error(f"Atribuição inválida. incompatibilidade entre os operandos da atribuição [{node.left.eval_type} = {node.right.eval_type}]",node.token)
-        node.eval_type = node.right.eval_type
+        print(node.right,node.right.eval_type.name,node.right.prom_type.name)
 
     def visit_statement(self,node):
         #self.visit(node.exp)

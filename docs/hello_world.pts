@@ -6,12 +6,8 @@ $ The two bool types
 decl texto l = "verdadeiro";
 decl texto a = "falso";
 
-10.5 - 8;
-verdadeiro == 1;
-1 > 1.5;
-1 == 1;
 
-"teste" + "teste";
+
 $ decl int a;
 l=a="teste";
 $ A string
@@ -21,6 +17,10 @@ $ This is a variable declaration
 declara int antonio;
 $ or short form
 decl int b;
+
+
+
+decl real salario = 2;
 
 $ this is an array
 vector int vet[3];
@@ -47,6 +47,7 @@ defina soma(int a,int b): int{
 
   decl int ab;
   decl real angola;
+
 
   retorna ab;
 }
