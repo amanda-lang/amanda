@@ -6,6 +6,8 @@ import interpreter.ast_nodes as AST
 import interpreter.symtab as SYM
 from interpreter.error import SemanticError
 
+
+''' Class to represent built in types '''
 class Type(Enum):
     INT = 0
     REAL = 1
@@ -15,7 +17,6 @@ class Type(Enum):
 
     def __str__(self):
         return self.name.lower()
-
 
 # result of static type computation
 # Vazio means illegal operation
@@ -48,9 +49,20 @@ eqop_results = [
     [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO]
 ]
 
+#table for type results for e ou !
+logop_results = [
+#       int       real       texto     bool      vazio
+    [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO],
+    [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO],
+    [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO],
+    [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.BOOL,Type.VAZIO],
+    [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO]
+]
+
+
 
 # table for type promotions
-# Non means should not be promoted
+# None means should not be promoted
 type_promotion= [
 #       int       real       texto     bool      vazio
     [Type.VAZIO,Type.REAL,Type.VAZIO,Type.BOOL,Type.VAZIO],
@@ -193,8 +205,10 @@ class Analyzer(AST.Visitor):
             node.eval_type = aritop_results[node.left.eval_type.value][node.right.eval_type.value]
         elif node.token.token in (TT.GREATER,TT.LESS,TT.GREATEREQ,TT.LESSEQ):
             node.eval_type = relop_results[node.left.eval_type.value][node.right.eval_type.value]
-        elif node.token.token in (TT.EQUAL,TT.NOTEQUAL):
+        elif node.token.token in (TT.DOUBLEEQUAL,TT.NOTEQUAL):
             node.eval_type = eqop_results[node.left.eval_type.value][node.right.eval_type.value]
+        elif node.token.token in (TT.AND,TT.OR):
+            node.eval_type = logop_results[node.left.eval_type.value][node.right.eval_type.value]
         #Validate binary ops
         if node.eval_type == Type.VAZIO:
             self.error(f"Operação inválida. Os operandos possuem tipos incompatíveis: {node.left.eval_type} '{node.token.lexeme}' {node.right.eval_type}",node.token)
@@ -207,14 +221,17 @@ class Analyzer(AST.Visitor):
             node.left.prom_type = type_promotion[node.left.eval_type.value][node.right.eval_type.value]
             node.right.prom_type = type_promotion[node.right.eval_type.value][node.left.eval_type.value]
 
-        print(node.left,node.left.eval_type.name,node.left.prom_type.name)
-        print(node.right,node.right.eval_type.name,node.right.prom_type.name)
-
     def visit_unaryopnode(self,node):
         self.visit(node.operand)
-        if node.operand.eval_type != Type.INT and node.operand.eval_type != Type.REAL:
-            self.error(f"Operação inválida. O Operador unário '{node.token.lexeme}' só pode ser usado com tipos numéricos",node.token)
-        node.eval_type = node.operand.eval_type
+        if node.token.token in (TT.PLUS,TT.MINUS):
+            if node.operand.eval_type != Type.INT and node.operand.eval_type != Type.REAL:
+                self.error(f"Operação inválida. O Operador unário '{node.token.lexeme}' só pode ser usado com tipos numéricos",node.token)
+            node.eval_type = node.operand.eval_type
+        elif node.token.token == TT.NOT:
+            node.operand.prom_type = logop_results[node.operand.eval_type.value][Type.BOOL]
+            if node.operand.eval_type != Type.BOOL and node.operand.prom_type == Type.VAZIO:
+                self.error(f"Operação inválida. O Operador unário '{node.token.lexeme}' só pode ser usado com valores lógicos",node.token)
+            node.eval_type = node.operand.prom_type
 
 
     def visit_assignnode(self,node):

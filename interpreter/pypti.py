@@ -114,34 +114,65 @@ class Interpreter(AST.Visitor):
         elif op == TT.STAR:
             return left * right
         elif op == TT.SLASH:
-            if node.eval_type == SEM.BUILT_IN["real"]:
+            if node.eval_type == SEM.Type.REAL:
                 return left/right;
             else:
                 return left//right;
         elif op == TT.MODULO:
             return left % right;
+        elif op == TT.GREATER:
+            return left > right
+        elif op == TT.LESS:
+            return left < right
+        elif op == TT.GREATEREQ:
+            return left >= right
+        elif op == TT.LESSEQ:
+            return left <= right
+        elif op == TT.NOTEQUAL:
+            return left != right
+        elif op == TT.DOUBLEEQUAL:
+            return left == right
+        elif op == TT.AND:
+            return left and right
+        elif op == TT.OR:
+            return left or right
+
 
     def exec_unaryopnode(self,node):
         value = self.execute(node.operand)
         if node.token.token == TT.MINUS:
             return -value
+        elif node.token.token == TT.NOT:
+            return not value
         return value
 
     def exec_expnode(self,node):
         if node.token.token == TT.IDENTIFIER:
             return self.call_stack.peek().resolve(node.token.lexeme)
         else:
-            type = node.eval_type
-            if type == SEM.BUILT_IN["int"]:
-                return int(node.token.lexeme)
-            elif type == SEM.BUILT_IN["real"]:
-                return float(node.token.lexeme)
-            elif type == SEM.BUILT_IN["texto"]:
-                #format the string lol
-                return ast.literal_eval(node.token.lexeme)
+            type = node.prom_type
+            if type == SEM.Type.VAZIO:
+                type = node.eval_type
+                if type == SEM.Type.INT:
+                    return int(node.token.lexeme)
+                elif type == SEM.Type.REAL:
+                    return float(node.token.lexeme)
+                elif type == SEM.Type.TEXTO:
+                    #format the string lol
+                    return ast.literal_eval(node.token.lexeme)
+                elif type == SEM.Type.BOOL:
+                    return True if node.token.token == TT.VERDADEIRO else False
+            else:
+                if type == SEM.Type.REAL:
+                    return float(node.token.lexeme)
+                elif type == SEM.Type.BOOL:
+                    return bool(node.token.lexeme) #False: 0,0.0 and "" True: Everything else
+
 
     def exec_statement(self,node):
         expr = self.execute(node.exp)
+        if node.exp.eval_type == SEM.Type.BOOL:
+            expr = "verdadeiro" if expr == True else "falso"
         token = node.token.token
         if token == TT.MOSTRA:
             print(expr,end="\n\n")
