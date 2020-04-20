@@ -22,7 +22,7 @@ var_declaration
   ;
 
 array_declaration
-  : VECTOR type IDENTIFIER LBRACKET expression RBRACKET
+  : VECTOR type IDENTIFIER LBRACKET equality RBRACKET
   ;
 
 retorna_statement
@@ -51,7 +51,11 @@ eq_op
 
 
 expression
-  :  equality
+  : assignment
+  ;
+
+assignment
+  : equality EQUAL assignment
   ;
 
 equality
@@ -78,7 +82,7 @@ factor
   | FALSO
   | LPAR expression RPAR
   | ( add_operator | NOT ) factor
-  | IDENTIFIER ( function_call | array_ref | assignment ) ?
+  | IDENTIFIER ( function_call | array_ref ) ?
   ;
 
 function_call
@@ -86,11 +90,11 @@ function_call
   ;
 
 array_ref
-  : LBRACKET expression RBRACKET EQUAL expression?
+  : LBRACKET equality RBRACKET
   ;
 
 actual_parameters
-  : expression (COMMA expression)*
+  : equality (COMMA equality)*
   ;
 
 assignment

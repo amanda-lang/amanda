@@ -32,11 +32,12 @@ class Parser:
 
     def block(self):
         block_node = AST.Block()
-        while ( self.lookahead.token in (TT.LPAR,TT.INTEGER,TT.MOSTRA,TT.RETORNA,
-                TT.DECL,TT.IDENTIFIER,TT.DEFINA,TT.VECTOR,
-                TT.REAL,TT.STRING,TT.PLUS,TT.MINUS) ):
-            if (self.lookahead.token in (TT.LPAR,TT.INTEGER,TT.REAL,TT.STRING,
-                TT.IDENTIFIER,TT.PLUS,TT.MINUS)):
+        while ( self.lookahead.token in (TT.LPAR,TT.INTEGER,TT.IDENTIFIER,
+            TT.REAL,TT.STRING,TT.PLUS,TT.MINUS,TT.VERDADEIRO,
+            TT.FALSO,TT.NOT,TT.MOSTRA,TT.RETORNA,TT.DECL,TT.VECTOR,TT.DEFINA) ):
+            if (self.lookahead.token in (TT.LPAR,TT.INTEGER,TT.IDENTIFIER,
+                TT.REAL,TT.STRING,TT.PLUS,TT.MINUS,TT.VERDADEIRO,
+                TT.FALSO,TT.NOT)):
                 block_node.add_child(self.expression())
                 self.consume(TT.SEMI)
             elif self.lookahead.token in (TT.MOSTRA,TT.RETORNA,TT.DECL,TT.VECTOR):
@@ -85,7 +86,7 @@ class Parser:
         id = self.lookahead
         self.consume(TT.IDENTIFIER)
         self.consume(TT.LBRACKET)
-        size = self.expression()
+        size = self.equality()
         self.consume(TT.RBRACKET)
         return AST.ArrayDeclNode(token,id=id,type=type,size=size)
 
@@ -93,13 +94,13 @@ class Parser:
     def mostra_statement(self):
         token = self.lookahead
         self.consume(TT.MOSTRA)
-        exp = self.expression()
+        exp = self.equality()
         return AST.Statement(token,exp)
 
     def retorna_statement(self):
         token = self.lookahead
         self.consume(TT.RETORNA)
-        exp = self.expression()
+        exp = self.equality()
         return AST.Statement(token,exp)
 
 
@@ -111,8 +112,20 @@ class Parser:
             self.consume(TT.NOTEQUAL)
 
     def expression(self):
-        node = self.comparison()
+        node = self.equality()
         current = self.lookahead.token
+        if self.lookahead.token == TT.EQUAL:
+            token = self.lookahead
+            self.consume(TT.EQUAL)
+            if isinstance(node,AST.ArrayRef) or (isinstance(node,AST.ExpNode) and node.token.token == TT.IDENTIFIER):
+                node = AST.AssignNode(token,left=node,right=self.expression())
+            else:
+                self.error("Erro de atribuição. Só pode atribuir valores à variáveis e a índices de vector")
+        return node
+
+
+    def equality(self):
+        node = self.comparison()
         while self.lookahead.token in (TT.DOUBLEEQUAL,TT.NOTEQUAL):
             op = self.lookahead
             self.eq_operator()
@@ -133,7 +146,6 @@ class Parser:
 
     def comparison(self):
         node = self.addition()
-        current = self.lookahead.token
         while self.lookahead.token in (TT.GREATER,TT.GREATEREQ,TT.LESS,TT.LESSEQ):
             op = self.lookahead
             self.comp_operator()
@@ -142,10 +154,9 @@ class Parser:
 
     def addition(self):
         node = self.term()
-        current = self.lookahead.token
         while self.lookahead.token in (TT.PLUS,TT.MINUS,TT.OR):
             op = self.lookahead
-            if current == TT.OR:
+            if self.lookahead.token == TT.OR:
                 self.consume(TT.OR)
             else:
                 self.add_operator()
@@ -172,16 +183,8 @@ class Parser:
                     node = AST.FunctionCall(id=token,fargs=self.function_call())
                 elif self.lookahead.token == TT.LBRACKET:
                     self.consume(TT.LBRACKET)
-                    node = AST.ArrayRef(id=token,index=self.expression())
+                    node = AST.ArrayRef(id=token,index=self.equality())
                     self.consume(TT.RBRACKET)
-                    if self.lookahead.token ==TT.EQUAL:
-                        token = self.lookahead
-                        self.consume(TT.EQUAL)
-                        node = AST.AssignNode(token,left=node,right=self.expression())
-                elif self.lookahead.token == TT.EQUAL:
-                    equal = self.lookahead
-                    self.consume(TT.EQUAL)
-                    node = AST.AssignNode(token=equal,left=AST.ExpNode(token),right=self.expression())
                 else:
                     node = AST.ExpNode(token)
             else:
@@ -189,7 +192,7 @@ class Parser:
                 self.consume(current)
         elif current == TT.LPAR:
             self.consume(TT.LPAR)
-            node = self.expression()
+            node = self.equality()
             self.consume(TT.RPAR)
         elif current in (TT.PLUS,TT.MINUS,TT.NOT):
             token = self.lookahead
@@ -203,13 +206,13 @@ class Parser:
         self.consume(TT.LPAR)
         current = self.lookahead.token
         args = []
-        if ( current in (TT.LPAR,TT.INTEGER,TT.MOSTRA,TT.RETORNA,
-            TT.DECL,TT.IDENTIFIER,TT.DEFINA,TT.VECTOR,
-            TT.REAL,TT.STRING,TT.PLUS,TT.MINUS) ):
-            args.append(self.expression())
+        if ( current in (TT.LPAR,TT.INTEGER,TT.IDENTIFIER,
+            TT.REAL,TT.STRING,TT.PLUS,TT.MINUS,TT.VERDADEIRO,
+            TT.FALSO,TT.NOT) ):
+            args.append(self.equality())
             while self.lookahead.token == TT.COMMA:
                 self.consume(TT.COMMA)
-                args.append(self.expression())
+                args.append(self.equality())
         self.consume(TT.RPAR)
         return args
 
@@ -261,11 +264,12 @@ class Parser:
 
     def function_block(self):
         block_node = AST.Block()
-        while ( self.lookahead.token in (TT.LPAR,TT.INTEGER,TT.MOSTRA,TT.RETORNA,
-                TT.IDENTIFIER,TT.VECTOR,TT.REAL,TT.DECL,
-                TT.STRING,TT.PLUS,TT.MINUS) ):
-            if (self.lookahead.token in (TT.LPAR,TT.INTEGER,TT.REAL,TT.STRING,
-                TT.IDENTIFIER,TT.PLUS,TT.MINUS)):
+        while ( self.lookahead.token in (TT.LPAR,TT.INTEGER,TT.IDENTIFIER,
+            TT.REAL,TT.STRING,TT.PLUS,TT.MINUS,TT.VERDADEIRO,
+            TT.FALSO,TT.NOT,TT.MOSTRA,TT.RETORNA,TT.DECL,TT.VECTOR) ):
+            if (self.lookahead.token in (TT.LPAR,TT.INTEGER,TT.IDENTIFIER,
+                TT.REAL,TT.STRING,TT.PLUS,TT.MINUS,TT.VERDADEIRO,
+                TT.FALSO,TT.NOT)):
                 block_node.add_child(self.expression())
             elif self.lookahead.token in (TT.MOSTRA,TT.RETORNA,TT.DECL,TT.VECTOR):
                 block_node.add_child(self.statement())

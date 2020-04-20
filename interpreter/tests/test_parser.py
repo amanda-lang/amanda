@@ -27,7 +27,7 @@ class ParserTestCase(unittest.TestCase):
         parser.parse()
 
     def test_expression(self):
-        phrases = ["2-1;","2+1;","2/1;","2*1;","2%1;",
+        phrases = ["2-1;","2+1;","2/1;","2*1;","2%1;","2+ad;",
             "'string'+'op';","2.132+1;","'string'*2;","string*2;",
             "string[0]*5;","a+b-c*array[1]%(-a)/(-c)+eval(2+1,5);","+--2---5;"
             "'string'/2.241;","(c*array[1]+soma(1-3))/((2.132+1)*('string'*2));",
@@ -44,7 +44,7 @@ class ParserTestCase(unittest.TestCase):
 
     def test_statement(self):
         phrases = ["mostra 2-1;","retorna eval(2*1+((21-1)*12));","retorna a[0];",
-            "retorna a[0]=id;","mostra a+b-c*array[1]%(-a)/(-c)+eval(2+1,5);"
+            "retorna a[0];","mostra a+b-c*array[1]%(-a)/(-c)+eval(2+1,5);"
         ]
         for phrase in phrases:
             print(phrase,file=self.buffer)
