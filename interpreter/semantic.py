@@ -229,7 +229,6 @@ class Analyzer(AST.Visitor):
 
         if node.left.eval_type != node.right.eval_type and node.right.prom_type == Type.VAZIO:
             self.error(f"Atribuição inválida. incompatibilidade entre os operandos da atribuição [{node.left.eval_type} = {node.right.eval_type}]",node.token)
-        print(node.right,node.right.eval_type.name,node.right.prom_type.name)
 
     def visit_statement(self,node):
         #self.visit(node.exp)
@@ -243,10 +242,11 @@ class Analyzer(AST.Visitor):
                 self.error(f"O comando 'retorna' só pode ser usado dentro de uma função",node.token)
             else:
                 function = self.current_scope.enclosing_scope.resolve(self.current_scope.name)
+                node.exp.prom_type = type_promotion[node.exp.eval_type.value][function.type.name.value]
                 if function.type.name == Type.VAZIO:
                     self.error(f"Expressão de retorno inválida. Procedimentos não podem retornar valores",node.token)
-                elif function.type.name != node.exp.eval_type:
-                    self.error(f"Expressão de retorno inválida. Esperava-se um retorno do tipo '{function.type.type}'",node.token)
+                elif function.type.name != node.exp.eval_type and node.exp.prom_type == Type.VAZIO:
+                    self.error(f"Expressão de retorno inválida. O tipo do valor de retorno é incompatível com o tipo de retorno da função",node.token)
 
 
 

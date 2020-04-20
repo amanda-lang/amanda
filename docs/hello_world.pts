@@ -5,7 +5,7 @@ $* these are the different types:
 $ The two bool types
 decl texto l = "verdadeiro";
 decl texto a = "falso";
-
+decl bool is_father = verdadeiro;
 
 
 $ decl int a;
@@ -43,7 +43,7 @@ $ b = b*2;
 
 
 $ function declarations
-defina soma(bool a,int b): int{
+defina soma(bool a,int b): real{
 
   decl int ab;
   decl real angola;
