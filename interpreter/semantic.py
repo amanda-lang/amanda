@@ -171,6 +171,9 @@ class Analyzer(AST.Visitor):
                 sym = self.current_scope.resolve(name)
             if sym == None:
                 self.error(f"O identificador '{name}' não foi declarado",node.token)
+            #Referencing array by name loool
+            elif isinstance(sym,SYM.ArraySymbol):
+                self.error(f"Não pode aceder vectores sem especificar um índice",node.token)
             node.eval_type = sym.type.name
         elif node.token.token == TT.INTEGER:
             node.eval_type = Type.INT

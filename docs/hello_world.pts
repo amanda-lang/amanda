@@ -24,7 +24,6 @@ decl int b;
 
 $ this is an array
 vector int vet[3];
-
 $ Access element
 b recebe vet[2];
 
