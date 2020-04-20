@@ -1,3 +1,4 @@
+from enum import Enum
 from interpreter.lexer import Lexer
 from interpreter.tokens import TokenType as TT
 from interpreter.tokens import Token
@@ -5,40 +6,64 @@ import interpreter.ast_nodes as AST
 import interpreter.symtab as SYM
 from interpreter.error import SemanticError
 
-BUILT_IN ={
- "int" : "inteiro",
- "real": "real",
- "texto": "texto",
- "bool":"booleano",
- "vazio":"VAZIO"
-}
+class Type(Enum):
+    INT = 0
+    REAL = 1
+    TEXTO = 2
+    BOOL = 3
+    VAZIO = 4
 
-arit_types ={
- "inteiro" : 0,
- "real": 1,
- "texto": 2,
- "booleano": 3,
- "VAZIO": 4,
- None:4
-}
+    def __str__(self):
+        return self.name.lower()
 
-#result of static type computation
-#None means illegal operation
-type_results = [
-    [BUILT_IN["int"],BUILT_IN["vazio"],BUILT_IN["vazio"],BUILT_IN["vazio"],BUILT_IN["vazio"]],
-    [BUILT_IN["vazio"],BUILT_IN["real"],BUILT_IN["vazio"],BUILT_IN["vazio"],BUILT_IN["vazio"]],
-    [BUILT_IN["vazio"],BUILT_IN["vazio"],BUILT_IN["texto"],BUILT_IN["vazio"],BUILT_IN["vazio"]],
-    [BUILT_IN["vazio"],BUILT_IN["vazio"],BUILT_IN["vazio"],BUILT_IN["bool"],BUILT_IN["vazio"]],
-    [BUILT_IN["vazio"],BUILT_IN["vazio"],BUILT_IN["vazio"],BUILT_IN["vazio"],BUILT_IN["vazio"]]
+
+# result of static type computation
+# Vazio means illegal operation
+aritop_results = [
+#       int       real       texto     bool      vazio
+    [Type.INT,Type.REAL,Type.VAZIO,Type.VAZIO,Type.VAZIO],
+    [Type.REAL,Type.REAL,Type.VAZIO,Type.VAZIO,Type.VAZIO],
+    [Type.VAZIO,Type.VAZIO,Type.TEXTO,Type.VAZIO,Type.VAZIO],
+    [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO],
+    [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO]
+]
+
+#Table for  type for >,<,>=,<=
+relop_results = [
+#       int       real       texto     bool      vazio
+    [Type.BOOL,Type.BOOL,Type.VAZIO,Type.VAZIO,Type.VAZIO],
+    [Type.BOOL,Type.BOOL,Type.VAZIO,Type.VAZIO,Type.VAZIO],
+    [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO],
+    [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO],
+    [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO]
+]
+
+#table for type results for == !=
+eqop_results = [
+#       int       real       texto     bool      vazio
+    [Type.BOOL,Type.BOOL,Type.VAZIO,Type.VAZIO,Type.VAZIO],
+    [Type.BOOL,Type.BOOL,Type.VAZIO,Type.VAZIO,Type.VAZIO],
+    [Type.VAZIO,Type.VAZIO,Type.BOOL,Type.VAZIO,Type.VAZIO],
+    [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.BOOL,Type.VAZIO],
+    [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO]
+]
+
+
+# table for type promotions
+# Non means should not be promoted
+type_promotion= [
+#       int       real       texto     bool      vazio
+    [Type.VAZIO,Type.REAL,Type.VAZIO,Type.BOOL,Type.VAZIO],
+    [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.BOOL,Type.VAZIO],
+    [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.BOOL,Type.VAZIO],
+    [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO],
+    [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO]
 ]
 
 
 '''
 Class that performs semantic analysis on a PTScript script
-It does this in two passes:
-* First it populates the symbol table, creates a scope tree, resolves references
-and computes static expression types
-*the second enforces type safety rules
+Enforces type safety and annotates nodes that need promotion
 '''
 
 class Analyzer(AST.Visitor):
@@ -52,16 +77,17 @@ class Analyzer(AST.Visitor):
         self.init__builtins()
 
     def init__builtins(self):
-        for type in BUILT_IN:
-            self.current_scope.define(type,SYM.BuiltInType(BUILT_IN[type],type))
+        self.current_scope.define("int",SYM.BuiltInType(Type.INT))
+        self.current_scope.define("real",SYM.BuiltInType(Type.REAL))
+        self.current_scope.define("texto",SYM.BuiltInType(Type.TEXTO))
+        self.current_scope.define("bool",SYM.BuiltInType(Type.BOOL))
+        self.current_scope.define("vazio",SYM.BuiltInType(Type.VAZIO))
+
 
 
     def error(self,message,token):
         raise SemanticError(message,token.line)
 
-
-    def eval_arit_op(self,opand1,op,opand2):
-        return type_results[arit_types[opand1.eval_type]][arit_types[opand2.eval_type]]
 
     def check_program(self):
         self.visit(self.program)
@@ -147,27 +173,43 @@ class Analyzer(AST.Visitor):
                 self.error(f"O identificador '{name}' não foi declarado",node.token)
             node.eval_type = sym.type.name
         elif node.token.token == TT.INTEGER:
-            node.eval_type = BUILT_IN["int"]
+            node.eval_type = Type.INT
         elif node.token.token == TT.REAL:
-            node.eval_type = BUILT_IN["real"]
+            node.eval_type = Type.REAL
         elif node.token.token == TT.STRING:
-            node.eval_type = BUILT_IN["texto"]
+            node.eval_type = Type.TEXTO
+        elif node.token.token in (TT.VERDADEIRO,TT.FALSO):
+            node.eval_type = Type.BOOL
 
     def visit_binopnode(self,node):
         self.visit(node.left)
         self.visit(node.right)
         #Evaluate type of binary
-        node.eval_type = self.eval_arit_op(node.left,node.token,node.right)
+        #arithmetic operation
+        if node.token.token in (TT.PLUS,TT.MINUS,TT.STAR,TT.SLASH,TT.MODULO):
+            node.eval_type = aritop_results[node.left.eval_type.value][node.right.eval_type.value]
+        elif node.token.token in (TT.GREATER,TT.LESS,TT.GREATEREQ,TT.LESSEQ):
+            node.eval_type = relop_results[node.left.eval_type.value][node.right.eval_type.value]
+        elif node.token.token in (TT.EQUAL,TT.NOTEQUAL):
+            node.eval_type = eqop_results[node.left.eval_type.value][node.right.eval_type.value]
         #Validate binary ops
-        if node.eval_type == BUILT_IN["vazio"]:
+        if node.eval_type == Type.VAZIO:
             self.error(f"Operação inválida. Os operandos possuem tipos incompatíveis: {node.left.eval_type} '{node.token.lexeme}' {node.right.eval_type}",node.token)
-        if node.eval_type == BUILT_IN["texto"]:
-            if node.token.token != TT.PLUS:
-                self.error(f"Operação inválida. O tipo 'texto' não suporta a operações com o operador '{node.token.lexeme}'",node.token)
+
+        else:
+            if node.eval_type == Type.TEXTO:
+                if node.token.token != TT.PLUS:
+                    self.error(f"Operação inválida. O tipo 'texto' não suporta a operações com o operador '{node.token.lexeme}'",node.token)
+
+            node.left.prom_type = type_promotion[node.left.eval_type.value][node.right.eval_type.value]
+            node.right.prom_type = type_promotion[node.right.eval_type.value][node.left.eval_type.value]
+
+        print(node.left,node.left.eval_type.name,node.left.prom_type.name)
+        print(node.right,node.right.eval_type.name,node.right.prom_type.name)
 
     def visit_unaryopnode(self,node):
         self.visit(node.operand)
-        if node.operand.eval_type != BUILT_IN["int"] and node.operand.eval_type != BUILT_IN["real"]:
+        if node.operand.eval_type != Type.INT and node.operand.eval_type != Type.REAL:
             self.error(f"Operação inválida. O Operador unário '{node.token.lexeme}' só pode ser usado com tipos numéricos",node.token)
         node.eval_type = node.operand.eval_type
 
@@ -191,7 +233,7 @@ class Analyzer(AST.Visitor):
                 self.error(f"O comando 'retorna' só pode ser usado dentro de uma função",node.token)
             else:
                 function = self.current_scope.enclosing_scope.resolve(self.current_scope.name)
-                if function.type.name == BUILT_IN["vazio"]:
+                if function.type.name == Type.VAZIO:
                     self.error(f"Expressão de retorno inválida. Procedimentos não podem retornar valores",node.token)
                 elif function.type.name != node.exp.eval_type:
                     self.error(f"Expressão de retorno inválida. Esperava-se um retorno do tipo '{function.type.type}'",node.token)
@@ -225,6 +267,6 @@ class Analyzer(AST.Visitor):
         elif not isinstance(sym,SYM.ArraySymbol):
             self.error(f"O identificador '{id}' não é um vector",node.id)
         #index = node.in
-        if node.index.eval_type != BUILT_IN["int"]:
+        if node.index.eval_type != Type.INT:
             self.error(f"O índice de um vector deve ser um inteiro",node.id)
         node.eval_type = sym.type.name

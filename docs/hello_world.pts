@@ -6,6 +6,10 @@ $ The two bool types
 decl texto l = "verdadeiro";
 decl texto a = "falso";
 
+10.5 - 8;
+verdadeiro == 1;
+1 > 1.5;
+1 == 1;
 
 "teste" + "teste";
 $ decl int a;

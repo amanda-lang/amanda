@@ -58,7 +58,7 @@ class BuiltInType(Symbol):
         super().__init__(name,type)
 
     def __str__(self):
-        return self.name
+        return str(self.name)
 
 class VariableSymbol(Symbol):
     def __init__(self,name,type):

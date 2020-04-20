@@ -2,12 +2,6 @@ from interpreter.tokens import Token
 #Base class for all ASTNodes
 class ASTNode:
 
-    EVAL_TYPE = {
-        "int":1,
-        "real":2,
-        "string":3
-    }
-
 
     def __init__(self,token=None):
         self.token = token
@@ -33,6 +27,7 @@ class ExpNode(ASTNode):
     def __init__(self,token=None):
         super().__init__(token)
         self.eval_type = None
+        self.prom_type = None
 
     def visit(self):
         print(self)
