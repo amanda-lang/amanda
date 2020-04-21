@@ -90,6 +90,11 @@ senao {
 
 }
 
+enquanto (verdadeiro) {
+  declara int a;
+  decl texto random;
+}
+
 
 $ Function call
 mostra soma(1+b,2+2);

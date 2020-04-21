@@ -279,6 +279,10 @@ class Analyzer(AST.Visitor):
         if node.else_branch is not None:
             self.visit(node.else_branch)
 
+    def visit_whilestatement(self,node):
+        self.visit(node.condition)
+        self.visit(node.statement)
+
 
     def visit_functioncall(self,node):
         for arg in node.fargs:
