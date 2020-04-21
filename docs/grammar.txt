@@ -33,6 +33,7 @@ statement
   | mostra_statement
   | retorna_statement
   | se_statement
+  | while_statement
   | block
   ;
 
@@ -53,6 +54,11 @@ mostra_statement
 
 se_statement
   : SE LPAR equality RPAR statement (SENAO statement)?
+  ;
+
+while_statement
+  : ENQUANTO  LPAR equality RPAR statement
+  ;
 
 
 comp_op

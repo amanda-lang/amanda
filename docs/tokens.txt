@@ -28,7 +28,9 @@ VERDADEIRO : verdadeiro
 FALSO : falso
 RECEBE : recebe
 RETORNA : retorna
-
+SE : se
+SENAO : senao
+ENQUANTO : enquanto
 
 
 *OPERANDS*
