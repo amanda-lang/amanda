@@ -117,6 +117,12 @@ class SeStatement(ASTNode):
         self.then_branch = then_branch
         self.else_branch = else_branch
 
+class WhileStatement(ASTNode):
+    def __init__(self,token,condition,statement):
+        super().__init__(token)
+        self.condition = condition
+        self.statement =  statement
+
 
 class FunctionCall(ExpNode):
     def __init__(self,id=None,fargs=[]):

@@ -34,7 +34,7 @@ class Parser:
         start_first = (TT.LPAR,TT.INTEGER,TT.IDENTIFIER,
             TT.REAL,TT.STRING,TT.PLUS,TT.MINUS,TT.VERDADEIRO,
             TT.FALSO,TT.NOT,TT.MOSTRA,TT.RETORNA,TT.SE,TT.DECL,TT.VECTOR,TT.DEFINA,
-            TT.LBRACE)
+            TT.LBRACE,TT.ENQUANTO)
         if self.lookahead.token in start_first or self.lookahead.token == Lexer.EOF:
             while self.lookahead.token in start_first:
                 program.add_child(self.declaration())
@@ -55,7 +55,7 @@ class Parser:
         elif (self.lookahead.token in (TT.LPAR,TT.INTEGER,TT.IDENTIFIER,
             TT.REAL,TT.STRING,TT.PLUS,TT.MINUS,TT.VERDADEIRO,
             TT.FALSO,TT.NOT,TT.MOSTRA,TT.RETORNA,TT.SE,
-            TT.LBRACE)):
+            TT.LBRACE,TT.ENQUANTO)):
             return self.statement()
 
 
@@ -143,10 +143,13 @@ class Parser:
             return self.mostra_statement()
         elif current == TT.RETORNA:
             return self.retorna_statement()
+        elif current == TT.ENQUANTO:
+            return self.while_statement()
         elif current == TT.SE:
             return self.se_statement()
         elif current == TT.LBRACE:
             return self.block()
+
         else:
             self.error("Instrução inválida. Só pode fazer declarações dentro de blocos ou no escopo principal")
 
@@ -163,6 +166,14 @@ class Parser:
         exp = self.equality()
         self.consume(TT.SEMI)
         return AST.Statement(token,exp)
+
+    def while_statement(self):
+        token = self.lookahead
+        self.consume(TT.ENQUANTO)
+        self.consume(TT.LPAR)
+        condition = self.equality()
+        self.consume(TT.RPAR)
+        return AST.WhileStatement(token,condition,self.statement())
 
     def se_statement(self):
         token = self.lookahead
@@ -183,7 +194,7 @@ class Parser:
         while ( self.lookahead.token in (TT.LPAR,TT.INTEGER,TT.IDENTIFIER,
             TT.REAL,TT.STRING,TT.PLUS,TT.MINUS,TT.VERDADEIRO,
             TT.FALSO,TT.NOT,TT.MOSTRA,TT.RETORNA,TT.SE,TT.DECL,TT.VECTOR,TT.DEFINA,
-            TT.LBRACE) ):
+            TT.LBRACE,TT.ENQUANTO) ):
             block.add_child(self.declaration())
         self.consume(TT.RBRACE)
         return block

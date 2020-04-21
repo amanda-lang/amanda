@@ -23,7 +23,6 @@ class ParserTestCase(unittest.TestCase):
         ]
         for phrase in phrases:
             print(phrase,file=self.buffer,end="\n")
-        print(self.buffer.getvalue())
         self.buffer.seek(0)
         parser = Parser(Lexer(self.buffer))
         parser.parse()
@@ -57,6 +56,16 @@ class ParserTestCase(unittest.TestCase):
             se (verdadeiro == falso) rebenta; senao fecha;
             {
                 decl int a;
+            }
+
+            enquanto(verdadeiro){
+                rebenta;
+            }
+            enquanto(verdadeiro)
+                rebenta;
+
+            enquanto(verdadeiro){
+                mostra a;
             }
             '''
         ]
