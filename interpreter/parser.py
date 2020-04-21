@@ -40,6 +40,8 @@ class Parser:
                 program.add_child(self.declaration())
             if self.lookahead.token == Lexer.EOF:
                 return program
+            else:
+                self.error("Sintaxe inválida")
         else:
             self.error(f"Sintaxe inválida para início de programa {self.lookahead.token}")
 
