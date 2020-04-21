@@ -172,10 +172,12 @@ class Visitor:
     ''' Dispatcher method that chooses the correct
         visiting method'''
 
-    def visit(self,node):
+    def visit(self,node,args=None):
         node_class = type(node).__name__.lower()
         method_name = f"visit_{node_class}"
         visitor_method = getattr(self,method_name,self.general_visit)
+        if node_class == "block":
+            return visitor_method(node,args)
         return visitor_method(node)
 
     def general_visit(self,node):

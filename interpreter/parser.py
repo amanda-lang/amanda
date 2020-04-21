@@ -16,7 +16,7 @@ class Parser:
 
     def consume(self,token_t):
         if self.lookahead.token == token_t:
-            print(f"Parser consumed {self.lookahead}")
+            #print(f"Parser consumed {self.lookahead}")
             self.lookahead = self.lexer.get_token()
         else:
             self.error(f"O programa esperava o símbolo {token_t.value},porém recebeu o símbolo '{self.lookahead.lexeme}'")

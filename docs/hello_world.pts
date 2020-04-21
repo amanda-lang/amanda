@@ -42,6 +42,17 @@ $ b = b*2;
 
 
 
+{
+  decl int b;
+  decl int a;
+
+  def test_scope():int{
+    retorna 2+1;
+  }
+}
+
+
+
 $ function declarations
 defina soma(bool a,int b): real{
 
@@ -70,6 +81,15 @@ def divisao2(int a,int b): int{
   mostra a/b;
 }
 
+
+se (1>2)
+  mostra "maior";
+senao {
+  decl real a = "texto";
+  soma(1+1,1);
+  mostra a;
+
+}
 
 
 $ Function call

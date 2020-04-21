@@ -52,10 +52,10 @@ eqop_results = [
 #table for type results for e ou !
 logop_results = [
 #       int       real       texto     bool      vazio
-    [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO],
-    [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO],
-    [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO],
-    [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.BOOL,Type.VAZIO],
+    [Type.BOOL,Type.BOOL,Type.BOOL,Type.BOOL,Type.VAZIO],
+    [Type.BOOL,Type.BOOL,Type.BOOL,Type.BOOL,Type.VAZIO],
+    [Type.BOOL,Type.BOOL,Type.BOOL,Type.BOOL,Type.VAZIO],
+    [Type.BOOL,Type.BOOL,Type.BOOL,Type.BOOL,Type.VAZIO],
     [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO]
 ]
 
@@ -81,7 +81,7 @@ Enforces type safety and annotates nodes that need promotion
 class Analyzer(AST.Visitor):
 
     GLOBAL = "GLOBAL_SCOPE"
-
+    LOCAL = "LOCAL_SCOPE"#For blocks
     def __init__(self,parser):
         self.parser = parser
         self.program = self.parser.parse()
@@ -114,9 +114,9 @@ class Analyzer(AST.Visitor):
         if var_type == None:
             self.error(f"O tipo de dados '{node.type.lexeme}' não foi definido",node.type)
         name = node.id.lexeme
-        symbol = SYM.VariableSymbol(name,var_type)
         if self.current_scope.symbols.get(name) is not None:
             self.error(f"O identificador '{name}' já foi declarado neste escopo",node.id)
+        symbol = SYM.VariableSymbol(name,var_type)
         self.current_scope.define(name,symbol,node.id)
         if node.assign is not None:
             if node.assign.right.token.lexeme == name:
@@ -128,9 +128,9 @@ class Analyzer(AST.Visitor):
         if var_type == None:
             self.error(f"O tipo de dados '{node.type.lexeme}' não foi definido",node.type)
         name = node.id.lexeme
-        symbol = SYM.ArraySymbol(name,var_type,node.size)
         if self.current_scope.symbols.get(name) is not None:
             self.error(f"O identificador '{name}' já foi declarado neste escopo",node.id)
+        symbol = SYM.ArraySymbol(name,var_type,node.size)
         self.current_scope.define(name,symbol,node.id)
 
 
@@ -141,8 +141,6 @@ class Analyzer(AST.Visitor):
         name = node.id.lexeme
         if self.current_scope.resolve(name) is not None:
             self.error(f"A função '{name}' já foi definida neste escopo",node.id)
-        #push_scope
-        self.current_scope = SYM.Scope(name,self.current_scope)
         params = {}
         for param in node.params:
             param_name = param.id.lexeme
@@ -150,13 +148,25 @@ class Analyzer(AST.Visitor):
                 self.error(f"O parâmetro '{param_name}' já foi especificado nesta função",node.id)
             param_symbol = self.visit(param)
             params[param_name] = param_symbol
+            #Add params o current_scope
         symbol = SYM.FunctionSymbol(name,function_type,params)
-        
-        self.current_scope.enclosing_scope.define(name,symbol)
-        self.visit(node.block)
+        self.current_scope.define(name,symbol)
+        self.visit(node.block,symbol)
         #leave_scope
         #print(self.current_scope)
+
+    def visit_block(self,node,function=None):
+        self.current_scope = SYM.Scope(Analyzer.LOCAL,self.current_scope)
+        if function is not None:
+            self.current_scope.name = function.name
+            for param in function.params:
+                self.current_scope.define(param,function.params[param])
+        for child in node.children:
+            self.visit(child)
+        #Pop scope
+        print(self.current_scope)
         self.current_scope = self.current_scope.enclosing_scope
+
 
     def visit_paramnode(self,node):
         var_type = self.current_scope.resolve(node.type.lexeme)
@@ -172,15 +182,7 @@ class Analyzer(AST.Visitor):
     def visit_expnode(self,node):
         if node.token.token == TT.IDENTIFIER:
             name = node.token.lexeme
-            sym = None
-            if self.current_scope.name != Analyzer.GLOBAL:
-                #Get the function symbol and use that to get the args
-                function = self.current_scope.enclosing_scope.resolve(self.current_scope.name)
-                sym = function.params.get(name)
-                if sym == None:
-                    sym = self.current_scope.resolve(name)
-            else:
-                sym = self.current_scope.resolve(name)
+            sym = self.current_scope.resolve(name)
             if sym == None:
                 self.error(f"O identificador '{name}' não foi declarado",node.token)
             #Referencing array by name loool
@@ -217,9 +219,12 @@ class Analyzer(AST.Visitor):
             if node.eval_type == Type.TEXTO:
                 if node.token.token != TT.PLUS:
                     self.error(f"Operação inválida. O tipo 'texto' não suporta a operações com o operador '{node.token.lexeme}'",node.token)
-
-            node.left.prom_type = type_promotion[node.left.eval_type.value][node.right.eval_type.value]
-            node.right.prom_type = type_promotion[node.right.eval_type.value][node.left.eval_type.value]
+            if node.token.token in (TT.AND,TT.OR):
+                node.left.prom_type = type_promotion[node.left.eval_type.value][Type.BOOL.value]
+                node.right.prom_type = type_promotion[node.right.eval_type.value][Type.BOOL.value]
+            else:
+                node.left.prom_type = type_promotion[node.left.eval_type.value][node.right.eval_type.value]
+                node.right.prom_type = type_promotion[node.right.eval_type.value][node.left.eval_type.value]
 
     def visit_unaryopnode(self,node):
         self.visit(node.operand)
@@ -258,13 +263,22 @@ class Analyzer(AST.Visitor):
             if self.current_scope.name == Analyzer.GLOBAL:
                 self.error(f"O comando 'retorna' só pode ser usado dentro de uma função",node.token)
             else:
-                function = self.current_scope.enclosing_scope.resolve(self.current_scope.name)
+                sym = self.current_scope.resolve(self.current_scope.name)
+                if not isinstance(sym,SYM.FunctionSymbol):
+                    self.error(f"O comando 'retorna' só pode ser usado dentro de uma função",node.token)
+                function = sym
                 node.exp.prom_type = type_promotion[node.exp.eval_type.value][function.type.name.value]
                 if function.type.name == Type.VAZIO:
                     self.error(f"Expressão de retorno inválida. Procedimentos não podem retornar valores",node.token)
                 elif function.type.name != node.exp.eval_type and node.exp.prom_type == Type.VAZIO:
                     self.error(f"Expressão de retorno inválida. O tipo do valor de retorno é incompatível com o tipo de retorno da função",node.token)
 
+
+    def visit_sestatement(self,node):
+        self.visit(node.condition)
+        self.visit(node.then_branch)
+        if node.else_branch is not None:
+            self.visit(node.else_branch)
 
 
     def visit_functioncall(self,node):
