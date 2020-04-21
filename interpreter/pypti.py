@@ -7,41 +7,37 @@ import interpreter.symtab as SYM
 import interpreter.semantic as SEM
 from interpreter.error import RunTimeError
 
-
+print
 class Enviroment:
 
     def __init__(self,name,previous=None):
         self.name = name
         self.previous = previous
-        self.memory = SYM.SymbolTable() # initialize it's env with it's own global mem space
+        self.memory = {} # initialize it's env with it's own global mem space
 
 
     def define(self,name,value):
-        self.memory.define(name,value)
+        self.memory[name] = value
 
     def resolve(self,name):
-        value = self.memory.resolve(name)
+        value = self.memory.get(name)
         if value is None and self.previous is not None:
             return self.previous.resolve(name)
         return value
 
+    def resolve_space(self,name):
+        if self.memory.get(name) is not None:
+            return self
+        elif self.previous is not None:
+            return self.previous.resolve_space(name)
+        return None
+
+
     def __str__(self):
-        return str(self.memory)
-
-
-#Stack that will hold the currently executing Enviroment
-class Stack:
-    def __init__(self):
-        self.stack = []
-
-    def push(self,item):
-        self.stack.append(item)
-
-    def pop(self):
-        return self.stack.pop()
-
-    def peek(self):
-        return self.stack[-1]
+        str = ""
+        for key in self.memory:
+            str += f"{key} : {self.memory[key]}\n"
+        return f"{self.name}\n{str}"
 
 
 class Interpreter(AST.Visitor):
@@ -53,11 +49,12 @@ class Interpreter(AST.Visitor):
     def __init__(self,program):
 
         self.program = program # Checked AST
-        self.call_stack = Stack()
-        self.call_stack.push(Enviroment(Interpreter.GLOBAL_MEMORY))
+        self.memory = Enviroment(Interpreter.GLOBAL_MEMORY)
+
 
     def interpret(self):
         self.execute(self.program)
+
 
 
     def execute(self,node):
@@ -65,6 +62,13 @@ class Interpreter(AST.Visitor):
         method_name = f"exec_{node_class}"
         visitor_method = getattr(self,method_name,self.generic_exec)
         return visitor_method(node)
+
+    def resolve_memory(self,env,name):
+        if env.memory.resolve(name) is not None:
+            return env
+        elif env.previous is not None:
+            return self.resolve_memory(env.previous)
+        return None
 
     def resolve(self,node):
         node_class = type(node).__name__.lower()
@@ -79,35 +83,32 @@ class Interpreter(AST.Visitor):
 
     def exec_block(self,node,function=None):
         #Create new env for local scope
-        self.call_stack.push(Enviroment(Interpreter.LOCAL_MEMORY,self.call_stack.peek()))
+        self.memory = Enviroment(Interpreter.LOCAL_MEMORY,self.memory)
         if function is not None:
             pass
         for child in node.children:
             self.execute(child)
         #restore previous env
-        prev_env = self.call_stack.pop().previous
-        self.call_stack.push(prev_env)
-
+        self.memory = self.memory.previous
 
     def exec_vardeclnode(self,node):
         name = node.id.lexeme
         type = node.type.lexeme
-        memory = self.call_stack.peek()
         if type == "int":
-            memory.define(name,0)
+            self.memory.define(name,0)
         elif type == "real":
-            memory.define(name,0.0)
+            self.memory.define(name,0.0)
         elif type == "texto":
-            memory.define(name,"")
+            self.memory.define(name,"")
         else:
-            memory.define(name,Interpreter.NONE_TYPE)
+            self.memory.define(name,Interpreter.NONE_TYPE)
         if node.assign is not None:
             self.execute(node.assign)
 
     def exec_assignnode(self,node):
         value = self.execute(node.right)
         name = self.resolve(node.left)
-        memory = self.call_stack.peek()
+        memory = self.memory.resolve_space(name)
         memory.define(name,value)
         return value
 
@@ -161,7 +162,7 @@ class Interpreter(AST.Visitor):
 
     def exec_expnode(self,node):
         if node.token.token == TT.IDENTIFIER:
-            return self.call_stack.peek().resolve(node.token.lexeme)
+            return self.memory.resolve(node.token.lexeme)
         else:
             type = node.prom_type
             if type == SEM.Type.VAZIO or type is None:
@@ -187,6 +188,10 @@ class Interpreter(AST.Visitor):
             self.execute(node.then_branch)
         elif node.else_branch is not None:
             self.execute(node.else_branch)
+
+    def exec_whilestatement(self,node):
+        while bool(self.execute(node.condition)):
+            self.execute(node.statement)
 
     def exec_statement(self,node):
         expr = self.execute(node.exp)

@@ -139,6 +139,7 @@ class Parser:
             #expr_statement
             node = self.expression()
             self.consume(TT.SEMI)
+            return node
         elif current == TT.MOSTRA:
             return self.mostra_statement()
         elif current == TT.RETORNA:
