@@ -21,7 +21,9 @@ class ParserTestCase(unittest.TestCase):
             "declara real a3;", "decl real troco = 3.14;", "vector int array[2];"
             "vector int array[2+1];","vector string array[(-(-2))+2];"
         ]
-        self.buffer.writelines(phrases)
+        for phrase in phrases:
+            print(phrase,file=self.buffer,end="\n")
+        print(self.buffer.getvalue())
         self.buffer.seek(0)
         parser = Parser(Lexer(self.buffer))
         parser.parse()
@@ -44,7 +46,16 @@ class ParserTestCase(unittest.TestCase):
 
     def test_statement(self):
         phrases = ["mostra 2-1;","retorna eval(2*1+((21-1)*12));","retorna a[0];",
-            "retorna a[0];","mostra a+b-c*array[1]%(-a)/(-c)+eval(2+1,5);"
+            "retorna a[0];","mostra a+b-c*array[1]%(-a)/(-c)+eval(2+1,5);",'''
+            se (0==0) {
+                rebenta;
+            }
+            senao{
+                fecha
+            }
+            se (verdadeiro == falso) rebenta;
+            se (verdadeiro == falso) rebenta senao fecha;
+            '''
         ]
         for phrase in phrases:
             print(phrase,file=self.buffer)

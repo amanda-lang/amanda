@@ -45,6 +45,8 @@ class TokenType(Enum):
     RETORNA = "RETORNA"
     DEFINA = "DEFINA"
     VECTOR = "VECTOR"
+    SE = "SE"
+    SENAO = "SENAO"
 
 class Token:
     def __init__(self,token,lexeme,line=0,col=0):
@@ -68,5 +70,7 @@ KEYWORDS = {
     "retorna": Token(TokenType.RETORNA,"retorna"),
     "vector" : Token(TokenType.VECTOR,"vector"),
     "e" : Token(TokenType.AND,"e"),
-    "ou" : Token(TokenType.OR,"ou")
+    "ou" : Token(TokenType.OR,"ou"),
+    "se" : Token(TokenType.SE,"se"),
+    "senao" : Token(TokenType.SENAO,"senao")
 }

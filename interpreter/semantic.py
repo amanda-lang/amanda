@@ -105,7 +105,7 @@ class Analyzer(AST.Visitor):
         self.visit(self.program)
 
 
-    def visit_block(self,node):
+    def visit_program(self,node):
         for child in node.children:
             self.visit(child)
 

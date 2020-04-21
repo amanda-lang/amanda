@@ -1,41 +1,59 @@
 program
-  : block
+  : declaration*
   ;
 
-block
-  : ( ((expression | statement) SEMI ) | function_declaration )*
-  ;
-
-statement
-  : declaration
-  | mostra_statement
-  | retorna_statement
-  ;
 
 declaration
-  : var_declaration
+  :  var_declaration
+  | function_declaration
   | array_declaration
+  | statement
   ;
 
 var_declaration
-  : DECL type IDENTIFIER assignment?
+  : DECL type IDENTIFIER assignment? SEMI
   ;
 
 array_declaration
-  : VECTOR type IDENTIFIER LBRACKET equality RBRACKET
+  : VECTOR type IDENTIFIER LBRACKET equality RBRACKET SEMI
   ;
 
+function_declaration
+  : DEFINA IDENTIFIER LPAR formal_parameter_section? RPAR (COL type)? block
+  ;
+
+formal_parameter_section
+  : type LBRACKET RBRACKET? IDENTIFIER (COMMA type IDENTIFIER)*
+  ;
+
+
+statement
+  :
+  | expr_statement
+  | mostra_statement
+  | retorna_statement
+  | se_statement
+  | block
+  ;
+
+
+block
+  : LBRACE declaration* RBRACE
+  ;
+
+
+
 retorna_statement
-  : RETORNA expression
+  : RETORNA equality SEMI
   ;
 
 mostra_statement
-  : MOSTRA expression
+  : MOSTRA equality SEMI
   ;
 
+se_statement
+  : SE LPAR equality RPAR statement (SENAO statement)?
 
-re
-  : expression (relop expression)*
 
 comp_op
   : GREATER
@@ -49,6 +67,9 @@ eq_op
   | DOUBLEEQUAL
   ;
 
+expr_statement
+  : expression SEMI
+  ;
 
 expression
   : assignment
@@ -119,20 +140,6 @@ type
   : IDENTIFIER
   ;
 
-function_declaration
-  : DEFINA IDENTIFIER LPAR formal_parameter_section? RPAR (COL type)? LBRACE function_block RBRACE
-  ;
-
-function_block
-  : ( ( expression | statement)  SEMI )*
-
-formal_parameter_section
-  : type array_spec? IDENTIFIER (COMMA type IDENTIFIER)*
-  ;
-
-array_spec
-  : LBRACKET RBRACKET
-  ;
 
 COMMENT:
   : ("$" ANYTHING "$"  | "$*" ANYTHING "*$")

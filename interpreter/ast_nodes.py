@@ -9,7 +9,7 @@ class ASTNode:
     def visit(self):
         pass
 
-class Block(ASTNode):
+class Program(ASTNode):
     def __init__(self):
         self.children = []
 
@@ -20,6 +20,10 @@ class Block(ASTNode):
         print("In block:")
         for child in self.children:
             child.visit()
+
+class Block(Program):
+    pass
+
 
 
 
@@ -104,6 +108,14 @@ class Statement(ASTNode):
 
     def __str__(self):
         return f"Statement: {self.token.lexeme} {self.token.line}"
+
+
+class SeStatement(ASTNode):
+    def __init__(self,token,condition,then_branch,else_branch=None):
+        super().__init__(token)
+        self.condition = condition
+        self.then_branch = then_branch
+        self.else_branch = else_branch
 
 
 class FunctionCall(ExpNode):
