@@ -150,8 +150,8 @@ class Analyzer(AST.Visitor):
                 self.error(f"O parâmetro '{param_name}' já foi especificado nesta função",node.id)
             param_symbol = self.visit(param)
             params[param_name] = param_symbol
-
         symbol = SYM.FunctionSymbol(name,function_type,params)
+        
         self.current_scope.enclosing_scope.define(name,symbol)
         self.visit(node.block)
         #leave_scope

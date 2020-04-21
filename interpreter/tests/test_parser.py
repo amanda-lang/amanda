@@ -47,14 +47,17 @@ class ParserTestCase(unittest.TestCase):
     def test_statement(self):
         phrases = ["mostra 2-1;","retorna eval(2*1+((21-1)*12));","retorna a[0];",
             "retorna a[0];","mostra a+b-c*array[1]%(-a)/(-c)+eval(2+1,5);",'''
+            se (verdadeiro == falso) decl int rebenta;
             se (0==0) {
                 rebenta;
             }
             senao{
-                fecha
+                fecha;
             }
-            se (verdadeiro == falso) rebenta;
-            se (verdadeiro == falso) rebenta senao fecha;
+            se (verdadeiro == falso) rebenta; senao fecha;
+            {
+                decl int a;
+            }
             '''
         ]
         for phrase in phrases:

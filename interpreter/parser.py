@@ -145,6 +145,8 @@ class Parser:
             return self.se_statement()
         elif current == TT.LBRACE:
             return self.block()
+        else:
+            self.error("Instrução inválida. Só pode fazer declarações dentro de blocos ou no escopo principal")
 
     def mostra_statement(self):
         token = self.lookahead
@@ -169,6 +171,7 @@ class Parser:
         then_branch = self.statement()
         else_branch = None
         if self.lookahead.token == TT.SENAO:
+            self.consume(TT.SENAO)
             else_branch = self.statement()
         return AST.SeStatement(token,condition,then_branch,else_branch)
 
