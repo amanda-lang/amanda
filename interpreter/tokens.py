@@ -47,6 +47,7 @@ class TokenType(Enum):
     VECTOR = "VECTOR"
     SE = "SE"
     SENAO = "SENAO"
+    ENQUANTO = "ENQUANTO"
 
 class Token:
     def __init__(self,token,lexeme,line=0,col=0):
@@ -72,5 +73,6 @@ KEYWORDS = {
     "e" : Token(TokenType.AND,"e"),
     "ou" : Token(TokenType.OR,"ou"),
     "se" : Token(TokenType.SE,"se"),
-    "senao" : Token(TokenType.SENAO,"senao")
+    "senao" : Token(TokenType.SENAO,"senao"),
+    "enquanto" : Token(TokenType.ENQUANTO,"enquanto")
 }

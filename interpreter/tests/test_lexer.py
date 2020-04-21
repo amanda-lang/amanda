@@ -66,7 +66,7 @@ class LexerTestCase(unittest.TestCase):
         self.assertEqual(token.lexeme,'"Ramboeiro"',msg="STRING value Test Failed")
 
     def test_identifier(self):
-        self.test_file.write("_test1\ntest\ntest2\n__test3\ndecl\nmostra\nverdadeiro\nfalso\nretorna\ndefina\ndef\nrecebe\ndeclara\nvector")
+        self.test_file.write("_test1\ntest\ntest2\n__test3\ndecl\nmostra\nverdadeiro\nfalso\nretorna\ndefina\ndef\nrecebe\ndeclara\nvector\nse\nsenao\nenquanto")
         self.test_file.close()
         lexer = Lexer("sample.pts")
         token = lexer.get_token()
@@ -111,6 +111,15 @@ class LexerTestCase(unittest.TestCase):
         token = lexer.get_token()
         self.assertEqual(token.token,TokenType.VECTOR,msg="VECTOR Test Failed")
         self.assertEqual(token.lexeme,"vector",msg="VECTOR value test Failed")
+        token = lexer.get_token()
+        self.assertEqual(token.token,TokenType.SE,msg="SE Test Failed")
+        self.assertEqual(token.lexeme,"se",msg="SE value test Failed")
+        token = lexer.get_token()
+        self.assertEqual(token.token,TokenType.SENAO,msg="SENAO Test Failed")
+        self.assertEqual(token.lexeme,"senao",msg="SENAO value test Failed")
+        token = lexer.get_token()
+        self.assertEqual(token.token,TokenType.ENQUANTO,msg="ENQUANTO Test Failed")
+        self.assertEqual(token.lexeme,"enquanto",msg="ENQUANTO value test Failed")
 
     def test_delimeters(self):
         self.test_file.write(".\n,\n;\n)\n(\n{\n}\n[\n]\n:")
