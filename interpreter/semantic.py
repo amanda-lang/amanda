@@ -164,7 +164,6 @@ class Analyzer(AST.Visitor):
         for child in node.children:
             self.visit(child)
         #Pop scope
-        print(self.current_scope)
         self.current_scope = self.current_scope.enclosing_scope
 
 

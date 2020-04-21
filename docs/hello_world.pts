@@ -85,7 +85,6 @@ def divisao2(int a,int b): int{
 se (1>2)
   mostra "maior";
 senao {
-  decl real a = "texto";
   soma(1+1,1);
   mostra a;
 

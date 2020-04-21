@@ -38,7 +38,7 @@ class Stack:
         self.stack.append(item)
 
     def pop(self):
-        self.stack.pop(-1)
+        return self.stack.pop()
 
     def peek(self):
         return self.stack[-1]
@@ -46,6 +46,7 @@ class Stack:
 
 class Interpreter(AST.Visitor):
     GLOBAL_MEMORY = "GLOBAL"
+    LOCAL_MEMORY = "LOCAL"
     #something like null
     NONE_TYPE = "NONE"
 
@@ -71,9 +72,21 @@ class Interpreter(AST.Visitor):
         visitor_method = getattr(self,method_name,self.generic_exec)
         return visitor_method(node)
 
-    def exec_block(self,node):
+
+    def exec_program(self,node):
         for child in node.children:
             self.execute(child)
+
+    def exec_block(self,node,function=None):
+        #Create new env for local scope
+        self.call_stack.push(Enviroment(Interpreter.LOCAL_MEMORY,self.call_stack.peek()))
+        if function is not None:
+            pass
+        for child in node.children:
+            self.execute(child)
+        #restore previous env
+        prev_env = self.call_stack.pop().previous
+        self.call_stack.push(prev_env)
 
 
     def exec_vardeclnode(self,node):
@@ -151,7 +164,7 @@ class Interpreter(AST.Visitor):
             return self.call_stack.peek().resolve(node.token.lexeme)
         else:
             type = node.prom_type
-            if type == SEM.Type.VAZIO:
+            if type == SEM.Type.VAZIO or type is None:
                 type = node.eval_type
                 if type == SEM.Type.INT:
                     return int(node.token.lexeme)
@@ -168,6 +181,12 @@ class Interpreter(AST.Visitor):
                 elif type == SEM.Type.BOOL:
                     return bool(node.token.lexeme) #False: 0,0.0 and "" True: Everything else
 
+    def exec_sestatement(self,node):
+        condition = self.execute(node.condition)
+        if bool(condition):
+            self.execute(node.then_branch)
+        elif node.else_branch is not None:
+            self.execute(node.else_branch)
 
     def exec_statement(self,node):
         expr = self.execute(node.exp)
@@ -178,5 +197,5 @@ class Interpreter(AST.Visitor):
             print(expr,end="\n\n")
 
 
-    def generic_exec(self):
+    def generic_exec(self,node):
         pass
