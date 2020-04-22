@@ -261,16 +261,15 @@ class Analyzer(AST.Visitor):
         if token == TT.RETORNA:
             if self.current_scope.name == Analyzer.GLOBAL:
                 self.error(f"O comando 'retorna' só pode ser usado dentro de uma função",node.token)
-            else:
-                sym = self.current_scope.resolve(self.current_scope.name)
-                if not isinstance(sym,SYM.FunctionSymbol):
-                    self.error(f"O comando 'retorna' só pode ser usado dentro de uma função",node.token)
-                function = sym
-                node.exp.prom_type = type_promotion[node.exp.eval_type.value][function.type.name.value]
-                if function.type.name == Type.VAZIO:
-                    self.error(f"Expressão de retorno inválida. Procedimentos não podem retornar valores",node.token)
-                elif function.type.name != node.exp.eval_type and node.exp.prom_type == Type.VAZIO:
-                    self.error(f"Expressão de retorno inválida. O tipo do valor de retorno é incompatível com o tipo de retorno da função",node.token)
+            sym = self.current_scope.resolve(self.current_scope.name)
+            if not isinstance(sym,SYM.FunctionSymbol):
+                self.error(f"O comando 'retorna' só pode ser usado dentro de uma função",node.token)
+            function = sym
+            node.exp.prom_type = type_promotion[node.exp.eval_type.value][function.type.name.value]
+            if function.type.name == Type.VAZIO:
+                self.error(f"Expressão de retorno inválida. Procedimentos não podem retornar valores",node.token)
+            elif function.type.name != node.exp.eval_type and node.exp.prom_type == Type.VAZIO:
+                self.error(f"Expressão de retorno inválida. O tipo do valor de retorno é incompatível com o tipo de retorno da função",node.token)
 
 
     def visit_sestatement(self,node):

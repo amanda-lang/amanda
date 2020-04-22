@@ -7,7 +7,8 @@ import interpreter.symtab as SYM
 import interpreter.semantic as SEM
 from interpreter.error import RunTimeError
 
-print
+
+
 class Enviroment:
 
     def __init__(self,name,previous=None):
@@ -63,12 +64,6 @@ class Interpreter(AST.Visitor):
         visitor_method = getattr(self,method_name,self.generic_exec)
         return visitor_method(node)
 
-    def resolve_memory(self,env,name):
-        if env.memory.resolve(name) is not None:
-            return env
-        elif env.previous is not None:
-            return self.resolve_memory(env.previous)
-        return None
 
     def resolve(self,node):
         node_class = type(node).__name__.lower()
