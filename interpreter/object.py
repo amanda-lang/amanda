@@ -33,9 +33,7 @@ class Environment:
 
 
     def __str__(self):
-        str = ""
-        for key in self.memory:
-            str += f"{key} : {self.memory[key]}\n"
+        str = "\n".join([ f"{key} : {self.memory[key]}" for key in self.memory])
         return f"{self.name}\n{str}"
 
 class Function(ABC):
@@ -44,18 +42,22 @@ class Function(ABC):
         self.name = name
 
     @abstractmethod
-    def call(self):
+    def call(self,interpreter,**kwargs):
         pass
 
 
 class RTFunction(Function):
-    def __init__(self,name,declaration=None):
+    def __init__(self,name,declaration):
         self.name = name
         self.declaration = declaration
 
-    def call(self,interpreter,args=[]):
+    def call(self,interpreter,**kwargs):
         decl = self.declaration
+        args = kwargs["args"]
         env = Environment(decl.id.lexeme,interpreter.memory)
         for param,arg in zip(decl.params,args):
-            env.define(param.id.lexeme,interpreter.execute(arg))
+            env.define(param.id.lexeme,arg)
         interpreter.execute(decl.block,env)
+
+    def __str__(self):
+        return f"{self.name}: Function object"

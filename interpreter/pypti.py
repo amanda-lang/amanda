@@ -69,6 +69,10 @@ class Interpreter(AST.Visitor):
         if node.assign is not None:
             self.execute(node.assign)
 
+    def exec_functiondecl(self,node):
+        id = node.id.lexeme
+        self.memory.define(id,RTFunction(id,node)) #Create function object
+
     def exec_assignnode(self,node):
         value = self.execute(node.right)
         name = self.resolve(node.left)
@@ -80,6 +84,10 @@ class Interpreter(AST.Visitor):
         return node.token.lexeme
 
 
+    def exec_functioncall(self,node):
+        args = [self.execute(arg) for arg in node.fargs]
+        function = self.memory.resolve(node.id.lexeme)
+        function.call(self,args=args)
 
     def exec_binopnode(self,node):
         left = self.execute(node.left)

@@ -1,12 +1,13 @@
 import unittest
 import sys
-import dis
-
 from interpreter.lexer import Lexer
 from interpreter.tests.test_lexer import LexerTestCase
 from interpreter.parser import Parser
 from interpreter.semantic import Analyzer
 from interpreter.pypti import Interpreter
+import interpreter.error as ERR
+
+
 TEST_FILE = "./docs/calc.pts"
 
 
@@ -42,6 +43,7 @@ def run_pypti():
     analyzer.check_program()
     intp = Interpreter(analyzer.program)
     intp.interpret()
+    #print(intp.memory)
 
 try:
     #run_sem_analysis()
