@@ -6,9 +6,8 @@ from interpreter.lexer import Lexer
 from interpreter.tests.test_lexer import LexerTestCase
 from interpreter.parser import Parser
 from interpreter.semantic import Analyzer
-import interpreter.error as ERR
-from interpreter.pypti import Interpreter,Enviroment
-TEST_FILE = "./docs/hello_world.pts"
+from interpreter.pypti import Interpreter
+TEST_FILE = "./docs/calc.pts"
 
 
 def run_lexer():
@@ -45,8 +44,8 @@ def run_pypti():
     intp.interpret()
 
 try:
-    run_sem_analysis()
-    #run_pypti()
+    #run_sem_analysis()
+    run_pypti()
     #run_tests()
 except ERR.Error as e:
     sys.stderr.write(str(e))

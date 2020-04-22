@@ -3,39 +3,8 @@ from interpreter.tokens import TokenType as TT
 import interpreter.ast_nodes as AST
 import interpreter.semantic as SEM
 from interpreter.error import RunTimeError
+from interpreter.object import RTFunction,Environment
 
-
-
-class Enviroment:
-
-    def __init__(self,name,previous=None):
-        self.name = name
-        self.previous = previous
-        self.memory = {} # initialize it's env with it's own global mem space
-
-
-    def define(self,name,value):
-        self.memory[name] = value
-
-    def resolve(self,name):
-        value = self.memory.get(name)
-        if value is None and self.previous is not None:
-            return self.previous.resolve(name)
-        return value
-
-    def resolve_space(self,name):
-        if self.memory.get(name) is not None:
-            return self
-        elif self.previous is not None:
-            return self.previous.resolve_space(name)
-        return None
-
-
-    def __str__(self):
-        str = ""
-        for key in self.memory:
-            str += f"{key} : {self.memory[key]}\n"
-        return f"{self.name}\n{str}"
 
 
 class Interpreter(AST.Visitor):
@@ -47,7 +16,7 @@ class Interpreter(AST.Visitor):
     def __init__(self,program):
 
         self.program = program # Checked AST
-        self.memory = Enviroment(Interpreter.GLOBAL_MEMORY)
+        self.memory = Environment(Interpreter.GLOBAL_MEMORY)
 
 
     def interpret(self):
@@ -55,10 +24,12 @@ class Interpreter(AST.Visitor):
 
 
 
-    def execute(self,node):
+    def execute(self,node,arg=None):
         node_class = type(node).__name__.lower()
         method_name = f"exec_{node_class}"
         visitor_method = getattr(self,method_name,self.generic_exec)
+        if node_class == "block":
+            return visitor_method(node,arg)
         return visitor_method(node)
 
 
@@ -73,11 +44,12 @@ class Interpreter(AST.Visitor):
         for child in node.children:
             self.execute(child)
 
-    def exec_block(self,node,function=None):
+    def exec_block(self,node,environment=None):
         #Create new env for local scope
-        self.memory = Enviroment(Interpreter.LOCAL_MEMORY,self.memory)
-        if function is not None:
-            pass
+        if environment:
+            self.memory = environment
+        else:
+            self.memory = Environment(Interpreter.LOCAL_MEMORY,self.memory)
         for child in node.children:
             self.execute(child)
         #restore previous env
@@ -182,8 +154,13 @@ class Interpreter(AST.Visitor):
             self.execute(node.else_branch)
 
     def exec_whilestatement(self,node):
-        while bool(self.execute(node.condition)):
-            self.execute(node.statement)
+        if isinstance(node.statement,AST.Block):
+            env = Environment(Interpreter.LOCAL_MEMORY,self.memory)
+            while bool(self.execute(node.condition)):
+                self.execute(node.statement,env)
+        else:
+            while bool(self.execute(node.condition)):
+                self.execute(node.statement)
 
     def exec_statement(self,node):
         expr = self.execute(node.exp)
