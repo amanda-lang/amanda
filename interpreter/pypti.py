@@ -1,9 +1,6 @@
 import ast
-from interpreter.lexer import Lexer
 from interpreter.tokens import TokenType as TT
-from interpreter.tokens import Token
 import interpreter.ast_nodes as AST
-import interpreter.symtab as SYM
 import interpreter.semantic as SEM
 from interpreter.error import RunTimeError
 

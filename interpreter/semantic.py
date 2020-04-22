@@ -295,7 +295,7 @@ class Analyzer(AST.Visitor):
         elif len(node.fargs) != len(sym.params):
             self.error(f"Número incorrecto de argumentos para a função {node.id.lexeme}. Esperava {len(sym.params)} argumentos, porém recebeu {len(node.fargs)}",node.id)
         #Type promotion for parameter
-        func_decl = ",".join(["{} {}".format(param.type,param.name) for param in sym.params.values()])
+        func_decl = ",".join(["{} {}".format(param.type,param.name) for param in sym.params.values()]) #Get function signature
         for arg,param in zip(node.fargs,sym.params.values()):
             arg.prom_type = type_promotion[arg.eval_type.value][param.type.name.value]
             if param.type.name != arg.eval_type and arg.prom_type == Type.VAZIO:
