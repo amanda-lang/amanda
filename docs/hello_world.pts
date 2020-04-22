@@ -98,4 +98,4 @@ enquanto (verdadeiro) {
 
 $ Function call
 mostra soma(1+b,2+2);
-divisao("si",b);
+divisao("1",b);

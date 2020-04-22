@@ -295,10 +295,11 @@ class Analyzer(AST.Visitor):
         elif len(node.fargs) != len(sym.params):
             self.error(f"Número incorrecto de argumentos para a função {node.id.lexeme}. Esperava {len(sym.params)} argumentos, porém recebeu {len(node.fargs)}",node.id)
         #Type promotion for parameter
-        for i,param in enumerate(sym.params.values()):
-            node.fargs[i].prom_type = type_promotion[node.fargs[i].eval_type.value][param.type.name.value]
-            if param.type.name != node.fargs[i].eval_type and node.fargs[i].prom_type == Type.VAZIO:
-                self.error(f"O argumento {i+1} da função {node.id.lexeme} deve ser do tipo '{param.type.name}'",node.id)
+        func_decl = ",".join(["{} {}".format(param.type,param.name) for param in sym.params.values()])
+        for arg,param in zip(node.fargs,sym.params.values()):
+            arg.prom_type = type_promotion[arg.eval_type.value][param.type.name.value]
+            if param.type.name != arg.eval_type and arg.prom_type == Type.VAZIO:
+                self.error(f"Argumento inválido. Esperava-se um argumento do tipo '{param.type.name}' mas recebeu o tipo '{arg.eval_type}'.\nassinatura: {id}({func_decl})",node.id)
         node.eval_type = sym.type.name
 
 
