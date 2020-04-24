@@ -3,7 +3,7 @@ from interpreter.tokens import TokenType as TT
 import interpreter.ast_nodes as AST
 import interpreter.semantic as SEM
 from interpreter.error import RunTimeError
-from interpreter.object import RTFunction,Environment
+from interpreter.object import RTFunction,Environment,ReturnValue
 
 
 
@@ -87,7 +87,11 @@ class Interpreter(AST.Visitor):
     def exec_functioncall(self,node):
         args = [self.execute(arg) for arg in node.fargs]
         function = self.memory.resolve(node.id.lexeme)
-        function.call(self,args=args)
+        try:
+            function.call(self,args=args)
+        except ReturnValue as e:
+            return e.value
+
 
     def exec_binopnode(self,node):
         left = self.execute(node.left)
@@ -177,6 +181,8 @@ class Interpreter(AST.Visitor):
         token = node.token.token
         if token == TT.MOSTRA:
             print(expr,end="\n\n")
+        elif token == TT.RETORNA:
+            raise ReturnValue(expr)
 
 
     def generic_exec(self,node):

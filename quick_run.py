@@ -1,5 +1,6 @@
 import unittest
 import sys
+import time
 from interpreter.lexer import Lexer
 from interpreter.tests.test_lexer import LexerTestCase
 from interpreter.parser import Parser
@@ -42,7 +43,9 @@ def run_pypti():
     analyzer = Analyzer(parser)
     analyzer.check_program()
     intp = Interpreter(analyzer.program)
+    start = time.time()
     intp.interpret()
+    print(f"execution time: {time.time()-start}s")
     #print(intp.memory)
 
 try:

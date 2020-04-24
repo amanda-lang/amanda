@@ -18,6 +18,9 @@ class SymbolTable:
 
 
 class Scope(SymbolTable):
+    GLOBAL = "GLOBAL_SCOPE"
+    LOCAL = "LOCAL_SCOPE"
+
     def __init__(self,name,enclosing_scope=None):
         super().__init__()
         self.name = name
@@ -31,6 +34,21 @@ class Scope(SymbolTable):
             else:
                 return None
         return symbol
+
+    #TODO: refactor this later because of classes
+    def get_enclosing_func(self):
+        if self.name == Scope.GLOBAL:
+            return None
+        if self.name != Scope.LOCAL:
+            return self
+
+        scope = self.enclosing_scope
+        while scope:
+            if scope.name not in (Scope.LOCAL,Scope.GLOBAL):
+                return scope
+            scope = scope.enclosing_scope
+        return None
+
 
     def define(self,name,symbol,token=None):
         super().define(name,symbol)

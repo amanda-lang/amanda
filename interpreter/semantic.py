@@ -80,12 +80,10 @@ Enforces type safety and annotates nodes that need promotion
 
 class Analyzer(AST.Visitor):
 
-    GLOBAL = "GLOBAL_SCOPE"
-    LOCAL = "LOCAL_SCOPE"#For blocks
     def __init__(self,parser):
         self.parser = parser
         self.program = self.parser.parse()
-        self.current_scope = SYM.Scope(Analyzer.GLOBAL)
+        self.current_scope = SYM.Scope(SYM.Scope.GLOBAL)
         self.init__builtins()
 
     def init__builtins(self):
@@ -155,8 +153,9 @@ class Analyzer(AST.Visitor):
         #leave_scope
         #print(self.current_scope)
 
+    #TODO: change block method to receive scope instead of function
     def visit_block(self,node,function=None):
-        self.current_scope = SYM.Scope(Analyzer.LOCAL,self.current_scope)
+        self.current_scope = SYM.Scope(SYM.Scope.LOCAL,self.current_scope)
         if function is not None:
             self.current_scope.name = function.name
             for param in function.params:
@@ -259,12 +258,11 @@ class Analyzer(AST.Visitor):
         if isinstance(node.exp,AST.AssignNode):
             self.error(f"instrução inválida. A instrução '{node.token.lexeme}' não pode ser usada com uma expressão de atribuição",node.token)
         if token == TT.RETORNA:
-            if self.current_scope.name == Analyzer.GLOBAL:
+            function = self.current_scope.get_enclosing_func()
+            #TODO: Fix return bug inside local scope
+            if not function:
                 self.error(f"O comando 'retorna' só pode ser usado dentro de uma função",node.token)
-            sym = self.current_scope.resolve(self.current_scope.name)
-            if not isinstance(sym,SYM.FunctionSymbol):
-                self.error(f"O comando 'retorna' só pode ser usado dentro de uma função",node.token)
-            function = sym
+            function = self.current_scope.resolve(function.name)
             node.exp.prom_type = type_promotion[node.exp.eval_type.value][function.type.name.value]
             if function.type.name == Type.VAZIO:
                 self.error(f"Expressão de retorno inválida. Procedimentos não podem retornar valores",node.token)

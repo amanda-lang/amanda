@@ -61,3 +61,10 @@ class RTFunction(Function):
 
     def __str__(self):
         return f"{self.name}: Function object"
+
+
+#Class used as return values for functions
+class ReturnValue(Exception):
+
+    def __init__(self,value):
+        self.value = value
