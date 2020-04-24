@@ -46,6 +46,7 @@ class Interpreter(AST.Visitor):
 
     def exec_block(self,node,environment=None):
         #Create new env for local scope
+
         if environment:
             self.memory = environment
         else:
@@ -85,11 +86,18 @@ class Interpreter(AST.Visitor):
 
 
     def exec_functioncall(self,node):
+        prev = self.memory
         args = [self.execute(arg) for arg in node.fargs]
         function = self.memory.resolve(node.id.lexeme)
+        #print(function.name)
+        #print(args)
         try:
             function.call(self,args=args)
         except ReturnValue as e:
+
+            #Return the previous env
+            self.memory = prev
+            #print("PREVIOUS_AFTER_RETURN",self.memory)
             return e.value
 
 
