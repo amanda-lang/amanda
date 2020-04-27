@@ -132,7 +132,9 @@ class Analyzer(AST.Visitor):
         name = node.id.lexeme
         if self.current_scope.symbols.get(name) is not None:
             self.error(f"O identificador '{name}' já foi declarado neste escopo",node.id)
-        symbol = SYM.ArraySymbol(name,var_type,node.size)
+        #print("SEM ANALYSIS: ",node.size)
+        self.visit(node.size)
+        symbol = SYM.ArraySymbol(name,var_type,node.size.token.lexeme)
         self.current_scope.define(name,symbol,node.id)
 
 

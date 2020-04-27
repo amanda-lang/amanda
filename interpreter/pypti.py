@@ -3,7 +3,7 @@ from interpreter.tokens import TokenType as TT
 import interpreter.ast_nodes as AST
 import interpreter.semantic as SEM
 from interpreter.error import RunTimeError
-from interpreter.object import RTFunction,Environment,ReturnValue
+from interpreter.object import RTFunction,Environment,ReturnValue,RTArray
 
 
 
@@ -31,6 +31,9 @@ class Interpreter(AST.Visitor):
         if node_class == "block":
             return visitor_method(node,arg)
         return visitor_method(node)
+
+    def error(self,message,token):
+        raise RunTimeError(message,token.line)
 
 
     def resolve(self,node):
@@ -70,11 +73,28 @@ class Interpreter(AST.Visitor):
         if node.assign is not None:
             self.execute(node.assign)
 
+    def exec_arraydeclnode(self,node):
+        id = node.id.lexeme
+        type = node.type.lexeme.upper()
+        size = self.execute(node.size)
+        self.memory.define(id,RTArray(SEM.Type[type],size))
+
     def exec_functiondecl(self,node):
         id = node.id.lexeme
         self.memory.define(id,RTFunction(id,node)) #Create function object
 
+    #TODO: Create array assign node to avoid this hack
     def exec_assignnode(self,node):
+        #Check if it is assignment to array
+        if isinstance(node.left,AST.ArrayRef):
+            array = self.memory.resolve(node.left.id.lexeme)
+            index = self.execute(node.left.index)
+            value = self.execute(node.right)
+            try:
+                array.put(index,value)
+                return value
+            except IndexError:
+                self.error("Erro de índice. Índice inválido para o tamanho deste array.",node.left.id)
         value = self.execute(node.right)
         name = self.resolve(node.left)
         memory = self.memory.resolve_space(name)
@@ -143,6 +163,13 @@ class Interpreter(AST.Visitor):
         elif node.token.token == TT.NOT:
             return not value
         return value
+
+    def exec_arrayref(self,node):
+        array = self.memory.resolve(node.id.lexeme)
+        try:
+            return array.get(self.execute(node.index))
+        except IndexError:
+            self.error("Erro de índice. Índice inválido para o tamanho deste array.",node.id)
 
     def exec_expnode(self,node):
         if node.token.token == TT.IDENTIFIER:

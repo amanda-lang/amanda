@@ -75,6 +75,8 @@ class RTArray:
             init = 0.0
         elif type == Type.TEXTO:
             init = ""
+        elif type == Type.BOOL:
+            init = False
         self.elements = [init for x in range(self.size)]
 
     def put(self,pos,element):

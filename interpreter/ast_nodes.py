@@ -83,7 +83,7 @@ class ArrayDeclNode(ASTNode):
         super().__init__(token)
         self.type = type
         self.id = id
-        self.size = 0
+        self.size = size
 
     def visit(self):
         print(f"Array declaration: {self.id} [{self.size}]")

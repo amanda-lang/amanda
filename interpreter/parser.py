@@ -86,6 +86,7 @@ class Parser:
         size = self.equality()
         self.consume(TT.RBRACKET)
         self.consume(TT.SEMI)
+        #print("PARSER: ",size.token)
         return AST.ArrayDeclNode(token,id=id,type=type,size=size)
 
     def function_decl(self):
