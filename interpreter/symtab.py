@@ -11,7 +11,7 @@ class SymbolTable:
 
     def __str__(self):
         str = "\n"
-        str.join([f"{symbol}:{self.symbol[symbol]}" for symbol in self.symbol])
+        #str.join([f"{symbol}:{self.symbols[symbol]}" for symbol in self.symbol])
         for symbol in self.symbols:
             sym_obj = self.symbols[symbol]
             str += f"{symbol}:{sym_obj}\n"

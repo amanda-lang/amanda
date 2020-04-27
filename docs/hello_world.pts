@@ -21,7 +21,7 @@ decl int b;
 
 
 decl real salario = 2;
-
+decl vazio an;
 $ this is an array
 vector int vet[3];
 $ Access element

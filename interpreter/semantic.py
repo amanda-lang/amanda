@@ -111,6 +111,8 @@ class Analyzer(AST.Visitor):
         var_type = self.current_scope.resolve(node.type.lexeme)
         if var_type == None:
             self.error(f"O tipo de dados '{node.type.lexeme}' não foi definido",node.type)
+        elif var_type.name == Type.VAZIO:
+            self.error("Não pode declarar variáveis do tipo vazio",node.type)
         name = node.id.lexeme
         if self.current_scope.symbols.get(name) is not None:
             self.error(f"O identificador '{name}' já foi declarado neste escopo",node.id)
@@ -125,6 +127,8 @@ class Analyzer(AST.Visitor):
         var_type = self.current_scope.resolve(node.type.lexeme)
         if var_type == None:
             self.error(f"O tipo de dados '{node.type.lexeme}' não foi definido",node.type)
+        elif var_type.name == Type.VAZIO:
+            self.error("Não pode declarar variáveis do tipo vazio",node.type)
         name = node.id.lexeme
         if self.current_scope.symbols.get(name) is not None:
             self.error(f"O identificador '{name}' já foi declarado neste escopo",node.id)

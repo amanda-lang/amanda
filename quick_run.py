@@ -9,7 +9,7 @@ from interpreter.pypti import Interpreter
 import interpreter.error as ERR
 
 
-TEST_FILE = "./docs/calc.pts"
+TEST_FILE = "./docs/hello_world.pts"
 
 
 def run_lexer():
@@ -49,8 +49,8 @@ def run_pypti():
     #print(intp.memory)
 
 try:
-    #run_sem_analysis()
-    run_pypti()
+    run_sem_analysis()
+    #run_pypti()
     #run_tests()
 except ERR.Error as e:
     sys.stderr.write(str(e))
