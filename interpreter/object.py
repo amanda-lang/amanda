@@ -4,7 +4,7 @@ and native language constructs (classes and functions).
 Also contains other helper classes to be used at runtime
 '''
 from abc import ABC,abstractmethod
-
+from interpreter.semantic import Type
 
 
 class Environment:
@@ -61,6 +61,31 @@ class RTFunction(Function):
 
     def __str__(self):
         return f"{self.name}: Function object"
+
+
+class RTArray:
+
+    def __init__(self,type,size=0):
+        self.size = size
+        self.elements = []
+        init = Type.VAZIO
+        if type == Type.INT:
+            init = 0
+        elif type == Type.REAL:
+            init = 0.0
+        elif type == Type.TEXTO:
+            init = ""
+        self.elements = [init for x in range(self.size)]
+
+    def put(self,pos,element):
+        if pos < 0 or pos > self.size - 1:
+            raise IndexError
+        self.elements[pos] = element
+
+    def get(self,pos):
+        if pos < 0 or pos > self.size - 1:
+            raise IndexError
+        return self.elements[pos]
 
 
 #Class used as return values for functions
