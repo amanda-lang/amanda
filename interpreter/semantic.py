@@ -155,17 +155,18 @@ class Analyzer(AST.Visitor):
             #Add params o current_scope
         symbol = SYM.FunctionSymbol(name,function_type,params)
         self.current_scope.define(name,symbol)
-        self.visit(node.block,symbol)
+        scope = SYM.Scope(name,self.current_scope)
+        for name,param in symbol.params.items():
+            scope.define(name,param)
+        self.visit(node.block,scope)
         #leave_scope
         #print(self.current_scope)
 
-    #TODO: change block method to receive scope instead of function
-    def visit_block(self,node,function=None):
-        self.current_scope = SYM.Scope(SYM.Scope.LOCAL,self.current_scope)
-        if function is not None:
-            self.current_scope.name = function.name
-            for param in function.params:
-                self.current_scope.define(param,function.params[param])
+    def visit_block(self,node,scope=None):
+        if scope:
+            self.current_scope = scope
+        else:
+            self.current_scope = SYM.Scope(SYM.Scope.LOCAL,self.current_scope)
         for child in node.children:
             self.visit(child)
         #Pop scope
@@ -279,12 +280,44 @@ class Analyzer(AST.Visitor):
     def visit_sestatement(self,node):
         self.visit(node.condition)
         self.visit(node.then_branch)
-        if node.else_branch is not None:
+        if node.else_branch:
             self.visit(node.else_branch)
 
     def visit_whilestatement(self,node):
         self.visit(node.condition)
         self.visit(node.statement)
+
+    def visit_forstatement(self,node):
+        self.visit(node.expression)
+        id = node.expression.id.lexeme
+        sym = SYM.VariableSymbol(id,self.current_scope.resolve("int"))
+        scope = SYM.Scope(SYM.Scope.LOCAL,self.current_scope)
+        scope.define(id,sym)
+        if isinstance(node.statement,AST.Block):
+            self.visit(node.statement,scope)
+        else:
+            self.current_scope = scope
+            self.visit(node.statement)
+            #pop scope
+            self.current_scope = self.current_scope.enclosing_scope
+
+    def visit_forexpr(self,node):
+        self.visit(node.id)
+        self.visit(node.range)
+
+    def visit_rangeexpr(self,node):
+        self.visit(node.start)
+        self.visit(node.end)
+        if node.inc:
+            self.visit(node.inc)
+        for node in (node.start,node.end,node.inc):
+            #Skip inc node in case it's empty lool
+            if not node:
+                continue
+            if node.eval_type != Type.INT:
+                self.error("Erro de tipo. Os parâmetros de uma série devem ser do tipo 'int'",node.token)
+
+
 
 
     def visit_functioncall(self,node):

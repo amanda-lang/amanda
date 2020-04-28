@@ -130,13 +130,13 @@ class ForStatement(ASTNode):
         self.statement =  statement
 
 class ForExpr(ASTNode):
-    def __init__(self,id=None,expression=None):
+    def __init__(self,id=None,range=None):
         super().__init__(Token("FOR_EXPR",None))
         self.id = id
-        self.expression = expression
+        self.range = range
 
 class RangeExpr(ASTNode):
-    def __init__(self,start=None,end=None,inc=1):
+    def __init__(self,start=None,end=None,inc=None):
         super().__init__(Token("RANGE",None))
         self.start = start
         self.end = end
