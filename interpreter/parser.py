@@ -183,8 +183,7 @@ class Parser:
         self.consume(TT.PARA)
         expression = self.for_expression()
         self.consume(TT.FACA)
-        statement = self.statement()
-        return AST.ForStatement(token,expression,statement)
+        return AST.ForStatement(token,expression,self.statement())
 
     def for_expression(self):
         id = self.lookahead
