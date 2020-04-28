@@ -12,6 +12,7 @@ class Lexer:
         self.pos = 1
         self.current_token = None
         self.current_char = None
+        #TODO: Change this bad thing!! (only exists to read from buffer or file)
         if type(src_file).__name__ == type("string").__name__:
             self.file = open(src_file,"r")
         else:
@@ -27,7 +28,7 @@ class Lexer:
         else:
             self.pos += 1
 
-    def Lookahead(self):
+    def lookahead(self):
         last_position = self.file.tell()
         next_char = self.file.read(1)
         self.file.seek(last_position)
@@ -48,12 +49,12 @@ class Lexer:
             self.comment()
 
     def comment(self):
-        if self.Lookahead() == "*":
+        if self.lookahead() == "*":
             #Advance past *
             self.advance()
             self.advance()
             while True:
-                if self.current_char == "*" and self.Lookahead()=="$":
+                if self.current_char == "*" and self.lookahead()=="$":
                     #Advance twice to skip  * and $
                     self.advance()
                     self.advance()
@@ -97,7 +98,7 @@ class Lexer:
 
     def logic_operators(self):
         if self.current_char == "<":
-            if self.Lookahead() == "=":
+            if self.lookahead() == "=":
                 self.advance()
                 self.advance()
                 return Token(TokenType.LESSEQ,"<=",self.line,self.pos)
@@ -105,7 +106,7 @@ class Lexer:
             return Token(TokenType.LESS,"<",self.line,self.pos)
 
         elif self.current_char == ">":
-            if self.Lookahead() == "=":
+            if self.lookahead() == "=":
                 self.advance()
                 self.advance()
                 return Token(TokenType.GREATEREQ,">=",self.line,self.pos)
@@ -113,7 +114,7 @@ class Lexer:
             return Token(TokenType.GREATER,">",self.line,self.pos)
 
         elif self.current_char == "=":
-            if self.Lookahead() == "=":
+            if self.lookahead() == "=":
                 self.advance()
                 self.advance()
                 return Token(TokenType.DOUBLEEQUAL,"==",self.line,self.pos)
@@ -121,7 +122,7 @@ class Lexer:
             return Token(TokenType.EQUAL,"=",self.line,self.pos)
 
         elif self.current_char == "!":
-            if self.Lookahead() == "=":
+            if self.lookahead() == "=":
                 self.advance()
                 self.advance()
                 return Token(TokenType.NOTEQUAL,"!=",self.line,self.pos)
@@ -135,8 +136,8 @@ class Lexer:
             result += self.current_char
             self.advance()
         if self.current_char == ".":
-            #Lookahead to see next char i
-            if self.Lookahead().isdigit():
+            #lookahead to see next char i
+            if self.lookahead().isdigit():
                 result += "."
                 self.advance()
                 while self.current_char.isdigit():
@@ -182,6 +183,10 @@ class Lexer:
             self.advance()
             return Token(TokenType.LPAR,char,self.line,self.pos)
         elif self.current_char == ".":
+            if self.lookahead() == ".":
+                self.advance()
+                self.advance()
+                return Token(TokenType.DDOT,"..",self.line,self.pos)
             self.advance()
             return Token(TokenType.DOT,char,self.line,self.pos)
         elif self.current_char == ";":

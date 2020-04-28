@@ -66,7 +66,7 @@ class LexerTestCase(unittest.TestCase):
         self.assertEqual(token.lexeme,'"Ramboeiro"',msg="STRING value Test Failed")
 
     def test_identifier(self):
-        self.test_file.write("_test1\ntest\ntest2\n__test3\ndecl\nmostra\nverdadeiro\nfalso\nretorna\ndefina\ndef\nrecebe\ndeclara\nvector\nse\nsenao\nenquanto")
+        self.test_file.write("_test1\ntest\ntest2\n__test3\ndecl\nmostra\nverdadeiro\nfalso\nretorna\ndefina\ndef\nrecebe\ndeclara\nvector\nse\nsenao\nenquanto\nentao\npara\nfaca\ninc\nde")
         self.test_file.close()
         lexer = Lexer("sample.pts")
         token = lexer.get_token()
@@ -120,9 +120,24 @@ class LexerTestCase(unittest.TestCase):
         token = lexer.get_token()
         self.assertEqual(token.token,TokenType.ENQUANTO,msg="ENQUANTO Test Failed")
         self.assertEqual(token.lexeme,"enquanto",msg="ENQUANTO value test Failed")
+        token = lexer.get_token()
+        self.assertEqual(token.token,TokenType.ENTAO,msg="ENTAO Test Failed")
+        self.assertEqual(token.lexeme,"entao",msg="ENTAO value test Failed")
+        token = lexer.get_token()
+        self.assertEqual(token.token,TokenType.PARA,msg="PARA Test Failed")
+        self.assertEqual(token.lexeme,"para",msg="PARA value test Failed")
+        token = lexer.get_token()
+        self.assertEqual(token.token,TokenType.FACA,msg="FACA Test Failed")
+        self.assertEqual(token.lexeme,"faca",msg="FACA value test Failed")
+        token = lexer.get_token()
+        self.assertEqual(token.token,TokenType.INC,msg="INC Test Failed")
+        self.assertEqual(token.lexeme,"inc",msg="INC value test Failed")
+        token = lexer.get_token()
+        self.assertEqual(token.token,TokenType.DE,msg="DE Test Failed")
+        self.assertEqual(token.lexeme,"de",msg="DE value test Failed")
 
     def test_delimeters(self):
-        self.test_file.write(".\n,\n;\n)\n(\n{\n}\n[\n]\n:")
+        self.test_file.write(".\n,\n;\n)\n(\n{\n}\n[\n]\n:\n..")
         self.test_file.close()
         lexer = Lexer("sample.pts")
         token = lexer.get_token()
@@ -155,6 +170,9 @@ class LexerTestCase(unittest.TestCase):
         token = lexer.get_token()
         self.assertEqual(token.token,TokenType.COLON,msg="COLON Test Failed")
         self.assertEqual(token.lexeme,":",msg="COLON value test Failed")
+        token = lexer.get_token()
+        self.assertEqual(token.token,TokenType.DDOT,msg="DDOT Test Failed")
+        self.assertEqual(token.lexeme,"..",msg="DDOT value test Failed")
 
     def test_line_count(self):
         self.test_file.write("\n\n\n\n\n")
