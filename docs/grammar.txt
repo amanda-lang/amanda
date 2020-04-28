@@ -62,7 +62,7 @@ while_statement
   ;
 
 for_statement
-  : PARA LPAR for_expression RPAR FACA statement
+  : PARA for_expression FACA statement
   ;
 
 for_expression
