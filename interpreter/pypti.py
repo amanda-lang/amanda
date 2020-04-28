@@ -209,6 +209,38 @@ class Interpreter(AST.Visitor):
             while bool(self.execute(node.condition)):
                 self.execute(node.statement)
 
+    def exec_forstatement(self,node):
+        expr = node.expression
+        #Get control variable
+        var = expr.id.lexeme
+        #Get range parameters
+        start,end= self.execute(expr.range.start),self.execute(expr.range.end)
+        #If there is  no inc
+        inc = expr.range.inc
+        if not inc:
+            if start > end:
+                inc = -1
+            else:
+                inc = 1
+        else:
+            inc = self.execute(expr.range.inc)
+        #Create local mem space for the loop
+        env = Environment(Interpreter.LOCAL_MEMORY,self.memory)
+        #Check if it's a block so that you can pass an env to it
+        if isinstance(node.statement,AST.Block):
+            print("BLOCK FOR LOOP")
+            for control in range(start,end,inc):
+                env.define(var,control)
+                self.execute(node.statement,env)
+        else:
+            print("STATEMENT FOR LOOP",start,end,inc)
+            self.memory = env
+            for control in range(start,end,inc):
+                env.define(var,control)
+                self.execute(node.statement)
+            self.memory = self.memory.previous
+
+
     def exec_statement(self,node):
         expr = self.execute(node.exp)
         if node.exp.eval_type == SEM.Type.BOOL:
