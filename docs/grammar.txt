@@ -70,7 +70,7 @@ for_expression
   ;
 
 range_expression
-  : INTEGER DDOT INTEGER (inc INTEGER)?
+  : equality DDOT equality (inc equality)?
   ;
 
 comp_op
