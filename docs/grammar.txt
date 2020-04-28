@@ -66,11 +66,11 @@ for_statement
   ;
 
 for_expression
-  : IDENTIFIER DE range_expression (inc INTEGER)?
+  : IDENTIFIER DE range_expression
   ;
 
 range_expression
-  : INTEGER DDOT INTEGER
+  : INTEGER DDOT INTEGER (inc INTEGER)?
   ;
 
 comp_op
