@@ -35,6 +35,7 @@ ENQUANTO : enquanto
 PARA : para
 INC : inc
 FACA : faca
+DE : de
 
 *OPERANDS*
 INTEGER : [0-9]+ -> 122324242

@@ -18,6 +18,7 @@ class TokenType(Enum):
     LPAR = "LPAR"
     RPAR = "RPAR"
     DOT = "DOT"
+    DDOT = "DDOT"
     SEMI = "SEMI"
     COMMA = "COMMA"
     LBRACE = "LBRACE"
@@ -47,7 +48,12 @@ class TokenType(Enum):
     VECTOR = "VECTOR"
     SE = "SE"
     SENAO = "SENAO"
+    ENTAO = "ENTAO"
     ENQUANTO = "ENQUANTO"
+    PARA = "PARA"
+    INC = "INC"
+    DE = "DE"
+    FACA = "FACA"
 
 class Token:
     def __init__(self,token,lexeme,line=0,col=0):
@@ -70,9 +76,14 @@ KEYWORDS = {
     "recebe": Token(TokenType.EQUAL,"recebe") , # same as equals
     "retorna": Token(TokenType.RETORNA,"retorna"),
     "vector" : Token(TokenType.VECTOR,"vector"),
+    "inc": Token(TokenType.INC,"inc"),
     "e" : Token(TokenType.AND,"e"),
     "ou" : Token(TokenType.OR,"ou"),
+    "de" : Token(TokenType.DE,"de"),
     "se" : Token(TokenType.SE,"se"),
     "senao" : Token(TokenType.SENAO,"senao"),
-    "enquanto" : Token(TokenType.ENQUANTO,"enquanto")
+    "entao": Token(TokenType.ENTAO,"entao"),
+    "enquanto" : Token(TokenType.ENQUANTO,"enquanto"),
+    "para" : Token(TokenType.PARA,"para"),
+    "faca" : Token(TokenType.FACA,"faca"),
 }
