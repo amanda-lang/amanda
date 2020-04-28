@@ -193,16 +193,13 @@ class Parser:
         return AST.ForExpr(id,range)
 
     def range_expression(self):
-        start = self.lookahead
-        self.consume(TT.INTEGER)
+        start = self.equality()
         self.consume(TT.DDOT)
-        stop = self.lookahead
-        self.consume(TT.INTEGER)
+        stop = self.equality()
         inc = None
         if self.lookahead.token == TT.INC:
             self.consume(TT.INC)
-            inc = self.lookahead
-            self.consume(TT.INTEGER)
+            inc = self.equality()
         return AST.RangeExpr(start,stop,inc)
 
 

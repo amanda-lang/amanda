@@ -76,6 +76,16 @@ class ParserTestCase(unittest.TestCase):
                 uno;
                 0+2;
             }
+            para i de num..num+3 faca{
+                mostra i+1;
+                uno;
+                0+2;
+            }
+            para i de num..num+3 inc num-1 faca{
+                mostra i+1;
+                uno;
+                0+2;
+            }
             '''
         ]
         for phrase in phrases:
