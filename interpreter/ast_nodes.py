@@ -123,6 +123,24 @@ class WhileStatement(ASTNode):
         self.condition = condition
         self.statement =  statement
 
+class ForStatement(ASTNode):
+    def __init__(self,token,expression = None,statement = None):
+        super().__init__(token)
+        self.expression = expression
+        self.statement =  statement
+
+class ForExpr(ASTNode):
+    def __init__(self,id=None,expression=None):
+        super().__init__(Token("FOR_EXPR",None))
+        self.id = id
+        self.expression = expression
+
+class RangeExpr(ASTNode):
+    def __init__(self,start=None,end=None,inc=1):
+        super().__init__(Token("RANGE",None))
+        self.start = start
+        self.end = end
+        self.inc = inc
 
 class FunctionCall(ExpNode):
     def __init__(self,id=None,fargs=[]):

@@ -34,7 +34,7 @@ class Parser:
         start_first = (TT.LPAR,TT.INTEGER,TT.IDENTIFIER,
             TT.REAL,TT.STRING,TT.PLUS,TT.MINUS,TT.VERDADEIRO,
             TT.FALSO,TT.NOT,TT.MOSTRA,TT.RETORNA,TT.SE,TT.DECL,TT.VECTOR,TT.DEFINA,
-            TT.LBRACE,TT.ENQUANTO)
+            TT.LBRACE,TT.ENQUANTO,TT.PARA)
         if self.lookahead.token in start_first or self.lookahead.token == Lexer.EOF:
             while self.lookahead.token in start_first:
                 program.add_child(self.declaration())
@@ -55,7 +55,7 @@ class Parser:
         elif (self.lookahead.token in (TT.LPAR,TT.INTEGER,TT.IDENTIFIER,
             TT.REAL,TT.STRING,TT.PLUS,TT.MINUS,TT.VERDADEIRO,
             TT.FALSO,TT.NOT,TT.MOSTRA,TT.RETORNA,TT.SE,
-            TT.LBRACE,TT.ENQUANTO)):
+            TT.LBRACE,TT.ENQUANTO,TT.PARA)):
             return self.statement()
 
 
@@ -151,7 +151,8 @@ class Parser:
             return self.se_statement()
         elif current == TT.LBRACE:
             return self.block()
-
+        elif current == TT.PARA:
+            return self.for_statement()
         else:
             self.error("Instrução inválida. Só pode fazer declarações dentro de blocos ou no escopo principal")
 
@@ -176,6 +177,35 @@ class Parser:
         condition = self.equality()
         self.consume(TT.RPAR)
         return AST.WhileStatement(token,condition,self.statement())
+
+    def for_statement(self):
+        token = self.lookahead
+        self.consume(TT.PARA)
+        expression = self.for_expression()
+        self.consume(TT.FACA)
+        statement = self.statement()
+        return AST.ForStatement(token,expression,statement)
+
+    def for_expression(self):
+        id = self.lookahead
+        self.consume(TT.IDENTIFIER)
+        self.consume(TT.DE)
+        range = self.range_expression()
+        return AST.ForExpr(id,range)
+
+    def range_expression(self):
+        start = self.lookahead
+        self.consume(TT.INTEGER)
+        self.consume(TT.DDOT)
+        stop = self.lookahead
+        self.consume(TT.INTEGER)
+        inc = None
+        if self.lookahead.token == TT.INC:
+            self.consume(TT.INC)
+            inc = self.lookahead
+            self.consume(TT.INTEGER)
+        return AST.RangeExpr(start,stop,inc)
+
 
     def se_statement(self):
         token = self.lookahead

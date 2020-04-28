@@ -67,6 +67,15 @@ class ParserTestCase(unittest.TestCase):
             enquanto(verdadeiro){
                 mostra a;
             }
+
+            para i de 0..9 faca
+                mostra i;
+
+            para i de 0..9 faca{
+                mostra i+1;
+                uno;
+                0+2;
+            }
             '''
         ]
         for phrase in phrases:
