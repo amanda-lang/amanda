@@ -34,6 +34,7 @@ statement
   | retorna_statement
   | se_statement
   | while_statement
+  | for_statement
   | block
   ;
 
@@ -60,6 +61,17 @@ while_statement
   : ENQUANTO  LPAR equality RPAR statement
   ;
 
+for_statement
+  : PARA LPAR for_expression RPAR FACA statement
+  ;
+
+for_expression
+  : IDENTIFIER DE range_expression (inc INTEGER)?
+  ;
+
+range_expression
+  : INTEGER DDOT INTEGER
+  ;
 
 comp_op
   : GREATER
