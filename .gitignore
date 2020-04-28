@@ -1,5 +1,6 @@
 test.pts
 docs/ast_notes.txt
 docs/calc.pts
+docs/hello_world.pts
 quick_run.py
 *.pyc
