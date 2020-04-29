@@ -70,6 +70,9 @@ class Symbol:
     def __str__(self):
         return f"<{self.__class__.__name__} ({self.name},{self.type})>"
 
+    def is_valid_var(self):
+        return True
+
 
 
 class BuiltInType(Symbol):
@@ -88,6 +91,8 @@ class FunctionSymbol(Symbol):
     def __init__(self,name,type,params):
         super().__init__(name,type)
         self.params = params #dict of symbols
+    def is_valid_var(self):
+        return False
 
     def __str__(self):
         params = ",".join(self.params)
@@ -97,3 +102,5 @@ class ArraySymbol(Symbol):
     def __init__(self,name,type,size = 0):
         super().__init__(name,type)
         self.size = size
+    def is_valid_var(self):
+        return False

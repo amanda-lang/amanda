@@ -191,8 +191,8 @@ class Analyzer(AST.Visitor):
             if sym == None:
                 self.error(f"O identificador '{name}' não foi declarado",node.token)
             #Referencing array by name loool
-            elif isinstance(sym,SYM.ArraySymbol):
-                self.error(f"Não pode aceder vectores sem especificar um índice",node.token)
+            elif not sym.is_valid_var():
+                self.error(f"O identificador '{name}' não é uma referência válida",node.token)
             node.eval_type = sym.type.name
         elif node.token.token == TT.INTEGER:
             node.eval_type = Type.INT
@@ -275,6 +275,7 @@ class Analyzer(AST.Visitor):
                 self.error(f"Expressão de retorno inválida. Procedimentos não podem retornar valores",node.token)
             elif function.type.name != node.exp.eval_type and node.exp.prom_type == Type.VAZIO:
                 self.error(f"Expressão de retorno inválida. O tipo do valor de retorno é incompatível com o tipo de retorno da função",node.token)
+
 
 
     def visit_sestatement(self,node):
