@@ -238,13 +238,51 @@ class Parser:
             self.consume(TT.NOTEQUAL)
 
     def expression(self):
+        return self.add_assign()
+
+    def add_assign(self):
+        node = self.multi_assign()
+        current = self.lookahead.token
+        if current == TT.PLUSEQ or current ==TT.MINUSEQ:
+            if not isinstance(node,AST.ArrayRef) and (not isinstance(node,AST.ExpNode) or node.token.token != TT.IDENTIFIER):
+                self.error("Erro de atribuição. Só pode atribuir valores à variáveis e à índices de vector")
+            #Create separate tokens
+            token = Token(None,None,line=self.lookahead.line,col=self.lookahead.col)
+            eq = Token(TT.EQUAL,"=",line=self.lookahead.line,col=self.lookahead.col)
+            if current == TT.PLUSEQ:
+                token.token,token.lexeme = TT.PLUS,"+"
+            else:
+                token.token,token.lexeme = TT.MINUS,"-"
+            self.consume(current)
+            node = AST.AssignNode(eq,left=node,right=AST.BinOpNode(token,left=node,right=self.equality()))
+        return node
+
+    def multi_assign(self):
+        node = self.assignment()
+        current = self.lookahead.token
+        if current == TT.STAREQ or current ==TT.SLASHEQ:
+            if not isinstance(node,AST.ArrayRef) and ( not isinstance(node,AST.ExpNode) or node.token.token != TT.IDENTIFIER ):
+                self.error("Erro de atribuição. Só pode atribuir valores à variáveis e a índices de vector")
+            #Create separate tokens
+            token = Token(None,None,line=self.lookahead.line,col=self.lookahead.col)
+            eq = Token(TT.EQUAL,"=",line=self.lookahead.line,col=self.lookahead.col)
+            if current == TT.STAREQ:
+                token.token,token.lexeme = TT.STAR,"*"
+            else:
+                token.token,token.lexeme = TT.SLASH,"/"
+            self.consume(current)
+            node = AST.AssignNode(eq,left=node,right=AST.BinOpNode(token,left=node,right=self.equality()))
+        return node
+
+
+    def assignment(self):
         node = self.equality()
         current = self.lookahead.token
         if self.lookahead.token == TT.EQUAL:
             token = self.lookahead
             self.consume(TT.EQUAL)
             if isinstance(node,AST.ArrayRef) or (isinstance(node,AST.ExpNode) and node.token.token == TT.IDENTIFIER):
-                node = AST.AssignNode(token,left=node,right=self.expression())
+                node = AST.AssignNode(token,left=node,right=self.assignment())
             else:
                 self.error("Erro de atribuição. Só pode atribuir valores à variáveis e a índices de vector")
         return node
@@ -325,7 +363,7 @@ class Parser:
             self.consume(current)
             node = AST.UnaryOpNode(token,operand=self.factor())
         else:
-            self.error(f"{Error.ILLEGAL_EXPRESSION} causado pelo símbolo '{self.lookahead.lexeme}'" )
+            self.error(f"Início illegal de expressão",self.lookahead)
         return node
 
     def function_call(self):
