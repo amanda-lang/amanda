@@ -1,4 +1,4 @@
-from interpreter.tokens import Token
+from interpreter.tokens import Token,TokenType
 #Base class for all ASTNodes
 class ASTNode:
 
@@ -8,6 +8,9 @@ class ASTNode:
 
     def visit(self):
         pass
+
+    def is_assignable(self):
+        return False
 
 class Program(ASTNode):
     def __init__(self):
@@ -38,6 +41,9 @@ class ExpNode(ASTNode):
 
     def __str__(self):
         return f"{self.token.lexeme}"
+
+    def is_assignable(self):
+        return self.token.token == TokenType.IDENTIFIER
 
 
 # Class for all binary operations
@@ -186,6 +192,9 @@ class ArrayRef(ExpNode):
         self.index = index
     def visit(self):
         print(f"Array reference: {self.id}[{self.index}]")
+
+    def is_assignable(self):
+        return True
 
 
 

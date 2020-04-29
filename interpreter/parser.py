@@ -244,7 +244,7 @@ class Parser:
         node = self.multi_assign()
         current = self.lookahead.token
         if current == TT.PLUSEQ or current ==TT.MINUSEQ:
-            if not isinstance(node,AST.ArrayRef) and (not isinstance(node,AST.ExpNode) or node.token.token != TT.IDENTIFIER):
+            if not node.is_assignable():
                 self.error("Erro de atribuição. Só pode atribuir valores à variáveis e à índices de vector")
             #Create separate tokens
             token = Token(None,None,line=self.lookahead.line,col=self.lookahead.col)
@@ -261,7 +261,7 @@ class Parser:
         node = self.assignment()
         current = self.lookahead.token
         if current == TT.STAREQ or current ==TT.SLASHEQ:
-            if not isinstance(node,AST.ArrayRef) and ( not isinstance(node,AST.ExpNode) or node.token.token != TT.IDENTIFIER ):
+            if not node.is_assignable():
                 self.error("Erro de atribuição. Só pode atribuir valores à variáveis e a índices de vector")
             #Create separate tokens
             token = Token(None,None,line=self.lookahead.line,col=self.lookahead.col)

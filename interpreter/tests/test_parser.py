@@ -34,7 +34,7 @@ class ParserTestCase(unittest.TestCase):
             "'string'/2.241;","(c*array[1]+soma(1-3))/((2.132+1)*('string'*2));",
             "a;","add(1-2);","array[1];","a = b;","a = func(a);",
             "a[0] = a;","b[0] = func(a);","a=b=c=d=a[0];","a=b=c=d=func(b);","(a+b>a-b);",
-            "(((a-b>=a+c)<(a-b))<=(a*2+5)) ou falso != !verdadeiro;","a += 1;a-=2;a*=4*(76-2);"
+            "(((a-b>=a+c)<(a-b))<=(a*2+5)) ou falso != !verdadeiro;","a += 1;a-=2*1;a[0]*=4*(76-2);"
         ]
         for phrase in phrases:
             print(phrase,file=self.buffer)
