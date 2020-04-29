@@ -181,7 +181,9 @@ class Parser:
     def for_statement(self):
         token = self.lookahead
         self.consume(TT.PARA)
+        self.consume(TT.LPAR)
         expression = self.for_expression()
+        self.consume(TT.RPAR)
         self.consume(TT.FACA)
         return AST.ForStatement(token,expression,self.statement())
 

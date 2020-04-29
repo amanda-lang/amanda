@@ -68,20 +68,20 @@ class ParserTestCase(unittest.TestCase):
                 mostra a;
             }
 
-            para i de 0..9 faca
+            para (i de 0..9) faca
                 mostra i;
 
-            para i de 0..9 faca{
+            para (i de 0..9) faca{
                 mostra i+1;
                 uno;
                 0+2;
             }
-            para i de num..num+3 faca{
+            para (i de num..num+3) faca{
                 mostra i+1;
                 uno;
                 0+2;
             }
-            para i de num..num+3 inc num-1 faca{
+            para (i de num..num+3 inc num-1) faca{
                 mostra i+1;
                 uno;
                 0+2;
