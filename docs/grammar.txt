@@ -90,11 +90,19 @@ expr_statement
   ;
 
 expression
-  : assignment
+  : add_assign
+  ;
+
+add_assign
+  : multi_assign ( ( PLUSEQ| MINUSEQ ) equality )?
+  ;
+
+multi_assign
+  : assignment ( ( STAREQ| SLASHEQ ) equality )?
   ;
 
 assignment
-  : equality (EQUAL | PLUSEQ | MINUSEQ | STAREQ | SLASHEQ) assignment
+  : equality (EQUAL assignment)?
   ;
 
 equality
