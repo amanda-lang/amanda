@@ -20,6 +20,10 @@ OR : ou
 
 *ASSIGNMENT*
 EQUAL : = | recebe
+PLUSEQ : +=
+MINUSEQ: -=
+STAREQ : *=
+SLASH : /=
 
 *KEYWORDS*
 DECL : decl | declara

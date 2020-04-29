@@ -94,7 +94,7 @@ expression
   ;
 
 assignment
-  : equality EQUAL assignment
+  : equality (EQUAL | PLUSEQ | MINUSEQ | STAREQ | SLASHEQ) assignment
   ;
 
 equality
