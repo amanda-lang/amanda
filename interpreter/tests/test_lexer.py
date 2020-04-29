@@ -31,7 +31,7 @@ class LexerTestCase(unittest.TestCase):
         self.assertEqual(lexer.get_token().token,TokenType.NOT,msg="NOT Test Failed")
 
     def test_arit_operators(self):
-        self.test_file.write("+\n-\n*\n/\n%")
+        self.test_file.write("+\n-\n*\n/\n%\n+=\n-=\n*=\n/=")
         self.test_file.close()
         lexer = Lexer("sample.pts")
         self.assertEqual(lexer.get_token().token,TokenType.PLUS,msg="PLUS Test Failed")
@@ -39,6 +39,10 @@ class LexerTestCase(unittest.TestCase):
         self.assertEqual(lexer.get_token().token,TokenType.STAR,msg="STAR Test Failed")
         self.assertEqual(lexer.get_token().token,TokenType.SLASH,msg="SLASH Test Failed")
         self.assertEqual(lexer.get_token().token,TokenType.MODULO,msg="MODULO Test Failed")
+        self.assertEqual(lexer.get_token().token,TokenType.PLUSEQ,msg="PLUSEQ Test Failed")
+        self.assertEqual(lexer.get_token().token,TokenType.MINUSEQ,msg="MINUSEQ Test Failed")
+        self.assertEqual(lexer.get_token().token,TokenType.STAREQ,msg="STAREQ Test Failed")
+        self.assertEqual(lexer.get_token().token,TokenType.SLASHEQ,msg="SLASHEQ Test Failed")
 
 
     def test_number(self):
@@ -203,3 +207,7 @@ class LexerTestCase(unittest.TestCase):
         lexer = Lexer("sample.pts")
         token = lexer.get_token()
         self.assertEqual(token.token,Lexer.EOF)
+
+
+if __name__ == "__main__":
+    unittest.main()

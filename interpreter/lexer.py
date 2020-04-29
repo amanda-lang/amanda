@@ -77,18 +77,34 @@ class Lexer:
 
     def arit_operators(self):
         if self.current_char == "+":
+            if self.lookahead() == "=":
+                self.advance()
+                self.advance()
+                return Token(TokenType.PLUSEQ,"+=",self.line,self.pos)
             self.advance()
             return Token(TokenType.PLUS,"+",self.line,self.pos)
 
         elif self.current_char == "-":
+            if self.lookahead() == "=":
+                self.advance()
+                self.advance()
+                return Token(TokenType.MINUSEQ,"-=",self.line,self.pos)
             self.advance()
             return Token(TokenType.MINUS,"-",self.line,self.pos)
 
         elif self.current_char == "*":
+            if self.lookahead() == "=":
+                self.advance()
+                self.advance()
+                return Token(TokenType.STAREQ,"*=",self.line,self.pos)
             self.advance()
             return Token(TokenType.STAR,"*",self.line,self.pos)
 
         elif self.current_char == "/":
+            if self.lookahead() == "=":
+                self.advance()
+                self.advance()
+                return Token(TokenType.SLASHEQ,"/=",self.line,self.pos)
             self.advance()
             return Token(TokenType.SLASH,"/",self.line,self.pos)
 

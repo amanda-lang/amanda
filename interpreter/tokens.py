@@ -7,6 +7,11 @@ class TokenType(Enum):
     STAR = "STAR"
     SLASH = "SLASH"
     MODULO = "%"
+    PLUSEQ = "PLUSEQ"
+    MINUSEQ = "MINUSEQ"
+    STAREQ = "STAREQ"
+    SLASHEQ = "SLASHEQ"
+
 
     #OPERANDS
     INTEGER = "INTEGER"

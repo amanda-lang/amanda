@@ -1,8 +1,6 @@
-import unittest
 import sys
 import time
 from interpreter.lexer import Lexer
-from interpreter.tests.test_lexer import LexerTestCase
 from interpreter.parser import Parser
 from interpreter.semantic import Analyzer
 from interpreter.pypti import Interpreter
@@ -18,10 +16,6 @@ def run_lexer():
     while token.token != Lexer.EOF:
         print(token)
         token = lexer.get_token()
-
-
-def run_tests():
-    unittest.main()
 
 
 def run_parser():
