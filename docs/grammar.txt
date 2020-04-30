@@ -11,7 +11,7 @@ declaration
   ;
 
 var_declaration
-  : DECL type IDENTIFIER assignment? SEMI
+  : VAR type IDENTIFIER assignment? SEMI
   ;
 
 array_declaration
