@@ -46,25 +46,25 @@ class ParserTestCase(unittest.TestCase):
     def test_statement(self):
         phrases = ["mostra 2-1;","retorna eval(2*1+((21-1)*12));","retorna a[0];",
             "retorna a[0];","mostra a+b-c*array[1]%(-a)/(-c)+eval(2+1,5);",'''
-            se (verdadeiro == falso)  rebenta;
-            se (0==0) {
+            se (verdadeiro == falso) entao  rebenta;
+            se (0==0) entao {
                 rebenta;
             }
             senao{
                 fecha;
             }
-            se (verdadeiro == falso) rebenta; senao fecha;
+            se (verdadeiro == falso) entao rebenta; senao fecha;
             {
                 var int a;
             }
 
-            enquanto(verdadeiro){
+            enquanto(verdadeiro) faca{
                 rebenta;
             }
-            enquanto(verdadeiro)
+            enquanto(verdadeiro) faca
                 rebenta;
 
-            enquanto(verdadeiro){
+            enquanto(verdadeiro) faca{
                 mostra a;
             }
 

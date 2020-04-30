@@ -174,12 +174,28 @@ class Parser:
         self.consume(TT.SEMI)
         return AST.Statement(token,exp)
 
+    def se_statement(self):
+        token = self.lookahead
+        self.consume(TT.SE)
+        self.consume(TT.LPAR)
+        condition = self.equality()
+        self.consume(TT.RPAR)
+        self.consume(TT.ENTAO)
+        then_branch = self.statement()
+        else_branch = None
+        if self.lookahead.token == TT.SENAO:
+            self.consume(TT.SENAO)
+            else_branch = self.statement()
+        return AST.SeStatement(token,condition,then_branch,else_branch)
+
+
     def while_statement(self):
         token = self.lookahead
         self.consume(TT.ENQUANTO)
         self.consume(TT.LPAR)
         condition = self.equality()
         self.consume(TT.RPAR)
+        self.consume(TT.FACA)
         return AST.WhileStatement(token,condition,self.statement())
 
     def for_statement(self):
@@ -208,19 +224,6 @@ class Parser:
             inc = self.equality()
         return AST.RangeExpr(start,stop,inc)
 
-
-    def se_statement(self):
-        token = self.lookahead
-        self.consume(TT.SE)
-        self.consume(TT.LPAR)
-        condition = self.equality()
-        self.consume(TT.RPAR)
-        then_branch = self.statement()
-        else_branch = None
-        if self.lookahead.token == TT.SENAO:
-            self.consume(TT.SENAO)
-            else_branch = self.statement()
-        return AST.SeStatement(token,condition,then_branch,else_branch)
 
     def block(self):
         block = AST.Block()

@@ -3,24 +3,23 @@ a multiline comment *$
 $* these are the different types:
  int,real,bool,texto *$
 $ The two bool types
-decl texto l = "verdadeiro";
-decl texto a = "falso";
-decl bool is_father = verdadeiro;
+var texto l = "verdadeiro";
+var texto a = "falso";
+var bool is_father = verdadeiro;
 
 
-$ var a: int = 2;
 l=a="teste";
 $ A string
-decl texto nome = "Stenio";
+var texto nome = "Stenio";
 a=l;
 $ This is a variable declaration
-declara int antonio;
+var int antonio;
 $ or short form
-decl int b;
+var int b;
 
 
 
-decl real salario = 2;
+var real salario = 2;
 $ this is an array
 vector int vet[3];
 $ Access element
@@ -42,8 +41,8 @@ $ b = b*2;
 
 
 {
-  decl int b;
-  decl int a;
+  var int b;
+  var int a;
 
   def test_scope():int{
     retorna 2+1;
@@ -55,8 +54,8 @@ $ b = b*2;
 $ function declarations
 defina soma(bool a,int b): real{
 
-  decl int ab;
-  decl real angola;
+  var int ab;
+  var real angola;
 
   se (1 ==1 )
     retorna ab;
@@ -66,7 +65,7 @@ defina soma(bool a,int b): real{
 
 
 
-decl real resultado = 2.0 + soma(verdadeiro,2);
+var real resultado = 2.0 + soma(verdadeiro,2);
 
 $ or for 'procedure'
 defina divisao(texto a,int b): vazio{
@@ -93,18 +92,18 @@ senao {
 }
 
 enquanto (1==1) {
-  declara int a;
-  decl texto random;
+  var int a;
+  var texto random;
 }
 
 
 para (i de 0..9) faca {
-  declara int a;
-  decl texto random;
+  var int a;
+  var texto random;
 }
 
 
-enquanto (1==1) faca{
+enquanto (1==1){
 
 }
 
