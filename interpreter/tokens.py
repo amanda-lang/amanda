@@ -44,7 +44,7 @@ class TokenType(Enum):
     NOT = "NOT"
 
     #KEYWORDS
-    DECL = "DECL"
+    VAR = "VAR"
     MOSTRA = "MOSTRA"
     VERDADEIRO = "VERDADEIRO"
     FALSO = "FALSO"
@@ -72,10 +72,9 @@ class Token:
         return "<Type: %s, Lexeme: %s Line:%s>"%(self.token.value,self.lexeme,self.line)
 
 KEYWORDS = {
-    "decl" : Token(TokenType.DECL,"decl"),
+    "var" : Token(TokenType.VAR,"var"),
     "defina" : Token(TokenType.DEFINA,"defina"),
     "def" : Token(TokenType.DEFINA,"def"),
-    "declara": Token(TokenType.DECL,"declara"), #Same as decl
     "mostra": Token(TokenType.MOSTRA,"mostra"),
     "verdadeiro": Token(TokenType.VERDADEIRO,"verdadeiro"),
     "falso": Token(TokenType.FALSO,"falso"),
