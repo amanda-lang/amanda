@@ -59,6 +59,7 @@ class TokenType(Enum):
     INC = "INC"
     DE = "DE"
     FACA = "FACA"
+    VAZIO = "VAZIO"
 
 class Token:
     def __init__(self,token,lexeme,line=0,col=0):
@@ -91,4 +92,5 @@ KEYWORDS = {
     "enquanto" : Token(TokenType.ENQUANTO,"enquanto"),
     "para" : Token(TokenType.PARA,"para"),
     "faca" : Token(TokenType.FACA,"faca"),
+    "vazio" : Token(TokenType.VAZIO,"vazio"),
 }
