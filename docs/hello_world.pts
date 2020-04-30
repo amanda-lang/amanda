@@ -58,8 +58,10 @@ defina soma(bool a,int b): real{
   decl int ab;
   decl real angola;
 
-
-  retorna ab;
+  se (1 ==1 )
+    retorna ab;
+  senao
+    retorna "string";
 }
 
 
@@ -67,7 +69,7 @@ defina soma(bool a,int b): real{
 decl real resultado = 2.0 + soma(1,2);
 
 $ or for 'procedure'
-defina divisao(texto a,int b){
+defina divisao(texto a,int b): vazio{
 
   vector int tem[3];
   mostra 3/b;
@@ -78,6 +80,7 @@ $ or short form
 def divisao2(int a,int b): int{
   vector int tem[3];
   mostra a/b;
+  retorna a/b;
 }
 
 
@@ -95,13 +98,13 @@ enquanto (verdadeiro) {
 }
 
 
-para i de 0..9 faca {
+para (i de 0..9) faca {
   declara int a;
   decl texto random;
 }
 
 
-para i de 0..1 inc -1 faca
+para (i de 0..1 inc -1) faca
   mostra i;
 
 

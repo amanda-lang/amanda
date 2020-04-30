@@ -16,7 +16,7 @@ class Type(Enum):
     VAZIO = 4
 
     def __str__(self):
-        return self.name.lower()
+        return " ".join(["Type",self.name.lower()])
 
 # result of static type computation
 # Vazio means illegal operation
@@ -62,7 +62,7 @@ logop_results = [
 
 
 # table for type promotions
-# None means should not be promoted
+# VAZIO means should not be promoted
 type_promotion= [
 #       int       real       texto     bool      vazio
     [Type.VAZIO,Type.REAL,Type.VAZIO,Type.BOOL,Type.VAZIO],
@@ -94,6 +94,31 @@ class Analyzer(AST.Visitor):
         self.current_scope.define("vazio",SYM.BuiltInType(Type.VAZIO))
 
 
+    def has_return(self,node):
+        node_class = type(node).__name__.lower()
+        method_name = f"has_return_{node_class}"
+        visitor_method = getattr(self,method_name,self.general_check)
+        return visitor_method(node)
+
+    def general_check(self,node):
+        return False
+
+    def has_return_block(self,node):
+        for child in node.children:
+            has_return = self.has_return(child)
+            if has_return:
+                return True
+        return False
+
+    def has_return_sestatement(self,node):
+        # If there is no else branch return None immediately
+        return False if not node.else_branch else self.has_return(node.else_branch)
+
+
+    def has_return_statement(self,node):
+        return True if node.token.token == TT.RETORNA else False
+
+
 
     def error(self,message,token):
         raise SemanticError(message,token.line)
@@ -111,8 +136,6 @@ class Analyzer(AST.Visitor):
         var_type = self.current_scope.resolve(node.type.lexeme)
         if var_type == None:
             self.error(f"O tipo de dados '{node.type.lexeme}' não foi definido",node.type)
-        elif var_type.name == Type.VAZIO:
-            self.error("Não pode declarar variáveis do tipo vazio",node.type)
         name = node.id.lexeme
         if self.current_scope.symbols.get(name) is not None:
             self.error(f"O identificador '{name}' já foi declarado neste escopo",node.id)
@@ -127,8 +150,6 @@ class Analyzer(AST.Visitor):
         var_type = self.current_scope.resolve(node.type.lexeme)
         if var_type == None:
             self.error(f"O tipo de dados '{node.type.lexeme}' não foi definido",node.type)
-        elif var_type.name == Type.VAZIO:
-            self.error("Não pode declarar variáveis do tipo vazio",node.type)
         name = node.id.lexeme
         if self.current_scope.symbols.get(name) is not None:
             self.error(f"O identificador '{name}' já foi declarado neste escopo",node.id)
@@ -139,12 +160,19 @@ class Analyzer(AST.Visitor):
 
 
     def visit_functiondecl(self,node):
-        function_type =  self.current_scope.resolve(node.type.lexeme)
-        if function_type == None:
-            self.error(f"O tipo de dados '{node.type.lexeme}' não foi definido",node.type)
+        #Check if id is already in use
         name = node.id.lexeme
         if self.current_scope.resolve(name) is not None:
             self.error(f"A função '{name}' já foi definida neste escopo",node.id)
+        #Check if return types exists
+        function_type =  self.current_scope.resolve(node.type.lexeme)
+        if function_type == None:
+            self.error(f"O tipo de dados '{node.type.lexeme}' não foi definido",node.type)
+        #Check if function has return statement
+        if function_type.name != Type.VAZIO:
+            has_return = self.has_return(node.block)
+            if not has_return:
+                self.error(f"A função {node.id.lexeme} não possui a instrução 'retorna'",node.id)
         params = {}
         for param in node.params:
             param_name = param.id.lexeme
