@@ -33,7 +33,7 @@ class Parser:
         program = AST.Program()
         start_first = (TT.LPAR,TT.INTEGER,TT.IDENTIFIER,
             TT.REAL,TT.STRING,TT.PLUS,TT.MINUS,TT.VERDADEIRO,
-            TT.FALSO,TT.NOT,TT.MOSTRA,TT.RETORNA,TT.SE,TT.DECL,TT.VECTOR,TT.DEFINA,
+            TT.FALSO,TT.NOT,TT.MOSTRA,TT.RETORNA,TT.SE,TT.VAR,TT.VECTOR,TT.DEFINA,
             TT.LBRACE,TT.ENQUANTO,TT.PARA)
         if self.lookahead.token in start_first or self.lookahead.token == Lexer.EOF:
             while self.lookahead.token in start_first:
@@ -46,7 +46,7 @@ class Parser:
             self.error(f"Sintaxe inválida para início de programa {self.lookahead.token}")
 
     def declaration(self):
-        if self.lookahead.token == TT.DECL:
+        if self.lookahead.token == TT.VAR:
             return self.var_decl()
         elif self.lookahead.token == TT.DEFINA:
             return self.function_decl()
@@ -61,7 +61,7 @@ class Parser:
 
     def var_decl(self):
         token = self.lookahead
-        self.consume(TT.DECL)
+        self.consume(TT.VAR)
         type = self.lookahead
         self.consume(TT.IDENTIFIER)
         id = self.lookahead
@@ -227,7 +227,7 @@ class Parser:
         self.consume(TT.LBRACE)
         while ( self.lookahead.token in (TT.LPAR,TT.INTEGER,TT.IDENTIFIER,
             TT.REAL,TT.STRING,TT.PLUS,TT.MINUS,TT.VERDADEIRO,
-            TT.FALSO,TT.NOT,TT.MOSTRA,TT.RETORNA,TT.SE,TT.DECL,TT.VECTOR,TT.DEFINA,
+            TT.FALSO,TT.NOT,TT.MOSTRA,TT.RETORNA,TT.SE,TT.VAR,TT.VECTOR,TT.DEFINA,
             TT.LBRACE,TT.ENQUANTO) ):
             block.add_child(self.declaration())
         self.consume(TT.RBRACE)

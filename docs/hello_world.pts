@@ -104,6 +104,10 @@ para (i de 0..9) faca {
 }
 
 
+enquanto (1==1) faca{
+
+}
+
 para (i de 0..1 inc -1) faca
   mostra i;
 

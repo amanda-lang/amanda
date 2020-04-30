@@ -17,8 +17,8 @@ class ParserTestCase(unittest.TestCase):
         self.buffer = None
 
     def test_declaration(self):
-        phrases = [ "decl int a;","declara real a1;","declara bool a2;",
-            "declara real a3;", "decl real troco = 3.14;", "vector int array[2];"
+        phrases = [ "var int a;","var real a1;","var bool a2;",
+            "var real a3;", "var real troco = 3.14;", "vector int array[2];"
             "vector int array[2+1];","vector string array[(-(-2))+2];"
         ]
         for phrase in phrases:
@@ -55,7 +55,7 @@ class ParserTestCase(unittest.TestCase):
             }
             se (verdadeiro == falso) rebenta; senao fecha;
             {
-                decl int a;
+                var int a;
             }
 
             enquanto(verdadeiro){
@@ -99,13 +99,13 @@ class ParserTestCase(unittest.TestCase):
         phrases = ['''
             defina test(int a,int b): int{
                 2-1;
-                decl int soma = a+b;
+                var int soma = a+b;
                 mostra a+b-c*array[1]%(-a)/(-c)+eval(2+1,5);
                 retorna -soma+(2*2%1);
             }
             def test(int a,int b): int{
                 2-1;
-                decl int soma = a+b;
+                var int soma = a+b;
                 mostra a+b-c*array[1]%(-a)/(-c)+eval(2+1,5);
                 retorna -soma+(2*2%1);
             }
