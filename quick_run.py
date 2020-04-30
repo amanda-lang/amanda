@@ -7,7 +7,7 @@ from interpreter.pypti import Interpreter
 import interpreter.error as ERR
 
 
-TEST_FILE = "./docs/hello_world.pts"
+TEST_FILE = "./docs/calc.pts"
 
 
 def run_lexer():

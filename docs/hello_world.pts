@@ -83,7 +83,7 @@ def divisao2(int a,int b): int{
 }
 
 
-se (1>2)
+se (1>2) entao
   mostra "maior";
 senao {
   soma(verdadeiro,1);
@@ -91,7 +91,7 @@ senao {
 
 }
 
-enquanto (1==1) {
+enquanto (1==1) faca{
   var int a;
   var texto random;
 }
@@ -103,7 +103,7 @@ para (i de 0..9) faca {
 }
 
 
-enquanto (1==1){
+enquanto (1==1) faca{
 
 }
 
