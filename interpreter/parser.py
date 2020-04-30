@@ -103,7 +103,7 @@ class Parser:
             type = self.lookahead
             self.consume(TT.IDENTIFIER)
         elif self.lookahead.token == TT.VAZIO:
-            void = self.lookahead
+            type = self.lookahead
             self.consume(TT.VAZIO)
         block = self.block()
         return AST.FunctionDecl(id=id,block=block,type=type,params=params)
