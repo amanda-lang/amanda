@@ -52,10 +52,10 @@ eqop_results = [
 #table for type results for e ou !
 logop_results = [
 #       int       real       texto     bool      vazio
-    [Type.BOOL,Type.BOOL,Type.BOOL,Type.BOOL,Type.VAZIO],
-    [Type.BOOL,Type.BOOL,Type.BOOL,Type.BOOL,Type.VAZIO],
-    [Type.BOOL,Type.BOOL,Type.BOOL,Type.BOOL,Type.VAZIO],
-    [Type.BOOL,Type.BOOL,Type.BOOL,Type.BOOL,Type.VAZIO],
+    [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO],
+    [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO],
+    [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO],
+    [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.BOOL,Type.VAZIO],
     [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO]
 ]
 
@@ -65,9 +65,9 @@ logop_results = [
 # VAZIO means should not be promoted
 type_promotion= [
 #       int       real       texto     bool      vazio
-    [Type.VAZIO,Type.REAL,Type.VAZIO,Type.BOOL,Type.VAZIO],
-    [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.BOOL,Type.VAZIO],
-    [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.BOOL,Type.VAZIO],
+    [Type.VAZIO,Type.REAL,Type.VAZIO,Type.VAZIO,Type.VAZIO],
+    [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO],
+    [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO],
     [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO],
     [Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO,Type.VAZIO]
 ]
@@ -248,16 +248,11 @@ class Analyzer(AST.Visitor):
         if node.eval_type == Type.VAZIO:
             self.error(f"Operação inválida. Os operandos possuem tipos incompatíveis: {node.left.eval_type} '{node.token.lexeme}' {node.right.eval_type}",node.token)
 
-        else:
-            if node.eval_type == Type.TEXTO:
-                if node.token.token != TT.PLUS:
-                    self.error(f"Operação inválida. O tipo 'texto' não suporta a operações com o operador '{node.token.lexeme}'",node.token)
-            if node.token.token in (TT.AND,TT.OR):
-                node.left.prom_type = type_promotion[node.left.eval_type.value][Type.BOOL.value]
-                node.right.prom_type = type_promotion[node.right.eval_type.value][Type.BOOL.value]
-            else:
-                node.left.prom_type = type_promotion[node.left.eval_type.value][node.right.eval_type.value]
-                node.right.prom_type = type_promotion[node.right.eval_type.value][node.left.eval_type.value]
+        elif node.eval_type == Type.TEXTO:
+            if node.token.token != TT.PLUS:
+                self.error(f"Operação inválida. O tipo 'texto' não suporta a operações com o operador '{node.token.lexeme}'",node.token)
+        node.left.prom_type = type_promotion[node.left.eval_type.value][node.right.eval_type.value]
+        node.right.prom_type = type_promotion[node.right.eval_type.value][node.left.eval_type.value]
 
     def visit_unaryopnode(self,node):
         self.visit(node.operand)
@@ -308,12 +303,16 @@ class Analyzer(AST.Visitor):
 
     def visit_sestatement(self,node):
         self.visit(node.condition)
+        if node.condition.eval_type != Type.BOOL:
+            self.error(f"A condição da instrução 'if' deve ser um valor lógico",node.token)
         self.visit(node.then_branch)
         if node.else_branch:
             self.visit(node.else_branch)
 
     def visit_whilestatement(self,node):
         self.visit(node.condition)
+        if node.condition.eval_type != Type.BOOL:
+            self.error(f"A condição da instrução 'while' deve ser um valor lógico",node.token)
         self.visit(node.statement)
 
     def visit_forstatement(self,node):

@@ -176,7 +176,7 @@ class Interpreter(AST.Visitor):
             return self.memory.resolve(node.token.lexeme)
         else:
             type = node.prom_type
-            if type == SEM.Type.VAZIO or type is None:
+            if type == SEM.Type.VAZIO or not type:
                 type = node.eval_type
                 if type == SEM.Type.INT:
                     return int(node.token.lexeme)
