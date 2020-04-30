@@ -53,7 +53,9 @@ class ParserTestCase(unittest.TestCase):
             senao{
                 fecha;
             }
-            se (verdadeiro == falso) entao rebenta; senao fecha;
+            se (verdadeiro == falso) entao rebenta();
+            senao fecha();
+
             {
                 var int a;
             }
