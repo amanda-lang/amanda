@@ -16,7 +16,7 @@ class Type(Enum):
     VAZIO = 4
 
     def __str__(self):
-        return " ".join(["Type",self.name.lower()])
+        return self.name.lower()
 
 # result of static type computation
 # Vazio means illegal operation
