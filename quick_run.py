@@ -43,8 +43,8 @@ def run_pypti():
     #print(intp.memory)
 
 try:
-    run_sem_analysis()
-    #run_pypti()
+    #run_sem_analysis()
+    run_pypti()
     #run_tests()
 except ERR.Error as e:
     sys.stderr.write(str(e))

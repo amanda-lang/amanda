@@ -6,7 +6,6 @@ from interpreter.error import RunTimeError
 from interpreter.object import RTFunction,Environment,ReturnValue,RTArray
 
 
-
 class Interpreter(AST.Visitor):
     GLOBAL_MEMORY = "GLOBAL"
     LOCAL_MEMORY = "LOCAL"
@@ -228,7 +227,7 @@ class Interpreter(AST.Visitor):
         env = Environment(Interpreter.LOCAL_MEMORY,self.memory)
         #Check if it's a block so that you can pass an env to it
         if isinstance(node.statement,AST.Block):
-            print("BLOCK FOR LOOP")
+            #print(f"LOGGING LOOP: start:{start} end: {end} inc:{inc} env:{env}")
             for control in range(start,end,inc):
                 env.define(var,control)
                 self.execute(node.statement,env)
