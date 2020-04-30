@@ -1,5 +1,5 @@
 test.pts
 docs/ast_notes.txt
-docs/*.pts
+*.pts
 quick_run.py
 *.pyc
