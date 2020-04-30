@@ -113,14 +113,14 @@ class ParserTestCase(unittest.TestCase):
             }
             defina test(): int{
             }
-            defina test(){
+            defina test(): vazio{
             }
-            def test(int a,int b){
+            def test(int a,int b): vazio{
             }
-            def test(int a,int b,real c,string c){
+            def test(int a,int b,real c,string c): vazio{
 
             }
-            def copier(int a,int [] b){
+            def copier(int a,int [] b): vazio{
 
             }
         '''

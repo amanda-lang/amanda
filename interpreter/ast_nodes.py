@@ -160,10 +160,11 @@ class FunctionCall(ExpNode):
             args.visit()
 
 class FunctionDecl(ASTNode):
-    def __init__(self,id=None,block=None,type=None,params=[]):
+    def __init__(self,id=None,block=None,type=None,params=[],void=False):
         super().__init__(Token("FUNCTION_DECL",None))
         self.id = id
         self.params = params
+        self.void = void
         self.type = type
         self.block = block
 

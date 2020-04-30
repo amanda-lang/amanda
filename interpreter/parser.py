@@ -96,13 +96,18 @@ class Parser:
         self.consume(TT.LPAR)
         params = self.formal_params()
         self.consume(TT.RPAR)
-        type = Token("VAZIO","vazio")
-        if self.lookahead.token == TT.COLON:
-            self.consume(TT.COLON)
+        self.consume(TT.COLON)
+        # Check if function is void
+        type = None
+        void = False
+        if self.lookahead.token == TT.IDENTIFIER:
             type = self.lookahead
             self.consume(TT.IDENTIFIER)
+        elif self.lookahead.token == TT.VAZIO:
+            void = True
+            self.consume(TT.VAZIO)
         block = self.block()
-        return AST.FunctionDecl(id=id,block=block,type=type,params=params)
+        return AST.FunctionDecl(id=id,block=block,type=type,params=params,void=void)
 
     def formal_params(self):
         params = []
