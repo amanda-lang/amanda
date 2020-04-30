@@ -231,7 +231,7 @@ class Parser:
         while ( self.lookahead.token in (TT.LPAR,TT.INTEGER,TT.IDENTIFIER,
             TT.REAL,TT.STRING,TT.PLUS,TT.MINUS,TT.VERDADEIRO,
             TT.FALSO,TT.NOT,TT.MOSTRA,TT.RETORNA,TT.SE,TT.VAR,TT.VECTOR,TT.DEFINA,
-            TT.LBRACE,TT.ENQUANTO) ):
+            TT.LBRACE,TT.ENQUANTO,TT.PARA) ):
             block.add_child(self.declaration())
         self.consume(TT.RBRACE)
         return block
