@@ -99,15 +99,14 @@ class Parser:
         self.consume(TT.COLON)
         # Check if function is void
         type = None
-        void = False
         if self.lookahead.token == TT.IDENTIFIER:
             type = self.lookahead
             self.consume(TT.IDENTIFIER)
         elif self.lookahead.token == TT.VAZIO:
-            void = True
+            void = self.lookahead
             self.consume(TT.VAZIO)
         block = self.block()
-        return AST.FunctionDecl(id=id,block=block,type=type,params=params,void=void)
+        return AST.FunctionDecl(id=id,block=block,type=type,params=params)
 
     def formal_params(self):
         params = []
