@@ -19,7 +19,7 @@ array_declaration
   ;
 
 function_declaration
-  : DEFINA IDENTIFIER LPAR formal_parameter_section? RPAR (COL type)? block
+  : DEFINA IDENTIFIER LPAR formal_parameter_section? RPAR COL (type | VAZIO) block
   ;
 
 formal_parameter_section

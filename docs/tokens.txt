@@ -40,6 +40,7 @@ PARA : para
 INC : inc
 FACA : faca
 DE : de
+VAZIO : vazio
 
 *OPERANDS*
 INTEGER : [0-9]+ -> 122324242
