@@ -285,8 +285,6 @@ class Analyzer(AST.Visitor):
         self.visit(node.exp)
         token = node.token.token
         #check if return statement is inside a function
-        if isinstance(node.exp,AST.AssignNode):
-            self.error(f"instrução inválida. A instrução '{node.token.lexeme}' não pode ser usada com uma expressão de atribuição",node.token)
         if token == TT.RETORNA:
             function = self.current_scope.get_enclosing_func()
             #TODO: Fix return bug inside local scope
