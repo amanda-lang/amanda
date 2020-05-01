@@ -261,7 +261,7 @@ class Analyzer(AST.Visitor):
                 self.error(f"Operação inválida. O Operador unário '{node.token.lexeme}' só pode ser usado com tipos numéricos",node.token)
             node.eval_type = node.operand.eval_type
         elif node.token.token == TT.NOT:
-            node.operand.prom_type = logop_results[node.operand.eval_type.value][Type.BOOL]
+            node.operand.prom_type = logop_results[node.operand.eval_type.value][Type.BOOL.value]
             if node.operand.eval_type != Type.BOOL and node.operand.prom_type == Type.VAZIO:
                 self.error(f"Operação inválida. O Operador unário '{node.token.lexeme}' só pode ser usado com valores lógicos",node.token)
             node.eval_type = node.operand.prom_type
