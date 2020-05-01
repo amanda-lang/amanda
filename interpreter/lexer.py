@@ -171,7 +171,7 @@ class Lexer:
         self.advance()
         while self.current_char != symbol :
             if self.current_char == Lexer.EOF:
-                self.error()
+                self.error("Erro")
             result += self.current_char
             self.advance()
         self.advance()
