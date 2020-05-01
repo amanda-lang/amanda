@@ -47,6 +47,12 @@ class ParserTestCase(unittest.TestCase):
         phrases = ["mostra 2-1;","retorna eval(2*1+((21-1)*12));","retorna a[0];",
             "retorna a[0];","mostra a+b-c*array[1]%(-a)/(-c)+eval(2+1,5);",'''
             se (verdadeiro == falso) entao  rebenta;
+            se (1<2)  entao
+                rouba();
+            se (1==2) entao
+                devolve();
+            senao
+                vai_preso();
             se (0==0) entao {
                 rebenta;
             }
