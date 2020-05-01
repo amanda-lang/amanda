@@ -162,7 +162,7 @@ class Analyzer(AST.Visitor):
     def visit_functiondecl(self,node):
         #Check if id is already in use
         name = node.id.lexeme
-        if not self.current_scope.resolve(name):
+        if self.current_scope.resolve(name):
             self.error(f"A função '{name}' já foi definida neste escopo",node.id)
         #Check if return types exists
         function_type =  self.current_scope.resolve(node.type.lexeme)
@@ -176,7 +176,7 @@ class Analyzer(AST.Visitor):
         params = {}
         for param in node.params:
             param_name = param.id.lexeme
-            if not params.get(param_name):
+            if params.get(param_name):
                 self.error(f"O parâmetro '{param_name}' já foi especificado nesta função",node.id)
             param_symbol = self.visit(param)
             params[param_name] = param_symbol
