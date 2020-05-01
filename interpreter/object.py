@@ -68,6 +68,8 @@ class RTArray:
     def __init__(self,type,size=0):
         self.size = size
         self.elements = []
+        if size <= 0:
+            raise IndexError
         init = Type.VAZIO
         if type == Type.INT:
             init = 0

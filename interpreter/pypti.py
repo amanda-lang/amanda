@@ -76,7 +76,10 @@ class Interpreter(AST.Visitor):
         id = node.id.lexeme
         type = node.type.lexeme.upper()
         size = self.execute(node.size)
-        self.memory.define(id,RTArray(SEM.Type[type],size))
+        try:
+            self.memory.define(id,RTArray(SEM.Type[type],size))
+        except:
+            self.error("O tamanho de um vector deve ser maior que 0",node.id)
 
     def exec_functiondecl(self,node):
         id = node.id.lexeme
