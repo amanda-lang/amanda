@@ -1,0 +1,42 @@
+$ Some tests with functions
+
+
+$ Change global
+
+var int a;
+
+def func():vazio{
+  a = 3;
+}
+
+func();
+mostra a; $ expect 3
+
+
+$ type prom
+
+
+def random(): real{
+  retorna 150;
+}
+
+
+var real rand = random();
+mostra rand; $expect 150.0
+
+
+$ nested func
+
+def crazy_sum(int a, int b): int {
+
+  def sum(int a, int b): int {
+    retorna a+b;
+  }
+
+  retorna sum(a,b);
+}
+
+
+a = crazy_sum(2,2);
+
+mostra a; $ expect 4

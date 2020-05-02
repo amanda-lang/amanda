@@ -1,0 +1,7 @@
+$ function declared with vazio returning
+
+
+def func():vazio {
+  var int a = 10;
+  retorna a; $ expect error
+}
