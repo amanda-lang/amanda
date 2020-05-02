@@ -1,0 +1,8 @@
+$ Referencing array by id error
+
+
+
+var int num;
+vector int array[2];
+
+mostra num + array;

@@ -1,0 +1,4 @@
+$ using undeclared var
+
+
+mostra i; $ expect ERROR

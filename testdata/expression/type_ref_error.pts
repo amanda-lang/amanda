@@ -1,0 +1,5 @@
+$ Referencing type error
+
+
+var int a;
+mostra a + texto;
