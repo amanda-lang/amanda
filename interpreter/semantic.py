@@ -134,7 +134,7 @@ class Analyzer(AST.Visitor):
 
     def visit_vardeclnode(self,node):
         var_type = self.current_scope.resolve(node.type.lexeme)
-        if var_type == None:
+        if not var_type or not var_type.is_type():
             self.error(f"O tipo de dados '{node.type.lexeme}' não foi definido",node.type)
         name = node.id.lexeme
         if self.current_scope.symbols.get(name) is not None:
@@ -148,7 +148,7 @@ class Analyzer(AST.Visitor):
 
     def visit_arraydeclnode(self,node):
         var_type = self.current_scope.resolve(node.type.lexeme)
-        if var_type == None:
+        if not var_type or not var_type.is_type():
             self.error(f"O tipo de dados '{node.type.lexeme}' não foi definido",node.type)
         name = node.id.lexeme
         if self.current_scope.symbols.get(name) is not None:
@@ -166,8 +166,8 @@ class Analyzer(AST.Visitor):
             self.error(f"A função '{name}' já foi definida neste escopo",node.id)
         #Check if return types exists
         function_type =  self.current_scope.resolve(node.type.lexeme)
-        if function_type == None:
-            self.error(f"O tipo de dados '{node.type.lexeme}' não foi definido",node.type)
+        if not function_type or not function_type.is_type():
+            self.error(f"O tipo '{node.type.lexeme}' não foi definido",node.type)
         #Check if function has return statement
         if function_type.name != Type.VAZIO:
             has_return = self.has_return(node.block)

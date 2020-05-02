@@ -73,6 +73,9 @@ class Symbol:
     def is_valid_var(self):
         return False
 
+    def is_type(self):
+        return False
+
 
 
 class BuiltInType(Symbol):
@@ -81,6 +84,9 @@ class BuiltInType(Symbol):
 
     def __str__(self):
         return str(self.name)
+
+    def is_type(self):
+        return True
 
 class VariableSymbol(Symbol):
     def __init__(self,name,type):
