@@ -1,5 +1,4 @@
 test.pts
 docs/test_plan.txt
-*.pts
 quick_run.py
 *.pyc
