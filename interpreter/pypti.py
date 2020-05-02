@@ -65,6 +65,8 @@ class Interpreter(AST.Visitor):
             self.memory.define(name,0)
         elif type == "real":
             self.memory.define(name,0.0)
+        elif type=="bool":
+            self.memory.define(name,False)
         elif type == "texto":
             self.memory.define(name,"")
         else:
@@ -245,10 +247,10 @@ class Interpreter(AST.Visitor):
 
     def exec_statement(self,node):
         expr = self.execute(node.exp)
-        if node.exp.eval_type == SEM.Type.BOOL:
-            expr = "verdadeiro" if expr else "falso"
         token = node.token.token
         if token == TT.MOSTRA:
+            if node.exp.eval_type == SEM.Type.BOOL:
+                expr = "verdadeiro" if expr else "falso"
             print(expr,end="\n\n")
         elif token == TT.RETORNA:
             raise ReturnValue(expr)
