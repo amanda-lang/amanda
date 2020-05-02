@@ -288,6 +288,7 @@ class Parser:
         if self.lookahead.token == TT.EQUAL:
             token = self.lookahead
             self.consume(TT.EQUAL)
+            #TODO: Change this to a guard condition
             if isinstance(node,AST.ArrayRef) or (isinstance(node,AST.ExpNode) and node.token.token == TT.IDENTIFIER):
                 node = AST.AssignNode(token,left=node,right=self.assignment())
             else:
