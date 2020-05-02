@@ -246,7 +246,7 @@ class Interpreter(AST.Visitor):
     def exec_statement(self,node):
         expr = self.execute(node.exp)
         if node.exp.eval_type == SEM.Type.BOOL:
-            expr = "verdadeiro" if expr == True else "falso"
+            expr = "verdadeiro" if expr else "falso"
         token = node.token.token
         if token == TT.MOSTRA:
             print(expr,end="\n\n")
