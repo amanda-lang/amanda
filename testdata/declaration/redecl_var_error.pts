@@ -1,0 +1,5 @@
+$ Redeclaration in the same scope
+
+
+var int a;
+var texto a; $ expect error

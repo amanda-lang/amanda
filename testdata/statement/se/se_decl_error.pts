@@ -1,0 +1,7 @@
+$ declaration in simple se error
+
+
+
+
+se (verdadeiro) entao
+  var int i; $ Expect error

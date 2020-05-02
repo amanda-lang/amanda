@@ -1,0 +1,15 @@
+$Função que retorna o quadrado de um número
+
+
+def expoente(int base, int expoente): int {
+
+  var int res = base;
+  para (i de 0..expoente-1) faca{
+    res *= base;
+  }
+
+  retorna res;
+}
+
+
+mostra expoente(2,2);

@@ -1,0 +1,8 @@
+$return in non global scope
+
+
+{
+
+
+  return 0; $ expect ERROR
+}

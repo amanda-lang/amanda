@@ -1,0 +1,10 @@
+$ shadowing is allowed
+
+
+var int a = 2;
+
+{
+  a += 1;
+}
+
+mostra a; $ expect 3 

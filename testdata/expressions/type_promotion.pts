@@ -1,0 +1,4 @@
+$ test type promotion
+
+
+mostra 1+(2+2.5); $ expect 5.5

@@ -1,0 +1,5 @@
+$ Redeclaration error
+
+
+var int a = 0;
+var int a = 1; $ expect error

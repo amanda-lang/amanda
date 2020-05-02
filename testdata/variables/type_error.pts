@@ -1,0 +1,3 @@
+$ undeclared data type
+
+var magia a; $ expect error

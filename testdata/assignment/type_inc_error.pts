@@ -1,0 +1,9 @@
+$ type incompatibility error
+
+
+var int a = "string"; $ expect ERROR
+var int b = verdadeiro; $ expect ERROR
+var int b1 = 1.0; $ expect ERROR
+var texto c = 1.0; $ expect ERROR
+var texto d = verdadeiro; $ expect ERROR
+var real f = verdadeiro; $ expect ERROR

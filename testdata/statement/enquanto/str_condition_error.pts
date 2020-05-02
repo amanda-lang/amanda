@@ -1,0 +1,4 @@
+$ Condition must be boolean or evaluate to boolean
+
+
+enquanto ("1") faca{} $ expect Error

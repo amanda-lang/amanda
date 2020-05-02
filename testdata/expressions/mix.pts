@@ -1,0 +1,19 @@
+$ Use vars,functions, arrays and literals;
+
+$ vars
+var int i = 5;
+var real c = 5.0;
+
+$ array
+vector int array[3];
+array[0] = 5;
+
+$ function
+
+def soma(int a, int b): int {
+
+  retorna  a+b;
+}
+
+
+mostra (i+c)*(array[0]+soma(5,5)); $ expect 150.0

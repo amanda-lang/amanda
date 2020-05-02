@@ -1,0 +1,4 @@
+$ Referencing variable during init is error
+
+
+var int a = a; $ expect self_ref error

@@ -1,0 +1,4 @@
+$ declaration in none block
+
+para (i de 0..5) faca
+  var int i;

@@ -1,0 +1,85 @@
+$ Testing out a se with blocks
+
+
+var int num = 2;
+
+$ simple se-entao
+se (verdadeiro) entao{
+  mostra num; $ expect 2
+}
+
+num = 3;
+
+
+$ se-senao (with declaration)
+se (num > 3) entao {
+  var int i = num;
+  mostra num;
+}
+senao{
+  var texto res = "not larger";
+  mostra res; $ expect not larger
+}
+
+
+$mutiple se
+
+num = 10;
+
+se (num == 8) entao {
+  mostra "oito";
+}
+
+se (num == 9) entao{
+  mostra "nove";
+}
+se (num == 10) entao{
+  mostra "dez"; $ expect "dez"
+}
+
+
+$ multiple se-senao
+se (num == 8) entao{
+  mostra "oito";
+}
+senao{
+  mostra "não oito"; $ expect "não oito"
+}
+se (num == 9) entao{
+  mostra "nove";
+}
+senao{
+  mostra "não nove"; $ expect "não nove"
+}
+
+se (num == 10) entao{
+  mostra "dez"; $ expect "dez"
+}
+senao{
+  mostra "não dez";
+}
+
+
+
+$mutiple se-dangling senao
+
+num = 11;
+
+se (num == 8) entao{
+  mostra "oito";
+}
+se (num == 9) entao{
+  mostra "nove";
+}
+se (num == 10) entao{
+  mostra "dez";
+}
+senao{
+  mostra "não dez"; $ expect "não dez"
+}
+
+
+$ empty se and senao
+
+se (verdadeiro) entao {}
+senao{}

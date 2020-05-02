@@ -1,0 +1,3 @@
+$ Force type error
+
+5 + "me"; $ expect ERROR

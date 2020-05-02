@@ -1,0 +1,6 @@
+$ Local redeclaration
+
+{
+  var int a;
+  vector int a[2];
+}

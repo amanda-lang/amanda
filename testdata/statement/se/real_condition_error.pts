@@ -1,0 +1,4 @@
+$ Condition must be boolean or evaluate to boolean
+
+
+se (1.0) entao{} $ expect Error

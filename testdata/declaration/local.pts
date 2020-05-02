@@ -1,0 +1,10 @@
+$ Redeclaration in local scope
+
+var int i = 2;
+{
+
+  var int i = 4;
+  mostra i; $ expect 4
+}
+
+mostra i; $ expect 2

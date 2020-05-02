@@ -1,0 +1,3 @@
+$ Declaring with non existing type
+
+def func():fogo{}
