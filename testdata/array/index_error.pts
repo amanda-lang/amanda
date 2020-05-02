@@ -1,0 +1,6 @@
+$ Out of bounds negative index
+
+
+
+vector bool vet[2];
+mostra vet[10];
