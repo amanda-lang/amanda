@@ -235,7 +235,7 @@ class Interpreter(AST.Visitor):
                 env.define(var,control)
                 self.execute(node.statement,env)
         else:
-            print("STATEMENT FOR LOOP",start,end,inc)
+            #print("STATEMENT FOR LOOP",start,end,inc)
             self.memory = env
             for control in range(start,end,inc):
                 env.define(var,control)
