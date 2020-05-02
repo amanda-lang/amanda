@@ -2,7 +2,7 @@ import os
 import copy
 from interpreter.tokens import TokenType,Token
 from interpreter.tokens import KEYWORDS as TK_KEYWORDS
-from interpreter.error import LexerError
+import interpreter.error as error
 
 class Lexer:
     EOF = "__eof__"
@@ -34,8 +34,10 @@ class Lexer:
         self.file.seek(last_position)
         return next_char
 
-    def error(self,message):
-        raise LexerError(f"O símbolo '{self.current_char}' não foi reconhecido",self.line)
+    def error(self,code,**kwargs):
+        print(kwargs)
+        message = code.format(**kwargs)
+        raise error.Syntax(message,self.line)
 
 
 
@@ -171,7 +173,7 @@ class Lexer:
         self.advance()
         while self.current_char != symbol :
             if self.current_char == Lexer.EOF:
-                self.error("Erro")
+                self.error(error.Error.INVALID_STRING,line=self.line)
             result += self.current_char
             self.advance()
         self.advance()
@@ -264,4 +266,4 @@ class Lexer:
             if self.file.readable():
                 self.file.close()
             return Token(Lexer.EOF,"")
-        self.error("Error during tokenization")
+        self.error(error.Error.INVALID_SYMBOL,symbol=self.current_char)
