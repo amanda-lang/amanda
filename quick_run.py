@@ -7,7 +7,7 @@ from interpreter.pypti import Interpreter
 import interpreter.error as ERR
 
 
-TEST_FILE = "./testdata/function/non_function_error.pts"
+TEST_FILE = "./testdata/function/valid.pts"
 
 
 def run_lexer():

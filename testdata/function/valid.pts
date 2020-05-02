@@ -40,3 +40,14 @@ def crazy_sum(int a, int b): int {
 a = crazy_sum(2,2);
 
 mostra a; $ expect 4
+
+
+$ recursion
+
+def factorial(int n): int{
+  se (n == 0) entao
+    retorna 1;
+  retorna n*factorial(n-1);
+}
+
+mostra factorial(5); $ expect 120
