@@ -3,11 +3,11 @@ import time
 from interpreter.lexer import Lexer
 from interpreter.parser import Parser
 from interpreter.semantic import Analyzer
-from interpreter.pypti import Interpreter
+#from interpreter.pypti import Interpreter
 import interpreter.error as ERR
 
 
-TEST_FILE = "./testdata/function/valid.pts"
+TEST_FILE = "./testdata/array/index_type_error.pts"
 
 
 def run_lexer():
@@ -43,8 +43,8 @@ def run_pypti():
     #print(intp.memory)
 
 try:
-    #run_sem_analysis()
-    run_pypti()
+    run_sem_analysis()
+    #run_pypti()
     #run_tests()
 except ERR.Error as e:
     sys.stderr.write(str(e))
