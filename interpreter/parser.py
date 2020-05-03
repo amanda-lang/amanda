@@ -2,7 +2,7 @@ from interpreter.lexer import Lexer
 from interpreter.tokens import TokenType as TT
 from interpreter.tokens import Token
 import interpreter.ast_nodes as AST
-from interpreter.error import ParserError,Error
+import interpreter.error as error
 
 
 '''*Class used to parse input file
@@ -14,15 +14,17 @@ class Parser:
         self.lexer = lexer
         self.lookahead = lexer.get_token()
 
-    def consume(self,token_t):
+    def consume(self,token_t,error=None):
         if self.lookahead.token == token_t:
             #print(f"Parser consumed {self.lookahead}")
             self.lookahead = self.lexer.get_token()
         else:
-            self.error(f"O programa esperava o símbolo {token_t.value},porém recebeu o símbolo '{self.lookahead.lexeme}'")
+            if error:
+                self.error(error)
+            self.error(f"era esperado o símbolo {token_t.value},porém recebeu o símbolo '{self.lookahead.lexeme}'")
 
     def error(self,message=None):
-        raise ParserError(message,self.lexer.line)
+        raise error.Syntax(message,self.lexer.line)
 
     #function that triggers parsing
     def parse(self):
@@ -41,9 +43,9 @@ class Parser:
             if self.lookahead.token == Lexer.EOF:
                 return program
             else:
-                self.error("Sintaxe inválida")
+                self.error("sintaxe inválida")
         else:
-            self.error(f"Sintaxe inválida para início de programa {self.lookahead.token}")
+            self.error(f"sintaxe inválida para início de programa {self.lookahead.token}")
 
     def declaration(self):
         if self.lookahead.token == TT.VAR:
@@ -63,48 +65,49 @@ class Parser:
         token = self.lookahead
         self.consume(TT.VAR)
         type = self.lookahead
-        self.consume(TT.IDENTIFIER)
+        self.consume(TT.IDENTIFIER,error.Syntax.EXPECTED_TYPE.format(symbol=token.lexeme))
         id = self.lookahead
-        self.consume(TT.IDENTIFIER)
+        self.consume(TT.IDENTIFIER,error.Syntax.EXPECTED_ID.format(symbol=type.lexeme))
         assign = None
         if self.lookahead.token == TT.EQUAL:
             assign = self.lookahead
             self.consume(TT.EQUAL)
             right = self.expression()
             assign = AST.AssignNode(assign,left=AST.ExpNode(id),right=right)
-        self.consume(TT.SEMI)
+        self.consume(TT.SEMI,error.Syntax.MISSING_SEMI)
         return AST.VarDeclNode(token,id=id,type=type,assign=assign)
 
     def array_decl(self):
         token = self.lookahead
         self.consume(TT.VECTOR)
         type = self.lookahead
-        self.consume(TT.IDENTIFIER)
+        self.consume(TT.IDENTIFIER,error.Syntax.EXPECTED_TYPE.format(symbol=token.lexeme))
         id = self.lookahead
-        self.consume(TT.IDENTIFIER)
+        self.consume(TT.IDENTIFIER,error.Syntax.EXPECTED_ID.format(symbol=type.lexeme))
         self.consume(TT.LBRACKET)
         size = self.equality()
         self.consume(TT.RBRACKET)
-        self.consume(TT.SEMI)
+        self.consume(TT.SEMI,error.Syntax.MISSING_SEMI)
         #print("PARSER: ",size.token)
         return AST.ArrayDeclNode(token,id=id,type=type,size=size)
 
     def function_decl(self):
+        sym = self.lookahead.lexeme
         self.consume(TT.DEFINA)
         id = self.lookahead
-        self.consume(TT.IDENTIFIER)
+        self.consume(TT.IDENTIFIER,error.Syntax.EXPECTED_ID.format(symbol=sym))
         self.consume(TT.LPAR)
         params = self.formal_params()
-        self.consume(TT.RPAR)
+        self.consume(TT.RPAR,"os parâmetros da função devem estar delimitados por  ')'")
         self.consume(TT.COLON)
         # Check if function is void
         type = None
         if self.lookahead.token == TT.IDENTIFIER:
             type = self.lookahead
-            self.consume(TT.IDENTIFIER)
+            self.consume(TT.IDENTIFIER,error.Syntax.EXPECTED_TYPE.format(symbol=":"))
         elif self.lookahead.token == TT.VAZIO:
             type = self.lookahead
-            self.consume(TT.VAZIO)
+            self.consume(TT.VAZIO,error.Syntax.EXPECTED_TYPE.format(symbol=":"))
         block = self.block()
         return AST.FunctionDecl(id=id,block=block,type=type,params=params)
 
@@ -113,7 +116,7 @@ class Parser:
         if self.lookahead.token == TT.IDENTIFIER:
             type = self.lookahead
             is_array = False
-            self.consume(TT.IDENTIFIER)
+            self.consume(TT.IDENTIFIER,error.Syntax.EXPECTED_TYPE.format(symbol="("))
             if self.lookahead.token == TT.LBRACKET:
                 self.consume(TT.LBRACKET)
                 self.consume(TT.RBRACKET)
@@ -125,7 +128,7 @@ class Parser:
                 self.consume(TT.COMMA)
                 type = self.lookahead
                 is_array = False
-                self.consume(TT.IDENTIFIER)
+                self.consume(TT.IDENTIFIER,error.Syntax.EXPECTED_TYPE.format(symbol=","))
                 if self.lookahead.token == TT.LBRACKET:
                     self.consume(TT.LBRACKET)
                     self.consume(TT.RBRACKET)
@@ -143,7 +146,7 @@ class Parser:
             TT.FALSO,TT.NOT)):
             #expr_statement
             node = self.expression()
-            self.consume(TT.SEMI)
+            self.consume(TT.SEMI,error.Syntax.MISSING_SEMI)
             return node
         elif current == TT.MOSTRA:
             return self.mostra_statement()
@@ -164,22 +167,22 @@ class Parser:
         token = self.lookahead
         self.consume(TT.MOSTRA)
         exp = self.equality()
-        self.consume(TT.SEMI)
+        self.consume(TT.SEMI,error.Syntax.MISSING_SEMI)
         return AST.Statement(token,exp)
 
     def retorna_statement(self):
         token = self.lookahead
         self.consume(TT.RETORNA)
         exp = self.equality()
-        self.consume(TT.SEMI)
+        self.consume(TT.SEMI,error.Syntax.MISSING_SEMI)
         return AST.Statement(token,exp)
 
     def se_statement(self):
         token = self.lookahead
         self.consume(TT.SE)
-        self.consume(TT.LPAR)
+        self.consume(TT.LPAR,"a instrução 'se' deve possuir uma condição")
         condition = self.equality()
-        self.consume(TT.RPAR)
+        self.consume(TT.RPAR,"a condição deve ser delimitada por ')'")
         self.consume(TT.ENTAO)
         then_branch = self.statement()
         else_branch = None
@@ -192,18 +195,18 @@ class Parser:
     def while_statement(self):
         token = self.lookahead
         self.consume(TT.ENQUANTO)
-        self.consume(TT.LPAR)
+        self.consume(TT.LPAR,"a instrução 'enquanto' deve possuir uma condição")
         condition = self.equality()
-        self.consume(TT.RPAR)
+        self.consume(TT.RPAR,"a condição deve ser delimitada por ')'")
         self.consume(TT.FACA)
         return AST.WhileStatement(token,condition,self.statement())
 
     def for_statement(self):
         token = self.lookahead
         self.consume(TT.PARA)
-        self.consume(TT.LPAR)
+        self.consume(TT.LPAR,"a instrução 'para' deve possuir uma expressão")
         expression = self.for_expression()
-        self.consume(TT.RPAR)
+        self.consume(TT.RPAR,"a expressão deve ser delimitada por ')'")
         self.consume(TT.FACA)
         return AST.ForStatement(token,expression,self.statement())
 
@@ -233,7 +236,7 @@ class Parser:
             TT.FALSO,TT.NOT,TT.MOSTRA,TT.RETORNA,TT.SE,TT.VAR,TT.VECTOR,TT.DEFINA,
             TT.LBRACE,TT.ENQUANTO,TT.PARA) ):
             block.add_child(self.declaration())
-        self.consume(TT.RBRACE)
+        self.consume(TT.RBRACE,"os blocos devem ser delimitados por '}'")
         return block
 
 
@@ -252,7 +255,7 @@ class Parser:
         current = self.lookahead.token
         if current == TT.PLUSEQ or current ==TT.MINUSEQ:
             if not node.is_assignable():
-                self.error("Erro de atribuição. Só pode atribuir valores à variáveis e à índices de vector")
+                self.error(error.Syntax.ILLEGAL_ASSIGN)
             #Create separate tokens
             token = Token(None,None,line=self.lookahead.line,col=self.lookahead.col)
             eq = Token(TT.EQUAL,"=",line=self.lookahead.line,col=self.lookahead.col)
@@ -269,7 +272,7 @@ class Parser:
         current = self.lookahead.token
         if current == TT.STAREQ or current ==TT.SLASHEQ:
             if not node.is_assignable():
-                self.error("Erro de atribuição. Só pode atribuir valores à variáveis e a índices de vector")
+                self.error(error.Syntax.ILLEGAL_ASSIGN)
             #Create separate tokens
             token = Token(None,None,line=self.lookahead.line,col=self.lookahead.col)
             eq = Token(TT.EQUAL,"=",line=self.lookahead.line,col=self.lookahead.col)
@@ -288,11 +291,9 @@ class Parser:
         if self.lookahead.token == TT.EQUAL:
             token = self.lookahead
             self.consume(TT.EQUAL)
-            #TODO: Change this to a guard condition
-            if isinstance(node,AST.ArrayRef) or (isinstance(node,AST.ExpNode) and node.token.token == TT.IDENTIFIER):
-                node = AST.AssignNode(token,left=node,right=self.assignment())
-            else:
-                self.error("Erro de atribuição. Só pode atribuir valores à variáveis e a índices de vector")
+            if not node.is_assignable():
+                self.error(error.Syntax.ILLEGAL_ASSIGN)
+            node = AST.AssignNode(token,left=node,right=self.assignment())
         return node
 
 
@@ -370,8 +371,9 @@ class Parser:
             token = self.lookahead
             self.consume(current)
             node = AST.UnaryOpNode(token,operand=self.factor())
+        #TODO: check if this is dead code
         else:
-            self.error(f"Início illegal de expressão",self.lookahead)
+            self.error("início inválido de expressão",self.lookahead)
         return node
 
     def function_call(self):
@@ -385,7 +387,7 @@ class Parser:
             while self.lookahead.token == TT.COMMA:
                 self.consume(TT.COMMA)
                 args.append(self.equality())
-        self.consume(TT.RPAR)
+        self.consume(TT.RPAR,"os argumentos da função devem ser delimitados por ')'")
         return args
 
 
