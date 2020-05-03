@@ -2,7 +2,7 @@ import ast
 from interpreter.tokens import TokenType as TT
 import interpreter.ast_nodes as AST
 import interpreter.semantic as SEM
-from interpreter.error import RunTimeError
+import interpreter.error as error
 from interpreter.object import RTFunction,Environment,ReturnValue,RTArray
 
 
@@ -32,7 +32,7 @@ class Interpreter(AST.Visitor):
         return visitor_method(node)
 
     def error(self,message,token):
-        raise RunTimeError(message,token.line)
+        raise error.RunTime(message,token.line)
 
 
     def resolve(self,node):
@@ -98,7 +98,7 @@ class Interpreter(AST.Visitor):
                 array.put(index,value)
                 return value
             except IndexError:
-                self.error("Erro de índice. Índice inválido para o tamanho deste array.",node.left.id)
+                self.error("índice inválido para o tamanho deste array",node.left.id)
         value = self.execute(node.right)
         name = self.resolve(node.left)
         memory = self.memory.resolve_space(name)
@@ -173,7 +173,7 @@ class Interpreter(AST.Visitor):
         try:
             return array.get(self.execute(node.index))
         except IndexError:
-            self.error("Erro de índice. Índice inválido para o tamanho deste array.",node.id)
+            self.error("índice inválido para o tamanho deste array",node.id)
 
     def exec_expnode(self,node):
         if node.token.token == TT.IDENTIFIER:
