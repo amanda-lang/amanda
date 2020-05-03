@@ -173,7 +173,7 @@ class Lexer:
         self.advance()
         while self.current_char != symbol :
             if self.current_char == Lexer.EOF:
-                self.error(error.Error.INVALID_STRING,line=self.line)
+                self.error(error.Syntax.INVALID_STRING,line=self.line)
             result += self.current_char
             self.advance()
         self.advance()
@@ -266,4 +266,4 @@ class Lexer:
             if self.file.readable():
                 self.file.close()
             return Token(Lexer.EOF,"")
-        self.error(error.Error.INVALID_SYMBOL,symbol=self.current_char)
+        self.error(error.Syntax.INVALID_SYMBOL,symbol=self.current_char)
