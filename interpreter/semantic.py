@@ -318,7 +318,7 @@ class Analyzer(AST.Visitor):
     def visit_sestatement(self,node):
         self.visit(node.condition)
         if node.condition.eval_type != Type.BOOL:
-            self.error(node.token.line,f"a condição da instrução 'if' deve ser um valor lógico")
+            self.error(node.token.line,f"a condição da instrução 'se' deve ser um valor lógico")
         self.visit(node.then_branch)
         if node.else_branch:
             self.visit(node.else_branch)
@@ -326,7 +326,7 @@ class Analyzer(AST.Visitor):
     def visit_whilestatement(self,node):
         self.visit(node.condition)
         if node.condition.eval_type != Type.BOOL:
-            self.error(node.token.line,f"a condição da instrução 'while' deve ser um valor lógico")
+            self.error(node.token.line,f"a condição da instrução 'enquanto' deve ser um valor lógico")
         self.visit(node.statement)
 
     def visit_forstatement(self,node):
