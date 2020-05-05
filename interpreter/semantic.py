@@ -181,7 +181,7 @@ class Analyzer(AST.Visitor):
         for param in node.params:
             param_name = param.id.lexeme
             if params.get(param_name):
-                self.error(line,error.Analysis.REPEAT_PARAM,name=name)
+                self.error(line,error.Analysis.REPEAT_PARAM,name=param_name)
             param_symbol = self.visit(param)
             params[param_name] = param_symbol
             #Add params o current_scope
