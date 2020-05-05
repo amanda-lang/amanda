@@ -1,5 +1,6 @@
 import os
 import copy
+from io import StringIO
 from interpreter.tokens import TokenType,Token
 from interpreter.tokens import KEYWORDS as TK_KEYWORDS
 import interpreter.error as error
@@ -7,17 +8,18 @@ import interpreter.error as error
 class Lexer:
     EOF = "__eof__"
 
-    def __init__(self,src_file):
+    def __init__(self,file):
         self.line = 1
         self.pos = 1
         self.current_token = None
         self.current_char = None
-        #TODO: Change this bad thing!! (only exists to read from buffer or file)
-        if type(src_file).__name__ == type("string").__name__:
-            self.file = open(src_file,"r")
-        else:
-            self.file = src_file
-        self.advance()
+        self.file = file # A file object
+
+
+    @classmethod
+    def string_lexer(cls,string):
+        #Constructor to create a lexer with a string
+        return cls(StringIO(string))
 
     def advance(self):
         if self.current_char == Lexer.EOF:
@@ -231,6 +233,8 @@ class Lexer:
 
 
     def get_token(self):
+        if not self.current_char:
+            self.advance()
 
         if self.current_char == "$":
             self.comment()
