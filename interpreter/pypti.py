@@ -1,4 +1,5 @@
 import ast
+import sys
 from interpreter.tokens import TokenType as TT
 import interpreter.ast_nodes as AST
 import interpreter.semantic as SEM
@@ -12,16 +13,18 @@ class Interpreter(AST.Visitor):
     #something like null
     NONE_TYPE = "NONE"
 
-    def __init__(self,program):
+    def __init__(self,program,test=False,buffer=None):
 
         self.program = program # Checked AST
         self.memory = Environment(Interpreter.GLOBAL_MEMORY)
 
 
     def interpret(self):
-        self.execute(self.program)
-
-
+        try:
+            self.execute(self.program)
+        except error.Error as e:
+            sys.stderr.write(str(e))
+            sys.exit()
 
     def execute(self,node,arg=None):
         node_class = type(node).__name__.lower()
