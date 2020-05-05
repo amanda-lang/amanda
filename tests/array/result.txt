@@ -1,0 +1,4 @@
+erro na linha 6: índice inválido para o tamanho deste array.
+erro na linha 6: o índice de um vector deve ser um inteiro.
+123
+erro na linha 6: índice inválido para o tamanho deste array.
