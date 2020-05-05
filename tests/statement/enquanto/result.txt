@@ -1,0 +1,5 @@
+510
+erro sintático na linha 6: instrução inválida. só pode fazer declarações dentro de blocos ou no escopo principal.
+erro na linha 4: a condição da instrução 'enquanto' deve ser um valor lógico.
+erro na linha 4: a condição da instrução 'enquanto' deve ser um valor lógico.
+erro na linha 4: a condição da instrução 'enquanto' deve ser um valor lógico.

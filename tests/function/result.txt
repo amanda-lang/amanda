@@ -1,0 +1,4 @@
+erro na linha 6: expressão de retorno inválida. procedimentos não podem retornar valores.
+erro na linha 10: expressão de retorno inválida. procedimentos não podem retornar valores.
+erro na linha 6: identificador 'a' não é uma função.
+3150.04120

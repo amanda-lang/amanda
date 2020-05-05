@@ -12,4 +12,4 @@ def expoente(int base, int expoente): int {
 }
 
 
-mostra expoente(2,2);
+mostra expoente(2,2); $ expect 4
