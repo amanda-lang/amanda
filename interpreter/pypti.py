@@ -13,17 +13,23 @@ class Interpreter(AST.Visitor):
     #something like null
     NONE_TYPE = "NONE"
 
-    def __init__(self,program,test=False,buffer=None):
+    def __init__(self,program,output=None):
 
         self.program = program # Checked AST
         self.memory = Environment(Interpreter.GLOBAL_MEMORY)
+        self.output = output
 
 
     def interpret(self):
         try:
             self.execute(self.program)
         except error.Error as e:
-            sys.stderr.write(str(e))
+            if self.output:
+                message = str(e).lower().strip()
+                print(message,end="",file=self.output)
+                print(self.output.getvalue())
+            else:
+                sys.stderr.write(str(e))
             sys.exit()
 
     def execute(self,node,arg=None):
@@ -254,7 +260,10 @@ class Interpreter(AST.Visitor):
         if token == TT.MOSTRA:
             if node.exp.eval_type == SEM.Type.BOOL:
                 expr = "verdadeiro" if expr else "falso"
-            print(expr,end="\n\n")
+            if self.output: #For testing
+                print(expr,end="",file=self.output)
+            else:
+                print(expr,end="\n\n")
         elif token == TT.RETORNA:
             raise ReturnValue(expr)
 
