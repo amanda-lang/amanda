@@ -138,13 +138,14 @@ class Analyzer(AST.Visitor):
         if not var_type or not var_type.is_type():
             self.error(node.type.line,error.Analysis.UNDEFINED_TYPE,type=node.type.lexeme)
         name = node.id.lexeme
+        line = node.id.line
         if self.current_scope.symbols.get(name) is not None:
-            self.error(node.id.line,error.Analysis.ID_IN_USE,name=name)
+            self.error(line,error.Analysis.ID_IN_USE,name=name)
         symbol = SYM.VariableSymbol(name,var_type)
         self.current_scope.define(name,symbol,node.id)
         if node.assign is not None:
             if node.assign.right.token.lexeme == name:
-                self.error(f"Erro ao inicializar variável. Não pode referenciar uma variável durante a sua declaração",node.id)
+                self.error(line,f"Erro ao inicializar variável. Não pode referenciar uma variável durante a sua declaração")
             self.visit(node.assign)
 
     def visit_arraydeclnode(self,node):
@@ -364,13 +365,13 @@ class Analyzer(AST.Visitor):
         id = node.id.lexeme
         sym = self.current_scope.resolve(id)
         line = node.id.line
-        arg_len = len(node.fargs)
-        param_len = len(sym.params)
         if sym == None:
             self.error(line,f"função '{id}' não foi definida")
-        elif not isinstance(sym,SYM.FunctionSymbol):
+        if not isinstance(sym,SYM.FunctionSymbol):
             self.error(line,f"identificador '{id}' não é uma função")
-        elif arg_len != param_len:
+        arg_len = len(node.fargs)
+        param_len = len(sym.params)
+        if arg_len != param_len:
             self.error(line,f"número incorrecto de argumentos para a função {node.id.lexeme}. Esperava {param_len} argumentos, porém recebeu {arg_len}")
         #Type promotion for parameter
         func_decl = ",".join(["{} {}".format(param.type,param.name) for param in sym.params.values()]) #Get function signature
