@@ -5,9 +5,9 @@ from interpreter.parser import Parser
 from interpreter.semantic import Analyzer
 from interpreter.pypti import Interpreter
 import interpreter.error as ERR
+from io import StringIO
 
-
-TEST_FILE = "./testdata/array/index_error.pts"
+TEST_FILE = "./tests/assignment/type_inc_error.pts"
 
 
 def run_lexer():
@@ -32,20 +32,19 @@ def run_sem_analysis():
     print(intp.current_scope)
 
 def run_pypti():
-    lexer = Lexer(TEST_FILE)
-    parser = Parser(lexer)
-    analyzer = Analyzer(parser)
-    analyzer.check_program()
-    intp = Interpreter(analyzer.program)
+    buffer = StringIO()
+    with open(TEST_FILE,"r") as file:
+        try:
+            analyzer = Analyzer(Parser(Lexer(file)))
+            analyzer.check_program()
+        except ERR.Error as e:
+            message = str(e).lower().strip()
+            buffer.write(message)
+            print(buffer.getvalue())
+            sys.exit()
+    intp = Interpreter(analyzer.program,output=buffer)
     start = time.time()
     intp.interpret()
-    print(f"execution time: {time.time()-start}s")
+    print(buffer.getvalue())
     #print(intp.memory)
-
-try:
-    #run_sem_analysis()
-    run_pypti()
-    #run_tests()
-except ERR.Error as e:
-    sys.stderr.write(str(e))
-    sys.exit()
+run_pypti()
