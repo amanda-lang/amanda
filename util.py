@@ -48,5 +48,5 @@ def get_script_output():
                 result.write(buffer.getvalue()+"\n")
 
 
-delete_script_output()
+#delete_script_output()
 get_script_output()
