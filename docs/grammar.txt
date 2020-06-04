@@ -1,68 +1,72 @@
 program
-  : declaration*
+  : cmp_stmt* EOF
   ;
 
+cmp_stmt
+  : ( declaration | NEWLINE )
+  ;
 
 declaration
   :  var_declaration
   | function_declaration
   | array_declaration
-  | statement
+  | stmt
   ;
 
 var_declaration
-  : VAR type IDENTIFIER assignment? SEMI
+  : VAR IDENTIFIER COLON type assignment? ( SEMI | NEWLINE )
   ;
 
-array_declaration
-  : VECTOR type IDENTIFIER LBRACKET equality RBRACKET SEMI
+type
+  : IDENTIFIER ( LBRACKET RBRACKET )?
   ;
 
 function_declaration
-  : DEFINA IDENTIFIER LPAR formal_parameter_section? RPAR COL (type | VAZIO) block
+  : FUNC IDENTIFIER LPAR formal_parameter_section? RPAR COL type 
+  cmp_stmt*
+  FIM
   ;
+
+procedure_declaration
+  : PROC IDENTIFIER LPAR formal_parameter_section? RPAR 
+  cmp_stmt*
+  FIM
+  ;
+
 
 formal_parameter_section
-  : type LBRACKET RBRACKET? IDENTIFIER (COMMA type IDENTIFIER)*
+  : IDENTIFIER COLON type (COMMA formal_parameter_section)*
   ;
 
 
-statement
+stmt
   :
-  | expr_statement
-  | mostra_statement
-  | retorna_statement
-  | se_statement
-  | while_statement
-  | for_statement
-  | block
+  | expr_stmt
+  | mostra_stmt
+  | retorna_stmt
+  | se_stmt
+  | enquanto_stmt
+  | para_stmt
   ;
 
-
-block
-  : LBRACE declaration* RBRACE
+retorna_stmt
+  : RETORNA equality (SEMI|NEWLINE)
   ;
 
-
-
-retorna_statement
-  : RETORNA equality SEMI
+mostra_stmt
+  : MOSTRA equality (SEMI|NEWLINE)
   ;
 
-mostra_statement
-  : MOSTRA equality SEMI
+se_stmt
+  : SE equality ENTAO cmp_stmt (SENAO cmp_stmt)? FIM
   ;
 
-se_statement
-  : SE LPAR equality RPAR statement (SENAO statement)?
+while_stmt
+  : ENQUANTO equality FACA cmp_stmt FIM
   ;
 
-while_statement
-  : ENQUANTO  LPAR equality RPAR statement
-  ;
-
-for_statement
-  : PARA LPAR for_expression RPAR FACA statement
+for_stmt
+  : PARA for_expression FACA cmp_stmt FIM
   ;
 
 for_expression
@@ -85,8 +89,8 @@ eq_op
   | DOUBLEEQUAL
   ;
 
-expr_statement
-  : expression SEMI
+expr_stmt
+  : expression (SEMI|NEWLINE)
   ;
 
 expression
@@ -129,10 +133,11 @@ factor
   | FALSO
   | LPAR expression RPAR
   | ( add_operator | NOT ) factor
-  | IDENTIFIER ( function_call | array_ref ) ?
+  | IDENTIFIER ( call | array_ref ) ?
+  | NULO
   ;
 
-function_call
+call
   : LPAR actual_parameters? RPAR
   ;
 
@@ -144,9 +149,6 @@ actual_parameters
   : equality (COMMA equality)*
   ;
 
-assignment
-  : EQUAL expression
-  ;
 
 mult_operator
   : STAR
@@ -167,5 +169,5 @@ type
   ;
 
 
-COMMENT:
-  : ("$" ANYTHING "$"  | "$*" ANYTHING "*$")
+LINE_COMMENT:
+  : '#'; 
