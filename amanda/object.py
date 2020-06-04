@@ -4,7 +4,7 @@ and native language constructs (classes and functions).
 Also contains other helper classes to be used at runtime
 '''
 from abc import ABC,abstractmethod
-from interpreter.semantic import Type
+from amanda.semantic import Type
 
 
 class Environment:

@@ -1,4 +1,4 @@
-from interpreter.tokens import Token,TokenType
+from amanda.tokens import Token,TokenType
 #Base class for all ASTNodes
 class ASTNode:
 

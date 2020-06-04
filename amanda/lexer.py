@@ -1,9 +1,9 @@
 import os
 import copy
 from io import StringIO
-from interpreter.tokens import TokenType,Token
-from interpreter.tokens import KEYWORDS as TK_KEYWORDS
-import interpreter.error as error
+from amanda.tokens import TokenType,Token
+from amanda.tokens import KEYWORDS as TK_KEYWORDS
+import amanda.error as error
 
 class Lexer:
     EOF = "__eof__"

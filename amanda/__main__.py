@@ -1,13 +1,10 @@
 import argparse
 from os.path import abspath
-from interpreter.lexer import Lexer
-from interpreter.parser import Parser
-from interpreter.semantic import Analyzer
-from interpreter.pypti import Interpreter
-import interpreter.error as error
-
-
-
+from amanda.lexer import Lexer
+from amanda.parser import Parser
+from amanda.semantic import Analyzer
+from amanda.pypti import Interpreter
+import amanda.error as error
 
 def main():
     parser = argparse.ArgumentParser()
@@ -30,4 +27,6 @@ def run_script(file):
     interpreter = Interpreter(analyzer.program)
     interpreter.interpret()
 
+
 main()
+

@@ -1,10 +1,10 @@
 import ast
 import sys
-from interpreter.tokens import TokenType as TT
-import interpreter.ast_nodes as AST
-import interpreter.semantic as SEM
-import interpreter.error as error
-from interpreter.object import RTFunction,Environment,ReturnValue,RTArray
+from amanda.tokens import TokenType as TT
+import amanda.ast_nodes as AST
+import amanda.semantic as SEM
+import amanda.error as error
+from amanda.object import RTFunction,Environment,ReturnValue,RTArray
 
 
 class Interpreter(AST.Visitor):
@@ -27,7 +27,6 @@ class Interpreter(AST.Visitor):
             if self.output:
                 message = str(e).lower().strip()
                 print(message,end="",file=self.output)
-                print(self.output.getvalue())
             else:
                 sys.stderr.write(str(e))
             sys.exit()

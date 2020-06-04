@@ -1,7 +1,7 @@
 import unittest
-from interpreter.parser import Parser
-from interpreter.lexer import Lexer
-from interpreter.tokens import TokenType,Token
+from amanda.parser import Parser
+from amanda.lexer import Lexer
+from amanda.tokens import TokenType,Token
 from io import StringIO
 
 

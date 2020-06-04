@@ -1,8 +1,8 @@
-from interpreter.lexer import Lexer
-from interpreter.tokens import TokenType as TT
-from interpreter.tokens import Token
-import interpreter.ast_nodes as AST
-import interpreter.error as error
+from amanda.lexer import Lexer
+from amanda.tokens import TokenType as TT
+from amanda.tokens import Token
+import amanda.ast_nodes as AST
+import amanda.error as error
 
 
 '''*Class used to parse input file

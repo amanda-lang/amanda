@@ -2,8 +2,8 @@ import unittest
 import os
 import sys
 from io import StringIO
-from interpreter.lexer import Lexer
-from interpreter.tokens import TokenType,Token
+from amanda.lexer import Lexer
+from amanda.tokens import TokenType,Token
 
 
 
