@@ -1,0 +1,93 @@
+# Comments:
+# This is a new and improved comment in amanda
+
+#Variable declarations:
+
+# Since amanda is statically typed, every type must be explicitly
+# Declared
+
+var ci : real;
+
+var a : int = 20 # instructions can be split by newline || semicolon
+
+var name : texto = "55"
+
+var pi : real = 3.14 
+
+# Function declarations:
+# No more syntactic noise
+
+func add(a : int, b: int) : int
+    retorna a + b
+fim 		#Maybe fim func ??
+
+
+#Control flow statements
+
+#se
+
+se a == 20 entao
+    escreva("É 20.")
+senao
+    escreva("Not 20")
+fim #fim se
+
+se name != "stenio" e name == "eti" entao
+    escreva("Eu sou cagão!!")
+fim
+
+#Booleans : vdd or falso
+#Logical operators: e , ou and nao(maybe nega)
+
+
+#enquanto and para
+
+enquanto pi > 0 faca
+    pi -= 1;
+fim
+
+
+para i de 0..6 faca
+    escreva(pi+1)
+fim
+
+
+#arrays
+var dividas : real [3]
+dividas.poe(4.0) #Novo elemento
+
+
+#Tamanho é o número de elementos na lista inicial
+#Devem ter todos o mesmo tipo
+var dividas : real[] = [1,2,3,4] # declaração e atribuição
+
+escreva(dividas[1])
+
+# Classes
+
+classe Humano < Animal 
+    
+    #Variáveis de instância
+    var nome : texto
+    var idade : int
+
+
+    #Constructor
+    #Proc é usado em funcs que não retornam valores
+    proc inic(nome: texto, idade:int) #Inicializador/Constructor
+	#@ é o nosso self 
+        @nome = nome
+	@idade = idade
+    fim
+    
+    proc falar(frase: texto)
+	escreva("{@nome}: {frase}")		
+    fim
+fim
+
+
+
+
+var eti : Humano = novo Humano("Etiandro",21)
+
+eti.falar("Eu sou cagão") #Retorna Etiandro: Eu sou cagão
