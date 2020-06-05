@@ -133,7 +133,7 @@ factor
   | FALSO
   | LPAR expression RPAR
   | ( add_operator | NOT ) factor
-  | IDENTIFIER ( call | array_ref ) ?
+  | IDENTIFIER ( call | array_ref ) ? 
   | NULO
   ;
 

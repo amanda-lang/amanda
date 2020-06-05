@@ -14,12 +14,12 @@ LESSEQ : <=
 GREATEREQ : >=
 NOTEQUAL : !=
 DOUBLEEQUAL : ==
-NOT : nao
-AND : e
-OR : ou
+NAO : nao
+E : e
+OU : ou
 
 *ASSIGNMENT*
-EQUAL : = | recebe
+EQUAL : = 
 PLUSEQ : +=
 MINUSEQ: -=
 STAREQ : *=
@@ -41,6 +41,7 @@ DE : de
 FUNC : func
 PROC : proc
 FIM : fim
+CLASSE : classe
 NULO : nulo
 
 *OPERANDS*
