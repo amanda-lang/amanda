@@ -1,6 +1,9 @@
 from enum import Enum
 
 class TokenType(Enum):
+#Enum used to represents all the different
+#tokens in the amanda grammar
+
     #ARIT OPERATORS
     PLUS = "PLUS"
     MINUS = "MINUS"
@@ -13,7 +16,7 @@ class TokenType(Enum):
     SLASHEQ = "SLASHEQ"
 
 
-    #OPERANDS
+    #LITERALS
     INTEGER = "INTEGER"
     REAL = "REAL"
     STRING = "STRING"
@@ -31,6 +34,9 @@ class TokenType(Enum):
     LBRACKET = "LBRACKET"
     RBRACKET = "RBRACKET"
     COLON = "COLON"
+    NEWLINE = "NEWLINE"
+
+
     #LOGIC OP
     LESS = "LESS"
     GREATER = "GREATER"
@@ -39,27 +45,30 @@ class TokenType(Enum):
     NOTEQUAL = "NOTEQUAL"
     EQUAL = "EQUAL"
     DOUBLEEQUAL = "DOUBLEEQUAL"
-    AND = "AND"
-    OR = "OR"
-    NOT = "NOT"
 
     #KEYWORDS
     VAR = "VAR"
     MOSTRA = "MOSTRA"
+    E = "E"
+    OU = "OU"
+    NAO = "NAO"
     VERDADEIRO = "VERDADEIRO"
     FALSO = "FALSO"
     RETORNA = "RETORNA"
-    DEFINA = "DEFINA"
-    VECTOR = "VECTOR"
     SE = "SE"
     SENAO = "SENAO"
     ENTAO = "ENTAO"
     ENQUANTO = "ENQUANTO"
     PARA = "PARA"
-    INC = "INC"
-    DE = "DE"
     FACA = "FACA"
-    VAZIO = "VAZIO"
+    DE = "DE"
+    FIM = "FIM"
+    FUNC = "FUNC"
+    PROC = "PROC"
+    NULO = "NULO"
+    CLASSE = "CLASSE"
+
+
 
 class Token:
     def __init__(self,token,lexeme,line=0,col=0):
@@ -71,25 +80,19 @@ class Token:
     def __str__(self):
         return "<Type: %s, Lexeme: %s Line:%s>"%(self.token.value,self.lexeme,self.line)
 
-KEYWORDS = {
-    "var" : Token(TokenType.VAR,"var"),
-    "defina" : Token(TokenType.DEFINA,"defina"),
-    "def" : Token(TokenType.DEFINA,"def"),
-    "mostra": Token(TokenType.MOSTRA,"mostra"),
-    "verdadeiro": Token(TokenType.VERDADEIRO,"verdadeiro"),
-    "falso": Token(TokenType.FALSO,"falso"),
-    "recebe": Token(TokenType.EQUAL,"recebe") , # same as equals
-    "retorna": Token(TokenType.RETORNA,"retorna"),
-    "vector" : Token(TokenType.VECTOR,"vector"),
-    "inc": Token(TokenType.INC,"inc"),
-    "e" : Token(TokenType.AND,"e"),
-    "ou" : Token(TokenType.OR,"ou"),
-    "de" : Token(TokenType.DE,"de"),
-    "se" : Token(TokenType.SE,"se"),
-    "senao" : Token(TokenType.SENAO,"senao"),
-    "entao": Token(TokenType.ENTAO,"entao"),
-    "enquanto" : Token(TokenType.ENQUANTO,"enquanto"),
-    "para" : Token(TokenType.PARA,"para"),
-    "faca" : Token(TokenType.FACA,"faca"),
-    "vazio" : Token(TokenType.VAZIO,"vazio"),
-}
+
+def build_reserved_keywords():
+    """Build a dictionary of reserved keywords.
+    """
+    tt_list = list(TokenType)
+    start_index = tt_list.index(TokenType.VAR)
+    end_index = tt_list.index(TokenType.CLASSE)
+    reserved_keywords = {
+        token_type.value.lower(): Token(token_type,token_type.value.lower())
+        for token_type in tt_list[start_index:end_index + 1]
+    }
+    return reserved_keywords
+
+KEYWORDS = build_reserved_keywords()
+if __name__ == "__main__":
+    print(build_reserved_keywords())

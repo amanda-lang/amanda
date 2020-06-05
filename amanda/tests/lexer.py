@@ -14,7 +14,7 @@ class LexerTestCase(unittest.TestCase):
         self.buffer = StringIO()
 
     def test_logic_operators(self):
-        self.buffer.write(">\n<\n<=\n>=\n!=\n==\n=\ne\nou\n!")
+        self.buffer.write("> < <= >= != == = e ou nao")
         self.buffer.seek(0)
         lexer = Lexer(self.buffer)
         self.assertEqual(lexer.get_token().token,TokenType.GREATER,msg="GREATER Test Failed")
@@ -24,12 +24,12 @@ class LexerTestCase(unittest.TestCase):
         self.assertEqual(lexer.get_token().token,TokenType.NOTEQUAL,msg="NOTEQUAL Test Failed")
         self.assertEqual(lexer.get_token().token,TokenType.DOUBLEEQUAL,msg="DOUBLEEQUAL Test Failed")
         self.assertEqual(lexer.get_token().token,TokenType.EQUAL,msg="EQUAL Test Failed")
-        self.assertEqual(lexer.get_token().token,TokenType.AND,msg="AND Test Failed")
-        self.assertEqual(lexer.get_token().token,TokenType.OR,msg="OR Test Failed")
-        self.assertEqual(lexer.get_token().token,TokenType.NOT,msg="NOT Test Failed")
+        self.assertEqual(lexer.get_token().token,TokenType.E,msg="E Test Failed")
+        self.assertEqual(lexer.get_token().token,TokenType.OU,msg="OU Test Failed")
+        self.assertEqual(lexer.get_token().token,TokenType.NAO,msg="NAO Test Failed")
 
     def test_arit_operators(self):
-        self.buffer.write("+\n-\n*\n/\n%\n+=\n-=\n*=\n/=")
+        self.buffer.write("+ - * / % += -= *= /=")
         self.buffer.seek(0)
         lexer = Lexer(self.buffer)
         self.assertEqual(lexer.get_token().token,TokenType.PLUS,msg="PLUS Test Failed")
@@ -44,7 +44,7 @@ class LexerTestCase(unittest.TestCase):
 
 
     def test_number(self):
-        self.buffer.write("3242131\n234.21234")
+        self.buffer.write("3242131 234.21234")
         self.buffer.seek(0)
         lexer = Lexer(self.buffer)
         token = lexer.get_token()
@@ -56,8 +56,8 @@ class LexerTestCase(unittest.TestCase):
 
 
     def test_string(self):
-        self.buffer.write("'Rambo jndjnsjndnsjns'\n")
-        self.buffer.write('"Ramboeiro"\n')
+        self.buffer.write("'Rambo jndjnsjndnsjns' ")
+        self.buffer.write('"Ramboeiro" ')
         self.buffer.seek(0)
         lexer = Lexer(self.buffer)
         token = lexer.get_token()
@@ -68,7 +68,7 @@ class LexerTestCase(unittest.TestCase):
         self.assertEqual(token.lexeme,'"Ramboeiro"',msg="STRING value Test Failed")
 
     def test_identifier(self):
-        self.buffer.write("_test1\ntest\ntest2\n__test3\nvar\nmostra\nverdadeiro\nfalso\nretorna\ndefina\ndef\nrecebe\nvector\nse\nsenao\nenquanto\nentao\npara\nfaca\ninc\nde\nvazio")
+        self.buffer.write("_test1 test test2 __test3 var mostra verdadeiro falso retorna se senao enquanto entao para faca de fim func proc nulo classe")
         self.buffer.seek(0)
         lexer = Lexer(self.buffer)
         token = lexer.get_token()
@@ -99,18 +99,6 @@ class LexerTestCase(unittest.TestCase):
         self.assertEqual(token.token,TokenType.RETORNA,msg="RETORNA Test Failed")
         self.assertEqual(token.lexeme,"retorna",msg="RETORNA value test Failed")
         token = lexer.get_token()
-        self.assertEqual(token.token,TokenType.DEFINA,msg="DEFINA Test Failed")
-        self.assertEqual(token.lexeme,"defina",msg="DEFINA value test Failed")
-        token = lexer.get_token()
-        self.assertEqual(token.token,TokenType.DEFINA,msg="DEF Test Failed")
-        self.assertEqual(token.lexeme,"def",msg="DEF value test Failed")
-        token = lexer.get_token()
-        self.assertEqual(token.token,TokenType.EQUAL,msg="RECEBA Test Failed")
-        self.assertEqual(token.lexeme,"recebe",msg="RECEBA value test Failed")
-        token = lexer.get_token()
-        self.assertEqual(token.token,TokenType.VECTOR,msg="VECTOR Test Failed")
-        self.assertEqual(token.lexeme,"vector",msg="VECTOR value test Failed")
-        token = lexer.get_token()
         self.assertEqual(token.token,TokenType.SE,msg="SE Test Failed")
         self.assertEqual(token.lexeme,"se",msg="SE value test Failed")
         token = lexer.get_token()
@@ -129,17 +117,22 @@ class LexerTestCase(unittest.TestCase):
         self.assertEqual(token.token,TokenType.FACA,msg="FACA Test Failed")
         self.assertEqual(token.lexeme,"faca",msg="FACA value test Failed")
         token = lexer.get_token()
-        self.assertEqual(token.token,TokenType.INC,msg="INC Test Failed")
-        self.assertEqual(token.lexeme,"inc",msg="INC value test Failed")
-        token = lexer.get_token()
         self.assertEqual(token.token,TokenType.DE,msg="DE Test Failed")
         self.assertEqual(token.lexeme,"de",msg="DE value test Failed")
         token = lexer.get_token()
-        self.assertEqual(token.token,TokenType.VAZIO,msg="VAZIO Test Failed")
-        self.assertEqual(token.lexeme,"vazio",msg="VAZIO test Failed")
+        self.assertEqual(token.token,TokenType.FIM,msg="FIM Test Failed")
+        self.assertEqual(token.lexeme,"fim",msg="FIM value test Failed")
+        token = lexer.get_token()
+        self.assertEqual(token.token,TokenType.FUNC,msg="FUNC Test Failed")
+        self.assertEqual(token.lexeme,"func",msg="FUNC value test Failed")
+        token = lexer.get_token()
+        self.assertEqual(token.token,TokenType.PROC,msg="PROC Test Failed")
+        self.assertEqual(token.lexeme,"proc",msg="PROC value test Failed")
+        
 
+        
     def test_delimeters(self):
-        self.buffer.write(".\n,\n;\n)\n(\n{\n}\n[\n]\n:\n..")
+        self.buffer.write(". , ; ) ( { } [ ] : ..")
         self.buffer.seek(0)
         lexer = Lexer(self.buffer)
         token = lexer.get_token()
@@ -180,27 +173,30 @@ class LexerTestCase(unittest.TestCase):
         self.buffer.write("\n\n\n\n\n")
         self.buffer.seek(0)
         lexer = Lexer(self.buffer)
-        lexer.get_token()
+        token = lexer.get_token()
+        while token.token != Lexer.EOF:
+            token = lexer.get_token()
         self.assertEqual(lexer.line,6)
         self.assertEqual(lexer.pos,1)
 
     def test_token_line(self):
-        load = ["retorna","retorna","retorna"]
+        load = ["retorna","retorna"]
         for text in load:
-            print(text,end="\n",file=self.buffer)
+            print(text,file=self.buffer)
         self.buffer.seek(0)
         lexer = Lexer(self.buffer)
         token = lexer.get_token()
         self.assertEqual(token.line,1)
         token = lexer.get_token()
-        self.assertEqual(token.line,2)
         token = lexer.get_token()
-        self.assertEqual(token.line,3)
+        self.assertEqual(token.line,2)
 
     def test_whitespace(self):
-        self.buffer.write("\n\n$This is a one line comment\n$*this is\n a multilinecomment*$\n\n")
+        self.buffer.write("#This is a one line comment\n#Another linecomment ")
         self.buffer.seek(0)
         lexer = Lexer(self.buffer)
+        token = lexer.get_token()
+        self.assertEqual(token.token,TokenType.NEWLINE)
         token = lexer.get_token()
         self.assertEqual(token.token,Lexer.EOF)
 
