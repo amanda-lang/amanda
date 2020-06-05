@@ -63,3 +63,4 @@ LBRACKET : [
 RBRACKET : ]
 COLON : ":"
 NEWLINE : "\n"
+COMMENTS: "#"
