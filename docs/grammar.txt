@@ -9,7 +9,6 @@ cmp_stmt
 declaration
   :  var_declaration
   | function_declaration
-  | array_declaration
   | stmt
   ;
 
@@ -161,11 +160,6 @@ add_operator
   : PLUS
   | MINUS
   | OR
-  ;
-
-
-type
-  : IDENTIFIER
   ;
 
 
