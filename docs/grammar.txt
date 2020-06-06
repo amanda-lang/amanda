@@ -9,6 +9,7 @@ block
 declaration
   :  var_declaration
   | function_declaration
+  | procedure_declaration
   | stmt
   ;
 
