@@ -17,12 +17,11 @@ class ParserTestCase(unittest.TestCase):
         self.buffer = None
 
     def test_declaration(self):
-        phrases = [ "var int a;","var real a1;","var bool a2;",
-            "var real a3;", "var real troco = 3.14;", "vector int array[2];"
-            "vector int array[2+1];","vector string array[(-(-2))+2];"
+        phrases = [ "var a: int","var a1: real","var a2: bool",
+            "var a3:real", "var troco : real = 3.14", 
         ]
         for phrase in phrases:
-            print(phrase,file=self.buffer,end="\n")
+            print(phrase,file=self.buffer,end="\n\n\n")
         self.buffer.seek(0)
         parser = Parser(Lexer(self.buffer))
         parser.parse()
@@ -105,32 +104,34 @@ class ParserTestCase(unittest.TestCase):
 
     def test_function_decl(self):
         phrases = ['''
-            defina test(int a,int b): int{
-                2-1;
-                var int soma = a+b;
-                mostra a+b-c*array[1]%(-a)/(-c)+eval(2+1,5);
-                retorna -soma+(2*2%1);
-            }
-            def test(int a,int b): int{
-                2-1;
-                var int soma = a+b;
-                mostra a+b-c*array[1]%(-a)/(-c)+eval(2+1,5);
-                retorna -soma+(2*2%1);
-            }
-            defina test(int a,int b): int{
-            }
-            defina test(): int{
-            }
-            defina test(): vazio{
-            }
-            def test(int a,int b): vazio{
-            }
-            def test(int a,int b,real c,string c): vazio{
+            func test(a:int,b:int): int
+                2-1
+                var soma : int = a+b
+                #mostra a+b-c*array[1]%(-a)/(-c)+eval(2+1,5)
+                retorna -soma+(2*2%1)
+            fim
 
-            }
-            def copier(int a,int [] b): vazio{
+            func test(a:int,b:int): int
+                2-1;
+                var soma : int = a+b;
+                #mostra a+b-c*array[1]%(-a)/(-c)+eval(2+1,5);
+                retorna -soma+(2*2%1);
+            fim
+            
 
-            }
+
+            func test(): int 
+
+            fim
+
+            func test(): vazio 
+
+            fim
+
+            func test(a:int,b:int): vazio 
+
+            fim
+
         '''
         ]
         for phrase in phrases:
