@@ -76,6 +76,8 @@ class Parser:
             return self.var_decl()
         elif self.lookahead.token == TT.FUNC:
             return self.function_decl()
+        elif self.lookahead.token == TT.PROC:
+            return self.procedure_decl()
 
         elif ( self.lookahead.token in (
                 TT.LPAR,TT.INTEGER,TT.IDENTIFIER,
@@ -139,6 +141,31 @@ class Parser:
             )
         self.end_stmt()
         return AST.VarDeclNode(token,id=id,type=type,assign=assign)
+
+
+    #TODO: Find a better workaround for void 'functions'
+    def procedure_decl(self):
+        ''' 
+        Method used to parse procedure declarations.
+        Procedures are just functions/methods that don't return anything.
+        Ex: 
+
+            proc mostra_func(str:texto)
+                mostra str
+            fim
+
+        '''
+
+        sym = self.lookahead.lexeme
+        self.consume(TT.PROC)
+        id = self.lookahead
+        self.consume(TT.IDENTIFIER,error.Syntax.EXPECTED_ID.format(symbol=sym))
+        self.consume(TT.LPAR)
+        params = self.formal_params()
+        self.consume(TT.RPAR,"os parâmetros do procedimento devem estar delimitados por  ')'")
+        block = self.block()
+        self.consume(TT.FIM,"Os blocos devem ser terminados com a palavra fim")
+        return AST.FunctionDecl(id=id,block=block,type=None,params=params)
 
 
     def function_decl(self):
