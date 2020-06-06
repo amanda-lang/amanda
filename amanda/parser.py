@@ -235,13 +235,13 @@ class Parser:
         elif current == TT.RETORNA:
             return self.retorna_statement()
         elif current == TT.ENQUANTO:
-            return self.while_statement()
+            return self.enquanto_stmt()
         elif current == TT.SE:
             return self.se_statement()
         elif current == TT.LBRACE:
             return self.block()
         elif current == TT.PARA:
-            return self.for_statement()
+            return self.para_stmt()
         else:
             self.error("Instrução inválida. Só pode fazer declarações dentro de blocos ou no escopo principal")
 
@@ -274,7 +274,7 @@ class Parser:
         return AST.SeStatement(token,condition,then_branch,else_branch)
 
 
-    def while_statement(self):
+    def enquanto_stmt(self):
         token = self.lookahead
         self.consume(TT.ENQUANTO)
         self.consume(TT.LPAR,"a instrução 'enquanto' deve possuir uma condição")
@@ -283,7 +283,7 @@ class Parser:
         self.consume(TT.FACA)
         return AST.WhileStatement(token,condition,self.statement())
 
-    def for_statement(self):
+    def para_stmt(self):
         token = self.lookahead
         self.consume(TT.PARA)
         self.consume(TT.LPAR,"a instrução 'para' deve possuir uma expressão")

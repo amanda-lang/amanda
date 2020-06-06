@@ -39,6 +39,7 @@ PARA : para
 FACA : faca
 DE : de
 FUNC : func
+INC : inc
 PROC : proc
 FIM : fim
 CLASSE : classe
