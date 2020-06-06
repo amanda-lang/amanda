@@ -1,9 +1,9 @@
 program
-  : cmp_stmt* EOF
+  : block EOF
   ;
 
-cmp_stmt
-  : ( declaration | NEWLINE )
+block
+  : ( declaration | NEWLINE )*
   ;
 
 declaration
@@ -22,13 +22,13 @@ type
 
 function_declaration
   : FUNC IDENTIFIER LPAR formal_parameter_section? RPAR COL type 
-  cmp_stmt*
+  block
   FIM
   ;
 
 procedure_declaration
   : PROC IDENTIFIER LPAR formal_parameter_section? RPAR 
-  cmp_stmt*
+  block
   FIM
   ;
 
@@ -57,15 +57,15 @@ mostra_stmt
   ;
 
 se_stmt
-  : SE equality ENTAO cmp_stmt (SENAO cmp_stmt)? FIM
+  : SE equality ENTAO block (SENAO block)? FIM
   ;
 
 while_stmt
-  : ENQUANTO equality FACA cmp_stmt FIM
+  : ENQUANTO equality FACA block FIM
   ;
 
 for_stmt
-  : PARA for_expression FACA cmp_stmt FIM
+  : PARA for_expression FACA block FIM
   ;
 
 for_expression
