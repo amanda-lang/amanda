@@ -132,6 +132,11 @@ class ParserTestCase(unittest.TestCase):
 
             fim
 
+
+            #Procedure declaration
+            proc mostra_func(str:texto)
+                mostra str
+            fim
         '''
         ]
         for phrase in phrases:
