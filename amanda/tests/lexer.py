@@ -68,7 +68,7 @@ class LexerTestCase(unittest.TestCase):
         self.assertEqual(token.lexeme,'"Ramboeiro"',msg="STRING value Test Failed")
 
     def test_identifier(self):
-        self.buffer.write("_test1 test test2 __test3 var mostra verdadeiro falso retorna se senao enquanto entao para faca de fim func proc nulo classe")
+        self.buffer.write("_test1 test test2 __test3 var mostra verdadeiro falso retorna se senao enquanto entao inc para faca de fim func proc nulo classe")
         self.buffer.seek(0)
         lexer = Lexer(self.buffer)
         token = lexer.get_token()
@@ -110,6 +110,9 @@ class LexerTestCase(unittest.TestCase):
         token = lexer.get_token()
         self.assertEqual(token.token,TokenType.ENTAO,msg="ENTAO Test Failed")
         self.assertEqual(token.lexeme,"entao",msg="ENTAO value test Failed")
+        token = lexer.get_token()
+        self.assertEqual(token.token,TokenType.INC,msg="INC Test Failed")
+        self.assertEqual(token.lexeme,"inc",msg="INC value test Failed")
         token = lexer.get_token()
         self.assertEqual(token.token,TokenType.PARA,msg="PARA Test Failed")
         self.assertEqual(token.lexeme,"para",msg="PARA value test Failed")
