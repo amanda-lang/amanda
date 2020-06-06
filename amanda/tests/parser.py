@@ -43,56 +43,70 @@ class ParserTestCase(unittest.TestCase):
         parser.parse()
 
     def test_statement(self):
-        phrases = ["mostra 2-1;","retorna eval(2*1+((21-1)*12));","retorna a[0];",
-            "retorna a[0];","mostra a+b-c*array[1]%(-a)/(-c)+eval(2+1,5);",'''
-            se (verdadeiro == falso) entao  rebenta;
-            se (1<2)  entao
-                rouba();
-            se (1==2) entao
-                devolve();
+        phrases = ["mostra 2-1","retorna eval(2*1+((21-1)*12));","retorna a[0];",
+            "retorna a[0]","mostra a+b-c*array[1]%(-a)/(-c)+eval(2+1,5);",'''
+            se verdadeiro == falso entao  
+                rebenta
+            fim
+
+            se  1 < 2 entao
+                rouba   
+            fim
+        
+            se  1==2  entao
+                devolve   
             senao
-                vai_preso();
-            se (0==0) entao {
-                rebenta;
-            }
-            senao{
-                fecha;
-            }
-            se (verdadeiro == falso) entao rebenta();
-            senao fecha();
+                vai_preso   
+            fim
 
-            {
-                var int a;
-            }
+            se  0==0  entao 
+                rebenta 
+            senao
+                fecha 
+            fim
 
-            enquanto(verdadeiro) faca{
-                rebenta;
-            }
-            enquanto(verdadeiro) faca
-                rebenta;
+            se  verdadeiro == falso  entao 
+                rebenta   
+            senao
+                var a: int 
+            fim
 
-            enquanto(verdadeiro) faca{
-                mostra a;
-            }
+            enquanto verdadeiro  faca
+                rebenta 
+            fim
 
-            para (i de 0..9) faca
-                mostra i;
+            enquanto verdadeiro  faca
+                rebenta 
+            fim
 
-            para (i de 0..9) faca{
-                mostra i+1;
-                uno;
-                0+2;
-            }
-            para (i de num..num+3) faca{
-                mostra i+1;
-                uno;
-                0+2;
-            }
-            para (i de num..num+3 inc num-1) faca{
-                mostra i+1;
-                uno;
-                0+2;
-            }
+
+            enquanto verdadeiro  faca
+                mostra a 
+            fim
+
+            para  i de 0..9  faca
+                mostra i 
+            fim
+
+
+            para  i de 0..9  faca
+                mostra i+1 
+                uno 
+                0+2 
+            fim
+
+
+            para  i de num..num+3  faca
+                mostra i+1 
+                uno 
+                0+2 
+            fim
+            
+            para  i de num..num+3 inc num-1  faca
+                mostra i+1 
+                uno 
+                0+2 
+            fim
             '''
         ]
         for phrase in phrases:

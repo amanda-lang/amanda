@@ -37,7 +37,7 @@ class Parser:
         if self.lookahead.token == Lexer.EOF:
             return program
         else:
-            self.error("sintaxe inválida")
+            self.error(f"sintaxe inválida para início de bloco {self.lookahead.token}")
 
     def block(self):
         ''' 
@@ -56,17 +56,12 @@ class Parser:
             TT.PROC,
             )
 
-        if (
-            self.lookahead.token in start_first or
-            self.lookahead.token == TT.NEWLINE
-            ):
-            while self.lookahead.token in start_first or self.lookahead.token == TT.NEWLINE:
-                if self.lookahead.token in start_first:
-                    block.add_child(self.declaration())
-                else:
-                    self.consume(TT.NEWLINE)
-        else:
-            self.error(f"sintaxe inválida para início de bloco {self.lookahead.token}")
+        while self.lookahead.token in start_first or self.lookahead.token == TT.NEWLINE:
+            if self.lookahead.token in start_first:
+                block.add_child(self.declaration())
+            else:
+                self.consume(TT.NEWLINE)
+
         return block
 
 
@@ -243,7 +238,7 @@ class Parser:
         elif current == TT.PARA:
             return self.para_stmt()
         else:
-            self.error("Instrução inválida. Só pode fazer declarações dentro de blocos ou no escopo principal")
+            self.error("instrução inválida. Só pode fazer declarações dentro de blocos ou no escopo principal")
 
     def mostra_statement(self):
         token = self.lookahead
@@ -262,35 +257,34 @@ class Parser:
     def se_statement(self):
         token = self.lookahead
         self.consume(TT.SE)
-        self.consume(TT.LPAR,"a instrução 'se' deve possuir uma condição")
         condition = self.equality()
-        self.consume(TT.RPAR,"a condição deve ser delimitada por ')'")
         self.consume(TT.ENTAO)
-        then_branch = self.statement()
+        then_branch = self.block()
         else_branch = None
         if self.lookahead.token == TT.SENAO:
             self.consume(TT.SENAO)
-            else_branch = self.statement()
+            else_branch = self.block()
+        self.consume(TT.FIM,"esperava-se o símbolo fim para terminar a instrução 'se'")
         return AST.SeStatement(token,condition,then_branch,else_branch)
 
 
     def enquanto_stmt(self):
         token = self.lookahead
         self.consume(TT.ENQUANTO)
-        self.consume(TT.LPAR,"a instrução 'enquanto' deve possuir uma condição")
         condition = self.equality()
-        self.consume(TT.RPAR,"a condição deve ser delimitada por ')'")
         self.consume(TT.FACA)
-        return AST.WhileStatement(token,condition,self.statement())
+        block = self.block()
+        self.consume(TT.FIM,"esperava-se o símbolo fim para terminar a instrução 'enquanto'")
+        return AST.WhileStatement(token,condition,block)
 
     def para_stmt(self):
         token = self.lookahead
         self.consume(TT.PARA)
-        self.consume(TT.LPAR,"a instrução 'para' deve possuir uma expressão")
         expression = self.for_expression()
-        self.consume(TT.RPAR,"a expressão deve ser delimitada por ')'")
         self.consume(TT.FACA)
-        return AST.ForStatement(token,expression,self.statement())
+        block = self.block()
+        self.consume(TT.FIM,"esperava-se o símbolo fim para terminar a instrução 'para'")
+        return AST.ForStatement(token,expression,block)
 
     def for_expression(self):
         id = self.lookahead
@@ -452,9 +446,12 @@ class Parser:
         self.consume(TT.LPAR)
         current = self.lookahead.token
         args = []
-        if ( current in (TT.LPAR,TT.INTEGER,TT.IDENTIFIER,
-            TT.REAL,TT.STRING,TT.PLUS,TT.MINUS,TT.VERDADEIRO,
-            TT.FALSO,TT.NOT) ):
+        if ( current in (
+                TT.LPAR,TT.INTEGER,TT.IDENTIFIER,
+                TT.REAL,TT.STRING,TT.PLUS,TT.MINUS,
+                TT.VERDADEIRO,TT.FALSO,TT.NAO
+                ) 
+            ):
             args.append(self.equality())
             while self.lookahead.token == TT.COMMA:
                 self.consume(TT.COMMA)
