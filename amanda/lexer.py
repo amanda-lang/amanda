@@ -44,13 +44,14 @@ class Lexer:
             error.Syntax(message,self.line,self.pos),
             self.file
         )
-    
+
     def newline(self):
         if self.current_char == "\n":
             self.line += 1
             self.pos = 1
             self.advance()
             return Token(TokenType.NEWLINE,"\\n",self.pos-1)
+
 
     def whitespace(self):
         while ( 

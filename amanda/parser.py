@@ -111,7 +111,6 @@ class Parser:
         elif token == TT.SEMI:
             self.consume(TT.SEMI)
         else:
-            #TODO: Add proper error format
             self.error(error.Syntax.MISSING_TERM)
 
 
