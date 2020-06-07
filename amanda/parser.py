@@ -105,7 +105,7 @@ class Parser:
             self.consume(TT.SEMI)
         else:
             #TODO: Add proper error format
-            self.error("Esperava-se ';' ou uma nova linha.")
+            self.error(f"esperava-se ';' ou uma nova linha. Recebeu {self.lookahead.lexeme}")
 
 
     def var_decl(self):
@@ -439,7 +439,7 @@ class Parser:
             node = AST.UnaryOpNode(token,operand=self.factor())
         #TODO: check if this is dead code
         else:
-            self.error("início inválido de expressão",self.lookahead)
+            self.error(f"início inválido de expressão: '{self.lookahead.lexeme}'")
         return node
 
     def function_call(self):
