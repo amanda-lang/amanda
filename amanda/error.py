@@ -46,6 +46,23 @@ class RunTime(Error):
 
 
 
+class ErrorHandler:
+
+    def __init__(self,program):
+        self.program = program
+
+    def throw_error(self,error):
+        '''
+        Method that deals with errors thrown at different stages of the program.
+        In theory it's supposed to show the error message and print some context 
+        (Lines around the error)
+        '''
+        pass
+
+
+
+
+
 if __name__=="__main__":
     error = Syntax(Error.INVALID_STRING,symbol="lool",line=3)
     print(error)
