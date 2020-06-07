@@ -30,7 +30,7 @@ class ParserTestCase(unittest.TestCase):
         phrases = ["2-1","2+1","2/1","2*1","2%1","2+ad",
             "'string'+'op'","2.132+1","'string'*2","string*2",
             "string[0]*5","a+b-c*array[1]%(-a)/(-c)+eval(2+1,5)","+--2---5",
-            "'string'/2.241 falso","(c*array[1]+soma(1-3))/((2.132+1)*('string'*2))",
+            "'string'/2.241 ","(c*array[1]+soma(1-3))/((2.132+1)*('string'*2))",
             "a","add(1-2)","array[1]","a = b","a = soma(a)",
             "a[0] = a","b[0] = soma(a)","a=b=c=d=a[0]","a=b=c=d=soma(b)","(a+b>a-b)",
             "(((a-b>=a+c)<(a-b))<=(a*2+5)) ou falso != nao verdadeiro","a += 1;a-=2*1;a[0]*=4*(76-2)"

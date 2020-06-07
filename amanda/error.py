@@ -2,9 +2,10 @@ import sys
 ''' Base class for all PTScript errors '''
 class Error(Exception):
 
-    def __init__(self,message,line):
+    def __init__(self,message,line,col):
         self.message = message
         self.line = line
+        self.col = col
 
 
 ''' Errors that happens during lexing or parsing'''
@@ -76,7 +77,7 @@ class ErrorHandler:
         for count,line in enumerate(source):
             #get lines that are within context range
             if count+1 >= lower_bound:
-                fmt_line = " | ".join([str(count+1),line.strip()])
+                fmt_line = "| ".join([str(count+1),line.strip()])
                 context.append(fmt_line)
                 if count + 1 == upper_bound:
                     source.close()
@@ -96,12 +97,22 @@ class ErrorHandler:
         3| var char : texto
         4| var lobo : Animal
         5| var cao : Animal func
-                            ^^^
+                            ^^^^
         '''
+        err_marker = "^"
         message = str(error)
         fmt_message = "\n".join([message,"-"*len(message)])
         fmt_context = "\n".join(context)
-        indicator = "^" * len(context[len(context)-1])
+
+        # Doing this weird stuff to get the indicator '^' under the loc
+        err_line = context[len(context)-1].split("|") 
+        code_len = len(err_line[1].strip())
+        padding = len(err_line[0]) + 2
+
+
+        #find the size and create the error indicator
+        indicator = err_marker * code_len 
+        indicator = indicator.rjust(padding + code_len) 
 
         return f"{fmt_message}\n{fmt_context}\n{indicator}"
 
