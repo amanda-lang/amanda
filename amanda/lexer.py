@@ -38,9 +38,12 @@ class Lexer:
         return next_char
 
     def error(self,code,**kwargs):
-        print(kwargs)
         message = code.format(**kwargs)
-        raise error.Syntax(message,self.line)
+        handler = error.ErrorHandler.get_handler()
+        handler.throw_error(
+            error.Syntax(message,self.line),
+            self.file
+        )
     
     def newline(self):
         if self.current_char == "\n":

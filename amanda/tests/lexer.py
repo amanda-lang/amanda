@@ -44,7 +44,7 @@ class LexerTestCase(unittest.TestCase):
 
 
     def test_number(self):
-        self.buffer.write("3242131 234.21234")
+        self.buffer.write("$ 3242131 234.21234")
         self.buffer.seek(0)
         lexer = Lexer(self.buffer)
         token = lexer.get_token()

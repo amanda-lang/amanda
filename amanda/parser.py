@@ -25,7 +25,10 @@ class Parser:
 
     def error(self,message=None):
         handler = error.ErrorHandler.get_handler()
-        handler.throw_error(error.Syntax(message,self.lexer.line),self.lexer.file)
+        handler.throw_error(
+            error.Syntax(message,self.lexer.line),
+            self.lexer.file
+        )
 
     #function that triggers parsing
     def parse(self):
@@ -106,7 +109,7 @@ class Parser:
             self.consume(TT.SEMI)
         else:
             #TODO: Add proper error format
-            self.error(f"esperava-se ';' ou uma nova linha. Recebeu {self.lookahead.lexeme}")
+            self.error(error.Syntax.MISSING_TERM)
 
 
     def var_decl(self):

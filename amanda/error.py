@@ -12,7 +12,7 @@ class Error(Exception):
 class Syntax(Error):
     INVALID_SYMBOL = "O símbolo '{symbol}' não foi reconhecido"
     INVALID_STRING = "A sequência de caracteres não foi delimitada"
-    MISSING_SEMI = "as instruções devem ser delimitadas por ';'"
+    MISSING_TERM = "as instruções devem ser delimitadas por ';' ou por uma nova linha"
     ILLEGAL_EXPRESSION = "início inválido de expressão"
     EXPECTED_ID = "era esperado um identificador depois do símbolo '{symbol}'"
     EXPECTED_TYPE = "era esperado um tipo depois do símbolo '{symbol}'"
