@@ -38,16 +38,20 @@ class Lexer:
         return next_char
 
     def error(self,code,**kwargs):
-        print(kwargs)
         message = code.format(**kwargs)
-        raise error.Syntax(message,self.line)
-    
+        handler = error.ErrorHandler.get_handler()
+        handler.throw_error(
+            error.Syntax(message,self.line,self.pos),
+            self.file
+        )
+
     def newline(self):
         if self.current_char == "\n":
             self.line += 1
             self.pos = 1
             self.advance()
-            return Token(TokenType.NEWLINE,"\\n")
+            return Token(TokenType.NEWLINE,"\\n",self.pos-1)
+
 
     def whitespace(self):
         while ( 
@@ -107,7 +111,7 @@ class Lexer:
             if self.lookahead() == "=":
                 self.advance()
                 self.advance()
-                return Token(TokenType.LESSEQ,"<=",self.line,self.pos)
+                return Token(TokenType.LESSEQ,"<=",self.line,self.pos-1)
             self.advance()
             return Token(TokenType.LESS,"<",self.line,self.pos)
 
@@ -115,7 +119,7 @@ class Lexer:
             if self.lookahead() == "=":
                 self.advance()
                 self.advance()
-                return Token(TokenType.GREATEREQ,">=",self.line,self.pos)
+                return Token(TokenType.GREATEREQ,">=",self.line,self.pos-1)
             self.advance()
             return Token(TokenType.GREATER,">",self.line,self.pos)
 
@@ -123,7 +127,7 @@ class Lexer:
             if self.lookahead() == "=":
                 self.advance()
                 self.advance()
-                return Token(TokenType.DOUBLEEQUAL,"==",self.line,self.pos)
+                return Token(TokenType.DOUBLEEQUAL,"==",self.line,self.pos-1)
             self.advance()
             return Token(TokenType.EQUAL,"=",self.line,self.pos)
 
@@ -131,7 +135,7 @@ class Lexer:
             if self.lookahead() == "=":
                 self.advance()
                 self.advance()
-                return Token(TokenType.NOTEQUAL,"!=",self.line,self.pos)
+                return Token(TokenType.NOTEQUAL,"!=",self.line,self.pos-1)
 
 
     def number(self):
@@ -148,8 +152,17 @@ class Lexer:
                     result += self.current_char
                     self.advance()
         if "." in result:
-            return Token(TokenType.REAL,float(result),self.line,self.pos)
-        return Token(TokenType.INTEGER,int(result),self.line,self.pos)
+            return Token(
+                        TokenType.REAL,float(result),
+                        self.line,self.pos-(len(result)+1)
+                    )
+
+        return Token(
+                    TokenType.INTEGER,
+                    int(result),
+                    self.line,
+                    self.pos-(len(result)+1)
+                )
 
 
 
@@ -163,7 +176,11 @@ class Lexer:
             result += self.current_char
             self.advance()
         self.advance()
-        return Token(TokenType.STRING,f"{symbol}{result}{symbol}",self.line,self.pos)
+        return Token(
+                    TokenType.STRING,f"{symbol}{result}{symbol}",
+                    self.line,
+                    self.pos
+                )
 
 
     def identifier(self):
@@ -174,9 +191,13 @@ class Lexer:
         if TK_KEYWORDS.get(result) is not None:
             token = copy.copy(TK_KEYWORDS.get(result))
             token.line = self.line
-            token.col = self.pos
+            token.col = self.pos - (len(result) + 1)  
             return token
-        return Token(TokenType.IDENTIFIER,result,self.line,self.pos)
+        return Token(
+                        TokenType.IDENTIFIER,result,
+                        self.line,
+                        self.pos - (len(result) + 1)  
+                    )
 
     def delimeters(self):
         char = self.current_char
@@ -190,7 +211,7 @@ class Lexer:
             if self.lookahead() == ".":
                 self.advance()
                 self.advance()
-                return Token(TokenType.DDOT,"..",self.line,self.pos)
+                return Token(TokenType.DDOT,"..",self.line,self.pos - 1)
             self.advance()
             return Token(TokenType.DOT,char,self.line,self.pos)
         elif self.current_char == ";":
