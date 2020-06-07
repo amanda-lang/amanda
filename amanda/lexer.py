@@ -6,6 +6,7 @@ from amanda.tokens import KEYWORDS as TK_KEYWORDS
 import amanda.error as error
 
 class Lexer:
+    #TODO: Put this somewhere else
     EOF = "__eof__"
 
     def __init__(self,file):
@@ -40,42 +41,27 @@ class Lexer:
         print(kwargs)
         message = code.format(**kwargs)
         raise error.Syntax(message,self.line)
-
-
+    
+    def newline(self):
+        if self.current_char == "\n":
+            self.line += 1
+            self.pos = 1
+            self.advance()
+            return Token(TokenType.NEWLINE,"\\n")
 
     def whitespace(self):
-        while self.current_char.isspace() and self.current_char != Lexer.EOF:
-            if self.current_char == "\n":
-                self.line += 1
-                self.pos = 1
+        while ( 
+                self.current_char!="\n" 
+                and self.current_char.isspace() 
+                and self.current_char != Lexer.EOF 
+        ):
             self.advance()
-        if self.current_char == "$":
+        if self.current_char == "#":
             self.comment()
 
     def comment(self):
-        if self.lookahead() == "*":
-            #Advance past *
+        while self.current_char != "\n" and self.current_char != Lexer.EOF:
             self.advance()
-            self.advance()
-            while True:
-                if self.current_char == "*" and self.lookahead()=="$":
-                    #Advance twice to skip  * and $
-                    self.advance()
-                    self.advance()
-                    if self.current_char.isspace():
-                        self.whitespace()
-                    break
-                elif self.current_char == Lexer.EOF:
-                    break
-                elif self.current_char == "\n":
-                    self.whitespace()
-                self.advance()
-
-        else:
-            while self.current_char != "\n" and self.current_char != Lexer.EOF:
-                self.advance()
-            if self.current_char == "\n":
-                self.whitespace()
 
 
 
@@ -146,8 +132,6 @@ class Lexer:
                 self.advance()
                 self.advance()
                 return Token(TokenType.NOTEQUAL,"!=",self.line,self.pos)
-            self.advance()
-            return Token(TokenType.NOT,"!",self.line,self.pos)
 
 
     def number(self):
@@ -236,17 +220,21 @@ class Lexer:
         if not self.current_char:
             self.advance()
 
-        if self.current_char == "$":
+        if self.current_char == "#":
             self.comment()
 
-        if self.current_char.isspace():
+        if self.current_char != "\n" and self.current_char.isspace():
             self.whitespace()
+
+        if self.current_char == "\n":
+            return self.newline()
+
         #arit_operators
-        if self.current_char in ["+","-","*","/","%"]:
+        if self.current_char in ("+","-","*","/","%"):
             return self.arit_operators()
 
         #logic ops
-        if self.current_char in ["<",">","!","="]:
+        if self.current_char in ("<",">","!","="):
             return self.logic_operators()
 
         #numbers (real and integer)

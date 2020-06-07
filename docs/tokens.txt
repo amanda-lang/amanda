@@ -1,4 +1,4 @@
-**PTscript**
+**Amanda**
 
 *OPERATORS*
 PLUS : +
@@ -14,12 +14,12 @@ LESSEQ : <=
 GREATEREQ : >=
 NOTEQUAL : !=
 DOUBLEEQUAL : ==
-NOT : !
-AND : e
-OR : ou
+NAO : nao
+E : e
+OU : ou
 
 *ASSIGNMENT*
-EQUAL : = | recebe
+EQUAL : = 
 PLUSEQ : +=
 MINUSEQ: -=
 STAREQ : *=
@@ -30,17 +30,20 @@ VAR : var
 MOSTRA : mostra
 VERDADEIRO : verdadeiro
 FALSO : falso
-RECEBE : recebe
 RETORNA : retorna
 SE : se
 SENAO : senao
 ENTAO : entao
 ENQUANTO : enquanto
 PARA : para
-INC : inc
 FACA : faca
 DE : de
-VAZIO : vazio
+FUNC : func
+INC : inc
+PROC : proc
+FIM : fim
+CLASSE : classe
+NULO : nulo
 
 *OPERANDS*
 INTEGER : [0-9]+ -> 122324242
@@ -60,3 +63,5 @@ RBRACE : }
 LBRACKET : [
 RBRACKET : ]
 COLON : ":"
+NEWLINE : "\n"
+COMMENTS: "#"

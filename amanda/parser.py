@@ -10,9 +10,9 @@ import amanda.error as error
 
 class Parser:
 
-    def __init__(self,lexer):
-        self.lexer = lexer
-        self.lookahead = lexer.get_token()
+    def __init__(self,io_object):
+        self.lexer = Lexer(io_object)
+        self.lookahead = self.lexer.get_token()
 
     def consume(self,token_t,error=None):
         if self.lookahead.token == token_t:
@@ -33,182 +33,258 @@ class Parser:
 
     def program(self):
         program = AST.Program()
-        start_first = (TT.LPAR,TT.INTEGER,TT.IDENTIFIER,
-            TT.REAL,TT.STRING,TT.PLUS,TT.MINUS,TT.VERDADEIRO,
-            TT.FALSO,TT.NOT,TT.MOSTRA,TT.RETORNA,TT.SE,TT.VAR,TT.VECTOR,TT.DEFINA,
-            TT.LBRACE,TT.ENQUANTO,TT.PARA)
-        if self.lookahead.token in start_first or self.lookahead.token == Lexer.EOF:
-            while self.lookahead.token in start_first:
-                program.add_child(self.declaration())
-            if self.lookahead.token == Lexer.EOF:
-                return program
-            else:
-                self.error("sintaxe inválida")
+        program.add_child(self.block())
+        if self.lookahead.token == Lexer.EOF:
+            return program
         else:
-            self.error(f"sintaxe inválida para início de programa {self.lookahead.token}")
+            self.error(f"sintaxe inválida para início de bloco {self.lookahead.token}")
+
+    def block(self):
+        ''' 
+        Method that does bulk of the parsing.
+        Called to parse body of functions, compound statements
+        and the 'main'function.
+        '''
+
+        block = AST.Block()
+        start_first = (
+            TT.LPAR,TT.INTEGER,TT.IDENTIFIER,
+            TT.REAL,TT.STRING,TT.PLUS,TT.MINUS,
+            TT.VERDADEIRO,TT.FALSO,TT.NAO,
+            TT.MOSTRA,TT.RETORNA,TT.SE,TT.VAR,
+            TT.FUNC,TT.ENQUANTO,TT.PARA,
+            TT.PROC,
+            )
+
+        while self.lookahead.token in start_first or self.lookahead.token == TT.NEWLINE:
+            if self.lookahead.token in start_first:
+                block.add_child(self.declaration())
+            else:
+                self.consume(TT.NEWLINE)
+
+        return block
+
+
 
     def declaration(self):
         if self.lookahead.token == TT.VAR:
             return self.var_decl()
-        elif self.lookahead.token == TT.DEFINA:
+        elif self.lookahead.token == TT.FUNC:
             return self.function_decl()
-        elif self.lookahead.token == TT.VECTOR:
-            return self.array_decl()
-        elif (self.lookahead.token in (TT.LPAR,TT.INTEGER,TT.IDENTIFIER,
-            TT.REAL,TT.STRING,TT.PLUS,TT.MINUS,TT.VERDADEIRO,
-            TT.FALSO,TT.NOT,TT.MOSTRA,TT.RETORNA,TT.SE,
-            TT.LBRACE,TT.ENQUANTO,TT.PARA)):
+        elif self.lookahead.token == TT.PROC:
+            return self.procedure_decl()
+
+        elif ( self.lookahead.token in (
+                TT.LPAR,TT.INTEGER,TT.IDENTIFIER,
+                TT.REAL,TT.STRING,TT.PLUS,
+                TT.MINUS,TT.VERDADEIRO,TT.FALSO,
+                TT.NAO,TT.MOSTRA,TT.RETORNA,
+                TT.SE,TT.LBRACE,TT.ENQUANTO,
+                TT.PARA
+                )
+            ):
             return self.statement()
+
+    def type(self):
+        type = self.lookahead
+        self.consume(TT.IDENTIFIER)
+        #TODO: Add Array syntatic sugar here 
+        return type
+    
+
+    def end_stmt(self):
+        ''' 
+            Method used to parse newlines and semicolons at the
+            end of statements
+        '''
+        token = self.lookahead.token
+        if token == TT.NEWLINE:
+            self.consume(TT.NEWLINE)
+
+        elif token == TT.SEMI:
+            self.consume(TT.SEMI)
+        else:
+            #TODO: Add proper error format
+            self.error(f"esperava-se ';' ou uma nova linha. Recebeu {self.lookahead.lexeme}")
 
 
     def var_decl(self):
+        ''' 
+        Method for parsing variable declarations
+
+        var my_num : int
+        var my_num : int = 2
+        '''
         token = self.lookahead
         self.consume(TT.VAR)
-        type = self.lookahead
-        self.consume(TT.IDENTIFIER,error.Syntax.EXPECTED_TYPE.format(symbol=token.lexeme))
         id = self.lookahead
-        self.consume(TT.IDENTIFIER,error.Syntax.EXPECTED_ID.format(symbol=type.lexeme))
+        self.consume(
+            TT.IDENTIFIER,
+            error.Syntax.EXPECTED_ID.format(symbol=id.lexeme)
+        )
+        self.consume(TT.COLON)
+        type = self.type()
         assign = None
         if self.lookahead.token == TT.EQUAL:
             assign = self.lookahead
             self.consume(TT.EQUAL)
             right = self.expression()
-            assign = AST.AssignNode(assign,left=AST.ExpNode(id),right=right)
-        self.consume(TT.SEMI,error.Syntax.MISSING_SEMI)
+            assign = AST.AssignNode(
+                assign,
+                left=AST.ExpNode(id),
+                right=right
+            )
+        self.end_stmt()
         return AST.VarDeclNode(token,id=id,type=type,assign=assign)
 
-    def array_decl(self):
-        token = self.lookahead
-        self.consume(TT.VECTOR)
-        type = self.lookahead
-        self.consume(TT.IDENTIFIER,error.Syntax.EXPECTED_TYPE.format(symbol=token.lexeme))
+
+    #TODO: Find a better workaround for void 'functions'
+    def procedure_decl(self):
+        ''' 
+        Method used to parse procedure declarations.
+        Procedures are just functions/methods that don't return anything.
+        Ex: 
+
+            proc mostra_func(str:texto)
+                mostra str
+            fim
+
+        '''
+
+        sym = self.lookahead.lexeme
+        self.consume(TT.PROC)
         id = self.lookahead
-        self.consume(TT.IDENTIFIER,error.Syntax.EXPECTED_ID.format(symbol=type.lexeme))
-        self.consume(TT.LBRACKET)
-        size = self.equality()
-        self.consume(TT.RBRACKET)
-        self.consume(TT.SEMI,error.Syntax.MISSING_SEMI)
-        #print("PARSER: ",size.token)
-        return AST.ArrayDeclNode(token,id=id,type=type,size=size)
+        self.consume(TT.IDENTIFIER,error.Syntax.EXPECTED_ID.format(symbol=sym))
+        self.consume(TT.LPAR)
+        params = self.formal_params()
+        self.consume(TT.RPAR,"os parâmetros do procedimento devem estar delimitados por  ')'")
+        block = self.block()
+        self.consume(TT.FIM,"Os blocos devem ser terminados com a palavra fim")
+        return AST.FunctionDecl(id=id,block=block,type=None,params=params)
+
 
     def function_decl(self):
+        ''' 
+        Method used to parse function declarations
+
+        Ex: 
+
+            func add(a:int,b:int):int
+                retorna a+b
+            fim
+
+        '''
+
         sym = self.lookahead.lexeme
-        self.consume(TT.DEFINA)
+        self.consume(TT.FUNC)
         id = self.lookahead
         self.consume(TT.IDENTIFIER,error.Syntax.EXPECTED_ID.format(symbol=sym))
         self.consume(TT.LPAR)
         params = self.formal_params()
         self.consume(TT.RPAR,"os parâmetros da função devem estar delimitados por  ')'")
         self.consume(TT.COLON)
-        # Check if function is void
-        type = None
-        if self.lookahead.token == TT.IDENTIFIER:
-            type = self.lookahead
-            self.consume(TT.IDENTIFIER,error.Syntax.EXPECTED_TYPE.format(symbol=":"))
-        elif self.lookahead.token == TT.VAZIO:
-            type = self.lookahead
-            self.consume(TT.VAZIO,error.Syntax.EXPECTED_TYPE.format(symbol=":"))
+        type = self.type()
         block = self.block()
+        self.consume(TT.FIM,"Os blocos devem ser terminados com a palavra fim")
         return AST.FunctionDecl(id=id,block=block,type=type,params=params)
 
     def formal_params(self):
+        '''  
+        Method for parsing parameters in function
+        declarations
+        Ex:
+        func pow (base :float , expoente :int) 
+        '''
         params = []
         if self.lookahead.token == TT.IDENTIFIER:
-            type = self.lookahead
-            is_array = False
-            self.consume(TT.IDENTIFIER,error.Syntax.EXPECTED_TYPE.format(symbol="("))
-            if self.lookahead.token == TT.LBRACKET:
-                self.consume(TT.LBRACKET)
-                self.consume(TT.RBRACKET)
-                is_array = True
             id = self.lookahead
             self.consume(TT.IDENTIFIER)
-            params.append(AST.ParamNode(type,id,is_array))
+            self.consume(TT.COLON,"esperava-se o símbolo ':'.")
+            type = self.type()
+            params.append(AST.ParamNode(type,id))
             while self.lookahead.token == TT.COMMA:
                 self.consume(TT.COMMA)
-                type = self.lookahead
-                is_array = False
-                self.consume(TT.IDENTIFIER,error.Syntax.EXPECTED_TYPE.format(symbol=","))
-                if self.lookahead.token == TT.LBRACKET:
-                    self.consume(TT.LBRACKET)
-                    self.consume(TT.RBRACKET)
-                    is_array = True
                 id = self.lookahead
                 self.consume(TT.IDENTIFIER)
-                params.append(AST.ParamNode(type,id,is_array=False))
+                self.consume(TT.COLON,"esperava-se o símbolo ':'.")
+                type = self.type()
+                params.append(AST.ParamNode(type,id))
         return params
 
 
     def statement(self):
         current = self.lookahead.token
-        if (current in (TT.LPAR,TT.INTEGER,TT.IDENTIFIER,
-            TT.REAL,TT.STRING,TT.PLUS,TT.MINUS,TT.VERDADEIRO,
-            TT.FALSO,TT.NOT)):
+        if ( current in (
+                    TT.LPAR,TT.INTEGER,TT.IDENTIFIER,
+                    TT.REAL,TT.STRING,TT.PLUS,
+                    TT.MINUS,TT.VERDADEIRO,TT.FALSO,
+                    TT.NAO
+                )
+            ):
             #expr_statement
             node = self.expression()
-            self.consume(TT.SEMI,error.Syntax.MISSING_SEMI)
+            self.end_stmt()
             return node
         elif current == TT.MOSTRA:
             return self.mostra_statement()
         elif current == TT.RETORNA:
             return self.retorna_statement()
         elif current == TT.ENQUANTO:
-            return self.while_statement()
+            return self.enquanto_stmt()
         elif current == TT.SE:
             return self.se_statement()
         elif current == TT.LBRACE:
             return self.block()
         elif current == TT.PARA:
-            return self.for_statement()
+            return self.para_stmt()
         else:
-            self.error("Instrução inválida. Só pode fazer declarações dentro de blocos ou no escopo principal")
+            self.error("instrução inválida. Só pode fazer declarações dentro de blocos ou no escopo principal")
 
     def mostra_statement(self):
         token = self.lookahead
         self.consume(TT.MOSTRA)
         exp = self.equality()
-        self.consume(TT.SEMI,error.Syntax.MISSING_SEMI)
+        self.end_stmt()
         return AST.Statement(token,exp)
 
     def retorna_statement(self):
         token = self.lookahead
         self.consume(TT.RETORNA)
         exp = self.equality()
-        self.consume(TT.SEMI,error.Syntax.MISSING_SEMI)
+        self.end_stmt()
         return AST.Statement(token,exp)
 
     def se_statement(self):
         token = self.lookahead
         self.consume(TT.SE)
-        self.consume(TT.LPAR,"a instrução 'se' deve possuir uma condição")
         condition = self.equality()
-        self.consume(TT.RPAR,"a condição deve ser delimitada por ')'")
         self.consume(TT.ENTAO)
-        then_branch = self.statement()
+        then_branch = self.block()
         else_branch = None
         if self.lookahead.token == TT.SENAO:
             self.consume(TT.SENAO)
-            else_branch = self.statement()
+            else_branch = self.block()
+        self.consume(TT.FIM,"esperava-se o símbolo fim para terminar a instrução 'se'")
         return AST.SeStatement(token,condition,then_branch,else_branch)
 
 
-    def while_statement(self):
+    def enquanto_stmt(self):
         token = self.lookahead
         self.consume(TT.ENQUANTO)
-        self.consume(TT.LPAR,"a instrução 'enquanto' deve possuir uma condição")
         condition = self.equality()
-        self.consume(TT.RPAR,"a condição deve ser delimitada por ')'")
         self.consume(TT.FACA)
-        return AST.WhileStatement(token,condition,self.statement())
+        block = self.block()
+        self.consume(TT.FIM,"esperava-se o símbolo fim para terminar a instrução 'enquanto'")
+        return AST.WhileStatement(token,condition,block)
 
-    def for_statement(self):
+    def para_stmt(self):
         token = self.lookahead
         self.consume(TT.PARA)
-        self.consume(TT.LPAR,"a instrução 'para' deve possuir uma expressão")
         expression = self.for_expression()
-        self.consume(TT.RPAR,"a expressão deve ser delimitada por ')'")
         self.consume(TT.FACA)
-        return AST.ForStatement(token,expression,self.statement())
+        block = self.block()
+        self.consume(TT.FIM,"esperava-se o símbolo fim para terminar a instrução 'para'")
+        return AST.ForStatement(token,expression,block)
 
     def for_expression(self):
         id = self.lookahead
@@ -228,16 +304,6 @@ class Parser:
         return AST.RangeExpr(start,stop,inc)
 
 
-    def block(self):
-        block = AST.Block()
-        self.consume(TT.LBRACE)
-        while ( self.lookahead.token in (TT.LPAR,TT.INTEGER,TT.IDENTIFIER,
-            TT.REAL,TT.STRING,TT.PLUS,TT.MINUS,TT.VERDADEIRO,
-            TT.FALSO,TT.NOT,TT.MOSTRA,TT.RETORNA,TT.SE,TT.VAR,TT.VECTOR,TT.DEFINA,
-            TT.LBRACE,TT.ENQUANTO,TT.PARA) ):
-            block.add_child(self.declaration())
-        self.consume(TT.RBRACE,"os blocos devem ser delimitados por '}'")
-        return block
 
 
     def eq_operator(self):
@@ -327,10 +393,10 @@ class Parser:
 
     def addition(self):
         node = self.term()
-        while self.lookahead.token in (TT.PLUS,TT.MINUS,TT.OR):
+        while self.lookahead.token in (TT.PLUS,TT.MINUS,TT.OU):
             op = self.lookahead
-            if self.lookahead.token == TT.OR:
-                self.consume(TT.OR)
+            if self.lookahead.token == TT.OU:
+                self.consume(TT.OU)
             else:
                 self.add_operator()
             node = AST.BinOpNode(op,left=node,right=self.term())
@@ -339,7 +405,7 @@ class Parser:
 
     def term(self):
         node = self.factor()
-        while self.lookahead.token in (TT.STAR,TT.SLASH,TT.MODULO,TT.AND):
+        while self.lookahead.token in (TT.STAR,TT.SLASH,TT.MODULO,TT.E):
             op = self.lookahead
             self.mult_operator()
             node = AST.BinOpNode(op,left=node,right=self.term())
@@ -367,22 +433,25 @@ class Parser:
             self.consume(TT.LPAR)
             node = self.equality()
             self.consume(TT.RPAR)
-        elif current in (TT.PLUS,TT.MINUS,TT.NOT):
+        elif current in (TT.PLUS,TT.MINUS,TT.NAO):
             token = self.lookahead
             self.consume(current)
             node = AST.UnaryOpNode(token,operand=self.factor())
         #TODO: check if this is dead code
         else:
-            self.error("início inválido de expressão",self.lookahead)
+            self.error(f"início inválido de expressão: '{self.lookahead.lexeme}'")
         return node
 
     def function_call(self):
         self.consume(TT.LPAR)
         current = self.lookahead.token
         args = []
-        if ( current in (TT.LPAR,TT.INTEGER,TT.IDENTIFIER,
-            TT.REAL,TT.STRING,TT.PLUS,TT.MINUS,TT.VERDADEIRO,
-            TT.FALSO,TT.NOT) ):
+        if ( current in (
+                TT.LPAR,TT.INTEGER,TT.IDENTIFIER,
+                TT.REAL,TT.STRING,TT.PLUS,TT.MINUS,
+                TT.VERDADEIRO,TT.FALSO,TT.NAO
+                ) 
+            ):
             args.append(self.equality())
             while self.lookahead.token == TT.COMMA:
                 self.consume(TT.COMMA)
@@ -394,8 +463,8 @@ class Parser:
 
     def mult_operator(self):
         current = self.lookahead.token
-        if current == TT.AND:
-            self.consume(TT.AND)
+        if current == TT.E:
+            self.consume(TT.E)
         if current == TT.STAR:
             self.consume(TT.STAR)
         elif current == TT.SLASH:
