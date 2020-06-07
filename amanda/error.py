@@ -76,7 +76,7 @@ class ErrorHandler:
         for count,line in enumerate(source):
             #get lines that are within context range
             if count+1 >= lower_bound:
-                fmt_line = " | ".join([str(count+1),line])
+                fmt_line = " | ".join([str(count+1),line.strip()])
                 context.append(fmt_line)
                 if count + 1 == upper_bound:
                     source.close()
