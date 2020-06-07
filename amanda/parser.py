@@ -10,9 +10,9 @@ import amanda.error as error
 
 class Parser:
 
-    def __init__(self,lexer):
-        self.lexer = lexer
-        self.lookahead = lexer.get_token()
+    def __init__(self,io_object):
+        self.lexer = Lexer(io_object)
+        self.lookahead = self.lexer.get_token()
 
     def consume(self,token_t,error=None):
         if self.lookahead.token == token_t:

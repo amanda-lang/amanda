@@ -23,7 +23,7 @@ class ParserTestCase(unittest.TestCase):
         for phrase in phrases:
             print(phrase,file=self.buffer,end="\n\n\n")
         self.buffer.seek(0)
-        parser = Parser(Lexer(self.buffer))
+        parser = Parser(self.buffer)
         parser.parse()
 
     def test_expression(self):
@@ -39,7 +39,7 @@ class ParserTestCase(unittest.TestCase):
             print(phrase,file=self.buffer)
         #self.buffer.writelines(phrases)
         self.buffer.seek(0)
-        parser = Parser(Lexer(self.buffer))
+        parser = Parser(self.buffer)
         parser.parse()
 
     def test_statement(self):
@@ -113,7 +113,7 @@ class ParserTestCase(unittest.TestCase):
             print(phrase,file=self.buffer)
         #self.buffer.writelines(phrases)
         self.buffer.seek(0)
-        parser = Parser(Lexer(self.buffer))
+        parser = Parser(self.buffer)
         parser.parse()
 
     def test_function_decl(self):
@@ -157,7 +157,7 @@ class ParserTestCase(unittest.TestCase):
             print(phrase,file=self.buffer)
         #self.buffer.writelines(phrases)
         self.buffer.seek(0)
-        parser = Parser(Lexer(self.buffer))
+        parser = Parser(self.buffer)
         parser.parse()
 
 
