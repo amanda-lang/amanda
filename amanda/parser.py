@@ -24,7 +24,8 @@ class Parser:
             self.error(f"era esperado o símbolo {token_t.value},porém recebeu o símbolo '{self.lookahead.lexeme}'")
 
     def error(self,message=None):
-        raise error.Syntax(message,self.lexer.line)
+        handler = error.ErrorHandler.get_handler()
+        handler.throw_error(error.Syntax(message,self.lexer.line),self.lexer.file)
 
     #function that triggers parsing
     def parse(self):

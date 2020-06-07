@@ -1,3 +1,4 @@
+import sys
 ''' Base class for all PTScript errors '''
 class Error(Exception):
 
@@ -48,16 +49,87 @@ class RunTime(Error):
 
 class ErrorHandler:
 
-    def __init__(self,program):
-        self.program = program
+    handler = None
 
-    def throw_error(self,error):
+    @classmethod
+    def get_handler(cls):
+        if not cls.handler:
+            cls.handler = cls()
+        return cls.handler
+            
+    def get_context(self,error,source):
+        '''
+        Method that gets the context of an error. the context
+        is just just an array with a certain number of lines
+        from the source file.
+        '''
+        if not source.readable():
+            raise Exception("Unable to get context for error reporting")
+        context = []
+        source.seek(0)
+        #number of lines to use as context
+        n_lines = 2 
+        #range to get
+        lower_bound = error.line - n_lines 
+        upper_bound = error.line
+
+        for count,line in enumerate(source):
+            #get lines that are within context range
+            if count+1 >= lower_bound:
+                fmt_line = " | ".join([str(count+1),line])
+                context.append(fmt_line)
+                if count + 1 == upper_bound:
+                    source.close()
+                    break
+        return context
+
+    def fmt_error(self,context,error):
+        '''
+        Formats the error message using the error
+        object and the context.
+        
+        Ex:
+
+        Erro sintático na linha 5: alguma mensagem aqui
+        ------------------------------------------------
+
+        3| var char : texto
+        4| var lobo : Animal
+        5| var cao : Animal func
+                            ^^^
+        '''
+        message = str(error)
+        fmt_message = "\n".join([message,"-"*len(message)])
+        fmt_context = "\n".join(context)
+        indicator = "^" * len(context[len(context)-1])
+
+        return f"{fmt_message}\n{fmt_context}\n{indicator}"
+
+
+
+
+    def throw_error(self,error,source):
         '''
         Method that deals with errors thrown at different stages of the program.
         In theory it's supposed to show the error message and print some context 
         (Lines around the error)
+
+        param: source - io object where the program is being read from
+        Ex:
+        
+        Erro sintático na linha 5: alguma mensagem aqui
+        ------------------------------------------------
+
+        3| var char : texto
+        4| var lobo : Animal
+        5| var cao : Animal func
         '''
-        pass
+        #get context
+        context = self.get_context(error,source)
+        #print out formatted error message
+        print(self.fmt_error(context,error))
+        #exit gracefully (i think this is graceful)
+        sys.exit() 
 
 
 
