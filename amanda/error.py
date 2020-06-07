@@ -1,4 +1,5 @@
 import sys
+
 ''' Base class for all PTScript errors '''
 class Error(Exception):
 
@@ -114,7 +115,7 @@ class ErrorHandler:
         indicator = err_marker * code_len 
         indicator = indicator.rjust(padding + code_len) 
 
-        return f"{fmt_message}\n{fmt_context}\n{indicator}"
+        return f"{fmt_message}\n{fmt_context}\n{indicator}\n"
 
 
 
@@ -134,12 +135,10 @@ class ErrorHandler:
         3| var char : texto
         4| var lobo : Animal
         5| var cao : Animal func
+           ^^^^^^^^^^^^^^^^^^^^^
         '''
-        #get context
         context = self.get_context(error,source)
-        #print out formatted error message
-        print(self.fmt_error(context,error))
-        #exit gracefully (i think this is graceful)
+        sys.stderr.write(self.fmt_error(context,error))
         sys.exit() 
 
 

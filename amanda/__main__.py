@@ -16,13 +16,11 @@ def main():
             run_script(script)
     except FileNotFoundError:
         print(f"The file '{abspath(args.file)}' was not found on this system")
-    except error.Error as e:
-        print(e)
 
 
 
 def run_script(file):
-    analyzer = Analyzer(Parser(Lexer(file)))
+    analyzer = Analyzer(Parser(file))
     analyzer.check_program()
     interpreter = Interpreter(analyzer.program)
     interpreter.interpret()
