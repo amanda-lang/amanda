@@ -139,6 +139,7 @@ class ErrorHandler:
         '''
         context = self.get_context(error,source)
         sys.stderr.write(self.fmt_error(context,error))
+        source.close()
         sys.exit() 
 
 

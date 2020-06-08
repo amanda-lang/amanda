@@ -1,13 +1,13 @@
 import sys
 import time
-from interpreter.lexer import Lexer
-from interpreter.parser import Parser
-from interpreter.semantic import Analyzer
-from interpreter.pypti import Interpreter
-import interpreter.error as ERR
+from amanda.lexer import Lexer
+from amanda.parser import Parser
+from amanda.semantic import Analyzer
+from amanda.pypti import Interpreter
+import amanda.error as ERR
 from io import StringIO
 
-TEST_FILE = "./tests/assignment/type_inc_error.pts"
+TEST_FILE = "./test.ama"
 
 
 def run_lexer():
@@ -25,10 +25,11 @@ def run_parser():
 
 
 def run_sem_analysis():
-    lexer = Lexer(TEST_FILE)
-    parser = Parser(lexer)
+    file = open(TEST_FILE) 
+    parser = Parser(file)
     intp = Analyzer(parser)
     intp.check_program()
+    file.close()
     print(intp.current_scope)
 
 def run_pypti():
@@ -47,4 +48,5 @@ def run_pypti():
     intp.interpret()
     print(buffer.getvalue())
     #print(intp.memory)
-run_pypti()
+
+run_sem_analysis()

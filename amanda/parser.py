@@ -39,8 +39,7 @@ class Parser:
 
 
     def program(self):
-        program = AST.Program()
-        program.add_child(self.block())
+        program = self.block() 
         if self.lookahead.token == Lexer.EOF:
             return program
         else:
@@ -135,13 +134,13 @@ class Parser:
             assign = self.lookahead
             self.consume(TT.EQUAL)
             right = self.expression()
-            assign = AST.AssignNode(
+            assign = AST.Assign(
                 assign,
-                left=AST.ExpNode(id),
+                left=AST.Expr(id),
                 right=right
             )
         self.end_stmt()
-        return AST.VarDeclNode(token,id=id,type=type,assign=assign)
+        return AST.VarDecl(token,id=id,type=type,assign=assign)
 
 
     #TODO: Find a better workaround for void 'functions'
@@ -207,14 +206,14 @@ class Parser:
             self.consume(TT.IDENTIFIER)
             self.consume(TT.COLON,"esperava-se o símbolo ':'.")
             type = self.type()
-            params.append(AST.ParamNode(type,id))
+            params.append(AST.Param(type,id))
             while self.lookahead.token == TT.COMMA:
                 self.consume(TT.COMMA)
                 id = self.lookahead
                 self.consume(TT.IDENTIFIER)
                 self.consume(TT.COLON,"esperava-se o símbolo ':'.")
                 type = self.type()
-                params.append(AST.ParamNode(type,id))
+                params.append(AST.Param(type,id))
         return params
 
 
@@ -239,26 +238,22 @@ class Parser:
             return self.enquanto_stmt()
         elif current == TT.SE:
             return self.se_statement()
-        elif current == TT.LBRACE:
-            return self.block()
         elif current == TT.PARA:
             return self.para_stmt()
-        else:
-            self.error("instrução inválida. Só pode fazer declarações dentro de blocos ou no escopo principal")
 
     def mostra_statement(self):
         token = self.lookahead
         self.consume(TT.MOSTRA)
         exp = self.equality()
         self.end_stmt()
-        return AST.Statement(token,exp)
+        return AST.Mostra(token,exp)
 
     def retorna_statement(self):
         token = self.lookahead
         self.consume(TT.RETORNA)
         exp = self.equality()
         self.end_stmt()
-        return AST.Statement(token,exp)
+        return AST.Retorna(token,exp)
 
     def se_statement(self):
         token = self.lookahead
@@ -271,7 +266,7 @@ class Parser:
             self.consume(TT.SENAO)
             else_branch = self.block()
         self.consume(TT.FIM,"esperava-se o símbolo fim para terminar a instrução 'se'")
-        return AST.SeStatement(token,condition,then_branch,else_branch)
+        return AST.Se(token,condition,then_branch,else_branch)
 
 
     def enquanto_stmt(self):
@@ -281,7 +276,7 @@ class Parser:
         self.consume(TT.FACA)
         block = self.block()
         self.consume(TT.FIM,"esperava-se o símbolo fim para terminar a instrução 'enquanto'")
-        return AST.WhileStatement(token,condition,block)
+        return AST.Enquanto(token,condition,block)
 
     def para_stmt(self):
         token = self.lookahead
@@ -290,14 +285,14 @@ class Parser:
         self.consume(TT.FACA)
         block = self.block()
         self.consume(TT.FIM,"esperava-se o símbolo fim para terminar a instrução 'para'")
-        return AST.ForStatement(token,expression,block)
+        return AST.Para(token,expression,block)
 
     def for_expression(self):
         id = self.lookahead
         self.consume(TT.IDENTIFIER)
         self.consume(TT.DE)
         range = self.range_expression()
-        return AST.ForExpr(id,range)
+        return AST.ParaExpr(id,range)
 
     def range_expression(self):
         start = self.equality()
@@ -336,7 +331,7 @@ class Parser:
             else:
                 token.token,token.lexeme = TT.MINUS,"-"
             self.consume(current)
-            node = AST.AssignNode(eq,left=node,right=AST.BinOpNode(token,left=node,right=self.equality()))
+            node = AST.Assign(eq,left=node,right=AST.BinOp(token,left=node,right=self.equality()))
         return node
 
     def multi_assign(self):
@@ -353,7 +348,7 @@ class Parser:
             else:
                 token.token,token.lexeme = TT.SLASH,"/"
             self.consume(current)
-            node = AST.AssignNode(eq,left=node,right=AST.BinOpNode(token,left=node,right=self.equality()))
+            node = AST.Assign(eq,left=node,right=AST.BinOp(token,left=node,right=self.equality()))
         return node
 
 
@@ -365,7 +360,7 @@ class Parser:
             self.consume(TT.EQUAL)
             if not node.is_assignable():
                 self.error(error.Syntax.ILLEGAL_ASSIGN)
-            node = AST.AssignNode(token,left=node,right=self.assignment())
+            node = AST.Assign(token,left=node,right=self.assignment())
         return node
 
 
@@ -374,7 +369,7 @@ class Parser:
         while self.lookahead.token in (TT.DOUBLEEQUAL,TT.NOTEQUAL):
             op = self.lookahead
             self.eq_operator()
-            node = AST.BinOpNode(op,left=node,right=self.comparison())
+            node = AST.BinOp(op,left=node,right=self.comparison())
         return node
 
     def comp_operator(self):
@@ -394,7 +389,7 @@ class Parser:
         while self.lookahead.token in (TT.GREATER,TT.GREATEREQ,TT.LESS,TT.LESSEQ):
             op = self.lookahead
             self.comp_operator()
-            node = AST.BinOpNode(op,left=node,right=self.addition())
+            node = AST.BinOp(op,left=node,right=self.addition())
         return node
 
     def addition(self):
@@ -405,7 +400,7 @@ class Parser:
                 self.consume(TT.OU)
             else:
                 self.add_operator()
-            node = AST.BinOpNode(op,left=node,right=self.term())
+            node = AST.BinOp(op,left=node,right=self.term())
         return node
 
 
@@ -414,7 +409,7 @@ class Parser:
         while self.lookahead.token in (TT.STAR,TT.SLASH,TT.MODULO,TT.E):
             op = self.lookahead
             self.mult_operator()
-            node = AST.BinOpNode(op,left=node,right=self.term())
+            node = AST.BinOp(op,left=node,right=self.term())
         return node
 
     def factor(self):
@@ -425,15 +420,15 @@ class Parser:
                 token = self.lookahead
                 self.consume(TT.IDENTIFIER)
                 if self.lookahead.token == TT.LPAR:
-                    node = AST.FunctionCall(id=token,fargs=self.function_call())
+                    node = AST.Call(id=token,fargs=self.call())
                 elif self.lookahead.token == TT.LBRACKET:
                     self.consume(TT.LBRACKET)
-                    node = AST.ArrayRef(id=token,index=self.equality())
+                    node = AST.Index(id=token,index=self.equality())
                     self.consume(TT.RBRACKET)
                 else:
-                    node = AST.ExpNode(token)
+                    node = AST.Expr(token)
             else:
-                node = AST.ExpNode(self.lookahead)
+                node = AST.Expr(self.lookahead)
                 self.consume(current)
         elif current == TT.LPAR:
             self.consume(TT.LPAR)
@@ -442,13 +437,13 @@ class Parser:
         elif current in (TT.PLUS,TT.MINUS,TT.NAO):
             token = self.lookahead
             self.consume(current)
-            node = AST.UnaryOpNode(token,operand=self.factor())
+            node = AST.UnaryOp(token,operand=self.factor())
         #TODO: check if this is dead code
         else:
             self.error(f"início inválido de expressão: '{self.lookahead.lexeme}'")
         return node
 
-    def function_call(self):
+    def call(self):
         self.consume(TT.LPAR)
         current = self.lookahead.token
         args = []

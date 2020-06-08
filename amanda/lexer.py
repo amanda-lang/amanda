@@ -276,7 +276,5 @@ class Lexer:
             return self.delimeters()
 
         if self.current_char == Lexer.EOF:
-            if self.file.readable():
-                self.file.close()
             return Token(Lexer.EOF,"")
         self.error(error.Syntax.INVALID_SYMBOL,symbol=self.current_char)
