@@ -1,0 +1,12 @@
+#Sample factorial program in amanda
+
+
+func factorial(n : int) : int
+    se n==0 entao
+        retorna 1
+    fim
+    retorna n * factorial(n-1)
+fim
+
+
+mostra factorial(5)

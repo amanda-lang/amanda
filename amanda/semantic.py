@@ -68,10 +68,9 @@ amanda program.
 
 class Analyzer(AST.Visitor):
 
-    def __init__(self,parser):
-        self.parser = parser
-        self.program = self.parser.parse()
+    def __init__(self,src):
         self.current_scope = SYM.Scope(SYM.Scope.GLOBAL)
+        self.src = src 
         self.init__builtins()
 
     def init__builtins(self):
@@ -113,18 +112,17 @@ class Analyzer(AST.Visitor):
         handler = error.ErrorHandler.get_handler()
         handler.throw_error(
             error.Analysis(message,line,col),
-            self.parser.lexer.file
+            self.src
         )
 
 
-    def check_program(self):
-        self.visit_program(self.program)
+    def check_program(self,program):
+        self.visit(program)
+        return program
 
-    #TODO: Fix this block hack
     def visit_program(self,node):
-        self.visit(node,self.current_scope)
-
-
+        for child in node.children:
+            self.visit(child)
 
     def visit_vardecl(self,node):
         name = node.id.lexeme
@@ -156,7 +154,6 @@ class Analyzer(AST.Visitor):
             self.visit(node.assign)
 
 
-    #TODO: put some of this in the function symbol
     def visit_functiondecl(self,node):
         #Check if id is already in use
         name = node.id.lexeme
@@ -185,19 +182,14 @@ class Analyzer(AST.Visitor):
         for name,param in symbol.params.items():
             scope.define(name,param)
         self.visit(node.block,scope)
-        #leave_scope
 
     def visit_block(self,node,scope=None):
-        if scope:
-            self.current_scope = scope
-        else:
-            self.current_scope = SYM.Scope(SYM.Scope.LOCAL,self.current_scope)
+        if not scope:
+            scope = SYM.Scope(SYM.Scope.LOCAL,self.current_scope)
+        self.current_scope = scope
         for child in node.children:
             self.visit(child)
-        #Pop scope
-        if self.current_scope.name != SYM.Scope.GLOBAL:
-            self.current_scope = self.current_scope.enclosing_scope
-
+        self.current_scope = self.current_scope.enclosing_scope
 
 
     def visit_param(self,node):
@@ -213,18 +205,9 @@ class Analyzer(AST.Visitor):
         return SYM.VariableSymbol(name,var_type)
 
 
-    def visit_expr(self,node):
-        if node.token.token == TT.IDENTIFIER:
-            name = node.token.lexeme
-            line = node.token.line
-            sym = self.current_scope.resolve(name)
-            if not sym:
-                self.error(line,error.Analysis.UNDECLARED_ID,name=name)
-            #Referencing array by name loool
-            elif not sym.is_valid_var():
-                self.error(line,error.Analysis.INVALID_REF,name=name)
-            node.eval_type = sym.type.name
-        elif node.token.token == TT.INTEGER:
+    def visit_constant(self,node):
+
+        if node.token.token == TT.INTEGER:
             node.eval_type = Type.INT
         elif node.token.token == TT.REAL:
             node.eval_type = Type.REAL
@@ -232,6 +215,19 @@ class Analyzer(AST.Visitor):
             raise Exception("Not implemented strings yet")
         elif node.token.token in (TT.VERDADEIRO,TT.FALSO):
             node.eval_type = Type.BOOL
+    
+    def visit_variable(self,node):
+        name = node.token.lexeme
+        line = node.token.line
+        col = node.token.col
+        sym = self.current_scope.resolve(name)
+        if not sym:
+            self.error(line,col,error.Analysis.UNDECLARED_ID,name=name)
+        #Referencing array by name 
+        elif not sym.is_valid_var():
+            self.error(line,col,error.Analysis.INVALID_REF,name=name)
+        node.eval_type = sym.type.name
+
 
     def visit_binop(self,node):
         self.visit(node.left)
@@ -314,7 +310,8 @@ class Analyzer(AST.Visitor):
         function = self.current_scope.resolve(function.name)
         node.exp.prom_type = type_promotion[node.exp.eval_type.value][function.type.name.value]
         if not function.type:
-            self.error(line,col,f"expressão de retorno inválida. Procedimentos não podem retornar valores")
+            raise NotImplementedError("Void function have not been implemented")
+            #self.error(line,col,f"expressão de retorno inválida. Procedimentos não podem retornar valores")
         elif function.type.name != node.exp.eval_type and node.exp.prom_type == None:
             self.error(line,col,f"expressão de retorno inválida. O tipo do valor de retorno é incompatível com o tipo de retorno da função")
 
@@ -341,13 +338,7 @@ class Analyzer(AST.Visitor):
         sym = SYM.VariableSymbol(id,self.current_scope.resolve("int"))
         scope = SYM.Scope(SYM.Scope.LOCAL,self.current_scope)
         scope.define(id,sym)
-        if isinstance(node.statement,AST.Block):
-            self.visit(node.statement,scope)
-        else:
-            self.current_scope = scope
-            self.visit(node.statement)
-            #pop scope
-            self.current_scope = self.current_scope.enclosing_scope
+        self.visit(node.statement,scope)
 
     def visit_paraexpr(self,node):
         self.visit(node.id)
