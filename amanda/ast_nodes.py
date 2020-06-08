@@ -1,8 +1,10 @@
 from amanda.tokens import Token,TokenType
+
+#TODO: Rename fields of some classes
+
+
 #Base class for all ASTNodes
 class ASTNode:
-
-
     def __init__(self,token=None):
         self.token = token
 
@@ -12,7 +14,9 @@ class ASTNode:
     def is_assignable(self):
         return False
 
-class Program(ASTNode):
+
+
+class Block():
     def __init__(self):
         self.children = []
 
@@ -24,13 +28,8 @@ class Program(ASTNode):
         for child in self.children:
             child.visit()
 
-class Block(Program):
-    pass
 
-
-
-
-class ExpNode(ASTNode):
+class Expr(ASTNode):
     def __init__(self,token=None):
         super().__init__(token)
         self.eval_type = None
@@ -47,7 +46,7 @@ class ExpNode(ASTNode):
 
 
 # Class for all binary operations
-class BinOpNode(ExpNode):
+class BinOp(Expr):
     def __init__(self,token,left=None,right=None):
         super().__init__(token)
         self.right = right
@@ -60,7 +59,7 @@ class BinOpNode(ExpNode):
         self.right.visit()
 
 
-class UnaryOpNode(ExpNode):
+class UnaryOp(Expr):
     def __init__(self,token,operand=None):
         super().__init__(token)
         self.operand = operand
@@ -72,7 +71,7 @@ class UnaryOpNode(ExpNode):
 
 
 
-class VarDeclNode(ASTNode):
+class VarDecl(ASTNode):
     def __init__(self,token,id=None,type=None,assign=None):
         super().__init__(token)
         self.type = type
@@ -84,17 +83,8 @@ class VarDeclNode(ASTNode):
         if self.assign is not None:
             self.assign.visit()
 
-class ArrayDeclNode(ASTNode):
-    def __init__(self,token,id=None,type=None,size=0):
-        super().__init__(token)
-        self.type = type
-        self.id = id
-        self.size = size
 
-    def visit(self):
-        print(f"Array declaration: {self.id} [{self.size}]")
-
-class AssignNode(ExpNode):
+class Assign(Expr):
     def __init__(self,token,left=None,right=None):
         super().__init__(token)
         self.left = left
@@ -115,27 +105,32 @@ class Statement(ASTNode):
     def __str__(self):
         return f"Statement: {self.token.lexeme} {self.token.line}"
 
+class Retorna(Statement):
+    pass
 
-class SeStatement(ASTNode):
+class Mostra(Statement):
+    pass
+
+class Se(ASTNode):
     def __init__(self,token,condition,then_branch,else_branch=None):
         super().__init__(token)
         self.condition = condition
         self.then_branch = then_branch
         self.else_branch = else_branch
 
-class WhileStatement(ASTNode):
+class Enquanto(ASTNode):
     def __init__(self,token,condition,statement):
         super().__init__(token)
         self.condition = condition
         self.statement =  statement
 
-class ForStatement(ASTNode):
+class Para(ASTNode):
     def __init__(self,token,expression = None,statement = None):
         super().__init__(token)
         self.expression = expression
         self.statement =  statement
 
-class ForExpr(ASTNode):
+class ParaExpr(ASTNode):
     def __init__(self,id=None,range=None):
         super().__init__(Token("FOR_EXPR",None))
         self.id = id
@@ -148,9 +143,9 @@ class RangeExpr(ASTNode):
         self.end = end
         self.inc = inc
 
-class FunctionCall(ExpNode):
+class Call(Expr):
     def __init__(self,id=None,fargs=[]):
-        super().__init__(Token("FUNCTION_CALL",None))
+        super().__init__(Token("CALL",None))
         self.id = id
         self.fargs = fargs
 
@@ -175,7 +170,7 @@ class FunctionDecl(ASTNode):
         self.block.visit()
 
 
-class ParamNode(ASTNode):
+class Param(ASTNode):
     def __init__(self,type=None,id=None):
         super().__init__(Token("FUNCTION_PARAM",None))
         self.type = type
@@ -184,9 +179,9 @@ class ParamNode(ASTNode):
     def __str__(self):
         return f"{self.type} {self.id}"
 
-class ArrayRef(ExpNode):
+class Index(Expr):
     def __init__(self,id=None,index=None):
-        super().__init__(Token("ARRAY_REF",None))
+        super().__init__(Token("Index",None))
         self.id = id
         self.index = index
     def visit(self):

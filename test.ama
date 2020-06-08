@@ -1,0 +1,35 @@
+# Comments:
+# This is a new and improved comment in amanda
+
+#Variable declarations:
+
+# Since amanda is statically typed, every type must be explicitly
+# Declared
+
+var ci : real;
+
+var a : int = 50 # instructions can be split by newline or semicolon
+
+var name : real = 20
+
+var pi : real = 3.14 
+
+var logico : bool = verdadeiro
+# Function declarations:
+# No more syntactic noise
+
+func add(a : int, b: int) : int
+    retorna a + b
+fim 		#Maybe fim func ??
+
+#enquanto and para
+enquanto pi > 0 faca
+    pi -= 1;
+fim
+
+
+para i de 0..6 faca
+   mostra i 
+fim
+
+
