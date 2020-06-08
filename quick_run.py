@@ -3,7 +3,7 @@ import time
 from amanda.lexer import Lexer
 from amanda.parser import Parser
 from amanda.semantic import Analyzer
-from amanda.pypti import Interpreter
+from amanda.pyamanda import Interpreter
 import amanda.error as ERR
 from io import StringIO
 
@@ -27,8 +27,8 @@ def run_parser():
 def run_sem_analysis():
     file = open(TEST_FILE) 
     parser = Parser(file)
-    intp = Analyzer(parser)
-    intp.check_program()
+    intp = Analyzer(file)
+    intp.check_program(parser.parse())
     file.close()
     print(intp.current_scope)
 

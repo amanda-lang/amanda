@@ -1,0 +1,14 @@
+#Fibonacci in amanda
+
+
+func fibo(n : int) : int
+
+    se n < 2 entao
+       retorna n
+    fim 
+
+    retorna fibo(n-1) + fibo(n-2)
+fim
+
+#Note: Never run fibo of 35 
+#mostra fibo()

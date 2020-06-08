@@ -1,9 +1,5 @@
 program
-  : block EOF
-  ;
-
-block
-  : ( declaration | NEWLINE )*
+  : ( declaration | NEWLINE )* EOF
   ;
 
 declaration
@@ -23,16 +19,20 @@ type
 
 function_declaration
   : FUNC IDENTIFIER LPAR formal_parameter_section? RPAR COL type 
-  block
+  body
   FIM
   ;
 
 procedure_declaration
   : PROC IDENTIFIER LPAR formal_parameter_section? RPAR 
-  block
+  body
   FIM
   ;
 
+
+body
+  :( declaration | NEWLINE )*
+  ;
 
 formal_parameter_section
   : IDENTIFIER COLON type (COMMA formal_parameter_section)*
@@ -58,15 +58,15 @@ mostra_stmt
   ;
 
 se_stmt
-  : SE equality ENTAO block (SENAO block)? FIM
+  : SE equality ENTAO body (SENAO body)? FIM
   ;
 
 while_stmt
-  : ENQUANTO equality FACA block FIM
+  : ENQUANTO equality FACA body FIM
   ;
 
 for_stmt
-  : PARA for_expression FACA block FIM
+  : PARA for_expression FACA body FIM
   ;
 
 for_expression

@@ -39,20 +39,7 @@ class Parser:
 
 
     def program(self):
-        program = self.block() 
-        if self.lookahead.token == Lexer.EOF:
-            return program
-        else:
-            self.error(f"sintaxe inválida para início de bloco {self.lookahead.token}")
-
-    def block(self):
-        ''' 
-        Method that does bulk of the parsing.
-        Called to parse body of functions, compound statements
-        and the 'main'function.
-        '''
-
-        block = AST.Block()
+        program = AST.Program() 
         start_first = (
             TT.LPAR,TT.INTEGER,TT.IDENTIFIER,
             TT.REAL,TT.STRING,TT.PLUS,TT.MINUS,
@@ -62,6 +49,31 @@ class Parser:
             TT.PROC,
             )
 
+        while self.lookahead.token in start_first or self.lookahead.token == TT.NEWLINE:
+            if self.lookahead.token in start_first:
+                program.add_child(self.declaration())
+            else:
+                self.consume(TT.NEWLINE)
+        if self.lookahead.token == Lexer.EOF:
+            return program
+        else:
+            self.error(f"sintaxe inválida para início de programa {self.lookahead.token}")
+
+    def block(self):
+        ''' 
+        Method that does bulk of the parsing.
+        Called to parse body of functions, compound statements
+        and the 'main'function.
+        '''
+        block = AST.Block()
+        start_first = (
+            TT.LPAR,TT.INTEGER,TT.IDENTIFIER,
+            TT.REAL,TT.STRING,TT.PLUS,TT.MINUS,
+            TT.VERDADEIRO,TT.FALSO,TT.NAO,
+            TT.MOSTRA,TT.RETORNA,TT.SE,TT.VAR,
+            TT.FUNC,TT.ENQUANTO,TT.PARA,
+            TT.PROC,
+            )
         while self.lookahead.token in start_first or self.lookahead.token == TT.NEWLINE:
             if self.lookahead.token in start_first:
                 block.add_child(self.declaration())
@@ -136,7 +148,7 @@ class Parser:
             right = self.expression()
             assign = AST.Assign(
                 assign,
-                left=AST.Expr(id),
+                left=AST.Variable(id),
                 right=right
             )
         self.end_stmt()
@@ -426,9 +438,9 @@ class Parser:
                     node = AST.Index(id=token,index=self.equality())
                     self.consume(TT.RBRACKET)
                 else:
-                    node = AST.Expr(token)
+                    node = AST.Variable(token)
             else:
-                node = AST.Expr(self.lookahead)
+                node = AST.Constant(self.lookahead)
                 self.consume(current)
         elif current == TT.LPAR:
             self.consume(TT.LPAR)
