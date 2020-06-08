@@ -15,10 +15,13 @@ var name : real = 20
 var pi : real = 3.14 
 
 var logico : bool = verdadeiro
+var yu : int
 # Function declarations:
 # No more syntactic noise
 
+
 func add(a : int, b: int) : int
+    yu
     retorna a + b
 fim 		#Maybe fim func ??
 
@@ -28,8 +31,11 @@ enquanto pi > 0 faca
 fim
 
 
-para i de 0..6 faca
+para i de 0..1000000 faca
    mostra i 
 fim
+
+
+
 
 
