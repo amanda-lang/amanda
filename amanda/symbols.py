@@ -59,8 +59,6 @@ class Scope(SymbolTable):
 
 
 
-
-
 #Abstract base class for all symbols
 class Symbol:
     def __init__(self,name,type):
@@ -77,16 +75,28 @@ class Symbol:
         return False
 
 
-
-class BuiltInType(Symbol):
-    def __init__(self,name,type=None):
-        super().__init__(name,type)
+class Type(Symbol):
+    ''' Class that represents a type 
+    in amanda. Types will be used during
+    semantic analysis to enforce type
+    rules
+    '''
+    def __init__(self,name,super_type=None):
+        super().__init__(name,None)
+        self.super_type = super_type
 
     def __str__(self):
         return str(self.name)
 
     def is_type(self):
         return True
+
+
+
+class BuiltInType(Type):
+    pass
+
+
 
 class VariableSymbol(Symbol):
     def __init__(self,name,type):
@@ -95,8 +105,9 @@ class VariableSymbol(Symbol):
         return True
 
 
+
 class FunctionSymbol(Symbol):
-    def __init__(self,name,type,params):
+    def __init__(self,name,type,params={}):
         super().__init__(name,type)
         self.params = params #dict of symbols
 
@@ -104,7 +115,19 @@ class FunctionSymbol(Symbol):
         params = ",".join(self.params)
         return f"<{self.__class__.__name__}: ({self.name},{self.type}) ({params})>"
 
-class ArraySymbol(Symbol):
-    def __init__(self,name,type,size = 0):
-        super().__init__(name,type)
-        self.size = size
+
+
+
+class ClassSymbol(Type):
+    ''' Represents a class in amanda.
+        Both user defined and builtins.'''
+
+    def __init__(self,name,fields={},methods={},super_type=None):
+        super().__init__(name,super_type)
+        self.fields = fields
+        self.methods = methods
+
+    def __str__(self):
+        return f"--------{self.name}\n{self.fields}\n-------\n{self.methods}\n"
+
+

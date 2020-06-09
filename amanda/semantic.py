@@ -2,11 +2,13 @@ from enum import Enum
 from amanda.lexer import Lexer
 from amanda.tokens import TokenType as TT
 from amanda.tokens import Token
-import amanda.ast_nodes as AST
-import amanda.symtab as SYM
+import amanda.ast_nodes as ast
+import amanda.symbols as SYM
 import amanda.error as error
+import amanda.natives as natives
 
 
+#TODO: Refactor this because it doesn't scale
 ''' Class to represent built in types '''
 class Type(Enum):
     INT = 0
@@ -66,19 +68,25 @@ Class that performs semantic analysis on a syntatically valid
 amanda program.
 '''
 
-class Analyzer(AST.Visitor):
+class Analyzer(ast.Visitor):
 
     def __init__(self,src):
         self.current_scope = SYM.Scope(SYM.Scope.GLOBAL)
         self.src = src 
-        self.init__builtins()
+        self.init_builtins()
 
-    def init__builtins(self):
+    def init_builtins(self):
         self.current_scope.define("int",SYM.BuiltInType(Type.INT))
         self.current_scope.define("real",SYM.BuiltInType(Type.REAL))
         self.current_scope.define("bool",SYM.BuiltInType(Type.BOOL))
-        #remove this from here
+        builtins = natives.builtin_types.values()
 
+        for type_obj in builtins:
+            type_obj.load_symbol(self.current_scope)
+        
+        for type_obj in builtins:
+            type_obj.define_symbol(self.current_scope)
+        
 
     def has_return(self,node):
         node_class = type(node).__name__.lower()
