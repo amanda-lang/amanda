@@ -45,15 +45,15 @@ class Interpreter:
 
 
     def exec_vardecl(self,node):
-        name = node.id.lexeme
-        type = node.type.lexeme
-        if type == "int":
+        name = node.name.lexeme
+        var_type = node.var_type.lexeme
+        if var_type == "int":
             self.memory.define(name,0)
-        elif type == "real":
+        elif var_type == "real":
             self.memory.define(name,0.0)
-        elif type=="bool":
+        elif var_type=="bool":
             self.memory.define(name,False)
-        elif type == "texto":
+        elif var_type == "texto":
             self.memory.define(name,"")
         else:
             self.memory.define(name,Interpreter.NONE_TYPE)
@@ -63,8 +63,8 @@ class Interpreter:
 
 
     def exec_functiondecl(self,node):
-        id = node.id.lexeme
-        self.memory.define(id,RTFunction(id,node)) #Create function object
+        name = node.name.lexeme
+        self.memory.define(name,RTFunction(name,node)) #Create function object
 
     def exec_assign(self,node):
         value = node.right.accept(self)
@@ -77,16 +77,20 @@ class Interpreter:
         return node.token.lexeme
 
 
+    #Helper for evaluating expressions
+    def evaluate(self,expr):
+        return expr.accept(self)
+
     def exec_call(self,node):
-        prev = self.memory
         args = [arg.accept(self) for arg in node.fargs]
-        function = self.memory.resolve(node.id.lexeme)
+        callee = self.evaluate(node.callee) 
         try:
-            function.call(self,args=args)
+            #TODO: Fix this hack to keep environment
+            prev = self.memory
+            callee.call(self,args=args)
         except ReturnValue as e:
             #Return the previous env
             self.memory = prev
-            #print("PREVIOUS_AFTER_RETURN",self.memory)
             return e.value
 
 
@@ -173,8 +177,8 @@ class Interpreter:
     def exec_para(self,node):
         expr = node.expression
         #Get control variable
-        var = expr.id.lexeme
-        range_exp = expr.range
+        var = expr.name.lexeme
+        range_exp = expr.range_expr
         #Get range parameters
         start,end= (
                     range_exp.start.accept(self),

@@ -36,7 +36,7 @@ class Environment:
         str = "\n".join([ f"{key} : {self.memory[key]}" for key in self.memory])
         return f"{self.name}\n{str}"
 
-class Function(ABC):
+class AmaCallable(ABC):
 
     def __init__(self,name):
         self.name = name
@@ -46,7 +46,7 @@ class Function(ABC):
         pass
 
 
-class RTFunction(Function):
+class RTFunction(AmaCallable):
     def __init__(self,name,declaration):
         self.name = name
         self.declaration = declaration
@@ -54,9 +54,9 @@ class RTFunction(Function):
     def call(self,interpreter,**kwargs):
         decl = self.declaration
         args = kwargs["args"]
-        env = Environment(decl.id.lexeme,interpreter.memory)
+        env = Environment(decl.name.lexeme,interpreter.memory)
         for param,arg in zip(decl.params,args):
-            env.define(param.id.lexeme,arg)
+            env.define(param.name.lexeme,arg)
         interpreter.run_block(decl.block,env) 
     def __str__(self):
         return f"{self.name}: Function object"

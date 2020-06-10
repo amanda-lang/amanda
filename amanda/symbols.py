@@ -40,15 +40,12 @@ class Scope(SymbolTable):
     def get_enclosing_func(self):
         if self.name == Scope.GLOBAL:
             return None
-        if self.name != Scope.LOCAL:
-            return self
+        elif self.name != Scope.LOCAL:
+            sym = self.resolve(self.name)
+            if isinstance(sym,FunctionSymbol):
+                return self
+        return self.enclosing_scope().get_enclosing_func()
 
-        scope = self.enclosing_scope
-        while scope:
-            if scope.name not in (Scope.LOCAL,Scope.GLOBAL):
-                return scope
-            scope = scope.enclosing_scope
-        return None
 
 
     def define(self,name,symbol):
@@ -127,12 +124,11 @@ class ClassSymbol(Type):
     ''' Represents a class in amanda.
         Both user defined and builtins.'''
 
-    def __init__(self,name,fields={},methods={},super_type=None):
+    def __init__(self,name,members={},super_type=None):
         super().__init__(name,super_type)
-        self.fields = fields
-        self.methods = methods
+        self.members = members
 
     def __str__(self):
-        return f"--------{self.name}\n{self.fields}\n-------\n{self.methods}\n"
+        return f"{self.name}\n--------\n{self.members}\n"
 
 

@@ -24,13 +24,13 @@ class NativeType:
                     if not type_s:
                         raise Exception("Error ocurred, type not found")
                     method_symbol.params[name] = VariableSymbol(name,type_s)
-            symbol.methods[method] = method_symbol
+            symbol.members[method] = method_symbol
 
         for field,type_s in namespace.get("fields"):
             type_s = table.resolve(type_s)
             if not type_s:
                 raise Exception("Error ocurred, type not found")
-            symbol.fields[name] = VariableSymbol(name,type_s)
+            symbol.members[name] = VariableSymbol(name,type_s)
 
 
 

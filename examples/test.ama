@@ -35,9 +35,7 @@ para i de 0..1000000 faca
    mostra i 
 fim
 
-
 add(a,a)
-
 
 se pi < 4 entao
     mostra 10
@@ -50,3 +48,23 @@ senao
    mostra 11
 fim
 
+
+
+
+
+#class declaration
+
+classe Objecto
+    
+    var uuid : int
+    var hash : int
+    
+    func em_int():int
+	retorna 1
+    fim
+
+    func mostra_hash():int
+    	retorna hash
+    fim
+	
+fim

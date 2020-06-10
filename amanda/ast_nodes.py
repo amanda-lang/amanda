@@ -216,6 +216,10 @@ class ClassDecl(ASTNode):
         self.superclass = superclass
         self.body = body
 
+    def accept(self,visitor):
+        pass
+
+
 class ClassBody(Block):
     ''' Specialized block class for Amanda class declarations.
         It allows for names to be used before their declarations.'''
