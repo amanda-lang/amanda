@@ -94,15 +94,11 @@ expr_stmt
   ;
 
 expression
-  : add_assign
+  : compound_assignment
   ;
 
-add_assign
-  : multi_assign ( ( PLUSEQ| MINUSEQ ) equality )?
-  ;
-
-multi_assign
-  : assignment ( ( STAREQ| SLASHEQ ) equality )?
+compound_assignment
+  : assignment ( compound_operator equality )?
   ;
 
 assignment
@@ -122,18 +118,27 @@ addition
   ;
 
 term
-  : factor ( multi_operator term)*
+  : unary ( multi_operator unary)*
   ;
 
-factor
+unary
+  : (PLUS | MINUS | NOT) unary
+  | call
+  ;
+
+call
+   : primary (LPAR args? RPAR | DOT IDENTIFIER)*
+   ;
+
+
+primary
   : INTEGER
   | REAL
   | STRING
   | VERDADEIRO
   | FALSO
   | LPAR expression RPAR
-  | ( add_operator | NOT ) factor
-  | IDENTIFIER ( call | array_ref ) ? 
+  | IDENTIFIER 
   | NULO
   ;
 
@@ -145,7 +150,7 @@ array_ref
   : LBRACKET equality RBRACKET
   ;
 
-actual_parameters
+args
   : equality (COMMA equality)*
   ;
 

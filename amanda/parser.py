@@ -37,6 +37,9 @@ class Parser:
     def parse(self):
         return self.program()
 
+    def match(self,token):
+        return self.lookahead.token == token
+
 
     def program(self):
         program = AST.Program() 
@@ -49,7 +52,7 @@ class Parser:
             TT.PROC,
             )
 
-        while self.lookahead.token in start_first or self.lookahead.token == TT.NEWLINE:
+        while self.lookahead.token in start_first or self.match(TT.NEWLINE):
             if self.lookahead.token in start_first:
                 program.add_child(self.declaration())
             else:
@@ -104,10 +107,10 @@ class Parser:
             return self.statement()
 
     def type(self):
-        type = self.lookahead
+        type_name = self.lookahead
         self.consume(TT.IDENTIFIER)
         #TODO: Add Array syntatic sugar here 
-        return type
+        return type_name
     
 
     def end_stmt(self):
@@ -316,9 +319,6 @@ class Parser:
             inc = self.equality()
         return AST.RangeExpr(start,stop,inc)
 
-
-
-
     def eq_operator(self):
         current = self.lookahead.token
         if current == TT.DOUBLEEQUAL:
@@ -327,53 +327,53 @@ class Parser:
             self.consume(TT.NOTEQUAL)
 
     def expression(self):
-        return self.add_assign()
+        return self.compound_assignment()
 
-    def add_assign(self):
-        node = self.multi_assign()
+
+    def compound_assignment(self):
+        expr = self.assignment()
+        compound_operator = (TT.PLUSEQ,TT.MINUSEQ,TT.SLASHEQ,TT.STAREQ)
         current = self.lookahead.token
-        if current == TT.PLUSEQ or current ==TT.MINUSEQ:
-            if not node.is_assignable():
+        if current in compound_operator:
+            if not expr.is_assignable():
                 self.error(error.Syntax.ILLEGAL_ASSIGN)
             #Create separate tokens
             token = Token(None,None,line=self.lookahead.line,col=self.lookahead.col)
             eq = Token(TT.EQUAL,"=",line=self.lookahead.line,col=self.lookahead.col)
-            if current == TT.PLUSEQ:
-                token.token,token.lexeme = TT.PLUS,"+"
-            else:
-                token.token,token.lexeme = TT.MINUS,"-"
+            token.token,token.lexeme = self.compound_operator()
             self.consume(current)
-            node = AST.Assign(eq,left=node,right=AST.BinOp(token,left=node,right=self.equality()))
-        return node
-
-    def multi_assign(self):
-        node = self.assignment()
-        current = self.lookahead.token
-        if current == TT.STAREQ or current ==TT.SLASHEQ:
-            if not node.is_assignable():
-                self.error(error.Syntax.ILLEGAL_ASSIGN)
-            #Create separate tokens
-            token = Token(None,None,line=self.lookahead.line,col=self.lookahead.col)
-            eq = Token(TT.EQUAL,"=",line=self.lookahead.line,col=self.lookahead.col)
-            if current == TT.STAREQ:
-                token.token,token.lexeme = TT.STAR,"*"
+            if isinstance(expr,AST.Get):
+                expr = AST.Set(target=expr.target,right=self.assignment()) 
             else:
-                token.token,token.lexeme = TT.SLASH,"/"
-            self.consume(current)
-            node = AST.Assign(eq,left=node,right=AST.BinOp(token,left=node,right=self.equality()))
-        return node
+                expr = AST.Assign(eq,left=expr,right=AST.BinOp(token,left=expr,right=self.equality()))
+        return expr
 
+    def compound_operator(self):
+        if self.match(TT.PLUSEQ):
+            op = (TT.PLUS,"+")
+        elif self.match(TT.MINUSEQ):
+            op = (TT.MINUS,"-")
+        elif self.match(TT.STAREQ):
+            op = (TT.STAR,"*")
+        elif self.match(TT.SLASHEQ):
+            op = (TT.SLASH,"/")
+        return op
+ 
 
     def assignment(self):
-        node = self.equality()
+        expr = self.equality()
         current = self.lookahead.token
-        if self.lookahead.token == TT.EQUAL:
+        if self.match(TT.EQUAL):
             token = self.lookahead
             self.consume(TT.EQUAL)
-            if not node.is_assignable():
+            #TODO:remove this from here
+            if not expr.is_assignable():
                 self.error(error.Syntax.ILLEGAL_ASSIGN)
-            node = AST.Assign(token,left=node,right=self.assignment())
-        return node
+            if isinstance(expr,AST.Get):
+                expr = AST.Set(target=expr.target,right=self.assignment()) 
+            else:
+                expr = AST.Assign(token,left=expr,right=self.assignment())
+        return expr
 
 
     def equality(self):
@@ -417,59 +417,70 @@ class Parser:
 
 
     def term(self):
-        node = self.factor()
+        node = self.unary()
         while self.lookahead.token in (TT.STAR,TT.SLASH,TT.MODULO,TT.E):
             op = self.lookahead
             self.mult_operator()
-            node = AST.BinOp(op,left=node,right=self.term())
+            node = AST.BinOp(op,left=node,right=self.unary())
         return node
 
-    def factor(self):
+
+    def unary(self):
         current = self.lookahead.token
-        node = None
-        if current in (TT.INTEGER,TT.REAL,TT.STRING,TT.IDENTIFIER,TT.VERDADEIRO,TT.FALSO):
-            if current == TT.IDENTIFIER:
-                token = self.lookahead
-                self.consume(TT.IDENTIFIER)
-                if self.lookahead.token == TT.LPAR:
-                    node = AST.Call(id=token,fargs=self.call())
-                elif self.lookahead.token == TT.LBRACKET:
-                    self.consume(TT.LBRACKET)
-                    node = AST.Index(id=token,index=self.equality())
-                    self.consume(TT.RBRACKET)
-                else:
-                    node = AST.Variable(token)
-            else:
-                node = AST.Constant(self.lookahead)
-                self.consume(current)
-        elif current == TT.LPAR:
-            self.consume(TT.LPAR)
-            node = self.equality()
-            self.consume(TT.RPAR)
-        elif current in (TT.PLUS,TT.MINUS,TT.NAO):
+        if current in (TT.PLUS,TT.MINUS,TT.NAO):
             token = self.lookahead
             self.consume(current)
-            node = AST.UnaryOp(token,operand=self.factor())
+            node = AST.UnaryOp(token,operand=self.unary())
+            return node
+        return self.call()
+        
+
+    def call(self):
+        expr = self.primary()
+        while self.lookahead.token in (TT.LPAR,TT.DOT):
+            current = self.lookahead.token
+            if self.match(TT.LPAR):
+                self.consume(TT.LPAR)
+                args = []
+                if not self.match(TT.RPAR):
+                    args = self.args()
+                token = self.lookahead
+                self.consume(TT.RPAR,
+                "os argumentos da função devem ser delimitados por ')'")
+                expr = AST.Call(callee=expr,paren=token,fargs=args)
+            else:
+                self.consume(TT.DOT)
+                identifier = self.lookahead
+                self.consume(TT.IDENTIFIER)
+                expr = AST.Get(target=expr,member=identifier)
+        return expr
+
+            
+    def primary(self):
+        current = self.lookahead.token
+        expr = None
+        if current in (TT.INTEGER,TT.REAL,TT.STRING,TT.IDENTIFIER,TT.VERDADEIRO,TT.FALSO):
+            if self.match(TT.IDENTIFIER):
+                expr = AST.Variable(self.lookahead)
+            else:
+                expr = AST.Constant(self.lookahead)
+            self.consume(current)
+        elif current == TT.LPAR:
+            self.consume(TT.LPAR)
+            expr = self.equality()
+            self.consume(TT.RPAR)
         #TODO: check if this is dead code
         else:
             self.error(f"início inválido de expressão: '{self.lookahead.lexeme}'")
-        return node
+        return expr
 
-    def call(self):
-        self.consume(TT.LPAR)
+    def args(self):
         current = self.lookahead.token
         args = []
-        if ( current in (
-                TT.LPAR,TT.INTEGER,TT.IDENTIFIER,
-                TT.REAL,TT.STRING,TT.PLUS,TT.MINUS,
-                TT.VERDADEIRO,TT.FALSO,TT.NAO
-                ) 
-            ):
+        args.append(self.equality())
+        while self.lookahead.token == TT.COMMA:
+            self.consume(TT.COMMA)
             args.append(self.equality())
-            while self.lookahead.token == TT.COMMA:
-                self.consume(TT.COMMA)
-                args.append(self.equality())
-        self.consume(TT.RPAR,"os argumentos da função devem ser delimitados por ')'")
         return args
 
 

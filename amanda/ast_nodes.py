@@ -176,13 +176,31 @@ class RangeExpr(ASTNode):
         return visitor.exec_rangeexpr(self)
 
 class Call(Expr):
-    def __init__(self,id=None,fargs=[]):
-        super().__init__(Token("CALL",None))
-        self.id = id
+    def __init__(self,callee=None,paren=None,fargs=[]):
+        super().__init__(paren)
+        self.callee = callee
         self.fargs = fargs
 
     def accept(self,visitor):
         return visitor.exec_call(self)
+
+
+class Get(Expr):
+
+    def __init__(self,target=None,member=None):
+        super().__init__(member)
+        self.target = target
+        self.member = member
+
+    def is_assignable(self):
+        return True
+
+class Set(Expr):
+
+    def __init__(self,target=None,expr=None):
+        super().__init__(expr.token)
+        self.target = target
+        self.expr = expr
 
 
 class FunctionDecl(ASTNode):
