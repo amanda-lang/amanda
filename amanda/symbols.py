@@ -51,7 +51,7 @@ class Scope(SymbolTable):
         return None
 
 
-    def define(self,name,symbol,token=None):
+    def define(self,name,symbol):
         super().define(name,symbol)
 
     def __str__(self):
@@ -60,6 +60,7 @@ class Scope(SymbolTable):
 
 
 #Abstract base class for all symbols
+#Change this type cheese
 class Symbol:
     def __init__(self,name,type):
         self.name = name
@@ -72,6 +73,9 @@ class Symbol:
         return False
 
     def is_type(self):
+        return False
+
+    def is_callable(self):
         return False
 
 
@@ -115,7 +119,8 @@ class FunctionSymbol(Symbol):
         params = ",".join(self.params)
         return f"<{self.__class__.__name__}: ({self.name},{self.type}) ({params})>"
 
-
+    def is_callable(self):
+        return True
 
 
 class ClassSymbol(Type):

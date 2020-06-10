@@ -36,6 +36,17 @@ para i de 0..1000000 faca
 fim
 
 
+add(a,a)
 
 
+se pi < 4 entao
+    mostra 10
+fim
+
+
+se pi < 4 entao
+    mostra 10
+senao
+   mostra 11
+fim
 

@@ -4,10 +4,18 @@ program
 
 declaration
   :  var_declaration
+  | class declaration
   | function_declaration
-  | procedure_declaration
   | stmt
   ;
+
+
+class_declaration
+  : CLASSE IDENTIFIER ( < IDENTIFIER )? class_body FIM
+  ;
+
+class_body
+  : ( var_declaration | function_declaration | NEWLINE )*
 
 var_declaration
   : VAR IDENTIFIER COLON type assignment? ( SEMI | NEWLINE )
@@ -20,13 +28,11 @@ type
 function_declaration
   : FUNC IDENTIFIER LPAR formal_parameter_section? RPAR COL type 
   body
-  FIM
   ;
 
 procedure_declaration
   : PROC IDENTIFIER LPAR formal_parameter_section? RPAR 
   body
-  FIM
   ;
 
 

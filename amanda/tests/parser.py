@@ -68,9 +68,13 @@ class ParserTestCase(unittest.TestCase):
             se  verdadeiro == falso  entao 
                 rebenta   
             senao
-                var a: int 
+                se a == 1 entao
+                  a -1
+                senao
+                   var a: int 
+                fim
             fim
-
+            
             enquanto verdadeiro  faca
                 rebenta 
             fim
@@ -148,13 +152,33 @@ class ParserTestCase(unittest.TestCase):
 
 
             #Procedure declaration
-            proc mostra_func(str:texto)
-                mostra str
-            fim
         '''
         ]
         for phrase in phrases:
             print(phrase,file=self.buffer)
+        #self.buffer.writelines(phrases)
+        self.buffer.seek(0)
+        parser = Parser(self.buffer)
+        parser.parse()
+
+
+    def test_class_decl(self):
+        src = ''' 
+        classe Animal
+            
+            var nome : Texto
+            var idade : int
+
+            func constructor(nome:Texto,idade:int)
+            fim
+
+        fim
+
+        classe Humano < Animal
+
+        fim
+        ''' 
+        print(src,file=self.buffer)
         #self.buffer.writelines(phrases)
         self.buffer.seek(0)
         parser = Parser(self.buffer)
