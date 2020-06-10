@@ -33,7 +33,7 @@ class ParserTestCase(unittest.TestCase):
             "'string'/2.241 ","(c*array+soma(1-3))/((2.132+1)*('string'*2))",
             "a","add(1-2)","array","a = b","a = soma(a)",
             "a = a","b = soma(a)","a=b=c=d=a","a=b=c=d=soma(b)","(a+b>a-b)",
-            "(((a-b>=a+c)<(a-b))<=(a*2+5)) ou falso != nao verdadeiro","a += 1;a-=2*1;a*=4*(76-2)", "callback(a,b,c)()","string.texo","string.get_texto()","klass()()().stop_please()"
+            "(((a-b>=a+c)<(a-b))<=(a*2+5)) ou falso != nao verdadeiro","a += 1;a-=2*1;a*=4*(76-2)", "callback(a,b,c)()","string.texo","string.get_texto()","klass()()().stop_please()","string.texto='sss'","numero.value+=1","numero.value().set = 1"
         ]
         for phrase in phrases:
             print(phrase,file=self.buffer)

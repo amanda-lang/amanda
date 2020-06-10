@@ -343,7 +343,7 @@ class Parser:
             token.token,token.lexeme = self.compound_operator()
             self.consume(current)
             if isinstance(expr,AST.Get):
-                expr = AST.Set(target=expr.target,right=self.assignment()) 
+                expr = AST.Set(target=expr.target,expr=self.assignment()) 
             else:
                 expr = AST.Assign(eq,left=expr,right=AST.BinOp(token,left=expr,right=self.equality()))
         return expr
@@ -370,7 +370,7 @@ class Parser:
             if not expr.is_assignable():
                 self.error(error.Syntax.ILLEGAL_ASSIGN)
             if isinstance(expr,AST.Get):
-                expr = AST.Set(target=expr.target,right=self.assignment()) 
+                expr = AST.Set(target=expr.target,expr=self.assignment()) 
             else:
                 expr = AST.Assign(token,left=expr,right=self.assignment())
         return expr
