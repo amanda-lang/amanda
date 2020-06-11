@@ -40,18 +40,15 @@ class Scope(SymbolTable):
     def get_enclosing_func(self):
         if self.name == Scope.GLOBAL:
             return None
-        if self.name != Scope.LOCAL:
-            return self
-
-        scope = self.enclosing_scope
-        while scope:
-            if scope.name not in (Scope.LOCAL,Scope.GLOBAL):
-                return scope
-            scope = scope.enclosing_scope
-        return None
+        elif self.name != Scope.LOCAL:
+            sym = self.resolve(self.name)
+            if isinstance(sym,FunctionSymbol):
+                return self
+        return self.enclosing_scope().get_enclosing_func()
 
 
-    def define(self,name,symbol,token=None):
+
+    def define(self,name,symbol):
         super().define(name,symbol)
 
     def __str__(self):
@@ -59,9 +56,8 @@ class Scope(SymbolTable):
 
 
 
-
-
 #Abstract base class for all symbols
+#Change this type cheese
 class Symbol:
     def __init__(self,name,type):
         self.name = name
@@ -76,17 +72,32 @@ class Symbol:
     def is_type(self):
         return False
 
+    def is_callable(self):
+        return False
 
 
-class BuiltInType(Symbol):
-    def __init__(self,name,type=None):
-        super().__init__(name,type)
+class Type(Symbol):
+    ''' Class that represents a type 
+    in amanda. Types will be used during
+    semantic analysis to enforce type
+    rules
+    '''
+    def __init__(self,name,super_type=None):
+        super().__init__(name,None)
+        self.super_type = super_type
 
     def __str__(self):
         return str(self.name)
 
     def is_type(self):
         return True
+
+
+
+class BuiltInType(Type):
+    pass
+
+
 
 class VariableSymbol(Symbol):
     def __init__(self,name,type):
@@ -95,8 +106,9 @@ class VariableSymbol(Symbol):
         return True
 
 
+
 class FunctionSymbol(Symbol):
-    def __init__(self,name,type,params):
+    def __init__(self,name,type,params={}):
         super().__init__(name,type)
         self.params = params #dict of symbols
 
@@ -104,7 +116,19 @@ class FunctionSymbol(Symbol):
         params = ",".join(self.params)
         return f"<{self.__class__.__name__}: ({self.name},{self.type}) ({params})>"
 
-class ArraySymbol(Symbol):
-    def __init__(self,name,type,size = 0):
-        super().__init__(name,type)
-        self.size = size
+    def is_callable(self):
+        return True
+
+
+class ClassSymbol(Type):
+    ''' Represents a class in amanda.
+        Both user defined and builtins.'''
+
+    def __init__(self,name,members={},super_type=None):
+        super().__init__(name,super_type)
+        self.members = members
+
+    def __str__(self):
+        return f"{self.name}\n--------\n{self.members}\n"
+
+

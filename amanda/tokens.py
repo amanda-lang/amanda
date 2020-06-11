@@ -65,7 +65,6 @@ class TokenType(Enum):
     INC = "INC"
     FIM = "FIM"
     FUNC = "FUNC"
-    PROC = "PROC"
     NULO = "NULO"
     CLASSE = "CLASSE"
 

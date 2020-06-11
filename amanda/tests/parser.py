@@ -29,11 +29,11 @@ class ParserTestCase(unittest.TestCase):
     def test_expression(self):
         phrases = ["2-1","2+1","2/1","2*1","2%1","2+ad",
             "'string'+'op'","2.132+1","'string'*2","string*2",
-            "string[0]*5","a+b-c*array[1]%(-a)/(-c)+eval(2+1,5)","+--2---5",
-            "'string'/2.241 ","(c*array[1]+soma(1-3))/((2.132+1)*('string'*2))",
-            "a","add(1-2)","array[1]","a = b","a = soma(a)",
-            "a[0] = a","b[0] = soma(a)","a=b=c=d=a[0]","a=b=c=d=soma(b)","(a+b>a-b)",
-            "(((a-b>=a+c)<(a-b))<=(a*2+5)) ou falso != nao verdadeiro","a += 1;a-=2*1;a[0]*=4*(76-2)"
+            "string*5","a+b-c*array%(-a)/(-c)+eval(2+1,5)","+--2---5",
+            "'string'/2.241 ","(c*array+soma(1-3))/((2.132+1)*('string'*2))",
+            "a","add(1-2)","array","a = b","a = soma(a)",
+            "a = a","b = soma(a)","a=b=c=d=a","a=b=c=d=soma(b)","(a+b>a-b)",
+            "(((a-b>=a+c)<(a-b))<=(a*2+5)) ou falso != nao verdadeiro","a += 1;a-=2*1;a*=4*(76-2)", "callback(a,b,c)()","string.texo","string.get_texto()","klass()()().stop_please()","string.texto='sss'","numero.value+=1","numero.value().set = 1"
         ]
         for phrase in phrases:
             print(phrase,file=self.buffer)
@@ -43,8 +43,8 @@ class ParserTestCase(unittest.TestCase):
         parser.parse()
 
     def test_statement(self):
-        phrases = ["mostra 2-1","retorna eval(2*1+((21-1)*12));","retorna a[0];",
-            "retorna a[0]","mostra a+b-c*array[1]%(-a)/(-c)+eval(2+1,5);",'''
+        phrases = ["mostra 2-1","retorna eval(2*1+((21-1)*12));","retorna a;",
+            "retorna a","mostra a+b-c*array%(-a)/(-c)+eval(2+1,5);",'''
             se verdadeiro == falso entao  
                 rebenta
             fim
@@ -68,9 +68,13 @@ class ParserTestCase(unittest.TestCase):
             se  verdadeiro == falso  entao 
                 rebenta   
             senao
-                var a: int 
+                se a == 1 entao
+                  a -1
+                senao
+                   var a: int 
+                fim
             fim
-
+            
             enquanto verdadeiro  faca
                 rebenta 
             fim
@@ -121,14 +125,14 @@ class ParserTestCase(unittest.TestCase):
             func test(a:int,b:int): int
                 2-1
                 var soma : int = a+b
-                #mostra a+b-c*array[1]%(-a)/(-c)+eval(2+1,5)
+                #mostra a+b-c*array%(-a)/(-c)+eval(2+1,5)
                 retorna -soma+(2*2%1)
             fim
 
             func test(a:int,b:int): int
                 2-1;
                 var soma : int = a+b;
-                #mostra a+b-c*array[1]%(-a)/(-c)+eval(2+1,5);
+                #mostra a+b-c*array%(-a)/(-c)+eval(2+1,5);
                 retorna -soma+(2*2%1);
             fim
             
@@ -148,13 +152,33 @@ class ParserTestCase(unittest.TestCase):
 
 
             #Procedure declaration
-            proc mostra_func(str:texto)
-                mostra str
-            fim
         '''
         ]
         for phrase in phrases:
             print(phrase,file=self.buffer)
+        #self.buffer.writelines(phrases)
+        self.buffer.seek(0)
+        parser = Parser(self.buffer)
+        parser.parse()
+
+
+    def test_class_decl(self):
+        src = ''' 
+        classe Animal
+            
+            var nome : Texto
+            var idade : int
+
+            func constructor(nome:Texto,idade:int)
+            fim
+
+        fim
+
+        classe Humano < Animal
+
+        fim
+        ''' 
+        print(src,file=self.buffer)
         #self.buffer.writelines(phrases)
         self.buffer.seek(0)
         parser = Parser(self.buffer)

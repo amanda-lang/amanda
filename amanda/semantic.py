@@ -2,11 +2,13 @@ from enum import Enum
 from amanda.lexer import Lexer
 from amanda.tokens import TokenType as TT
 from amanda.tokens import Token
-import amanda.ast_nodes as AST
-import amanda.symtab as SYM
+import amanda.ast_nodes as ast
+import amanda.symbols as SYM
 import amanda.error as error
+import amanda.natives as natives
 
 
+#TODO: Refactor this because it doesn't scale
 ''' Class to represent built in types '''
 class Type(Enum):
     INT = 0
@@ -66,24 +68,33 @@ Class that performs semantic analysis on a syntatically valid
 amanda program.
 '''
 
-class Analyzer(AST.Visitor):
+class Analyzer(ast.Visitor):
 
     def __init__(self,src):
         self.current_scope = SYM.Scope(SYM.Scope.GLOBAL)
         self.src = src 
-        self.init__builtins()
+        self.current_node = None
+        self.init_builtins()
 
-    def init__builtins(self):
+    def init_builtins(self):
         self.current_scope.define("int",SYM.BuiltInType(Type.INT))
         self.current_scope.define("real",SYM.BuiltInType(Type.REAL))
         self.current_scope.define("bool",SYM.BuiltInType(Type.BOOL))
-        #remove this from here
+        builtins = natives.builtin_types.values()
 
+        for type_obj in builtins:
+            type_obj.load_symbol(self.current_scope)
+        
+        for type_obj in builtins:
+            type_obj.define_symbol(self.current_scope)
+        
 
     def has_return(self,node):
         node_class = type(node).__name__.lower()
         method_name = f"has_return_{node_class}"
         visitor_method = getattr(self,method_name,self.general_check)
+        #update AST node
+        self.current_node = node
         return visitor_method(node)
 
     def general_check(self,node):
@@ -107,11 +118,14 @@ class Analyzer(AST.Visitor):
         return True
 
 
-    def error(self,line,col,code,**kwargs):
+    def error(self,code,**kwargs):
         message = code.format(**kwargs)
         handler = error.ErrorHandler.get_handler()
         handler.throw_error(
-            error.Analysis(message,line,col),
+            error.Analysis(
+              message,self.current_node.token.line,
+              self.current_node.token.col
+              ),
             self.src
         )
 
@@ -125,63 +139,86 @@ class Analyzer(AST.Visitor):
             self.visit(child)
 
     def visit_vardecl(self,node):
-        name = node.id.lexeme
-        line = node.id.line
-        col = node.id.col
-        var_type = self.current_scope.resolve(node.type.lexeme)
+        name = node.name.lexeme
+        line = node.name.line
+        col = node.name.col
+        var_type = self.current_scope.resolve(node.var_type.lexeme)
         if not var_type or not var_type.is_type():
             self.error(
-                        line,col,
                         error.Analysis.UNDEFINED_TYPE,
-                        type=node.type.lexeme
+                        type=node.var_type.lexeme
                     )
 
         if not self.current_scope.symbols.get(name) is None:
-            self.error(
-                        line,col,
-                        error.Analysis.ID_IN_USE,
-                        name=name
-                    )
-
+            self.error(error.Analysis.ID_IN_USE,name=name)
         symbol = SYM.VariableSymbol(name,var_type)
-        self.current_scope.define(name,symbol,node.id)
+        self.current_scope.define(name,symbol)
         if node.assign is not None:
             if node.assign.right.token.lexeme == name:
-                self.error(
-                            line,
-                            f"Erro ao inicializar variável. Não pode referenciar uma variável durante a sua declaração")
-
+                self.error(f"Erro ao inicializar variável. Não pode referenciar uma variável durante a sua declaração")
             self.visit(node.assign)
 
 
     def visit_functiondecl(self,node):
         #Check if id is already in use
-        name = node.id.lexeme
-        line = node.id.line
-        col = node.id.col
+        name = node.name.lexeme
         if self.current_scope.resolve(name):
-            self.error(line,error.Analysis.ID_IN_USE,name=name)
+            self.error(error.Analysis.ID_IN_USE,name=name)
         #Check if return types exists
-        function_type =  self.current_scope.resolve(node.type.lexeme)
+        function_type =  self.current_scope.resolve(node.func_type.lexeme)
         if not function_type or not function_type.is_type():
-            self.error(line,col,error.Analysis.UNDEFINED_TYPE,type=node.type.lexeme)
+            self.error(error.Analysis.UNDEFINED_TYPE,type=node.func_type.lexeme)
         has_return = self.has_return(node.block)
         if not has_return:
-            self.error(line,col,error.Analysis.NO_RETURN_STMT,name=name)
-        params = {}
-        for param in node.params:
-            param_name = param.id.lexeme
-            if params.get(param_name):
-                self.error(line,col,error.Analysis.REPEAT_PARAM,name=param_name)
-            param_symbol = self.visit(param)
-            params[param_name] = param_symbol
-            #Add params o current_scope
-        symbol = SYM.FunctionSymbol(name,function_type,params)
+            self.current_node = node
+            self.error(error.Analysis.NO_RETURN_STMT,name=name)
+        symbol = SYM.FunctionSymbol(name,function_type)
         self.current_scope.define(name,symbol)
-        scope = SYM.Scope(name,self.current_scope)
-        for name,param in symbol.params.items():
-            scope.define(name,param)
+        scope,symbol.params = self.define_func_scope(name,node.params)
         self.visit(node.block,scope)
+        
+
+    def define_func_scope(self,name,params):
+        params_dict = {}
+        for param in params:
+            param_name = param.name.lexeme
+            if params_dict.get(param_name):
+                self.error(error.Analysis.REPEAT_PARAM,name=param_name)
+            param_symbol = self.visit(param)
+            params_dict[param_name] = param_symbol
+            #Add params o current_scope
+        scope = SYM.Scope(name,self.current_scope)
+        for param_name,param in params_dict.items():
+            scope.define(param_name,param)
+        return (scope,params_dict)
+
+
+
+    def visit_classdecl(self,node):
+        name = node.name.lexeme
+        if self.current_scope.resolve(name):
+            self.error(error.Analysis.ID_IN_USE,name=name)
+        #Check if class has a valid superclass
+        superclass = node.superclass
+        if superclass:
+            #check superclass here
+            pass
+        symbol = SYM.ClassSymbol(name,super_type=superclass)
+        self.current_scope.define(name,symbol)
+        #Do some superclass stuff here
+        #//////////////////////////////
+        scope = SYM.Scope(name,self.current_scope)
+        members = self.visit_classbody(node.body,scope)
+        symbol.members = members
+
+    
+    def visit_classbody(self,node,scope):
+        self.current_scope = scope
+        for child in node.children:
+            self.visit(child)
+        self.current_scope = self.current_scope.enclosing_scope
+        return scope.symbols
+
 
     def visit_block(self,node,scope=None):
         if not scope:
@@ -193,15 +230,15 @@ class Analyzer(AST.Visitor):
 
 
     def visit_param(self,node):
-        var_type = self.current_scope.resolve(node.type.lexeme)
+        var_type = self.current_scope.resolve(node.param_type.lexeme)
         if not var_type or not var_type.is_type():
             self.error(
-                        node.type.line,
-                        node.type.col,
+                        node.param_type.line,
+                        node.param_type.col,
                         error.Analysis.UNDEFINED_TYPE,
-                        type=node.type.lexeme
+                        type=node.param_type.lexeme
                     )
-        name = node.id.lexeme
+        name = node.name.lexeme
         return SYM.VariableSymbol(name,var_type)
 
 
@@ -222,7 +259,7 @@ class Analyzer(AST.Visitor):
         col = node.token.col
         sym = self.current_scope.resolve(name)
         if not sym:
-            self.error(line,col,error.Analysis.UNDECLARED_ID,name=name)
+            self.error(error.Analysis.UNDECLARED_ID,name=name)
         #Referencing array by name 
         elif not sym.is_valid_var():
             self.error(line,col,error.Analysis.INVALID_REF,name=name)
@@ -301,12 +338,11 @@ class Analyzer(AST.Visitor):
     def visit_retorna(self,node):
         self.visit(node.exp)
         token = node.token.token
-        line = node.token.line
-        col = node.token.col
         function = self.current_scope.get_enclosing_func()
         #TODO: Fix return bug inside local scope
         if not function:
-            self.error(line,col,f"O comando 'retorna' só pode ser usado dentro de uma função")
+            self.current_node = node
+            self.error(f"O comando 'retorna' só pode ser usado dentro de uma função")
         function = self.current_scope.resolve(function.name)
         node.exp.prom_type = type_promotion[node.exp.eval_type.value][function.type.name.value]
         if not function.type:
@@ -334,15 +370,15 @@ class Analyzer(AST.Visitor):
 
     def visit_para(self,node):
         self.visit(node.expression)
-        id = node.expression.id.lexeme
-        sym = SYM.VariableSymbol(id,self.current_scope.resolve("int"))
+        name = node.expression.name.lexeme
+        sym = SYM.VariableSymbol(name,self.current_scope.resolve("int"))
         scope = SYM.Scope(SYM.Scope.LOCAL,self.current_scope)
-        scope.define(id,sym)
+        scope.define(name,sym)
         self.visit(node.statement,scope)
 
     def visit_paraexpr(self,node):
-        self.visit(node.id)
-        self.visit(node.range)
+        self.visit(node.name)
+        self.visit(node.range_expr)
 
     def visit_rangeexpr(self,node):
         self.visit(node.start)
@@ -357,43 +393,50 @@ class Analyzer(AST.Visitor):
                 self.error(node.token.line,"os parâmetros de uma série devem ser do tipo 'int'")
 
     def visit_call(self,node):
-        for arg in node.fargs:
+        line = node.token.line
+        col = node.token.col
+        callee = node.callee
+        #Call is made on a variable
+        if isinstance(callee,ast.Variable):
+            name = callee.token.lexeme
+            sym = self.current_scope.resolve(name)
+        #Call is made on another call
+        elif isinstance(callee,ast.Call):
+            sym = self.visit(callee)
+            name = sym.name
+            #check if sym return type is callable
+            if not sym.type.is_callable():
+                self.error(line,col,f"Valores do tipo '{sym.type.name}' não são invocáveis")
+            return sym
+        else:
+            raise NotImplementedError("Don't know what to do with anything else in call")
+        self.validate_call(sym,node.fargs)
+        node.eval_type = sym.type.name
+        return sym
+
+
+    def validate_call(self,sym,fargs):
+        ''' Helper method that enforces a host of semantic 
+        checks on a call operation. '''
+
+        name = sym.name
+        if not sym:
+            self.error(line,col,f"o identificador '{name}' não foi definido neste escopo")
+        if not sym.is_callable():
+            self.error(line,col,f"identificador '{name}' não é invocável")
+        for arg in fargs:
             self.visit(arg)
-        id = node.id.lexeme
-        sym = self.current_scope.resolve(id)
-        line = node.id.line
-        col = node.id.col
-        if sym == None:
-            self.error(line,col,f"função '{id}' não foi definida")
-        if not isinstance(sym,SYM.FunctionSymbol):
-            self.error(line,col,f"identificador '{id}' não é uma função")
-        arg_len = len(node.fargs)
+        arg_len = len(fargs)
         param_len = len(sym.params)
         if arg_len != param_len:
             self.error(
-                        line,col,
-                        f"número incorrecto de argumentos para a função {node.id.lexeme}. Esperava {param_len} argumentos, porém recebeu {arg_len}"
+                        f"número incorrecto de argumentos para a função {name}. Esperava {param_len} argumento(s), porém recebeu {arg_len}"
                     )
         #Type promotion for parameter
-        func_decl = ",".join(["{} {}".format(param.type,param.name) for param in sym.params.values()]) #Get function signature
-        for arg,param in zip(node.fargs,sym.params.values()):
+        for arg,param in zip(fargs,sym.params.values()):
             arg.prom_type = type_promotion[arg.eval_type.value][param.type.name.value]
             if param.type.name != arg.eval_type and arg.prom_type == None:
-                self.error(line,col,f"argumento inválido. Esperava-se um argumento do tipo '{param.type.name}' mas recebeu o tipo '{arg.eval_type}'.\nassinatura: {id}({func_decl})")
-        node.eval_type = sym.type.name
-
-
-    def visit_index(self,node):
-        self.visit(node.index)
-        id = node.id.lexeme
-        sym = self.current_scope.resolve(id)
-        line = node.id.line
-        #Semantic checks start here
-        if not sym:
-            self.error(line,error.Analysis.UNDECLARED_ID,name=id)
-        elif not isinstance(sym,SYM.ArraySymbol):
-            self.error(line,f"o identificador '{id}' não é um vector")
-        #index = node.in
-        if node.index.eval_type != Type.INT:
-            self.error(line,f"o índice de um vector deve ser um inteiro")
-        node.eval_type = sym.type.name
+                self.error(line,col,f"argumento inválido. Esperava-se um argumento do tipo '{param.param_type.name}' mas recebeu o tipo '{arg.eval_type}'.")
+        
+    
+        
