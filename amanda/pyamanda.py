@@ -5,7 +5,7 @@ import amanda.ast_nodes as AST
 import amanda.semantic as SEM
 import amanda.error as error
 from amanda.parser import Parser
-from amanda.object import RTFunction,Environment,ReturnValue
+from amanda.object import *
 
 
 class Interpreter:
@@ -64,7 +64,28 @@ class Interpreter:
 
     def exec_functiondecl(self,node):
         name = node.name.lexeme
-        self.memory.define(name,RTFunction(name,node)) #Create function object
+        self.memory.define(name,RTFunction(name,node)) 
+
+
+    def exec_classdecl(self,node):
+        name = node.name.lexeme
+        if node.superclass:
+            pass
+        #Get blueprint for class
+        env = Environment(name,self.memory)
+        members = self.exec_classbody(node.body,env)
+        self.memory.define(name,AmaClass(name,members))
+        #print(members)
+
+
+    def exec_classbody(self,body,env):
+        self.memory = env
+        for child in body.children:
+            child.accept(self)
+        self.memory = env.previous
+        return env
+
+
 
     def exec_assign(self,node):
         value = node.right.accept(self)

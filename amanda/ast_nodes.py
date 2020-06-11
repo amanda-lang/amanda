@@ -217,7 +217,7 @@ class ClassDecl(ASTNode):
         self.body = body
 
     def accept(self,visitor):
-        pass
+        visitor.exec_classdecl(self)
 
 
 class ClassBody(Block):
