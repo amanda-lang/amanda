@@ -20,6 +20,11 @@ var yu : int
 # No more syntactic noise
 
 
+
+mostra name
+
+
+
 func add(a : int, b: int) : int
     yu
     retorna a + b
@@ -31,11 +36,9 @@ enquanto pi > 0 faca
 fim
 
 
-para i de 0..1000000 faca
-   mostra i 
-fim
 
-add(a,a)
+mostra add(a,a)
+
 
 se pi < 4 entao
     mostra 10
@@ -51,6 +54,7 @@ fim
 
 
 
+mostra pi
 
 #class declaration
 

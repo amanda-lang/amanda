@@ -100,6 +100,7 @@ class Analyzer(ast.Visitor):
             self.error(error.Analysis.ID_IN_USE,name=name)
         symbol = SYM.VariableSymbol(name,var_type)
         self.current_scope.define(name,symbol)
+        node.var_type = var_type
         assign = node.assign
         if assign is not None:
             if assign.right.token.lexeme == name:

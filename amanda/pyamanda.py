@@ -3,6 +3,7 @@ import sys
 from amanda.tokens import TokenType as TT
 import amanda.ast_nodes as AST
 import amanda.semantic as SEM
+from amanda.symbols import Tag
 import amanda.error as error
 from amanda.parser import Parser
 from amanda.object import *
@@ -46,19 +47,18 @@ class Interpreter:
 
     def exec_vardecl(self,node):
         name = node.name.lexeme
-        var_type = node.var_type.lexeme
-        if var_type == "int":
+        var_type = node.var_type.tag
+        if var_type == Tag.INT:
             self.memory.define(name,0)
-        elif var_type == "real":
+        elif var_type == Tag.REAL:
             self.memory.define(name,0.0)
-        elif var_type=="bool":
+        #TODO: Create real boolean object lol
+        elif var_type == Tag.BOOL:
             self.memory.define(name,False)
-        elif var_type == "texto":
-            self.memory.define(name,"")
         else:
-            self.memory.define(name,Interpreter.NONE_TYPE)
+            raise NotImplementedError("Object/ref types cannot be used yet")
         assign = node.assign
-        if not assign is None:
+        if assign:
             assign.accept(self)
 
 
@@ -126,7 +126,7 @@ class Interpreter:
         elif op == TT.STAR:
             return left * right
         elif op == TT.SLASH:
-            if node.eval_type == SEM.Type.REAL:
+            if node.eval_type.tag == Tag.REAL:
                 return left/right;
             else:
                 return left//right;
@@ -159,21 +159,21 @@ class Interpreter:
         return value
 
     def exec_constant(self,node):
-        type = node.prom_type
+        const_type = node.prom_type
         #Check if type conversion is needed
-        if not type:
-            type = node.eval_type
-            if type == SEM.Type.INT:
+        if not const_type:
+            const_type = node.eval_type.tag
+            if const_type == Tag.INT:
                 return int(node.token.lexeme)
-            elif type == SEM.Type.REAL:
+            elif const_type == Tag.REAL:
                 return float(node.token.lexeme)
-            elif type == SEM.Type.BOOL:
+            elif const_type == Tag.BOOL:
                 return True if node.token.token == TT.VERDADEIRO else False
         else:
-            if type == SEM.Type.REAL:
+            if const_type.tag == Tag.REAL:
                 return float(node.token.lexeme)
-            elif type == SEM.Type.BOOL:
-                return bool(node.token.lexeme) #False: 0,0.0 and "" True: Everything else
+            else:
+                raise Exception("No other casts should occur")
 
     def exec_variable(self,node):
         return self.memory.resolve(node.token.lexeme)
@@ -183,9 +183,10 @@ class Interpreter:
         condition = node.condition.accept(self)
         if bool(condition):
             node.then_branch.accept(self)
-        else_branch = node.else_branch
-        if else_branch is not None:
-            else_branch.accept(self)
+        else:
+            else_branch = node.else_branch
+            if else_branch:
+                else_branch.accept(self)
 
     def exec_enquanto(self,node):
         condition = node.condition
@@ -216,8 +217,6 @@ class Interpreter:
             inc = inc.accept(self)
         #Create local mem space for the loop
         env = Environment(Interpreter.LOCAL_MEMORY,self.memory)
-        #Check if it's a block so that you can pass an env to it
-        #print(f"LOGGING LOOP: start:{start} end: {end} inc:{inc} env:{env}")
         body = node.statement
         for control in range(start,end,inc):
             env.define(var,control)
@@ -232,7 +231,8 @@ class Interpreter:
     def exec_mostra(self,node):
         expr = node.exp
         expr = expr.accept(self) 
-        if node.exp.eval_type == SEM.Type.BOOL:
+        #TODO: Refactor this hack
+        if node.exp.eval_type.tag == Tag.BOOL:
             expr = "verdadeiro" if expr else "falso"
         print(expr)
 
