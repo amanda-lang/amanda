@@ -1,0 +1,4 @@
+# A loop to count to a million
+para i de 0..1000000 faca
+   mostra i 
+fim

@@ -8,60 +8,6 @@ import amanda.error as error
 import amanda.natives as natives
 
 
-#TODO: Refactor this because it doesn't scale
-''' Class to represent built in types '''
-class Type(Enum):
-    INT = 0
-    REAL = 1
-    BOOL = 2
-    
-    def __str__(self):
-        return self.name.lower()
-
-# results of static type computation
-# None means illegal operation
-aritop_results = [
-#       int       real       bool
-    [Type.INT,Type.REAL,None],
-    [Type.REAL,Type.REAL,None],
-    [None,None,None],
-]
-
-#Table for  type for >,<,>=,<=
-relop_results = [
-#       int       real       bool
-    [Type.BOOL,Type.BOOL,None],
-    [Type.BOOL,Type.BOOL,None],
-    [None,None,None],
-]
-
-#table for type results for == !=
-eqop_results = [
-#       int       real       bool
-    [Type.BOOL,Type.BOOL,Type.BOOL],
-    [Type.BOOL,Type.BOOL,Type.BOOL],
-    [None,None,Type.BOOL],
-]
-
-#table for type results for e ou !
-logop_results = [
-#    int  real  bool
-    [None,None,None],
-    [None,None,None],
-    [None,None,Type.BOOL],
-]
-
-
-
-# table for type promotions
-# VAZIO means should not be promoted
-type_promotion= [
-#    int  real  bool
-    [None,Type.REAL,None],
-    [None,None,None],
-    [None,None,None],
-]
-
 
 '''
 Class that performs semantic analysis on a syntatically valid
@@ -71,22 +17,25 @@ amanda program.
 class Analyzer(ast.Visitor):
 
     def __init__(self,src):
-        self.current_scope = SYM.Scope(SYM.Scope.GLOBAL)
+
+        #Just to have quick access to things like types and e.t.c
+        self.global_scope = SYM.Scope(SYM.Scope.GLOBAL)
+        self.current_scope = self.global_scope
         self.src = src 
         self.current_node = None
         self.init_builtins()
 
     def init_builtins(self):
-        self.current_scope.define("int",SYM.BuiltInType(Type.INT))
-        self.current_scope.define("real",SYM.BuiltInType(Type.REAL))
-        self.current_scope.define("bool",SYM.BuiltInType(Type.BOOL))
+        self.global_scope.define("int",SYM.BuiltInType("int",SYM.Tag.INT))
+        self.global_scope.define("real",SYM.BuiltInType("real",SYM.Tag.REAL))
+        self.global_scope.define("bool",SYM.BuiltInType("bool",SYM.Tag.BOOL))
         builtins = natives.builtin_types.values()
 
         for type_obj in builtins:
-            type_obj.load_symbol(self.current_scope)
+            type_obj.load_symbol(self.global_scope)
         
         for type_obj in builtins:
-            type_obj.define_symbol(self.current_scope)
+            type_obj.define_symbol(self.global_scope)
         
 
     def has_return(self,node):
@@ -140,8 +89,6 @@ class Analyzer(ast.Visitor):
 
     def visit_vardecl(self,node):
         name = node.name.lexeme
-        line = node.name.line
-        col = node.name.col
         var_type = self.current_scope.resolve(node.var_type.lexeme)
         if not var_type or not var_type.is_type():
             self.error(
@@ -149,14 +96,16 @@ class Analyzer(ast.Visitor):
                         type=node.var_type.lexeme
                     )
 
-        if not self.current_scope.symbols.get(name) is None:
+        if self.current_scope.resolve(name):
             self.error(error.Analysis.ID_IN_USE,name=name)
         symbol = SYM.VariableSymbol(name,var_type)
         self.current_scope.define(name,symbol)
-        if node.assign is not None:
-            if node.assign.right.token.lexeme == name:
+        node.var_type = var_type
+        assign = node.assign
+        if assign is not None:
+            if assign.right.token.lexeme == name:
                 self.error(f"Erro ao inicializar variável. Não pode referenciar uma variável durante a sua declaração")
-            self.visit(node.assign)
+            self.visit(assign)
 
 
     def visit_functiondecl(self,node):
@@ -165,11 +114,14 @@ class Analyzer(ast.Visitor):
         if self.current_scope.resolve(name):
             self.error(error.Analysis.ID_IN_USE,name=name)
         #Check if return types exists
-        function_type =  self.current_scope.resolve(node.func_type.lexeme)
+        decl_type = node.func_type.lexeme
+        function_type =  self.current_scope.resolve(decl_type)
+        #TODO: fix this hack
         if not function_type or not function_type.is_type():
-            self.error(error.Analysis.UNDEFINED_TYPE,type=node.func_type.lexeme)
+            self.error(error.Analysis.UNDEFINED_TYPE,type=decl_type)
         has_return = self.has_return(node.block)
         if not has_return:
+            #TODO: fix this hack
             self.current_node = node
             self.error(error.Analysis.NO_RETURN_STMT,name=name)
         symbol = SYM.FunctionSymbol(name,function_type)
@@ -203,7 +155,7 @@ class Analyzer(ast.Visitor):
         if superclass:
             #check superclass here
             pass
-        symbol = SYM.ClassSymbol(name,super_type=superclass)
+        symbol = SYM.ClassSymbol(name,superclass=superclass)
         self.current_scope.define(name,symbol)
         #Do some superclass stuff here
         #//////////////////////////////
@@ -230,13 +182,14 @@ class Analyzer(ast.Visitor):
 
 
     def visit_param(self,node):
-        var_type = self.current_scope.resolve(node.param_type.lexeme)
+        param_type = node.param_type.lexeme
+        var_type = self.current_scope.resolve(param_type)
         if not var_type or not var_type.is_type():
             self.error(
                         node.param_type.line,
                         node.param_type.col,
                         error.Analysis.UNDEFINED_TYPE,
-                        type=node.param_type.lexeme
+                        type=param_type
                     )
         name = node.name.lexeme
         return SYM.VariableSymbol(name,var_type)
@@ -244,26 +197,26 @@ class Analyzer(ast.Visitor):
 
     def visit_constant(self,node):
 
-        if node.token.token == TT.INTEGER:
-            node.eval_type = Type.INT
-        elif node.token.token == TT.REAL:
-            node.eval_type = Type.REAL
-        elif node.token.token == TT.STRING:
+        constant = node.token.token
+        if constant == TT.INTEGER:
+            node.eval_type = self.global_scope.resolve("int")
+        elif constant == TT.REAL:
+            node.eval_type = self.global_scope.resolve("real")
+        elif constant == TT.STRING:
             raise Exception("Not implemented strings yet")
-        elif node.token.token in (TT.VERDADEIRO,TT.FALSO):
-            node.eval_type = Type.BOOL
-    
+        elif constant in (TT.VERDADEIRO,TT.FALSO):
+            node.eval_type = self.global_scope.resolve("bool")
+
+
     def visit_variable(self,node):
         name = node.token.lexeme
-        line = node.token.line
-        col = node.token.col
         sym = self.current_scope.resolve(name)
         if not sym:
             self.error(error.Analysis.UNDECLARED_ID,name=name)
         #Referencing array by name 
-        elif not sym.is_valid_var():
-            self.error(line,col,error.Analysis.INVALID_REF,name=name)
-        node.eval_type = sym.type.name
+        elif not sym.can_evaluate():
+            self.error(error.Analysis.INVALID_REF,name=name)
+        node.eval_type = sym.type
 
 
     def visit_binop(self,node):
@@ -271,64 +224,53 @@ class Analyzer(ast.Visitor):
         self.visit(node.right)
         #Evaluate type of binary
         #arithmetic operation
-        operator = node.token.token
-        if operator in (TT.PLUS,TT.MINUS,TT.STAR,TT.SLASH,TT.MODULO):
-            node.eval_type = aritop_results[node.left.eval_type.value][node.right.eval_type.value]
-        elif operator in (TT.GREATER,TT.LESS,TT.GREATEREQ,TT.LESSEQ):
-            node.eval_type = relop_results[node.left.eval_type.value][node.right.eval_type.value]
-        elif operator in (TT.DOUBLEEQUAL,TT.NOTEQUAL):
-            node.eval_type = eqop_results[node.left.eval_type.value][node.right.eval_type.value]
-        elif operator in (TT.AND,TT.OR):
-            node.eval_type = logop_results[node.left.eval_type.value][node.right.eval_type.value]
-        #Validate binary ops
-        line = node.token.line
-        col = node.token.col
-        lexeme = node.token.lexeme
-        if not node.eval_type:
+        operator = node.token
+        lhs = node.left
+        rhs = node.right
+        result = lhs.eval_type.validate_op(operator.token,rhs.eval_type,self.current_scope)
+        if not result:
+            self.current_node = node
             self.error(
-                line,col,
                 error.Analysis.INVALID_OP,
-                t1=node.left.eval_type,
-                t2=node.right.eval_type,
-                operator=lexeme
-            )
+                t1=lhs.eval_type,
+                t2=rhs.eval_type,
+                operator=operator.lexeme)
+            
+        node.eval_type = result
+        lhs.prom_type = lhs.eval_type.promote_to(rhs.eval_type,self.current_scope)
+        rhs.prom_type = rhs.eval_type.promote_to(lhs.eval_type,self.current_scope)
 
-        node.left.prom_type = type_promotion[node.left.eval_type.value][node.right.eval_type.value]
-        node.right.prom_type = type_promotion[node.right.eval_type.value][node.left.eval_type.value]
 
     def visit_unaryop(self,node):
         self.visit(node.operand)
         operator = node.token.token
         lexeme = node.token.lexeme
-        line = node.token.line
-        type = node.operand.eval_type
+        op_type = node.operand.eval_type
         if operator in (TT.PLUS,TT.MINUS):
-            if type != Type.INT and type != Type.REAL:
-                self.error(line,error.Analysis.INVALID_UOP,operator=lexeme,type=type)
-            node.eval_type = type
+            if op_type.tag != SYM.Tag.INT and op_type.tag != Tag.REAL:
+                self.current_node = node
+                self.error(error.Analysis.INVALID_UOP,operator=lexeme,op_type=op_type)
         elif operator == TT.NAO:
-            node.operand.prom_type = logop_results[type.value][Type.BOOL.value]
-            if type != Type.BOOL and not node.operand.prom_type:
-                self.error(line,error.Analysis.INVALID_UOP,operator=lexeme,type=type)
-            node.eval_type = node.operand.prom_type
+            if op_type.tag != SYM.Tag.BOOL:
+                self.error(error.Analysis.INVALID_UOP,operator=lexeme,type=op_type)
+        node.eval_type = op_type
 
 
     def visit_assign(self,node):
-        self.visit(node.right)
-        self.visit(node.left)
+        lhs = node.left
+        rhs = node.right
+        
+        self.visit(rhs)
+        self.visit(lhs)
 
         #Set node types
-        node.eval_type = node.left.eval_type
+        node.eval_type = lhs.eval_type
         node.prom_type = None
         #Set promotion type for right side
-        node.right.prom_type = type_promotion[node.right.eval_type.value][node.left.eval_type.value]
-
-        line = node.token.line
-        col = node.token.col
-        if node.left.eval_type != node.right.eval_type and not node.right.prom_type:
-            self.error(
-                    line,col,
-                    f"atribuição inválida. incompatibilidade entre os operandos da atribuição [{node.left.eval_type} = {node.right.eval_type}]")
+        rhs.prom_type = rhs.eval_type.promote_to(lhs.eval_type,self.current_scope)
+        if lhs.eval_type != rhs.eval_type and not rhs.prom_type:
+            self.current_node = node
+            self.error(f"atribuição inválida. incompatibilidade entre os operandos da atribuição")
 
 
     def visit_mostra(self,node):
@@ -336,27 +278,25 @@ class Analyzer(ast.Visitor):
 
 
     def visit_retorna(self,node):
-        self.visit(node.exp)
-        token = node.token.token
+        expr = node.exp
+        self.visit(expr)
         function = self.current_scope.get_enclosing_func()
-        #TODO: Fix return bug inside local scope
         if not function:
             self.current_node = node
             self.error(f"O comando 'retorna' só pode ser usado dentro de uma função")
-        function = self.current_scope.resolve(function.name)
-        node.exp.prom_type = type_promotion[node.exp.eval_type.value][function.type.name.value]
+        func_type = function.type
+        #TODO: Work out what to do about void types
         if not function.type:
-            raise NotImplementedError("Void function have not been implemented")
-            #self.error(line,col,f"expressão de retorno inválida. Procedimentos não podem retornar valores")
-        elif function.type.name != node.exp.eval_type and node.exp.prom_type == None:
-            self.error(line,col,f"expressão de retorno inválida. O tipo do valor de retorno é incompatível com o tipo de retorno da função")
-
+            raise NotImplementedError("Void functions have not been implemented")
+        expr.prom_type = expr.eval_type.promote_to(func_type,self.current_scope)
+        if func_type.tag != expr.eval_type.tag and not expr.prom_type:
+            self.error(f"expressão de retorno inválida. O tipo do valor de retorno é incompatível com o tipo de retorno da função")
 
 
 
     def visit_se(self,node):
         self.visit(node.condition)
-        if node.condition.eval_type != Type.BOOL:
+        if node.condition.eval_type.tag != SYM.Tag.BOOL:
             self.error(node.token.line,f"a condição da instrução 'se' deve ser um valor lógico")
         self.visit(node.then_branch)
         if node.else_branch:
@@ -364,12 +304,15 @@ class Analyzer(ast.Visitor):
 
     def visit_enquanto(self,node):
         self.visit(node.condition)
-        if node.condition.eval_type != Type.BOOL:
-            self.error(node.token.line,f"a condição da instrução 'enquanto' deve ser um valor lógico")
+        if node.condition.eval_type.tag != SYM.Tag.BOOL:
+            print("LOGGING",node.condition.eval_type)
+            self.current_node = node
+            self.error(f"a condição da instrução 'enquanto' deve ser um valor lógico")
         self.visit(node.statement)
 
     def visit_para(self,node):
         self.visit(node.expression)
+        #Define control variable for loop
         name = node.expression.name.lexeme
         sym = SYM.VariableSymbol(name,self.current_scope.resolve("int"))
         scope = SYM.Scope(SYM.Scope.LOCAL,self.current_scope)
@@ -389,12 +332,10 @@ class Analyzer(ast.Visitor):
             #Skip inc node in case it's empty lool
             if not node:
                 continue
-            if node.eval_type != Type.INT:
-                self.error(node.token.line,"os parâmetros de uma série devem ser do tipo 'int'")
+            if node.eval_type.tag != SYM.Tag.INT:
+                self.error("os parâmetros de uma série devem ser do tipo 'int'")
 
     def visit_call(self,node):
-        line = node.token.line
-        col = node.token.col
         callee = node.callee
         #Call is made on a variable
         if isinstance(callee,ast.Variable):
@@ -406,37 +347,36 @@ class Analyzer(ast.Visitor):
             name = sym.name
             #check if sym return type is callable
             if not sym.type.is_callable():
-                self.error(line,col,f"Valores do tipo '{sym.type.name}' não são invocáveis")
+                self.error(f"Valores do tipo '{sym.type.name}' não são invocáveis")
             return sym
         else:
             raise NotImplementedError("Don't know what to do with anything else in call")
         self.validate_call(sym,node.fargs)
-        node.eval_type = sym.type.name
+        node.eval_type = sym.type        
         return sym
 
 
     def validate_call(self,sym,fargs):
         ''' Helper method that enforces a host of semantic 
         checks on a call operation. '''
-
         name = sym.name
         if not sym:
-            self.error(line,col,f"o identificador '{name}' não foi definido neste escopo")
+            self.error(f"o identificador '{name}' não foi definido neste escopo")
         if not sym.is_callable():
-            self.error(line,col,f"identificador '{name}' não é invocável")
+            self.error(f"identificador '{name}' não é invocável")
         for arg in fargs:
             self.visit(arg)
         arg_len = len(fargs)
-        param_len = len(sym.params)
+        param_len = sym.arity()
         if arg_len != param_len:
             self.error(
-                        f"número incorrecto de argumentos para a função {name}. Esperava {param_len} argumento(s), porém recebeu {arg_len}"
-                    )
+                f"número incorrecto de argumentos para a função {name}. Esperava {param_len} argumento(s), porém recebeu {arg_len}")
         #Type promotion for parameter
         for arg,param in zip(fargs,sym.params.values()):
-            arg.prom_type = type_promotion[arg.eval_type.value][param.type.name.value]
-            if param.type.name != arg.eval_type and arg.prom_type == None:
-                self.error(line,col,f"argumento inválido. Esperava-se um argumento do tipo '{param.param_type.name}' mas recebeu o tipo '{arg.eval_type}'.")
+            arg.prom_type = arg.eval_type.promote_to(param.type,self.current_scope)
+            if param.type.tag != arg.eval_type.tag and not arg.prom_type:
+                self.error(
+                   f"argumento inválido. Esperava-se um argumento do tipo '{param.param_type.name}' mas recebeu o tipo '{arg.eval_type}'")
         
     
         

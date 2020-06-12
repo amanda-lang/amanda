@@ -7,7 +7,7 @@ from amanda.pyamanda import Interpreter
 import amanda.error as ERR
 from io import StringIO
 
-TEST_FILE = "./test.ama"
+TEST_FILE = "./examples/test.ama"
 
 
 def run_lexer():
