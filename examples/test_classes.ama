@@ -15,3 +15,11 @@ classe Acumulador
         retorna contador
     fim
 fim
+
+
+
+var acum : Acumulador = Acumulador()
+
+
+acum.incrementa(4)
+mostra acum.get_contador()

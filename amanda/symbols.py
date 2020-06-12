@@ -195,8 +195,8 @@ class VariableSymbol(Symbol):
 
 
 class FunctionSymbol(Symbol):
-    def __init__(self,name,type,params={}):
-        super().__init__(name,type)
+    def __init__(self,name,func_type,params={}):
+        super().__init__(name,func_type)
         self.params = params #dict of symbols
 
     def __str__(self):
@@ -218,12 +218,10 @@ class ClassSymbol(Type):
         self.members = members
         self.superclass = superclass
 
+    def is_callable(self):
+        return True
+
     def __str__(self):
         return f"{self.name}\n--------\n{self.members}\n"
-
-
-
-
-
 
 

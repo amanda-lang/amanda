@@ -43,11 +43,23 @@ class Analyzer(ast.Visitor):
         method_name = f"has_return_{node_class}"
         visitor_method = getattr(self,method_name,self.general_check)
         #update AST node
+
+        #Previous node is used for nodes that call visit on
+        #other nodes
         self.current_node = node
         return visitor_method(node)
 
     def general_check(self,node):
         return False
+
+    def visit(self,node,args=None):
+        node_class = type(node).__name__.lower()
+        method_name = f"visit_{node_class}"
+        visitor_method = getattr(self,method_name,self.general_visit)
+        self.current_node = node
+        if node_class == "block":
+            return visitor_method(node,args)
+        return visitor_method(node)
 
     def has_return_block(self,node):
         for child in node.children:
@@ -217,7 +229,26 @@ class Analyzer(ast.Visitor):
         elif not sym.can_evaluate():
             self.error(error.Analysis.INVALID_REF,name=name)
         node.eval_type = sym.type
+        return sym
 
+    def visit_get(self,node):
+        ''' Method that processes getter expressions.
+        Returns the resolved symbol of the get expression.'''
+        target = self.visit(node.target)
+        if target.type.tag != SYM.Tag.REF:
+            self.error("Tipos primitivos não possuem atributos")
+
+        #Get the class symbol
+        obj_type = target.type
+        #check if member exists
+        member = node.member.lexeme
+        target = obj_type.members.get(member)
+        if not target:
+            self.error(f"O objecto do tipo '{obj_type.name}' não possui o atributo {member}.")
+        node.eval_type = target.type
+        return target
+
+        
 
     def visit_binop(self,node):
         self.visit(node.left)
@@ -343,17 +374,30 @@ class Analyzer(ast.Visitor):
             sym = self.current_scope.resolve(name)
         #Call is made on another call
         elif isinstance(callee,ast.Call):
+            return self.visit(callee)
+        elif isinstance(callee,ast.Get):
             sym = self.visit(callee)
-            name = sym.name
-            #check if sym return type is callable
-            if not sym.type.is_callable():
-                self.error(f"Valores do tipo '{sym.type.name}' não são invocáveis")
-            return sym
         else:
             raise NotImplementedError("Don't know what to do with anything else in call")
-        self.validate_call(sym,node.fargs)
-        node.eval_type = sym.type        
+        if isinstance(sym,SYM.ClassSymbol):
+            self.validate_constructor(sym,node.fargs)
+            node.eval_type = sym
+        else:
+            self.validate_call(sym,node.fargs)
+            node.eval_type = sym.type        
         return sym
+
+    def validate_constructor(self,sym,fargs):
+        ''' Helper method to validate function
+        instantiation'''
+        constructor = sym.members.get("constructor")
+        if not constructor:
+            #Use an empty constructor if no constructor
+            #is explicitly defined
+            #TODO: Find out WTF is causing the 'ghost param bug'
+            constructor = SYM.FunctionSymbol(sym.name,sym,{})
+        self.validate_call(constructor,fargs)
+
 
 
     def validate_call(self,sym,fargs):
