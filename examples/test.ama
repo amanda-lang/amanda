@@ -8,16 +8,21 @@
 
 var ci : real;
 
-var a : int = 50 # instructions can be split by newline or semicolon
+var a : int = 50 + 2  # instructions can be split by newline or semicolon
 
-var name : real = 20
+var name : real = --20 + 2 -+5
 
-var pi : real = 3.14 
+var pi : real = 3.14  
 
 var logico : bool = verdadeiro
 var yu : int
 # Function declarations:
 # No more syntactic noise
+
+
+
+mostra name
+
 
 
 func add(a : int, b: int) : int
@@ -31,11 +36,9 @@ enquanto pi > 0 faca
 fim
 
 
-para i de 0..1000000 faca
-   mostra i 
-fim
 
-add(a,a)
+mostra add(a,a)
+
 
 se pi < 4 entao
     mostra 10
@@ -51,6 +54,7 @@ fim
 
 
 
+mostra pi
 
 #class declaration
 

@@ -33,6 +33,11 @@ class NativeType:
             symbol.members[name] = VariableSymbol(name,type_s)
 
 
+class Int(NativeType):
+
+    fields = [("valor","Int")]
+
+
 
 class Texto(NativeType):
     methods = {
