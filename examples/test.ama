@@ -8,11 +8,11 @@
 
 var ci : real;
 
-var a : int = 50 # instructions can be split by newline or semicolon
+var a : int = 50 + 2  # instructions can be split by newline or semicolon
 
-var name : real = 20
+var name : real = --20 + 2 -+5
 
-var pi : real = 3.14 
+var pi : real = 3.14  
 
 var logico : bool = verdadeiro
 var yu : int
