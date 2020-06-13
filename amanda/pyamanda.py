@@ -179,6 +179,8 @@ class Interpreter:
 
         member = obj.members.resolve(node.member.lexeme)
 
+        #Use an amanda method to wrap the function
+        #TODO: Fix this hack and just create methods on from the start
         if isinstance(member,RTFunction):
             return AmandaMethod(obj,member)
         return member

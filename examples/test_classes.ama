@@ -32,3 +32,4 @@ acum.incrementa(1)
 mostra acum.get_contador()
 mostra acum.contador
 
+

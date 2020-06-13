@@ -30,7 +30,7 @@ class Environment:
         return value
 
     def resolve_space(self,name):
-        if self.resolve(name) != None:
+        if self.memory.get(name) != None:
             return self
         elif self.previous:
             return self.previous.resolve_space(name)
@@ -58,18 +58,16 @@ class RTFunction(AmaCallable):
     def call(self,interpreter,**kwargs):
         decl = self.declaration
         args = kwargs["args"]
-        env = kwargs.get("env")
         previous = interpreter.memory
         #Hack for executing methods:
         #State of instance is passed in the env
-        if not env:
-            env = Environment(decl.name.lexeme,interpreter.memory)
+        env = Environment(decl.name.lexeme,interpreter.memory)
         for param,arg in zip(decl.params,args):
             env.define(param.name.lexeme,arg)
         try:
             interpreter.run_block(decl.block,env) 
         except ReturnValue as e:
-            interpreter.memory = previous
+            interpreter.memory = env.previous
             return e.value
         
 
@@ -109,9 +107,24 @@ class AmandaMethod(AmaCallable):
         self.function = function
 
     def call(self,interpreter,**kwargs):
-        #Grab current outer memory
-        return self.function.call(interpreter,
-                env=self.instance.members,**kwargs)
+        decl = self.function.declaration
+        args = kwargs["args"]
+        previous = interpreter.memory
+        #Hack for executing methods:
+        #State of instance is passed in the env
+        env = Environment(decl.name.lexeme,self.instance.members)
+        for param,arg in zip(decl.params,args):
+            env.define(param.name.lexeme,arg)
+        try:
+            interpreter.run_block(decl.block,env)
+            #Doing this because the previous env
+            #of the instance might not be the same
+            #as the last one in memory
+            interpreter.memory = previous
+        except ReturnValue as e:
+            interpreter.memory = previous
+            return e.value
+
 
 
 
