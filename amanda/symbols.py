@@ -47,7 +47,7 @@ class Scope(SymbolTable):
             sym = self.resolve(self.name)
             if isinstance(sym,FunctionSymbol):
                 return sym
-        return self.enclosing_scope().get_enclosing_func()
+        return self.enclosing_scope.get_enclosing_func()
 
 
 

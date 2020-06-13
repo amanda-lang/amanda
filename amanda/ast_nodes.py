@@ -189,6 +189,9 @@ class Get(Expr):
     def is_assignable(self):
         return True
 
+    def accept(self,visitor):
+        return visitor.exec_get(self)
+
 class Set(Expr):
 
     def __init__(self,target=None,expr=None):

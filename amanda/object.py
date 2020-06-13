@@ -4,7 +4,14 @@ and native language constructs (classes and functions).
 Also contains other helper classes to be used at runtime
 '''
 from abc import ABC,abstractmethod
+import copy
 
+
+class ReturnValue(Exception):
+    ''' Exception class used to return
+    values from functions'''
+    def __init__(self,value):
+        self.value = value
 
 class Environment:
 
@@ -13,20 +20,19 @@ class Environment:
         self.previous = previous
         self.memory = {} # initialize it's env with it's own global mem space
 
-
     def define(self,name,value):
         self.memory[name] = value
 
     def resolve(self,name):
         value = self.memory.get(name)
-        if value is None and self.previous is not None:
+        if value is None and self.previous:
             return self.previous.resolve(name)
         return value
 
     def resolve_space(self,name):
-        if self.memory.get(name) is not None:
+        if self.resolve(name) != None:
             return self
-        elif self.previous is not None:
+        elif self.previous:
             return self.previous.resolve_space(name)
         return None
 
@@ -52,18 +58,60 @@ class RTFunction(AmaCallable):
     def call(self,interpreter,**kwargs):
         decl = self.declaration
         args = kwargs["args"]
-        env = Environment(decl.name.lexeme,interpreter.memory)
+        env = kwargs.get("env")
+        previous = interpreter.memory
+        #Hack for executing methods:
+        #State of instance is passed in the env
+        if not env:
+            env = Environment(decl.name.lexeme,interpreter.memory)
         for param,arg in zip(decl.params,args):
             env.define(param.name.lexeme,arg)
-        interpreter.run_block(decl.block,env) 
+        try:
+            interpreter.run_block(decl.block,env) 
+        except ReturnValue as e:
+            interpreter.memory = previous
+            return e.value
+        
+
     def __str__(self):
         return f"{self.name}: Function object"
 
-#Class used as return values for functions
-class ReturnValue(Exception):
 
-    def __init__(self,value):
-        self.value = value
+
+class AmaInstance:
+    ''' Python class that represents an instance of an Amanda
+        class.
+        Instances are created by invoking the class.
+        E.g: Texto("lool")
+        '''  
+    def __init__(self,klass,members):
+        self.klass = klass
+        self.members = members
+
+
+
+class AmandaNull:
+    ''' Class used as default value of uninitalized 
+    object variables'''
+
+
+    def __str__(self):
+        return "nulo"
+
+
+class AmandaMethod(AmaCallable):
+    ''' Wrapper around a function defined inside
+    a class. Used to link the function to the environment
+    of an instance'''
+
+    def __init__(self,instance,function):
+        self.instance = instance
+        self.function = function
+
+    def call(self,interpreter,**kwargs):
+        #Grab current outer memory
+        return self.function.call(interpreter,
+                env=self.instance.members,**kwargs)
 
 
 
@@ -75,4 +123,5 @@ class AmaClass(AmaCallable):
         self.superclass = superclass
 
     def call(self,interpreter,**kwargs):
-        pass
+        return AmaInstance(self,copy.copy(self.members))
+

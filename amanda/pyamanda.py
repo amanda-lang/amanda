@@ -55,6 +55,8 @@ class Interpreter:
         #TODO: Create real boolean object lol
         elif var_type == Tag.BOOL:
             self.memory.define(name,False)
+        elif var_type == Tag.REF:
+            self.memory.define(name,AmandaNull())
         else:
             raise NotImplementedError("Object/ref types cannot be used yet")
         assign = node.assign
@@ -94,25 +96,15 @@ class Interpreter:
         memory.define(name,value)
         return value
 
-    def resolve_exp(self,node):
-        return node.token.lexeme
-
 
     #Helper for evaluating expressions
     def evaluate(self,expr):
         return expr.accept(self)
 
     def exec_call(self,node):
-        args = [arg.accept(self) for arg in node.fargs]
+        args = [self.evaluate(arg) for arg in node.fargs]
         callee = self.evaluate(node.callee) 
-        try:
-            #TODO: Fix this hack to keep environment
-            prev = self.memory
-            callee.call(self,args=args)
-        except ReturnValue as e:
-            #Return the previous env
-            self.memory = prev
-            return e.value
+        return callee.call(self,args=args)
 
 
     def exec_binop(self,node):
@@ -178,6 +170,20 @@ class Interpreter:
     def exec_variable(self,node):
         return self.memory.resolve(node.token.lexeme)
 
+    def exec_get(self,node):
+        obj = self.evaluate(node.target)
+        
+        #Null reference (Not implemented yet)
+        if isinstance(obj,AmandaNull):
+            raise NotImplementedError("Null pointer exception not handled yet")
+
+        member = obj.members.resolve(node.member.lexeme)
+
+        if isinstance(member,RTFunction):
+            return AmandaMethod(obj,member)
+        return member
+
+
 
     def exec_se(self,node):
         condition = node.condition.accept(self)
@@ -235,4 +241,5 @@ class Interpreter:
         if node.exp.eval_type.tag == Tag.BOOL:
             expr = "verdadeiro" if expr else "falso"
         print(expr)
+
 
