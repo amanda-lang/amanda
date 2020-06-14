@@ -175,9 +175,12 @@ class Analyzer(ast.Visitor):
     def validate_void_func(self,name,node):
 
         #Checks if this is a class constructor 
+        #Only functions that are not allowed to have
+        #a return type
         if name != "constructor" or not self.current_class:
             self.error("As funções devem especificar o tipo de retorno ")
         symbol = SYM.FunctionSymbol(name,self.current_class)
+        symbol.is_constructor = True
         self.check_function(name,symbol,node)
 
     def check_function(self,name,symbol,node):
@@ -480,8 +483,10 @@ class Analyzer(ast.Visitor):
         ''' Helper method to validate function
         instantiation'''
         constructor = sym.members.get("constructor")
-        if not constructor:
-            #Use an empty constructor if no constructor
+        if not constructor or not constructor.is_constructor:
+            #Use an empty constructor if no constructor or
+            #user defined constructor violated rules of
+            #valid constructors
             #Is present in class
             #is explicitly defined
             #TODO: Find out WTF is causing the 'ghost param bug'
