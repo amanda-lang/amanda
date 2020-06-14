@@ -62,6 +62,7 @@ class TokenType(Enum):
     PARA = "PARA"
     FACA = "FACA"
     DE = "DE"
+    EU = "EU"
     INC = "INC"
     FIM = "FIM"
     FUNC = "FUNC"

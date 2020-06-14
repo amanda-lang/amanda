@@ -7,6 +7,9 @@ classe Acumulador
     #Fields must be declared explicitly
     var contador : int 
 
+    func constructor(contador : int)
+        eu.contador = contador
+    fim
 
     #Can have methods
     func incrementa(diff : int):int

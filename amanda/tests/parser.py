@@ -170,6 +170,8 @@ class ParserTestCase(unittest.TestCase):
             var idade : int
 
             func constructor(nome:Texto,idade:int)
+                eu.nome = nome
+                eu.idade = idade
             fim
 
         fim

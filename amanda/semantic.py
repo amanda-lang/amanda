@@ -9,6 +9,7 @@ import amanda.natives as natives
 
 
 
+
 '''
 Class that performs semantic analysis on a syntatically valid
 amanda program.
@@ -23,6 +24,10 @@ class Analyzer(ast.Visitor):
         self.current_scope = self.global_scope
         self.src = src 
         self.current_node = None
+        #Used to check if we are in a class
+        self.current_class = None
+        #Used to check if we are in a function
+        self.current_function = None
         self.init_builtins()
 
     def init_builtins(self):
@@ -60,6 +65,9 @@ class Analyzer(ast.Visitor):
         if node_class == "block":
             return visitor_method(node,args)
         return visitor_method(node)
+
+    def general_visit(self,node):
+        raise NotImplementedError(f"Have not defined method for this node type: {type(node)}")
 
     def has_return_block(self,node):
         for child in node.children:
@@ -126,6 +134,9 @@ class Analyzer(ast.Visitor):
         if self.current_scope.resolve(name):
             self.error(error.Analysis.ID_IN_USE,name=name)
         #Check if return types exists
+        if not node.func_type:
+            self.validate_void_func(name,node)
+            return
         decl_type = node.func_type.lexeme
         function_type =  self.current_scope.resolve(decl_type)
         #TODO: fix this hack
@@ -137,9 +148,24 @@ class Analyzer(ast.Visitor):
             self.current_node = node
             self.error(error.Analysis.NO_RETURN_STMT,name=name)
         symbol = SYM.FunctionSymbol(name,function_type)
+        self.check_function(name,symbol,node)
+
+    def validate_void_func(self,name,node):
+
+        #Checks if this is a class constructor 
+        if name != "constructor" or not self.current_class:
+            self.error("As funções devem especificar o tipo de retorno ")
+        symbol = SYM.FunctionSymbol(name,self.current_class)
+        self.check_function(name,symbol,node)
+
+    def check_function(self,name,symbol,node):
         self.current_scope.define(name,symbol)
         scope,symbol.params = self.define_func_scope(name,node.params)
+        prev_function = self.current_function
+        self.current_function = symbol
         self.visit(node.block,scope)
+        self.current_function = prev_function
+
         
 
     def define_func_scope(self,name,params):
@@ -172,8 +198,11 @@ class Analyzer(ast.Visitor):
         #Do some superclass stuff here
         #//////////////////////////////
         scope = SYM.Scope(name,self.current_scope)
+        prev_class = self.current_class
+        self.current_class = symbol
         members = self.visit_classbody(node.body,scope)
         symbol.members = members
+        self.current_class = prev_class
 
     
     def visit_classbody(self,node,scope):
@@ -248,6 +277,20 @@ class Analyzer(ast.Visitor):
         node.eval_type = target.type
         return target
 
+    def visit_set(self,node):
+        ''' Method that processes setter expressions.
+        Returns the resolved symbol of the set expression.'''
+        target = node.target
+        expr = node.expr
+        #evaluate sides
+        self.visit(target)
+        self.visit(expr)
+        expr.prom_type = expr.eval_type.promote_to(target.eval_type,self.current_scope)
+        if target.eval_type != expr.eval_type and not expr.prom_type:
+            self.current_node = node
+            self.error(f"atribuição inválida. incompatibilidade entre os operandos da atribuição")
+        node.eval_type = target.eval_type
+
         
 
     def visit_binop(self,node):
@@ -311,13 +354,14 @@ class Analyzer(ast.Visitor):
     def visit_retorna(self,node):
         expr = node.exp
         self.visit(expr)
-        function = self.current_scope.get_enclosing_func()
-        if not function:
+        if not self.current_function:
             self.current_node = node
             self.error(f"O comando 'retorna' só pode ser usado dentro de uma função")
-        func_type = function.type
+        if self.current_function.is_constructor:
+            self.error("Não pode usar a directiva 'retorna' dentro de um constructor")
+        func_type = self.current_function.type
         #TODO: Work out what to do about void types
-        if not function.type:
+        if not func_type:
             raise NotImplementedError("Void functions have not been implemented")
         expr.prom_type = expr.eval_type.promote_to(func_type,self.current_scope)
         if func_type.tag != expr.eval_type.tag and not expr.prom_type:
@@ -393,9 +437,11 @@ class Analyzer(ast.Visitor):
         constructor = sym.members.get("constructor")
         if not constructor:
             #Use an empty constructor if no constructor
+            #Is present in class
             #is explicitly defined
             #TODO: Find out WTF is causing the 'ghost param bug'
             constructor = SYM.FunctionSymbol(sym.name,sym,{})
+            constructor.is_constructor = True
         self.validate_call(constructor,fargs)
 
 

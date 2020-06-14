@@ -198,6 +198,7 @@ class FunctionSymbol(Symbol):
     def __init__(self,name,func_type,params={}):
         super().__init__(name,func_type)
         self.params = params #dict of symbols
+        self.is_constructor = False #indicates if param is a constructor
 
     def __str__(self):
         params = ",".join(self.params)

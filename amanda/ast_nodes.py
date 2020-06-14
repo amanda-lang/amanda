@@ -62,6 +62,13 @@ class Variable(Expr):
     def accept(self,visitor):
         return visitor.exec_variable(self)
 
+
+class Eu(Expr):
+
+    def __init__(self,token):
+        super().__init__(token)
+
+
 class BinOp(Expr):
     def __init__(self,token,left=None,right=None):
         super().__init__(token)
