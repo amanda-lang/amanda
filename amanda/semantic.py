@@ -323,6 +323,8 @@ class Analyzer(ast.Visitor):
         member_obj = obj_type.members.get(member)
         if not member_obj:
             self.error(f"O objecto do tipo '{obj_type.name}' não possui o atributo {member}")
+        if member_obj.name == "constructor":
+            self.error(f"constructor de uma classe não pode ser invocado a partir de um objecto")
         node.eval_type = member_obj.type
         return member_obj
 
