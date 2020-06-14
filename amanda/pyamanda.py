@@ -170,20 +170,34 @@ class Interpreter:
     def exec_variable(self,node):
         return self.memory.resolve(node.token.lexeme)
 
-    def exec_get(self,node):
-        obj = self.evaluate(node.target)
-        
-        #Null reference (Not implemented yet)
+    def exec_set(self,node):
+        target = node.target
+        obj = self.get_object(target)
+        value = self.evaluate(node.expr)
+        obj.members.define(target.member.lexeme,value)
+        return value
+
+    def get_object(self,node):
+        if isinstance(node,AST.Get):
+            obj = self.get_object(node.target)
+        else:
+            obj = self.evaluate(node)
+        #have not implemented NPE yet
         if isinstance(obj,AmandaNull):
             raise NotImplementedError("Null pointer exception not handled yet")
+        return obj
 
+    def exec_get(self,node):
+        obj = self.get_object(node.target)
         member = obj.members.resolve(node.member.lexeme)
-
         #Use an amanda method to wrap the function
-        #TODO: Fix this hack and just create methods on from the start
         if isinstance(member,RTFunction):
             return AmandaMethod(obj,member)
         return member
+
+
+    def exec_eu(self,node):
+        return self.memory.resolve("eu")
 
 
 

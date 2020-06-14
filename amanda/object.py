@@ -115,6 +115,8 @@ class AmandaMethod(AmaCallable):
         env = Environment(decl.name.lexeme,self.instance.members)
         for param,arg in zip(decl.params,args):
             env.define(param.name.lexeme,arg)
+        #Define 'eu' in the environment
+        env.define("eu",self.instance)
         try:
             interpreter.run_block(decl.block,env)
             #Doing this because the previous env
@@ -136,5 +138,18 @@ class AmaClass(AmaCallable):
         self.superclass = superclass
 
     def call(self,interpreter,**kwargs):
-        return AmaInstance(self,copy.copy(self.members))
+        ''' Method that creates a new instance object.
+        It checks wheter a constructor has been defined and calls
+        it.
+        If no constructor has been declared, it uses an empty one.
+        '''
+        instance = AmaInstance(self,copy.copy(self.members))
+        constructor = instance.members.resolve("constructor")
+        if not constructor:
+            return instance
+        AmandaMethod(instance,constructor).call(interpreter,**kwargs)
+        return instance
+
+        
+
 

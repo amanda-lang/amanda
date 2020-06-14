@@ -68,6 +68,8 @@ class Eu(Expr):
     def __init__(self,token):
         super().__init__(token)
 
+    def accept(self,visitor):
+        return visitor.exec_eu(self)
 
 
 class BinOp(Expr):
@@ -206,6 +208,9 @@ class Set(Expr):
         super().__init__(expr.token)
         self.target = target
         self.expr = expr
+
+    def accept(self,visitor):
+        return visitor.exec_set(self)
 
 
 class FunctionDecl(ASTNode):

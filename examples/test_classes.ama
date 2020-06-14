@@ -6,13 +6,18 @@ classe Acumulador
     
     #Fields must be declared explicitly
     var contador : int 
+    var limite : int
 
-    func constructor(contador : int)
+    func constructor(contador : int, limite : int)
         eu.contador = contador
+        eu.limite = limite
     fim
 
     #Can have methods
     func incrementa(diff : int):int
+        se contador >= limite entao
+            retorna contador
+        fim
         contador += diff
         retorna contador
     fim
@@ -24,7 +29,7 @@ fim
 
 
 
-var acum : Acumulador = Acumulador(5)
+var acum : Acumulador = Acumulador(5,10)
 
 
 acum.incrementa(4)
