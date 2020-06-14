@@ -39,5 +39,3 @@ mostra acum.get_contador()
 acum.incrementa(1)
 mostra acum.get_contador()
 mostra acum.contador
-acum.constructor(5,10)
-
