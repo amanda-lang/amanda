@@ -217,6 +217,7 @@ class ClassSymbol(Type):
     def __init__(self,name,members={},superclass=None):
         super().__init__(name,Tag.REF)
         self.members = members
+        self.resolved = False
         self.superclass = superclass
 
     def is_callable(self):

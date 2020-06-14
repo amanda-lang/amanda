@@ -24,7 +24,7 @@ fim
 
 
 
-var acum : Acumulador = Acumulador()
+var acum : Acumulador = Acumulador(5)
 
 
 acum.incrementa(4)

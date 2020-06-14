@@ -69,6 +69,7 @@ class Eu(Expr):
         super().__init__(token)
 
 
+
 class BinOp(Expr):
     def __init__(self,token,left=None,right=None):
         super().__init__(token)
