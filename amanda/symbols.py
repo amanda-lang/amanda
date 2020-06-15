@@ -47,7 +47,7 @@ class Scope(SymbolTable):
             sym = self.resolve(self.name)
             if isinstance(sym,FunctionSymbol):
                 return sym
-        return self.enclosing_scope().get_enclosing_func()
+        return self.enclosing_scope.get_enclosing_func()
 
 
 
@@ -195,9 +195,10 @@ class VariableSymbol(Symbol):
 
 
 class FunctionSymbol(Symbol):
-    def __init__(self,name,type,params={}):
-        super().__init__(name,type)
+    def __init__(self,name,func_type,params={}):
+        super().__init__(name,func_type)
         self.params = params #dict of symbols
+        self.is_constructor = False #indicates if param is a constructor
 
     def __str__(self):
         params = ",".join(self.params)
@@ -216,14 +217,13 @@ class ClassSymbol(Type):
     def __init__(self,name,members={},superclass=None):
         super().__init__(name,Tag.REF)
         self.members = members
+        self.resolved = False
         self.superclass = superclass
+
+    def is_callable(self):
+        return True
 
     def __str__(self):
         return f"{self.name}\n--------\n{self.members}\n"
-
-
-
-
-
 
 

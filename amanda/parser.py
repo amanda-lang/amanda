@@ -322,7 +322,7 @@ class Parser:
             token.token,token.lexeme = self.compound_operator()
             self.consume(current)
             if isinstance(expr,AST.Get):
-                expr = AST.Set(target=expr.target,expr=self.assignment()) 
+                expr = AST.Set(target=expr,expr=self.assignment()) 
             else:
                 expr = AST.Assign(eq,left=expr,right=AST.BinOp(token,left=expr,right=self.equality()))
         return expr
@@ -348,7 +348,7 @@ class Parser:
             if not expr.is_assignable():
                 self.error(error.Syntax.ILLEGAL_ASSIGN)
             if isinstance(expr,AST.Get):
-                expr = AST.Set(target=expr.target,expr=self.assignment()) 
+                expr = AST.Set(target=expr,expr=self.assignment()) 
             else:
                 expr = AST.Assign(token,left=expr,right=self.assignment())
         return expr
@@ -447,6 +447,9 @@ class Parser:
             self.consume(TT.LPAR)
             expr = self.equality()
             self.consume(TT.RPAR)
+        elif self.match(TT.EU):
+            expr = AST.Eu(self.lookahead)
+            self.consume(TT.EU)
         else:
             self.error(f"início inválido de expressão: '{self.lookahead.lexeme}'")
         return expr

@@ -9,6 +9,7 @@ import amanda.natives as natives
 
 
 
+
 '''
 Class that performs semantic analysis on a syntatically valid
 amanda program.
@@ -23,6 +24,10 @@ class Analyzer(ast.Visitor):
         self.current_scope = self.global_scope
         self.src = src 
         self.current_node = None
+        #Used to check if we are in a class
+        self.current_class = None
+        #Used to check if we are in a function
+        self.current_function = None
         self.init_builtins()
 
     def init_builtins(self):
@@ -31,11 +36,6 @@ class Analyzer(ast.Visitor):
         self.global_scope.define("bool",SYM.BuiltInType("bool",SYM.Tag.BOOL))
         builtins = natives.builtin_types.values()
 
-        for type_obj in builtins:
-            type_obj.load_symbol(self.global_scope)
-        
-        for type_obj in builtins:
-            type_obj.define_symbol(self.global_scope)
         
 
     def has_return(self,node):
@@ -43,11 +43,26 @@ class Analyzer(ast.Visitor):
         method_name = f"has_return_{node_class}"
         visitor_method = getattr(self,method_name,self.general_check)
         #update AST node
+
+        #Previous node is used for nodes that call visit on
+        #other nodes
         self.current_node = node
         return visitor_method(node)
 
     def general_check(self,node):
         return False
+
+    def visit(self,node,args=None):
+        node_class = type(node).__name__.lower()
+        method_name = f"visit_{node_class}"
+        visitor_method = getattr(self,method_name,self.general_visit)
+        self.current_node = node
+        if node_class == "block":
+            return visitor_method(node,args)
+        return visitor_method(node)
+
+    def general_visit(self,node):
+        raise NotImplementedError(f"Have not defined method for this node type: {type(node)}")
 
     def has_return_block(self,node):
         for child in node.children:
@@ -65,6 +80,18 @@ class Analyzer(ast.Visitor):
 
     def has_return_retorna(self,node):
         return True
+
+    def resolve(self,node):
+        ''' Class used to resolve the names in a scope
+            before checking it. Allows forward declarations'''
+        node_class = type(node).__name__.lower()
+        method_name = f"resolve_{node_class}"
+        resolver_method = getattr(self,method_name,None)
+
+        if not resolver_method:
+            NotImplementedError("Can't resolve node")
+        return resolver_method(node)
+
 
 
     def error(self,code,**kwargs):
@@ -88,7 +115,15 @@ class Analyzer(ast.Visitor):
             self.visit(child)
 
     def visit_vardecl(self,node):
+        klass = self.current_class
         name = node.name.lexeme
+
+        #If declaration has already been resolved,
+        #define the member in current scope and exit
+        #declaration
+        if klass and klass.resolved:
+            self.current_scope.define(name,klass.members.get(name))
+            return
         var_type = self.current_scope.resolve(node.var_type.lexeme)
         if not var_type or not var_type.is_type():
             self.error(
@@ -111,9 +146,19 @@ class Analyzer(ast.Visitor):
     def visit_functiondecl(self,node):
         #Check if id is already in use
         name = node.name.lexeme
+        #If current class has been resolved
+        #just execute the body
+        klass = self.current_class
+        if klass and klass.resolved:
+            function = klass.members.get(name)
+            self.check_function(name,function,node)
+            return
         if self.current_scope.resolve(name):
             self.error(error.Analysis.ID_IN_USE,name=name)
         #Check if return types exists
+        if not node.func_type:
+            self.validate_void_func(name,node)
+            return
         decl_type = node.func_type.lexeme
         function_type =  self.current_scope.resolve(decl_type)
         #TODO: fix this hack
@@ -125,9 +170,32 @@ class Analyzer(ast.Visitor):
             self.current_node = node
             self.error(error.Analysis.NO_RETURN_STMT,name=name)
         symbol = SYM.FunctionSymbol(name,function_type)
+        self.check_function(name,symbol,node)
+
+    def validate_void_func(self,name,node):
+
+        #Checks if this is a class constructor 
+        #Only functions that are not allowed to have
+        #a return type
+        if name != "constructor" or not self.current_class:
+            self.error("As funções devem especificar o tipo de retorno ")
+        symbol = SYM.FunctionSymbol(name,self.current_class)
+        symbol.is_constructor = True
+        self.check_function(name,symbol,node)
+
+    def check_function(self,name,symbol,node):
         self.current_scope.define(name,symbol)
+        #If in class and this is resolution phase,
+        #do not visit body
+        klass = self.current_class
+        if klass and not klass.resolved:
+            return
         scope,symbol.params = self.define_func_scope(name,node.params)
+        prev_function = self.current_function
+        self.current_function = symbol
         self.visit(node.block,scope)
+        self.current_function = prev_function
+
         
 
     def define_func_scope(self,name,params):
@@ -155,13 +223,27 @@ class Analyzer(ast.Visitor):
         if superclass:
             #check superclass here
             pass
-        symbol = SYM.ClassSymbol(name,superclass=superclass)
-        self.current_scope.define(name,symbol)
+        klass = SYM.ClassSymbol(name,superclass=superclass)
+        self.current_scope.define(name,klass)
         #Do some superclass stuff here
         #//////////////////////////////
-        scope = SYM.Scope(name,self.current_scope)
-        members = self.visit_classbody(node.body,scope)
-        symbol.members = members
+        res_scope = SYM.Scope(name,self.current_scope)
+        prev_class = self.current_class
+        self.current_class = klass
+        #Resolve class
+        members = self.visit_classbody(node.body,res_scope)
+        klass.members = members
+        klass.resolved = True
+        #Revisit class
+        self.visit_classbody(node.body,SYM.Scope(name,self.current_scope))
+        self.current_class = prev_class
+
+    def resolve_classbody(self,node,scope):
+        self.current_scope = scope
+        for child in node.children:
+            self.resolve(child)
+        self.current_scope = self.current_scope.enclosing_scope
+        return scope.symbols
 
     
     def visit_classbody(self,node,scope):
@@ -170,6 +252,14 @@ class Analyzer(ast.Visitor):
             self.visit(child)
         self.current_scope = self.current_scope.enclosing_scope
         return scope.symbols
+
+    def visit_eu(self,node):
+        #Validate the use of 'eu'
+        if not self.current_class or not self.current_function:
+            self.error("a palavra reservada 'eu' só pode ser usada dentro de um método")
+        node.eval_type = self.current_class
+        return SYM.VariableSymbol('eu',self.current_class)
+
 
 
     def visit_block(self,node,scope=None):
@@ -217,7 +307,42 @@ class Analyzer(ast.Visitor):
         elif not sym.can_evaluate():
             self.error(error.Analysis.INVALID_REF,name=name)
         node.eval_type = sym.type
+        return sym
 
+    def visit_get(self,node):
+        ''' Method that processes getter expressions.
+        Returns the resolved symbol of the get expression.'''
+        target = self.visit(node.target)
+        if target.type.tag != SYM.Tag.REF:
+            self.error("Tipos primitivos não possuem atributos")
+
+        #Get the class symbol
+        obj_type = target.type
+        #check if member exists
+        member = node.member.lexeme
+        member_obj = obj_type.members.get(member)
+        if not member_obj:
+            self.error(f"O objecto do tipo '{obj_type.name}' não possui o atributo {member}")
+        if member_obj.name == "constructor":
+            self.error(f"constructor de uma classe não pode ser invocado a partir de um objecto")
+        node.eval_type = member_obj.type
+        return member_obj
+
+    def visit_set(self,node):
+        ''' Method that processes setter expressions.
+        Returns the resolved symbol of the set expression.'''
+        target = node.target
+        expr = node.expr
+        #evaluate sides
+        self.visit(target)
+        self.visit(expr)
+        expr.prom_type = expr.eval_type.promote_to(target.eval_type,self.current_scope)
+        if target.eval_type != expr.eval_type and not expr.prom_type:
+            self.current_node = node
+            self.error(f"atribuição inválida. incompatibilidade entre os operandos da atribuição: '{target.eval_type.name}' e '{expr.eval_type.name}'")
+        node.eval_type = target.eval_type
+
+        
 
     def visit_binop(self,node):
         self.visit(node.left)
@@ -280,13 +405,14 @@ class Analyzer(ast.Visitor):
     def visit_retorna(self,node):
         expr = node.exp
         self.visit(expr)
-        function = self.current_scope.get_enclosing_func()
-        if not function:
+        if not self.current_function:
             self.current_node = node
             self.error(f"O comando 'retorna' só pode ser usado dentro de uma função")
-        func_type = function.type
+        if self.current_function.is_constructor:
+            self.error("Não pode usar a directiva 'retorna' dentro de um constructor")
+        func_type = self.current_function.type
         #TODO: Work out what to do about void types
-        if not function.type:
+        if not func_type:
             raise NotImplementedError("Void functions have not been implemented")
         expr.prom_type = expr.eval_type.promote_to(func_type,self.current_scope)
         if func_type.tag != expr.eval_type.tag and not expr.prom_type:
@@ -305,7 +431,6 @@ class Analyzer(ast.Visitor):
     def visit_enquanto(self,node):
         self.visit(node.condition)
         if node.condition.eval_type.tag != SYM.Tag.BOOL:
-            print("LOGGING",node.condition.eval_type)
             self.current_node = node
             self.error(f"a condição da instrução 'enquanto' deve ser um valor lógico")
         self.visit(node.statement)
@@ -343,17 +468,34 @@ class Analyzer(ast.Visitor):
             sym = self.current_scope.resolve(name)
         #Call is made on another call
         elif isinstance(callee,ast.Call):
+            return self.visit(callee)
+        elif isinstance(callee,ast.Get):
             sym = self.visit(callee)
-            name = sym.name
-            #check if sym return type is callable
-            if not sym.type.is_callable():
-                self.error(f"Valores do tipo '{sym.type.name}' não são invocáveis")
-            return sym
         else:
             raise NotImplementedError("Don't know what to do with anything else in call")
-        self.validate_call(sym,node.fargs)
-        node.eval_type = sym.type        
+        if isinstance(sym,SYM.ClassSymbol):
+            self.validate_constructor(sym,node.fargs)
+            node.eval_type = sym
+        else:
+            self.validate_call(sym,node.fargs)
+            node.eval_type = sym.type        
         return sym
+
+    def validate_constructor(self,sym,fargs):
+        ''' Helper method to validate function
+        instantiation'''
+        constructor = sym.members.get("constructor")
+        if not constructor or not constructor.is_constructor:
+            #Use an empty constructor if no constructor or
+            #user defined constructor violated rules of
+            #valid constructors
+            #Is present in class
+            #is explicitly defined
+            #TODO: Find out WTF is causing the 'ghost param bug'
+            constructor = SYM.FunctionSymbol(sym.name,sym,{})
+            constructor.is_constructor = True
+        self.validate_call(constructor,fargs)
+
 
 
     def validate_call(self,sym,fargs):

@@ -11,4 +11,4 @@ func fibo(n : int) : int
 fim
 
 #Note: Never run fibo of 35 
-#mostra fibo()
+mostra fibo(6)

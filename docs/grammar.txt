@@ -145,6 +145,7 @@ primary
   | FALSO
   | LPAR expression RPAR
   | IDENTIFIER 
+  | EU
   | NULO
   ;
 
