@@ -55,7 +55,7 @@ class Texto(NativeType):
 
     }
 
-    fields=[("texto","Texto")]
+    fields=[]
 
 
     def constroi(self,texto):

@@ -3,10 +3,21 @@
 
 #uma classe pra contar loool
 classe Acumulador
+    
+    #Fields must be declared explicitly
     var contador : int 
+    var limite : int
 
+    func constructor(contador : int, limite : int)
+        eu.contador = contador
+        eu.limite = limite
+    fim
 
+    #Can have methods
     func incrementa(diff : int):int
+        se contador >= limite entao
+            retorna contador
+        fim
         contador += diff
         retorna contador
     fim
@@ -15,3 +26,16 @@ classe Acumulador
         retorna contador
     fim
 fim
+
+
+
+var acum : Acumulador = Acumulador(5,10)
+
+
+acum.incrementa(4)
+mostra acum.get_contador()
+acum.incrementa(5)
+mostra acum.get_contador()
+acum.incrementa(1)
+mostra acum.get_contador()
+mostra acum.contador

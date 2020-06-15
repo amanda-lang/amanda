@@ -4,7 +4,14 @@ and native language constructs (classes and functions).
 Also contains other helper classes to be used at runtime
 '''
 from abc import ABC,abstractmethod
+import copy
 
+
+class ReturnValue(Exception):
+    ''' Exception class used to return
+    values from functions'''
+    def __init__(self,value):
+        self.value = value
 
 class Environment:
 
@@ -13,20 +20,19 @@ class Environment:
         self.previous = previous
         self.memory = {} # initialize it's env with it's own global mem space
 
-
     def define(self,name,value):
         self.memory[name] = value
 
     def resolve(self,name):
         value = self.memory.get(name)
-        if value is None and self.previous is not None:
+        if value is None and self.previous:
             return self.previous.resolve(name)
         return value
 
     def resolve_space(self,name):
-        if self.memory.get(name) is not None:
+        if self.memory.get(name) != None:
             return self
-        elif self.previous is not None:
+        elif self.previous:
             return self.previous.resolve_space(name)
         return None
 
@@ -52,18 +58,75 @@ class RTFunction(AmaCallable):
     def call(self,interpreter,**kwargs):
         decl = self.declaration
         args = kwargs["args"]
+        previous = interpreter.memory
+        #Hack for executing methods:
+        #State of instance is passed in the env
         env = Environment(decl.name.lexeme,interpreter.memory)
         for param,arg in zip(decl.params,args):
             env.define(param.name.lexeme,arg)
-        interpreter.run_block(decl.block,env) 
+        try:
+            interpreter.run_block(decl.block,env) 
+        except ReturnValue as e:
+            interpreter.memory = env.previous
+            return e.value
+        
+
     def __str__(self):
         return f"{self.name}: Function object"
 
-#Class used as return values for functions
-class ReturnValue(Exception):
 
-    def __init__(self,value):
-        self.value = value
+
+class AmaInstance:
+    ''' Python class that represents an instance of an Amanda
+        class.
+        Instances are created by invoking the class.
+        E.g: Texto("lool")
+        '''  
+    def __init__(self,klass,members):
+        self.klass = klass
+        self.members = members
+
+
+
+class AmandaNull:
+    ''' Class used as default value of uninitalized 
+    object variables'''
+
+
+    def __str__(self):
+        return "nulo"
+
+
+class AmandaMethod(AmaCallable):
+    ''' Wrapper around a function defined inside
+    a class. Used to link the function to the environment
+    of an instance'''
+
+    def __init__(self,instance,function):
+        self.instance = instance
+        self.function = function
+
+    def call(self,interpreter,**kwargs):
+        decl = self.function.declaration
+        args = kwargs["args"]
+        previous = interpreter.memory
+        #Hack for executing methods:
+        #State of instance is passed in the env
+        env = Environment(decl.name.lexeme,self.instance.members)
+        for param,arg in zip(decl.params,args):
+            env.define(param.name.lexeme,arg)
+        #Define 'eu' in the environment
+        env.define("eu",self.instance)
+        try:
+            interpreter.run_block(decl.block,env)
+            #Doing this because the previous env
+            #of the instance might not be the same
+            #as the last one in memory
+            interpreter.memory = previous
+        except ReturnValue as e:
+            interpreter.memory = previous
+            return e.value
+
 
 
 
@@ -75,4 +138,18 @@ class AmaClass(AmaCallable):
         self.superclass = superclass
 
     def call(self,interpreter,**kwargs):
-        pass
+        ''' Method that creates a new instance object.
+        It checks wheter a constructor has been defined and calls
+        it.
+        If no constructor has been declared, it uses an empty one.
+        '''
+        instance = AmaInstance(self,copy.copy(self.members))
+        constructor = instance.members.resolve("constructor")
+        if not constructor:
+            return instance
+        AmandaMethod(instance,constructor).call(interpreter,**kwargs)
+        return instance
+
+        
+
+
