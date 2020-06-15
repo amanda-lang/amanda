@@ -48,7 +48,7 @@ class Texto(NativeType):
     methods = {
         "constructor":{
             "type":"Texto",
-            "params":[("original","Texto")]
+            "params":[("value","Texto")]
         },
         "cmp":{
             "type":"int",
@@ -57,27 +57,38 @@ class Texto(NativeType):
         "e_palin":{
             "type":"bool",
         },
+        "concat":{
+            "type":"Texto",
+            "params":[("str2","Texto")]
+        },
 
     }
 
     fields=[]
 
 
-    def constructor(self,**args):
-        initializer = args["args"][0]
+    def constructor(self,*args):
+        value = args[0]
         #Hack to get string from literal
-        if isinstance(initializer,NativeInstance):
-            initializer = initializer.instance.original
-        self.original = initializer
+        if isinstance(value,NativeInstance):
+            value = value.instance.value
+        self.value = value
     
-    def cmp(self,**args):
-        return len(self.original)
+    def cmp(self,*args):
+        return len(self.value)
     
-    def e_palin(self,**args):
-        return self.original == self.original[::-1]
+    def e_palin(self,*args):
+        return self.value == self.value[::-1]
+
+    def concat(self,*args):
+        other = args[0].instance
+        new_str = Texto()
+        new_str.constructor(self.value + other.value)
+        return NativeInstance(new_str)
+
 
     def __str__(self):
-        return self.original
+        return self.value
 
 
 

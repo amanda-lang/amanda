@@ -8,3 +8,7 @@ mostra nome
 mostra "Eu sou uma linha de texto"
 
 mostra Texto("Texto criado com o constructor")
+
+mostra nome.concat("andro")
+
+mostra "sténio ".concat("alexandre")

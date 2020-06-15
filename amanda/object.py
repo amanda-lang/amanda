@@ -168,7 +168,7 @@ class NativeFunction(AmaCallable):
         self.function = function
 
     def call(self,interpreter,**kwargs):
-        return self.function(**kwargs)
+        return self.function(*kwargs["args"])
 
 
 
@@ -201,7 +201,7 @@ class NativeClass(AmaCallable):
     def call(self,interpreter,**kwargs):
         #Instantiate class
         instance = self.klass()
-        instance.constructor(**kwargs)
+        instance.constructor(*kwargs["args"])
         return NativeInstance(instance)
 
 

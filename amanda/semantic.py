@@ -317,11 +317,16 @@ class Analyzer(ast.Visitor):
         ''' Method that processes getter expressions.
         Returns the resolved symbol of the get expression.'''
         target = self.visit(node.target)
-        if target.type.tag != SYM.Tag.REF:
+
+        #This hack is for objects that can be created via a literal
+        #expression
+        if (target and target.type.tag != SYM.Tag.REF) or \
+            (node.target.eval_type.tag != SYM.Tag.REF):
             self.error("Tipos primitivos não possuem atributos")
 
         #Get the class symbol
-        obj_type = target.type
+        #This hack is for objects that can be created via a literal
+        obj_type = target.type if target else node.target.eval_type
         #check if member exists
         member = node.member.lexeme
         member_obj = obj_type.members.get(member)
