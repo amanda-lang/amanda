@@ -86,6 +86,15 @@ class AmaInstance:
         self.klass = klass
         self.members = members
 
+    def get(self,member):
+        return self.members.resolve(member)
+
+    def set(self,target,value):
+        self.members.define(target,value)
+
+
+
+
 
 
 class AmandaNull:
@@ -150,6 +159,49 @@ class AmaClass(AmaCallable):
         AmandaMethod(instance,constructor).call(interpreter,**kwargs)
         return instance
 
-        
+
+class NativeFunction(AmaCallable):
+    ''' Wrapper around python function
+    that can be called from amanda'''
+
+    def __init__(self,function):
+        self.function = function
+
+    def call(self,interpreter,**kwargs):
+        return self.function(**kwargs)
+
+
+
+class NativeInstance:
+
+    def __init__(self,instance):
+        self.instance = instance
+
+    def get(self,member):
+        member = getattr(self.instance,member)
+        if callable(member):
+            return NativeFunction(member)
+        return member
+
+    def set(self,target,value):
+        setattr(self,target,value)
+
+    def __str__(self):
+        return str(self.instance)
+
+
+class NativeClass(AmaCallable):
+    ''' Wrapper around a python class
+    that can be instantiated from an Amanda. '''
+
+    def __init__(self,name,klass):
+        self.name = name
+        self.klass = klass
+
+    def call(self,interpreter,**kwargs):
+        #Instantiate class
+        instance = self.klass()
+        instance.constructor(**kwargs)
+        return NativeInstance(instance)
 
 

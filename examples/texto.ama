@@ -1,0 +1,10 @@
+#Script to test texto type
+
+
+var nome : Texto = "eti"
+mostra nome.cmp()
+mostra nome.e_palin()
+mostra nome
+mostra "Eu sou uma linha de texto"
+
+mostra Texto("Texto criado com o constructor")

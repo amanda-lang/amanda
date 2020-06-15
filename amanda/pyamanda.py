@@ -4,6 +4,7 @@ from amanda.tokens import TokenType as TT
 import amanda.ast_nodes as AST
 import amanda.semantic as SEM
 from amanda.symbols import Tag
+import amanda.natives as natives
 import amanda.error as error
 from amanda.parser import Parser
 from amanda.object import *
@@ -21,8 +22,14 @@ class Interpreter:
     def run(self):
         program = Parser(self.src).parse()
         valid_program = SEM.Analyzer(self.src).check_program(program)
+        self.init_builtins()
         valid_program.accept(self)
-        
+
+    def init_builtins(self):
+        '''Load builtin classes'''
+        for name,builtin in natives.builtin_types.items():
+            self.memory.define(name,builtin.get_object())
+
     def error(self,message,token):
         raise error.RunTime(message,token.line)
 
@@ -152,15 +159,23 @@ class Interpreter:
 
     def exec_constant(self,node):
         const_type = node.prom_type
+        value = node.token.lexeme
         #Check if type conversion is needed
         if not const_type:
-            const_type = node.eval_type.tag
-            if const_type == Tag.INT:
-                return int(node.token.lexeme)
-            elif const_type == Tag.REAL:
-                return float(node.token.lexeme)
-            elif const_type == Tag.BOOL:
+            const_type = node.eval_type
+            if const_type.tag == Tag.INT:
+                return int(value)
+            elif const_type.tag == Tag.REAL:
+                return float(value)
+            elif const_type.tag == Tag.BOOL:
                 return True if node.token.token == TT.VERDADEIRO else False
+            elif const_type.name == "Texto":
+                #Instantiate 'Texto' class
+                klass = self.memory.resolve("Texto")
+                original = ast.literal_eval(value)
+                return klass.call(self,args=[original]) 
+            else:
+                raise Exception("Undefined constant")
         else:
             if const_type.tag == Tag.REAL:
                 return float(node.token.lexeme)
@@ -174,7 +189,7 @@ class Interpreter:
         target = node.target
         obj = self.get_object(target)
         value = self.evaluate(node.expr)
-        obj.members.define(target.member.lexeme,value)
+        obj.set(target.member.lexeme,value)
         return value
 
     def get_object(self,node):
@@ -189,7 +204,7 @@ class Interpreter:
 
     def exec_get(self,node):
         obj = self.get_object(node.target)
-        member = obj.members.resolve(node.member.lexeme)
+        member = obj.get(node.member.lexeme)
         #Use an amanda method to wrap the function
         if isinstance(member,RTFunction):
             return AmandaMethod(obj,member)

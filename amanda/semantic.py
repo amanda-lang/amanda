@@ -36,6 +36,12 @@ class Analyzer(ast.Visitor):
         self.global_scope.define("bool",SYM.BuiltInType("bool",SYM.Tag.BOOL))
         builtins = natives.builtin_types.values()
 
+        for builtin in builtins:
+            builtin.load_symbol(self.global_scope)
+
+        for builtin in builtins:
+            builtin.define_symbol(self.global_scope)
+
         
 
     def has_return(self,node):
@@ -276,8 +282,6 @@ class Analyzer(ast.Visitor):
         var_type = self.current_scope.resolve(param_type)
         if not var_type or not var_type.is_type():
             self.error(
-                        node.param_type.line,
-                        node.param_type.col,
                         error.Analysis.UNDEFINED_TYPE,
                         type=param_type
                     )
@@ -293,7 +297,7 @@ class Analyzer(ast.Visitor):
         elif constant == TT.REAL:
             node.eval_type = self.global_scope.resolve("real")
         elif constant == TT.STRING:
-            raise Exception("Not implemented strings yet")
+            node.eval_type = self.global_scope.resolve("Texto")
         elif constant in (TT.VERDADEIRO,TT.FALSO):
             node.eval_type = self.global_scope.resolve("bool")
 
