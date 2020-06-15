@@ -36,6 +36,12 @@ class Analyzer(ast.Visitor):
         self.global_scope.define("bool",SYM.BuiltInType("bool",SYM.Tag.BOOL))
         builtins = natives.builtin_types.values()
 
+        for builtin in builtins:
+            builtin.load_symbol(self.global_scope)
+
+        for builtin in builtins:
+            builtin.define_symbol(self.global_scope)
+
         
 
     def has_return(self,node):
@@ -276,8 +282,6 @@ class Analyzer(ast.Visitor):
         var_type = self.current_scope.resolve(param_type)
         if not var_type or not var_type.is_type():
             self.error(
-                        node.param_type.line,
-                        node.param_type.col,
                         error.Analysis.UNDEFINED_TYPE,
                         type=param_type
                     )
@@ -293,7 +297,7 @@ class Analyzer(ast.Visitor):
         elif constant == TT.REAL:
             node.eval_type = self.global_scope.resolve("real")
         elif constant == TT.STRING:
-            raise Exception("Not implemented strings yet")
+            node.eval_type = self.global_scope.resolve("Texto")
         elif constant in (TT.VERDADEIRO,TT.FALSO):
             node.eval_type = self.global_scope.resolve("bool")
 
@@ -313,11 +317,16 @@ class Analyzer(ast.Visitor):
         ''' Method that processes getter expressions.
         Returns the resolved symbol of the get expression.'''
         target = self.visit(node.target)
-        if target.type.tag != SYM.Tag.REF:
+
+        #This hack is for objects that can be created via a literal
+        #expression
+        if (target and target.type.tag != SYM.Tag.REF) or \
+            (node.target.eval_type.tag != SYM.Tag.REF):
             self.error("Tipos primitivos não possuem atributos")
 
         #Get the class symbol
-        obj_type = target.type
+        #This hack is for objects that can be created via a literal
+        obj_type = target.type if target else node.target.eval_type
         #check if member exists
         member = node.member.lexeme
         member_obj = obj_type.members.get(member)
