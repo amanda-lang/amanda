@@ -1,7 +1,7 @@
 # Simple program to test input native function
 
 
-#Testar se um número é para
+#Testar se um número é par
 func e_par(num : int): bool
     se num % 2 == 0 entao
         retorna verdadeiro
@@ -12,7 +12,7 @@ fim
 
 
 
-var num : int = leia_int("Digite um número :")
+var num : int = leia_int("Digite um número: ")
 mostra e_par(num)
 
 
