@@ -1,0 +1,24 @@
+# Simple program to test input native function
+
+
+#Testar se um número é para
+func e_par(num : int): bool
+    se num % 2 == 0 entao
+        retorna verdadeiro
+    senao
+        retorna falso
+    fim
+fim
+
+
+
+var num : int = leia_int("Digite um número :")
+mostra e_par(num)
+
+
+
+
+
+#Testar o leia
+var msg : Texto = leia("Digite a mensagem que deseja imprimir: ")
+mostra msg

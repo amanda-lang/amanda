@@ -6,6 +6,7 @@ import amanda.ast_nodes as ast
 import amanda.symbols as SYM
 import amanda.error as error
 import amanda.natives as natives
+import modules.functions as bltins_funcs
 
 
 
@@ -41,6 +42,13 @@ class Analyzer(ast.Visitor):
 
         for builtin in builtins:
             builtin.define_symbol(self.global_scope)
+
+
+        #Initialize builtin functions
+        for name,data in bltins_funcs.functions.items():
+            function = bltins_funcs.get_func_sym(name,
+                      data["type"],self.global_scope,data["params"])
+            self.global_scope.define(name,function)
 
         
 
@@ -527,7 +535,7 @@ class Analyzer(ast.Visitor):
             arg.prom_type = arg.eval_type.promote_to(param.type,self.current_scope)
             if param.type.tag != arg.eval_type.tag and not arg.prom_type:
                 self.error(
-                   f"argumento inválido. Esperava-se um argumento do tipo '{param.param_type.name}' mas recebeu o tipo '{arg.eval_type}'")
+                   f"argumento inválido. Esperava-se um argumento do tipo '{param.type.name}' mas recebeu o tipo '{arg.eval_type.name}'")
         
     
         
