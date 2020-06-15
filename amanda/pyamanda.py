@@ -6,6 +6,7 @@ import amanda.semantic as SEM
 from amanda.symbols import Tag
 import amanda.natives as natives
 import amanda.error as error
+import modules.functions as bltins_funcs
 from amanda.parser import Parser
 from amanda.object import *
 
@@ -26,9 +27,13 @@ class Interpreter:
         valid_program.accept(self)
 
     def init_builtins(self):
-        '''Load builtin classes'''
+        #Load builtin classes
         for name,builtin in natives.builtin_types.items():
             self.memory.define(name,builtin.get_object())
+
+        #Load builtin functions
+        for name,data in bltins_funcs.functions.items():
+            self.memory.define(name,NativeFunction(data["function"]))
 
     def error(self,message,token):
         raise error.RunTime(message,token.line)
