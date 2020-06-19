@@ -9,12 +9,12 @@ class Lexer:
     #TODO: Put this somewhere else
     EOF = "__eof__"
 
-    def __init__(self,file):
+    def __init__(self,src):
         self.line = 1
         self.pos = 1
         self.current_token = None
         self.current_char = None
-        self.file = file # A file object
+        self.file = src # A file object
 
 
     @classmethod
@@ -39,11 +39,7 @@ class Lexer:
 
     def error(self,code,**kwargs):
         message = code.format(**kwargs)
-        handler = error.ErrorHandler.get_handler()
-        handler.throw_error(
-            error.Syntax(message,self.line,self.pos),
-            self.file
-        )
+        raise error.Syntax(message,self.line,self.pos)
 
     def newline(self):
         if self.current_char == "\n":

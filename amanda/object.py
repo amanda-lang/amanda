@@ -15,8 +15,7 @@ class ReturnValue(Exception):
 
 class Environment:
 
-    def __init__(self,name,previous=None):
-        self.name = name
+    def __init__(self,previous=None):
         self.previous = previous
         self.memory = {} # initialize it's env with it's own global mem space
 
@@ -61,7 +60,7 @@ class RTFunction(AmaCallable):
         previous = interpreter.memory
         #Hack for executing methods:
         #State of instance is passed in the env
-        env = Environment(decl.name.lexeme,interpreter.memory)
+        env = Environment(interpreter.memory)
         for param,arg in zip(decl.params,args):
             env.define(param.name.lexeme,arg)
         try:
@@ -121,7 +120,7 @@ class AmandaMethod(AmaCallable):
         previous = interpreter.memory
         #Hack for executing methods:
         #State of instance is passed in the env
-        env = Environment(decl.name.lexeme,self.instance.members)
+        env = Environment(self.instance.members)
         for param,arg in zip(decl.params,args):
             env.define(param.name.lexeme,arg)
         #Define 'eu' in the environment

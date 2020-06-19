@@ -18,12 +18,11 @@ amanda program.
 
 class Analyzer(ast.Visitor):
 
-    def __init__(self,src):
+    def __init__(self):
 
         #Just to have quick access to things like types and e.t.c
         self.global_scope = SYM.Scope(SYM.Scope.GLOBAL)
         self.current_scope = self.global_scope
-        self.src = src 
         self.current_node = None
         #Used to check if we are in a class
         self.current_class = None
@@ -35,11 +34,11 @@ class Analyzer(ast.Visitor):
         self.global_scope.define("int",SYM.BuiltInType("int",SYM.Tag.INT))
         self.global_scope.define("real",SYM.BuiltInType("real",SYM.Tag.REAL))
         self.global_scope.define("bool",SYM.BuiltInType("bool",SYM.Tag.BOOL))
+        
+        #Initialize builtin types
         builtins = natives.builtin_types.values()
-
         for builtin in builtins:
             builtin.load_symbol(self.global_scope)
-
         for builtin in builtins:
             builtin.define_symbol(self.global_scope)
 
@@ -110,14 +109,10 @@ class Analyzer(ast.Visitor):
 
     def error(self,code,**kwargs):
         message = code.format(**kwargs)
-        handler = error.ErrorHandler.get_handler()
-        handler.throw_error(
-            error.Analysis(
-              message,self.current_node.token.line,
-              self.current_node.token.col
-              ),
-            self.src
-        )
+        raise error.Analysis(
+          message,self.current_node.token.line,
+          self.current_node.token.col)
+    
 
 
     def check_program(self,program):

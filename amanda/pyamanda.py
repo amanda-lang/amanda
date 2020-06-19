@@ -12,19 +12,24 @@ from amanda.object import *
 
 
 class Interpreter:
-    GLOBAL_MEMORY = "GLOBAL"
-    LOCAL_MEMORY = "LOCAL"
 
     def __init__(self,src,debug=False):
         self.src = src
-        self.memory = Environment(Interpreter.GLOBAL_MEMORY)
+        self.memory = Environment()
         self.debug = debug
+        #Error handler
+        self.handler = error.ErrorHandler.get_handler()
 
     def run(self):
-        program = Parser(self.src).parse()
-        valid_program = SEM.Analyzer(self.src).check_program(program)
-        self.init_builtins()
-        valid_program.accept(self)
+        ''' Method that runs an Amanda script. Errors raised by the
+        frontend are handled by an error handler instance'''
+        try:
+            program = Parser(self.src).parse()
+            valid_program = SEM.Analyzer().check_program(program)
+            self.init_builtins()
+            valid_program.accept(self)
+        except error.Error as e:
+            self.handler.throw_error(e,self.src)
 
     def init_builtins(self):
         #Load builtin classes
@@ -35,8 +40,10 @@ class Interpreter:
         for name,data in bltins_funcs.functions.items():
             self.memory.define(name,NativeFunction(data["function"]))
 
-    def error(self,message,token):
-        raise error.RunTime(message,token.line)
+    #TODO: Track line and col numbers using current node
+    def error(self,message,line,col):
+        self.handler.throw_error(
+            error.RunTime(message,token.line),self.src)
 
     def exec_program(self,node):
         children = node.children
@@ -49,7 +56,7 @@ class Interpreter:
     def run_block(self,node,env=None):
         #Create new env for local scope
         if not env:
-            env = Environment(Interpreter.LOCAL_MEMORY,self.memory)
+            env = Environment(self.memory)
         self.memory = env
         children = node.children
         for child in children:
@@ -86,7 +93,7 @@ class Interpreter:
         if node.superclass:
             pass
         #Get blueprint for class
-        env = Environment(name,self.memory)
+        env = Environment(self.memory)
         members = self.exec_classbody(node.body,env)
         self.memory.define(name,AmaClass(name,members))
         #print(members)
@@ -233,7 +240,7 @@ class Interpreter:
     def exec_enquanto(self,node):
         condition = node.condition
         body = node.statement
-        env = Environment(Interpreter.LOCAL_MEMORY,self.memory)
+        env = Environment(self.memory)
         while bool(condition.accept(self)):
             self.run_block(body,env)
 
@@ -258,7 +265,7 @@ class Interpreter:
         else:
             inc = inc.accept(self)
         #Create local mem space for the loop
-        env = Environment(Interpreter.LOCAL_MEMORY,self.memory)
+        env = Environment(self.memory)
         body = node.statement
         for control in range(start,end,inc):
             env.define(var,control)

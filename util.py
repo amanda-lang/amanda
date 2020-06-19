@@ -2,11 +2,11 @@ import unittest
 import os
 import os.path
 from io import StringIO
-from interpreter.lexer import Lexer
-from interpreter.parser import Parser
-from interpreter.semantic import Analyzer
-from interpreter.pypti import Interpreter
-import interpreter.error as error
+from amanda.lexer import Lexer
+from amanda.parser import Parser
+from amanda.semantic import Analyzer
+from amanda.pypti import Interpreter
+import amanda.error as error
 
 
 join = os.path.join
@@ -15,17 +15,10 @@ TEST_DIR = os.path.abspath("./tests")
 RESULTS_FILE = "result.txt"
 
 
-def run_script(file,output):
+def run_script(src,output):
+    intp = Interpreter(src,True)
     try:
-        analyzer = Analyzer(Parser(Lexer(file)))
-        analyzer.check_program()
-    except error.Error as e:
-        message = str(e).lower().strip()
-        output.write(message)
-        return
-    intp = Interpreter(analyzer.program,output=output)
-    try:
-        intp.interpret()
+        intp.run()
     except SystemExit:
         pass
 

@@ -140,12 +140,6 @@ class ErrorHandler:
         context = self.get_context(error,source)
         sys.stderr.write(self.fmt_error(context,error))
         source.close()
+
         sys.exit() 
 
-
-
-
-
-if __name__=="__main__":
-    error = Syntax(Error.INVALID_STRING,symbol="lool",line=3)
-    print(error)
