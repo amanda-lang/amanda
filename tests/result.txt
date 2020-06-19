@@ -1,2 +1,4 @@
-4
-erro sintático na linha 61: era esperado o símbolo entao,porém recebeu o símbolo 'retorna'.
+Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
+Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
+Erro sintático na linha 1: as instruções devem ser delimitadas por ';' ou por uma nova linha.
+Erro sintático na linha 1: as instruções devem ser delimitadas por ';' ou por uma nova linha.

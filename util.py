@@ -1,11 +1,7 @@
-import unittest
 import os
 import os.path
 from io import StringIO
-from amanda.lexer import Lexer
-from amanda.parser import Parser
-from amanda.semantic import Analyzer
-from amanda.pypti import Interpreter
+from amanda.pyamanda import Interpreter
 import amanda.error as error
 
 
@@ -15,12 +11,15 @@ TEST_DIR = os.path.abspath("./tests")
 RESULTS_FILE = "result.txt"
 
 
-def run_script(src,output):
+def run_script(src):
     intp = Interpreter(src,True)
     try:
         intp.run()
+        return intp.output
     except SystemExit:
-        pass
+        return intp.output
+    except UnicodeError:
+        raise Exception(f"This is the file causing this: {src}")
 
 
 def delete_script_output():
@@ -34,12 +33,14 @@ def delete_script_output():
 def get_script_output():
     for root,dirs,files in os.walk(TEST_DIR):
         for file in sorted(files):
+            #Crazy workaround because of coverage file
+            if file == ".coverage":
+                continue
             filename = join(root,file)
             with open(join(root,RESULTS_FILE),"a") as result, open(filename,"r") as src:
-                buffer = StringIO()
-                run_script(src,buffer)
-                result.write(buffer.getvalue()+"\n")
+                buffer = run_script(src)
+                result.write(buffer.getvalue().strip()+"\n")
 
-
-#delete_script_output()
-get_script_output()
+if __name__=="__main__":
+    delete_script_output()
+    get_script_output()

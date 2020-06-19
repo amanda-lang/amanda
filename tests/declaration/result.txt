@@ -1,12 +1,12 @@
-erro na linha 3: o tipo de dados 'agua' não foi definido.
-Eu sou uma varEu sou uma funcEu sou um vector
-erro na linha 5: o parâmetro 'a' já foi especificado nesta função.
-erro na linha 3: o tipo de dados 'fogo' não foi definido.
-erro na linha 3: erro ao inicializar variável. não pode referenciar uma variável durante a sua declaração.
-42
-erro na linha 5: o identificador 'a' já foi declarado neste escopo.
-erro na linha 5: o identificador 'a' já foi declarado neste escopo.
-erro na linha 5: o identificador 'a' já foi declarado neste escopo.
-erro na linha 5: o identificador 'a' já foi declarado neste escopo.
-Eu sou uma varEu sou uma funcEu sou um vector
-erro na linha 3: o tipo de dados 'tempo' não foi definido.
+Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
+Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
+Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
+Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
+Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
+Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
+Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
+Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
+Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
+Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
+Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
+Erro sintático na linha 1: O símbolo '$' não foi reconhecido.

@@ -1,0 +1,5 @@
+
+
+verdadeiro == verdadeiro #expect verdadeiro
+
+verdadeiro != falso # expect verdadeiro

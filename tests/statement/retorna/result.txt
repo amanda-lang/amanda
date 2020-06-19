@@ -1,4 +1,4 @@
-erro na linha 5: o comando 'retorna' só pode ser usado dentro de uma função.
-erro na linha 7: o comando 'retorna' só pode ser usado dentro de uma função.
-erro na linha 5: expressão de retorno inválida. o tipo do valor de retorno é incompatível com o tipo de retorno da função.
-4meumeuverdadeiro-3.140
+Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
+Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
+Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
+Erro sintático na linha 1: O símbolo '$' não foi reconhecido.

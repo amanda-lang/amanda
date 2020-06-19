@@ -384,7 +384,7 @@ class Analyzer(ast.Visitor):
         lexeme = node.token.lexeme
         op_type = node.operand.eval_type
         if operator in (TT.PLUS,TT.MINUS):
-            if op_type.tag != SYM.Tag.INT and op_type.tag != Tag.REAL:
+            if op_type.tag != SYM.Tag.INT and op_type.tag != SYM.Tag.REAL:
                 self.current_node = node
                 self.error(error.Analysis.INVALID_UOP,operator=lexeme,op_type=op_type)
         elif operator == TT.NAO:
