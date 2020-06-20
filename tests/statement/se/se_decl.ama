@@ -1,6 +1,6 @@
 # declaration in simple se error
 
-se (verdadeiro) entao
-  var int i; 
+se verdadeiro entao
+  var i : int; 
   mostra i; # expect 0
 fim

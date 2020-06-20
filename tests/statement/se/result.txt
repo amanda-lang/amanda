@@ -1,7 +1,7 @@
 Erro na linha 4: a condição da instrução 'se' deve ser um valor lógico.
 Erro na linha 4: a condição da instrução 'se' deve ser um valor lógico.
 Erro na linha 3: a condição da instrução 'se' deve ser um valor lógico.
-Erro sintático na linha 4: era esperado o símbolo COLON,porém recebeu o símbolo 'i'.
+0
 4 -3
-Erro sintático na linha 7: era esperado o símbolo COLON,porém recebeu o símbolo 'i'.
-Erro sintático na linha 16: era esperado o símbolo COLON,porém recebeu o símbolo 'i'.
+4
+2 not larger dez não oito não nove dez não dez

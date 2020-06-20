@@ -13,10 +13,10 @@ num = 3;
 
 # se-senao (with declaration)
 se (num > 3) entao 
-  var int i = num;
+  var i:int = num;
   mostra num;
 senao
-  var texto res = "not larger";
+  var res:Texto = "not larger";
   mostra res; # expect not larger
 fim
 

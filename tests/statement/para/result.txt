@@ -1,4 +1,4 @@
-Erro sintático na linha 41: era esperado um identificador depois do símbolo 'fim'.
+5 10 5 10 4
 0 0 0 0 0
 1 1 1 1 1
 Erro na linha 3: os parâmetros de uma série devem ser do tipo 'int'.

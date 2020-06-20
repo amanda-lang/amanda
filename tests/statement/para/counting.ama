@@ -31,18 +31,18 @@ mostra i; # expect 5
 # counting backwards
 i = 0;
 para c de 10..0 faca
-  i += 1;
+    i += 1;
+fim
 mostra i; # expect 10
-
 
 # with var params
 i = 0;
 var ini : int = 0;
-var fim : int = 10;
+var end : int = 10;
 var passo : int = 3;
 
 
-para c de ini..fim inc passo faca 
+para c de ini..end inc passo faca 
   i+=1;
 fim
 

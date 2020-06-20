@@ -20,7 +20,7 @@ mostra i; # expect 10
 
 var logico:bool
 
-
+i = 0
 enquanto nao logico faca
     se i == 20 entao
         logico = verdadeiro
@@ -28,3 +28,5 @@ enquanto nao logico faca
         i += 1
     fim
 fim
+
+mostra i; # expect 20

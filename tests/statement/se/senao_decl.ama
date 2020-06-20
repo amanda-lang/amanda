@@ -2,8 +2,8 @@
 
 
 se (falso) entao
-  mostra "lol"; # Expect error
+  mostra "lol"; 
 senao
-  var int i;
-  mostra i
+  var i : int = 4
+  mostra i #expect 4
 fim
