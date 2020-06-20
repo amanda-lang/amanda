@@ -1,4 +1,4 @@
-$ testing parenthesis
+# testing parenthesis
 
-mostra 1 + 2 * 3; $ expect 7
-mostra (1 + 2) * 3; $ expect 9
+mostra 1 + 2 * 3; # expect 7
+mostra (1 + 2) * 3; # expect 9

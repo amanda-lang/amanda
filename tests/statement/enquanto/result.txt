@@ -1,5 +1,5 @@
-Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
-Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
-Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
-Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
-Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
+5 10
+20
+Erro na linha 4: a condição da instrução 'enquanto' deve ser um valor lógico.
+Erro na linha 4: a condição da instrução 'enquanto' deve ser um valor lógico.
+Erro na linha 4: a condição da instrução 'enquanto' deve ser um valor lógico.

@@ -1,0 +1,2 @@
+Erro sintático na linha 1: as instruções devem ser delimitadas por ';' ou por uma nova linha.
+Erro sintático na linha 1: as instruções devem ser delimitadas por ';' ou por uma nova linha.

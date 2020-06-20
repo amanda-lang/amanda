@@ -1,1 +1,1 @@
-Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
+3 hello world 3.45 verdadeiro falso

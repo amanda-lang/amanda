@@ -20,6 +20,10 @@ def run_script(src):
         return intp.output
     except UnicodeError:
         raise Exception(f"This is the file causing this: {src}")
+    except Exception as e:
+        print(f"Error caused by this src file: {src}")
+        raise e
+
 
 
 def delete_script_output():

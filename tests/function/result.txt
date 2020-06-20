@@ -1,4 +1,8 @@
-Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
-Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
-Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
-Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
+Erro sintático na linha 4: as instruções devem ser delimitadas por ';' ou por uma nova linha.
+Erro na linha 4: o identificador 'a' não foi declarado.
+Erro na linha 4: o tipo de dados 'numero' não foi definido.
+Erro na linha 5: expressão de retorno inválida. O tipo do valor de retorno é incompatível com o tipo de retorno da função.
+Erro sintático na linha 5: era esperado o símbolo COLON,porém recebeu o símbolo 'a'.
+String<-
+Erro na linha 4: o parâmetro 'a' já foi especificado nesta função.
+Erro sintático na linha 8: era esperado um identificador depois do símbolo 'func'.

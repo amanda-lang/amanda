@@ -39,6 +39,9 @@ class Scope(SymbolTable):
             else:
                 return None
         return symbol
+    
+    def get(self,name):
+        return super().resolve(name)
 
     def get_enclosing_func(self):
         if self.name == Scope.GLOBAL:

@@ -1,11 +1,6 @@
-Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
-Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
-Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
-Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
-Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
-Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
-Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
-Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
-Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
-Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
-Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
+Erro na linha 4: o identificador 'Texto' não é uma referência válida.
+Erro na linha 10: o identificador 'main' não é uma referência válida.
+122
+7 9
+5.5
+Erro na linha 5: o identificador 'int' não é uma referência válida.

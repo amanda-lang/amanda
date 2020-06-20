@@ -75,7 +75,7 @@ class Analyzer(ast.Visitor):
         return visitor_method(node)
 
     def general_visit(self,node):
-        raise NotImplementedError(f"Have not defined method for this node type: {type(node)}")
+        raise NotImplementedError(f"Have not defined method for this node type: {type(node)} {node.__dict__}")
 
     def has_return_block(self,node):
         for child in node.children:
@@ -125,7 +125,7 @@ class Analyzer(ast.Visitor):
                 type=node.var_type.lexeme
             )
 
-        if self.current_scope.resolve(name):
+        if self.current_scope.get(name):
             self.error(error.Analysis.ID_IN_USE,name=name)
         symbol = SYM.VariableSymbol(name,var_type)
         self.current_scope.define(name,symbol)
@@ -147,7 +147,7 @@ class Analyzer(ast.Visitor):
             function = klass.members.get(name)
             self.check_function(name,function,node)
             return
-        if self.current_scope.resolve(name):
+        if self.current_scope.get(name):
             self.error(error.Analysis.ID_IN_USE,name=name)
         #Check if return types exists
         if not node.func_type:
@@ -210,7 +210,7 @@ class Analyzer(ast.Visitor):
 
     def visit_classdecl(self,node):
         name = node.name.lexeme
-        if self.current_scope.resolve(name):
+        if self.current_scope.get(name):
             self.error(error.Analysis.ID_IN_USE,name=name)
         #Check if class has a valid superclass
         superclass = node.superclass
@@ -413,7 +413,7 @@ class Analyzer(ast.Visitor):
     def visit_se(self,node):
         self.visit(node.condition)
         if node.condition.eval_type.tag != SYM.Tag.BOOL:
-            self.error(node.token.line,f"a condição da instrução 'se' deve ser um valor lógico")
+            self.error(f"a condição da instrução 'se' deve ser um valor lógico")
         self.visit(node.then_branch)
         if node.else_branch:
             self.visit(node.else_branch)
@@ -435,7 +435,7 @@ class Analyzer(ast.Visitor):
         self.visit(node.statement,scope)
 
     def visit_paraexpr(self,node):
-        self.visit(node.name)
+        #self.visit(node.name)
         self.visit(node.range_expr)
 
     def visit_rangeexpr(self,node):

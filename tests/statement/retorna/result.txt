@@ -1,4 +1,6 @@
-Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
-Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
-Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
-Erro sintático na linha 1: O símbolo '$' não foi reconhecido.
+Erro na linha 5: Não pode usar a directiva 'retorna' dentro de um constructor.
+Erro na linha 5: A directiva 'retorna' só pode ser usada dentro de uma função.
+Erro na linha 4: A directiva 'retorna' só pode ser usada dentro de uma função.
+Erro na linha 5: A directiva 'retorna' só pode ser usada dentro de uma função.
+Erro na linha 5: expressão de retorno inválida. O tipo do valor de retorno é incompatível com o tipo de retorno da função.
+Erro na linha 4: A directiva 'retorna' só pode ser usada dentro de uma função.

@@ -1,8 +1,8 @@
 #associativity
 
-var int : a = 1
-var int : b = 1
-var int : c = 40
+var a:int = 1
+var b:int = 1
+var c:int = 40
 
 a=b=c
 

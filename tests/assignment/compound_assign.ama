@@ -4,18 +4,18 @@
 var a : int = 1;
 
 a += 1;
-mostra a; $ expect 2
+mostra a; # expect 2
 
 a -= 1;
-mostra a; $ expect 1
+mostra a; # expect 1
 
 
 var b : int = 2;
 
 a *= b;
-mostra a;  $ expect 2
+mostra a;  # expect 2
 
 
 a /= b;
-mostra a; $ expect 1
+mostra a; # expect 1
 

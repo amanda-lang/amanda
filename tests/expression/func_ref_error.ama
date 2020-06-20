@@ -7,4 +7,4 @@ func main(): int
   retorna 0;
 fim
 
-mostra a+func; #expect error
+mostra a+main; #expect error
