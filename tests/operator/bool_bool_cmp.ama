@@ -1,5 +1,3 @@
 
-
-verdadeiro == verdadeiro #expect verdadeiro
-
-verdadeiro != falso # expect verdadeiro
+mostra verdadeiro == verdadeiro #expect verdadeiro
+mostra verdadeiro != falso # expect verdadeiro

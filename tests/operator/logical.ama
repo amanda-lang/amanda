@@ -1,5 +1,5 @@
 #Testing logical operators
 
-verdadeiro e falso #expect falso
-verdadeiro ou falso # expect verdadeiro
-nao verdadeiro # expect falso
+mostra verdadeiro e falso #expect falso
+mostra verdadeiro ou falso # expect verdadeiro
+mostra nao verdadeiro # expect falso
