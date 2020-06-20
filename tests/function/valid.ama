@@ -1,0 +1,49 @@
+# Some tests with functions
+
+
+# Change global
+
+var a:int;
+
+func func():vazio
+  a = 3;
+fim
+
+func();
+mostra a; # expect 3
+
+
+# type prom
+func random(): real
+  retorna 150;
+fim
+
+
+var rand:real = random();
+mostra rand; #expect 150.0
+
+
+# nested func
+func crazy_sum(a:int , b:int): int 
+
+  func sum(a:int , b:int): int 
+    retorna a+b;
+  fim
+
+  retorna sum(a,b);
+fim
+
+
+a = crazy_sum(2,2);
+mostra a; # expect 4
+
+
+# recursion
+func factorial(b:int): int
+  se n == 0 entao
+    retorna 1;
+  fim
+  retorna n*factorial(n-1);
+fim
+
+mostra factorial(5); # expect 120

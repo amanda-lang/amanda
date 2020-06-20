@@ -1,0 +1,15 @@
+# Redeclaration in local scope
+
+var i : int = 2;
+
+func main():int
+    
+    mostra i;#expect 2
+    var i:int = 4
+    mostra i; #expect 4
+    retorna i
+fim
+
+main()
+mostra i; #expect 2
+

@@ -1,0 +1,6 @@
+
+# Condition must be boolean or evaluate to boolean
+
+se "I am a beast" entao  # expect Error
+    mostra 1
+fim

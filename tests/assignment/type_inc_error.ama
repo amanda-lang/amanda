@@ -1,0 +1,4 @@
+# type incompatibility error
+
+
+var a : int = "string"; # expect ERROR

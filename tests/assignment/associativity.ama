@@ -1,0 +1,11 @@
+#associativity
+
+var int : a = 1
+var int : b = 1
+var int : c = 40
+
+a=b=c
+
+mostra a # expect 40
+mostra b # expect 40
+mostra c # expect 40

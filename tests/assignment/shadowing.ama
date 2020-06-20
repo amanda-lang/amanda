@@ -1,0 +1,11 @@
+# shadowing is allowed
+
+
+var a : int = 2
+
+func change_global():int
+    a += 1
+fim
+
+change_global()
+mostra a # expect 3 

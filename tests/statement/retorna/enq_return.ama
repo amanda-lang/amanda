@@ -1,0 +1,6 @@
+# Return from enquanto
+
+
+enquanto verdadeiro faca
+    retorna 1 # expect error
+fim

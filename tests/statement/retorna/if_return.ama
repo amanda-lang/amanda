@@ -1,0 +1,6 @@
+#Try to return from se
+
+
+se verdadeiro entao
+    retorna 1 # Expect error
+fim

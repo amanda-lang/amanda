@@ -1,0 +1,4 @@
+# Incompatible types
+
+var teste : Texto = "Texto"
+var temp : bool = texto #expect error

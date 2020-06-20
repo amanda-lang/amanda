@@ -1,0 +1,6 @@
+#Incompatible return type
+
+
+func int_returner():int
+    retorna 3.14 # expect error
+fim

@@ -1,0 +1,5 @@
+# Referencing type error
+
+
+var a:int
+mostra a + int

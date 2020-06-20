@@ -1,0 +1,11 @@
+# nested function declared without return
+
+
+func outer_func():int 
+  var int a = 10;
+
+  func inner_func():int 
+    var int a = 10;# expect error
+  fim
+  return a
+fim

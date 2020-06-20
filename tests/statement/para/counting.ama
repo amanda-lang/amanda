@@ -1,0 +1,49 @@
+#Test of para loop
+
+var i:int
+
+para a de 0..5 faca
+  i += 1;
+fim
+
+
+
+mostra i; # expect 5
+
+# with block
+i = 0;
+
+para a de 0..10 faca
+    i += 1;
+fim
+
+mostra i; # expect 10
+
+# with inc
+i = 0;
+para c de 0..10 inc 2 faca
+  i += 1;
+fim
+
+mostra i; # expect 5
+
+
+# counting backwards
+i = 0;
+para c de 10..0 faca
+  i += 1;
+mostra i; # expect 10
+
+
+# with var params
+i = 0;
+var ini : int = 0;
+var fim : int = 10;
+var passo : int = 3;
+
+
+para c de ini..fim inc passo faca 
+  i+=1;
+fim
+
+mostra i; # expect 4

@@ -94,25 +94,11 @@ class Analyzer(ast.Visitor):
     def has_return_retorna(self,node):
         return True
 
-    def resolve(self,node):
-        ''' Class used to resolve the names in a scope
-            before checking it. Allows forward declarations'''
-        node_class = type(node).__name__.lower()
-        method_name = f"resolve_{node_class}"
-        resolver_method = getattr(self,method_name,None)
-
-        if not resolver_method:
-            NotImplementedError("Can't resolve node")
-        return resolver_method(node)
-
-
-
     def error(self,code,**kwargs):
         message = code.format(**kwargs)
         raise error.Analysis(
           message,self.current_node.token.line,
           self.current_node.token.col)
-    
 
 
     def check_program(self,program):
@@ -128,17 +114,16 @@ class Analyzer(ast.Visitor):
         name = node.name.lexeme
 
         #If declaration has already been resolved,
-        #define the member in current scope and exit
-        #declaration
+        #define the member in current scope and exit declaration
         if klass and klass.resolved:
             self.current_scope.define(name,klass.members.get(name))
             return
         var_type = self.current_scope.resolve(node.var_type.lexeme)
         if not var_type or not var_type.is_type():
             self.error(
-                        error.Analysis.UNDEFINED_TYPE,
-                        type=node.var_type.lexeme
-                    )
+                error.Analysis.UNDEFINED_TYPE,
+                type=node.var_type.lexeme
+            )
 
         if self.current_scope.resolve(name):
             self.error(error.Analysis.ID_IN_USE,name=name)
@@ -246,13 +231,6 @@ class Analyzer(ast.Visitor):
         #Revisit class
         self.visit_classbody(node.body,SYM.Scope(name,self.current_scope))
         self.current_class = prev_class
-
-    def resolve_classbody(self,node,scope):
-        self.current_scope = scope
-        for child in node.children:
-            self.resolve(child)
-        self.current_scope = self.current_scope.enclosing_scope
-        return scope.symbols
 
     
     def visit_classbody(self,node,scope):
@@ -419,7 +397,7 @@ class Analyzer(ast.Visitor):
         self.visit(expr)
         if not self.current_function:
             self.current_node = node
-            self.error(f"O comando 'retorna' só pode ser usado dentro de uma função")
+            self.error(f"A directiva 'retorna' só pode ser usada dentro de uma função")
         if self.current_function.is_constructor:
             self.error("Não pode usar a directiva 'retorna' dentro de um constructor")
         func_type = self.current_function.type

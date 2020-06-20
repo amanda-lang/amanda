@@ -1,7 +1,0 @@
-$ Wrong return type error
-
-
-def func(): int{
-  retorna "str"; $expect ERROR
-}
-mostra func();

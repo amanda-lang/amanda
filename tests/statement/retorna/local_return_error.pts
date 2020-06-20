@@ -1,8 +1,0 @@
-$retorna in non global scope
-
-
-{
-
-
-  retorna 0; $ expect ERROR
-}

@@ -1,6 +1,0 @@
-$ Wrong assignment target
-
-25+26 = 5; $ expect error
-"string" = 7;
-falso = 8;
-(2+1) = 5;

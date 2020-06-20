@@ -1,0 +1,5 @@
+# function without return
+
+func main():int 
+  retorna a; # expect error
+fim
