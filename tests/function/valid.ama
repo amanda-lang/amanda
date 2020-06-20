@@ -5,11 +5,12 @@
 
 var a:int;
 
-func func():vazio
+func main():int
   a = 3;
+  retorna a
 fim
 
-func();
+main();
 mostra a; # expect 3
 
 
@@ -39,7 +40,7 @@ mostra a; # expect 4
 
 
 # recursion
-func factorial(b:int): int
+func factorial(n:int): int
   se n == 0 entao
     retorna 1;
   fim

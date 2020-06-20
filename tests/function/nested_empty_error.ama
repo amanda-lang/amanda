@@ -2,10 +2,10 @@
 
 
 func outer_func():int 
-  var int a = 10;
+  var a : int = 10;
 
   func inner_func():int 
-    var int a = 10;# expect error
+    var a : int = 10;# expect error
   fim
-  return a
+  retorna a
 fim

@@ -1,8 +1,8 @@
-Erro sintático na linha 4: as instruções devem ser delimitadas por ';' ou por uma nova linha.
-Erro na linha 4: o identificador 'a' não foi declarado.
+Erro na linha 3: o tipo de dados 'Carro' não foi definido.
+Erro na linha 3: a função 'main' não possui a instrução 'retorna'.
 Erro na linha 4: o tipo de dados 'numero' não foi definido.
 Erro na linha 5: expressão de retorno inválida. O tipo do valor de retorno é incompatível com o tipo de retorno da função.
-Erro sintático na linha 5: era esperado o símbolo COLON,porém recebeu o símbolo 'a'.
+Erro na linha 7: a função 'inner_func' não possui a instrução 'retorna'.
 String<-
 Erro na linha 4: o parâmetro 'a' já foi especificado nesta função.
-Erro sintático na linha 8: era esperado um identificador depois do símbolo 'func'.
+3 150.0 4 120
