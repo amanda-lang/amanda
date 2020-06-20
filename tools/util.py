@@ -45,6 +45,3 @@ def get_script_output():
                 buffer = run_script(src)
                 result.write(buffer.getvalue().strip()+"\n")
 
-if __name__=="__main__":
-    delete_script_output()
-    get_script_output()
