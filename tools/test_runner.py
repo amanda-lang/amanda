@@ -35,8 +35,6 @@ def run_suite(suite,runner,results):
             with open(join(root,file),"r") as script:
                 output = run_script(script)
             if output.getvalue().strip() != results.readline().strip():
-                print(results.readline().strip())
-                print(output.getvalue().strip())
                 raise Exception(f"Test failed. file: {file}.")
                 
     return True
