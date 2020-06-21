@@ -1,2 +1,1 @@
-var num : int = "str".cmp
-mostra num # expect 3
+var num : int = "str".cmp #expect error
