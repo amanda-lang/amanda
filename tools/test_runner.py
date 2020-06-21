@@ -24,6 +24,7 @@ OPERATOR = join(TEST_DIR,"operator")
 CALL = join(TEST_DIR,"call")
 GET = join(TEST_DIR,"get")
 SET = join(TEST_DIR,"set")
+EU = join(TEST_DIR,"eu")
 COMMENT = join(TEST_DIR,"comment")
 
 EXCLUDED = ("lexer.py","parser.py","result.txt")
@@ -110,6 +111,10 @@ class TestAmanda(unittest.TestCase):
     def test_set(self):
         with open(join(SET,"result.txt"),"r") as res_file:
             self.assertTrue(run_suite(SET,self,res_file))
+
+    def test_eu(self):
+        with open(join(EU,"result.txt"),"r") as res_file:
+            self.assertTrue(run_suite(EU,self,res_file))
 
     def test_comment(self):
         with open(join(COMMENT,"result.txt"),"r") as res_file:

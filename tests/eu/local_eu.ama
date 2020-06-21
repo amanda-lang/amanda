@@ -1,0 +1,4 @@
+func add():int
+    eu #expect error
+    retorna 0
+fim
