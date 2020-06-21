@@ -21,6 +21,7 @@ RETORNA = join(STATEMENT,"retorna")
 SE = join(STATEMENT,"se")
 CLASS = join(TEST_DIR,"class")
 OPERATOR = join(TEST_DIR,"operator")
+CALL = join(TEST_DIR,"call")
 COMMENT = join(TEST_DIR,"comment")
 
 EXCLUDED = ("lexer.py","parser.py","result.txt")
@@ -95,6 +96,10 @@ class TestAmanda(unittest.TestCase):
     def test_operator(self):
         with open(join(OPERATOR,"result.txt"),"r") as res_file:
             self.assertTrue(run_suite(OPERATOR,self,res_file))
+
+    def test_call(self):
+        with open(join(CALL,"result.txt"),"r") as res_file:
+            self.assertTrue(run_suite(CALL,self,res_file))
 
     def test_comment(self):
         with open(join(COMMENT,"result.txt"),"r") as res_file:

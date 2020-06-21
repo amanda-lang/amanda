@@ -458,11 +458,13 @@ class Analyzer(ast.Visitor):
             sym = self.current_scope.resolve(name)
         #Call is made on another call
         elif isinstance(callee,ast.Call):
-            return self.visit(callee)
+            # Since amanda doesn't have first class functions,
+            # calling a call is always illegal
+            self.error(f"Não pode invocar o resultado de uma invocação")
         elif isinstance(callee,ast.Get):
             sym = self.visit(callee)
         else:
-            raise NotImplementedError("Don't know what to do with anything else in call")
+            self.error(f"o símbolo '{node.callee.token.lexeme}' não é invocável")
         if isinstance(sym,SYM.ClassSymbol):
             self.validate_constructor(sym,node.fargs)
             node.eval_type = sym
@@ -479,8 +481,6 @@ class Analyzer(ast.Visitor):
             #Use an empty constructor if no constructor or
             #user defined constructor violated rules of
             #valid constructors
-            #Is present in class
-            #is explicitly defined
             #TODO: Find out WTF is causing the 'ghost param bug'
             constructor = SYM.FunctionSymbol(sym.name,sym,{})
             constructor.is_constructor = True
