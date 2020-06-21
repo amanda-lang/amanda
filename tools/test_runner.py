@@ -19,6 +19,7 @@ MOSTRA = join(STATEMENT,"mostra")
 PARA = join(STATEMENT,"para")
 RETORNA = join(STATEMENT,"retorna")
 SE = join(STATEMENT,"se")
+CLASS = join(TEST_DIR,"class")
 OPERATOR = join(TEST_DIR,"operator")
 COMMENT = join(TEST_DIR,"comment")
 
@@ -82,13 +83,14 @@ class TestAmanda(unittest.TestCase):
     def test_retorna(self):
         with open(join(RETORNA,"result.txt"),"r") as res_file:
             self.assertTrue(run_suite(RETORNA,self,res_file))
-
-
     
     def test_se(self):
         with open(join(SE,"result.txt"),"r") as res_file:
             self.assertTrue(run_suite(SE,self,res_file))
 
+    def test_class(self):
+        with open(join(CLASS,"result.txt"),"r") as res_file:
+            self.assertTrue(run_suite(CLASS,self,res_file))
     
     def test_operator(self):
         with open(join(OPERATOR,"result.txt"),"r") as res_file:
