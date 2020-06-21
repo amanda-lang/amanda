@@ -328,8 +328,11 @@ class Analyzer(ast.Visitor):
         target = node.target
         expr = node.expr
         #evaluate sides
-        self.visit(target)
-        self.visit(expr)
+        ts = self.visit(target)
+        es = self.visit(expr)
+        #Check both sides for get expression
+        self.validate_get(target,ts)
+        self.validate_get(expr,es)
         expr.prom_type = expr.eval_type.promote_to(target.eval_type,self.current_scope)
         if target.eval_type != expr.eval_type and not expr.prom_type:
             self.current_node = node

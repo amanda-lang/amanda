@@ -1,0 +1,2 @@
+var text : Texto = "string"
+text.cmp = text #expect error
