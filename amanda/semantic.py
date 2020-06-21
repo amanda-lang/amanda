@@ -387,7 +387,10 @@ class Analyzer(ast.Visitor):
         lhs = node.left
         rhs = node.right
         
-        self.visit(rhs)
+        rs = self.visit(rhs)
+        #Check rhs of assignment
+        #is expression
+        self.validate_get(rhs,rs)
         self.visit(lhs)
 
         #Set node types

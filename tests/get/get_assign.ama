@@ -1,0 +1,2 @@
+var num : int = "str".cmp
+mostra num # expect 3

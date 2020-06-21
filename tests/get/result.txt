@@ -1,3 +1,4 @@
+Erro na linha 1: o identificador 'cmp' não é uma referência válida.
 Erro na linha 2: Tipos primitivos não possuem atributos.
 Erro na linha 2: Tipos primitivos não possuem atributos.
 Erro na linha 1: o identificador 'cmp' não é uma referência válida.
