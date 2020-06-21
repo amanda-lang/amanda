@@ -1,5 +1,0 @@
-$ non int param
-
-para (i de "string"..2.0 inc verdadeiro) faca{
-  mostra i;
-}

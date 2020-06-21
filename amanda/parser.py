@@ -185,7 +185,7 @@ class Parser:
             elif self.match(TT.NEWLINE):
                 self.consume(TT.NEWLINE)
             else:
-                self.error("Directiva inválida para o corpo de um função")
+                self.error("Directiva inválida para o corpo de uma classe")
         return body
 
         

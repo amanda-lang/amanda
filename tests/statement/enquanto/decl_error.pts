@@ -1,8 +1,0 @@
-$ Decl in enquanto with no block
-
-
-
-enquanto (verdadeiro) faca
-  var int i; $ expect ERROR
-
-  

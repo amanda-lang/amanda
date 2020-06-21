@@ -1,0 +1,4 @@
+Erro na linha 9: o identificador 'cmp' não é uma referência válida.
+Erro sintático na linha 2: alvo inválido para atribuição.
+Erro na linha 2: o identificador 'cmp' não é uma referência válida.
+6 3

@@ -1,11 +1,6 @@
-erro na linha 8: o identificador 'array' não é uma referência válida.
-erro na linha 10: o identificador 'func' não é uma referência válida.
-150.0
-erro na linha 3: os tipos 'int' e 'texto' não suportam operações com o operador '+'.
-3-120falsoverdadeirofalsoverdadeirofalsoverdadeiro-1falso
-79
+Erro na linha 4: o identificador 'Texto' não é uma referência válida.
+Erro na linha 10: o identificador 'main' não é uma referência válida.
+122
+7 9
 5.5
-erro na linha 5: o identificador 'texto' não é uma referência válida.
-erro na linha 4: o identificador 'array' não foi declarado.
-erro na linha 4: função 'some_func' não foi definida.
-erro na linha 4: o identificador 'i' não foi declarado.
+Erro na linha 5: o identificador 'int' não é uma referência válida.

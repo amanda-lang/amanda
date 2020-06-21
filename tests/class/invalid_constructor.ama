@@ -1,0 +1,17 @@
+
+# Class with constructor that has return type
+
+classe A
+    
+    #Fields must be declared explicitly
+    var field : int 
+
+    func constructor(field : int): int
+        eu.field = field
+        retorna field
+    fim
+
+fim
+
+
+var a : A = A(5) # expect error

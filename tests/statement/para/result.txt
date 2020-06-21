@@ -1,3 +1,4 @@
-5105104
-erro sintático na linha 4: instrução inválida. só pode fazer declarações dentro de blocos ou no escopo principal.
-erro na linha 3: os parâmetros de uma série devem ser do tipo 'int'.
+5 10 5 10 4
+0 0 0 0 0
+1 1 1 1 1
+Erro na linha 3: os parâmetros de uma série devem ser do tipo 'int'.

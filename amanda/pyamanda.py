@@ -1,5 +1,6 @@
 import ast
 import sys
+from io import StringIO
 from amanda.tokens import TokenType as TT
 import amanda.ast_nodes as AST
 import amanda.semantic as SEM
@@ -19,6 +20,10 @@ class Interpreter:
         self.debug = debug
         #Error handler
         self.handler = error.ErrorHandler.get_handler()
+        #If debug is enabled, redirect output to
+        #an in memory buffer
+        if self.debug:
+            self.output = StringIO()
 
     def run(self):
         ''' Method that runs an Amanda script. Errors raised by the
@@ -28,8 +33,12 @@ class Interpreter:
             valid_program = SEM.Analyzer().check_program(program)
             self.init_builtins()
             valid_program.accept(self)
-        except error.Error as e:
-            self.handler.throw_error(e,self.src)
+        except error.AmandaError as e:
+            if self.debug:
+                self.output.write(str(e).strip())
+                sys.exit()
+            else:
+                self.handler.throw_error(e,self.src)
 
     def init_builtins(self):
         #Load builtin classes
@@ -283,6 +292,10 @@ class Interpreter:
         #TODO: Refactor this hack
         if node.exp.eval_type.tag == Tag.BOOL:
             expr = "verdadeiro" if expr else "falso"
-        print(expr)
+        if self.debug:
+            print(expr,end=" ",file=self.output)
+        else:
+            print(expr)
+
 
 

@@ -1,0 +1,12 @@
+# Mix and match operands
+
+
+var a : int = 20
+func duplica(a:int):int
+    retorna a*2
+fim
+
+var text : Texto = "string"
+
+mostra - ((7+3) - (2 * (duplica(a) + a + text.cmp()))) # expect 122
+

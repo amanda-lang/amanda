@@ -1,0 +1,3 @@
+# Declaring with non existing type
+
+var a:Tempo; #error

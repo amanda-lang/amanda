@@ -1,3 +1,0 @@
-$ Referencing to the same variable during decl + init
-
-var int a = a; $ expect ERROR

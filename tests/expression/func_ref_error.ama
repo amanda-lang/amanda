@@ -1,0 +1,10 @@
+# Referencing function without calling
+
+
+var a:int;
+
+func main(): int
+  retorna 0;
+fim
+
+mostra a+main; #expect error

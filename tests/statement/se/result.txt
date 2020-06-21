@@ -1,7 +1,7 @@
-erro na linha 4: a condição da instrução 'se' deve ser um valor lógico.
-erro na linha 4: a condição da instrução 'se' deve ser um valor lógico.
-2not largerdeznão oitonão novedeznão dez
-erro sintático na linha 7: instrução inválida. só pode fazer declarações dentro de blocos ou no escopo principal.
-erro sintático na linha 9: instrução inválida. só pode fazer declarações dentro de blocos ou no escopo principal.
-2not largerdeznão oitonão novedeznão dez
-erro na linha 4: a condição da instrução 'se' deve ser um valor lógico.
+Erro na linha 4: a condição da instrução 'se' deve ser um valor lógico.
+Erro na linha 4: a condição da instrução 'se' deve ser um valor lógico.
+Erro na linha 3: a condição da instrução 'se' deve ser um valor lógico.
+0
+4 -3
+4
+2 not larger dez não oito não nove dez não dez

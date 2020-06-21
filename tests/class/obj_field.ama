@@ -1,0 +1,17 @@
+
+# Classes with obj fields
+
+classe A
+    
+    var field : Texto 
+
+    func constructor(field : Texto)
+        eu.field = field
+    fim
+
+fim
+
+
+
+var a : A = A("Working")
+mostra a.field #expect Working

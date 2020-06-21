@@ -1,0 +1,8 @@
+# Local redeclaration
+
+
+func test_decl():int
+    var a : int
+    var a : bool
+    retorna a
+fim

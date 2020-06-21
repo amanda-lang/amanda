@@ -1,0 +1,6 @@
+# Condition must be boolean or promotable to boolean
+
+
+enquanto 1 faca  # expect Error
+
+fim

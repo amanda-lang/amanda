@@ -1,0 +1,84 @@
+# Testing out a se with blocks
+
+
+var num:int = 2;
+
+# simple se-entao
+se (verdadeiro) entao
+  mostra num; # expect 2
+fim
+
+num = 3;
+
+
+# se-senao (with declaration)
+se (num > 3) entao 
+  var i:int = num;
+  mostra num;
+senao
+  var res:Texto = "not larger";
+  mostra res; # expect not larger
+fim
+
+
+#mutiple se
+
+num = 10;
+
+se (num == 8) entao 
+  mostra "oito";
+fim
+
+se (num == 9) entao
+  mostra "nove";
+fim
+se (num == 10) entao
+  mostra "dez"; # expect "dez"
+fim
+
+
+# multiple se-senao
+se (num == 8) entao
+  mostra "oito";
+senao
+  mostra "não oito"; # expect "não oito"
+fim
+
+se (num == 9) entao
+  mostra "nove";
+senao
+  mostra "não nove"; # expect "não nove"
+fim
+
+se (num == 10) entao
+  mostra "dez"; # expect "dez"
+senao
+  mostra "não dez";
+fim
+
+
+
+#mutiple se
+
+num = 11;
+
+se (num == 8) entao
+  mostra "oito";
+fim
+
+se (num == 9) entao
+  mostra "nove";
+fim
+
+se (num == 10) entao
+  mostra "dez";
+senao
+  mostra "não dez"; # expect "não dez"
+fim
+
+
+# empty se and senao
+
+se (verdadeiro) entao 
+senao
+fim

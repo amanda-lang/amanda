@@ -1,0 +1,15 @@
+# Testing simple assignments
+
+
+var a : int = 2;
+
+mostra a; #expect 2
+
+var c : real= 1.0;
+mostra c; # expect 1.0
+
+var d : bool = 1 > 2;
+mostra d; # expect falso
+
+var b : Texto = "a";
+mostra b; # expect a

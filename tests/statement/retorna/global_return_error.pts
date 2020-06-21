@@ -1,5 +1,0 @@
-$ returning in global scope
-
-
-var int i;
-retorna i; $ except ERROR

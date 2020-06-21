@@ -1,0 +1,16 @@
+# Decl in enquanto 
+
+
+var i : int
+
+enquanto i<20 faca
+
+    func adder(i:int):int
+        retorna i+1
+    fim
+
+    i = adder(i)
+fim
+  
+
+mostra i; # expect 20

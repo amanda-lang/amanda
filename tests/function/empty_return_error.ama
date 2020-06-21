@@ -1,0 +1,4 @@
+# function without return
+
+func main():int #expect error
+fim

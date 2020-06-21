@@ -1,5 +1,0 @@
-$ Redeclaring array type
-
-
-var int a;
-vector int a[2];

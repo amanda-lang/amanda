@@ -1,0 +1,19 @@
+
+# Call constructor through object
+
+#uma classe pra contar loool
+classe A
+    
+    #Fields must be declared explicitly
+    var field : int 
+
+    func constructor(field : int)
+        eu.field = field
+    fim
+
+fim
+
+
+
+var a : A = A(5)
+a.constructor(5) # expect error
