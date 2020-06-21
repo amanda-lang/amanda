@@ -55,7 +55,7 @@ class Analyzer(ast.Visitor):
         node_class = type(node).__name__.lower()
         method_name = f"has_return_{node_class}"
         visitor_method = getattr(self,method_name,self.general_check)
-        #update AST node
+        #update ast node
 
         #Previous node is used for nodes that call visit on
         #other nodes
@@ -294,13 +294,17 @@ class Analyzer(ast.Visitor):
         node.eval_type = sym.type
         return sym
 
+    def validate_get(self,node,sym):
+        ''' Method to validate get expressions'''
+        if isinstance(node,ast.Get) and not sym.can_evaluate():
+            self.error(error.Analysis.INVALID_REF,name=sym.name)
+
     def visit_get(self,node):
         ''' Method that processes getter expressions.
         Returns the resolved symbol of the get expression.'''
         target = self.visit(node.target)
 
-        #This hack is for objects that can be created via a literal
-        #expression
+        #Check for literal that are converted to object
         if (target and target.type.tag != SYM.Tag.REF) or \
             (node.target.eval_type.tag != SYM.Tag.REF):
             self.error("Tipos primitivos não possuem atributos")
@@ -335,13 +339,18 @@ class Analyzer(ast.Visitor):
         
 
     def visit_binop(self,node):
-        self.visit(node.left)
-        self.visit(node.right)
+        ls = self.visit(node.left)
+        rs = self.visit(node.right)
+        lhs = node.left
+        rhs = node.right
+
+        #Validate in case of get nodes
+        self.validate_get(lhs,ls)
+        self.validate_get(rhs,rs)
+
         #Evaluate type of binary
         #arithmetic operation
         operator = node.token
-        lhs = node.left
-        rhs = node.right
         result = lhs.eval_type.validate_op(operator.token,rhs.eval_type,self.current_scope)
         if not result:
             self.current_node = node
@@ -357,7 +366,10 @@ class Analyzer(ast.Visitor):
 
 
     def visit_unaryop(self,node):
-        self.visit(node.operand)
+        operand = self.visit(node.operand)
+        #Check if operand is a get node that can not be evaluated
+        self.validate_get(node.operand,operand)
+
         operator = node.token.token
         lexeme = node.token.lexeme
         op_type = node.operand.eval_type
@@ -389,7 +401,10 @@ class Analyzer(ast.Visitor):
 
 
     def visit_mostra(self,node):
-        self.visit(node.exp)
+        sym = self.visit(node.exp)
+        #Check if it is trying to reference method
+        self.validate_get(node.exp,sym)
+
 
 
     def visit_retorna(self,node):

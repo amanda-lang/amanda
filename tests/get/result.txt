@@ -1,0 +1,9 @@
+Erro na linha 2: Tipos primitivos não possuem atributos.
+Erro na linha 2: Tipos primitivos não possuem atributos.
+Erro na linha 1: o identificador 'cmp' não é uma referência válida.
+Erro na linha 2: Tipos primitivos não possuem atributos.
+Erro na linha 19: O objecto do tipo 'Acumulador' não possui o atributo cmp.
+9
+Erro na linha 2: o identificador 'cmp' não é uma referência válida.
+4 3
+Erro na linha 2: o identificador 'cmp' não é uma referência válida.
