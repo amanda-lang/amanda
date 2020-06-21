@@ -1,0 +1,15 @@
+# Normal testing of declarations
+
+
+var a : int
+mostra a #expect 0
+
+var b : int = 2
+
+mostra b #expect 2
+
+var pi : real 
+mostra pi; # expect 0.0
+
+var logico : bool
+mostra logico; #expect falso

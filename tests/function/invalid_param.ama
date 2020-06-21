@@ -1,0 +1,6 @@
+# Invalid param type error
+
+
+func add(a:numero):int #expect error
+    retorna 0
+fim

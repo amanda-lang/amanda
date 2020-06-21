@@ -1,0 +1,3 @@
+# Referencing to the same variable during decl + init
+
+var a:int = a; #expect ERROR

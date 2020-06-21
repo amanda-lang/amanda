@@ -1,0 +1,8 @@
+# Redeclaring array type
+
+
+var a:int;
+
+func a():int # expect error
+ retorna 0
+fim

@@ -1,0 +1,6 @@
+# declaration in block
+
+para c de 0..5 faca
+  var i:int;
+  mostra i; # expect 0 0 0 0 0
+fim

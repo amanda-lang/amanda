@@ -39,6 +39,9 @@ class Scope(SymbolTable):
             else:
                 return None
         return symbol
+    
+    def get(self,name):
+        return super().resolve(name)
 
     def get_enclosing_func(self):
         if self.name == Scope.GLOBAL:
@@ -165,7 +168,7 @@ class Type(Symbol):
             result = self.comparison[self.tag.value][other.tag.value]
         elif op in (TT.DOUBLEEQUAL,TT.NOTEQUAL):
             result = self.equality[self.tag.value][other.tag.value]
-        elif op in (TT.AND,TT.OR):
+        elif op in (TT.E,TT.OU):
             result = self.logic[self.tag.value][other.tag.value]
 
         if not result:
@@ -224,6 +227,6 @@ class ClassSymbol(Type):
         return True
 
     def __str__(self):
-        return f"{self.name}\n--------\n{self.members}\n"
+        return self.name
 
 

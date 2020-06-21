@@ -1,14 +1,14 @@
-$ Test mostra statement output
+# Test mostra statement output
 
 
 
-mostra 1+2; $ expect 3
+mostra 1+2; # expect 3
 
-mostra "hello world"; $ expect hello world
+mostra "hello world"; # expect hello world
 
-mostra 2.45 + 1.0; $ expect 3.45
+mostra 2.45 + 1.0; # expect 3.45
 
 
-mostra verdadeiro; $ expect verdadeiro
+mostra verdadeiro; # expect verdadeiro
 
-mostra falso; $ expect falso
+mostra falso; # expect falso

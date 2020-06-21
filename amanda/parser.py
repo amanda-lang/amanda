@@ -24,14 +24,10 @@ class Parser:
             self.error(f"era esperado o símbolo {token_t.value},porém recebeu o símbolo '{self.lookahead.lexeme}'")
 
     def error(self,message):
-        handler = error.ErrorHandler.get_handler()
-        handler.throw_error(
-            error.Syntax(
-                message,self.lexer.line,
-                self.lookahead.col
-            ),
-            self.lexer.file
-        )
+        raise error.Syntax(
+            message,self.lookahead.line,
+            self.lookahead.col)
+        
 
     #function that triggers parsing
     def parse(self):
@@ -189,7 +185,7 @@ class Parser:
             elif self.match(TT.NEWLINE):
                 self.consume(TT.NEWLINE)
             else:
-                self.error("Directiva inválida para o corpo de um função")
+                self.error("Directiva inválida para o corpo de uma classe")
         return body
 
         

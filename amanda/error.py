@@ -1,7 +1,7 @@
 import sys
 
 ''' Base class for all PTScript errors '''
-class Error(Exception):
+class AmandaError(Exception):
 
     def __init__(self,message,line,col):
         self.message = message
@@ -11,7 +11,7 @@ class Error(Exception):
 
 ''' Errors that happens during lexing or parsing'''
 
-class Syntax(Error):
+class Syntax(AmandaError):
     INVALID_SYMBOL = "O símbolo '{symbol}' não foi reconhecido"
     INVALID_STRING = "A sequência de caracteres não foi delimitada"
     MISSING_TERM = "as instruções devem ser delimitadas por ';' ou por uma nova linha"
@@ -24,7 +24,7 @@ class Syntax(Error):
         return f"\nErro sintático na linha {self.line}: {self.message}.\n"
 
 
-class Analysis(Error):
+class Analysis(AmandaError):
 
     UNDEFINED_TYPE = "o tipo de dados '{type}' não foi definido"
     ID_IN_USE = "O identificador '{name}' já foi declarado neste escopo"
@@ -43,7 +43,7 @@ class Analysis(Error):
         return f"\n\nErro na linha {self.line}: {self.message}.\n\n"
 
 
-class RunTime(Error):
+class RunTime(AmandaError):
     def __str__(self):
         return f"\n\nErro na linha {self.line}: {self.message}.\n\n"
 
@@ -140,12 +140,6 @@ class ErrorHandler:
         context = self.get_context(error,source)
         sys.stderr.write(self.fmt_error(context,error))
         source.close()
+
         sys.exit() 
 
-
-
-
-
-if __name__=="__main__":
-    error = Syntax(Error.INVALID_STRING,symbol="lool",line=3)
-    print(error)

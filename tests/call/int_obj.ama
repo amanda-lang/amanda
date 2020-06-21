@@ -1,0 +1,7 @@
+
+
+func add(a:int,b:int):int
+    retorna a+b
+fim
+
+add("texto",2) # expect error

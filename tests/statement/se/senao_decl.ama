@@ -1,0 +1,9 @@
+# declaration in senao
+
+
+se (falso) entao
+  mostra "lol"; 
+senao
+  var i : int = 4
+  mostra i #expect 4
+fim

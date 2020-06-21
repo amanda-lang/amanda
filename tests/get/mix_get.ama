@@ -1,0 +1,2 @@
+
+mostra 3 + "str".cmp() - (-"str".cmp()) # expect 9

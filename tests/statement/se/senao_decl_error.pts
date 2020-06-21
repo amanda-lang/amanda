@@ -1,9 +1,0 @@
-$ declaration in simple semao error
-
-
-
-
-se (falso) entao
-  mostra "lol"; $ Expect error
-senao
-  var int i;

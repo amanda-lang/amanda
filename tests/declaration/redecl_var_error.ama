@@ -1,0 +1,4 @@
+# Redeclaration in the same scope
+
+var a:int 
+var a:Texto # expect error

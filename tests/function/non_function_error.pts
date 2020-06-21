@@ -1,6 +1,0 @@
-$ calling a non function
-
-
-var int a;
-
-mostra a(); $ expect ERROR

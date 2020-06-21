@@ -1,0 +1,6 @@
+#Function with repeating param
+
+
+func add(a:int,a:float):int
+    retorna 0
+fim

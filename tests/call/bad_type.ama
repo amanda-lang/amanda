@@ -1,0 +1,6 @@
+
+func add(a:int,b:int):int
+    retorna a+b
+fim
+
+add(3.14,2) # expect error

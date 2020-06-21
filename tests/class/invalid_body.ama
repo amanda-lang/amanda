@@ -1,0 +1,13 @@
+
+# Class with constructor
+
+classe A
+    
+    var field : int 
+
+    field = 2+2 # expect error
+
+fim
+
+
+

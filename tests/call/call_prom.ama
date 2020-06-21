@@ -1,0 +1,6 @@
+
+func add(a:float,b:float):int
+    retorna a+b
+fim
+
+add(3,2) # expect 5.0
