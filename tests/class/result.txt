@@ -9,3 +9,4 @@ Erro na linha 17: número incorrecto de argumentos para a função A. Esperava 0
 Eu sou um humano John 21 verdadeiro Correndo de pé
 Working
 4
+Eu sou um humano John 21 

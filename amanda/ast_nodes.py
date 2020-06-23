@@ -76,6 +76,9 @@ class Super(Expr):
     def __init__(self,token):
         super().__init__(token)
 
+    def accept(self,visitor):
+        return visitor.exec_super(self)
+
 
 class BinOp(Expr):
     def __init__(self,token,left=None,right=None):

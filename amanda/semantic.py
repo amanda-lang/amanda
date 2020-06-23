@@ -246,6 +246,15 @@ class Analyzer(ast.Visitor):
         node.eval_type = self.current_class
         return SYM.VariableSymbol('eu',self.current_class)
 
+    def visit_super(self,node):
+        klass = self.current_class
+        if not klass:
+            self.error("a palavra reservada 'super' só pode ser usada dentro de uma classe")
+        if not klass.superclass:
+            self.error("Esta classe não possui uma superclasse")
+        klass = klass.superclass
+        node.eval_type = klass
+        return SYM.VariableSymbol('super',klass)
 
 
     def visit_block(self,node,scope=None):
@@ -480,6 +489,12 @@ class Analyzer(ast.Visitor):
             self.error(f"Não pode invocar o resultado de uma invocação")
         elif isinstance(callee,ast.Get):
             sym = self.visit(callee)
+        elif isinstance(callee,ast.Super):
+            self.visit(callee)
+            sym = self.current_class.superclass
+            #Just to be cautious
+            #TODO: Remove this later
+            assert sym != None
         else:
             self.error(f"o símbolo '{node.callee.token.lexeme}' não é invocável")
         if isinstance(sym,SYM.ClassSymbol):

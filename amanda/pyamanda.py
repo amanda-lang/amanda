@@ -236,6 +236,11 @@ class Interpreter:
     def exec_eu(self,node):
         return self.memory.resolve("eu")
 
+    def exec_super(self,node):
+        return AmandaSuper(
+            self.memory.resolve("eu")
+        )
+
 
 
     def exec_se(self,node):

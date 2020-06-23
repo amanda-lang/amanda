@@ -132,6 +132,26 @@ class AmandaMethod(AmaCallable):
             return e.value
 
 
+class AmandaSuper(AmaCallable):
+    ''' Wrapper around an instance object that
+    is used to handle calls and member lookups
+    opearations on the instance object's superclass'''
+
+    def __init__(self,instance):
+        self.instance = instance
+
+    def call(self,interpreter,**kwargs):
+        klass = self.instance.klass.superclass
+        constructor = klass.members.resolve("constructor")
+        AmandaMethod(self.instance,constructor).\
+        call(interpreter,**kwargs)
+    
+    def get(self,member):
+        return self.instance.get(member)
+
+    def set(self,target,value):
+        self.instance.set(target,value)
+
 
 
 class AmaClass(AmaCallable):
