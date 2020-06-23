@@ -43,17 +43,6 @@ class Scope(SymbolTable):
     def get(self,name):
         return super().resolve(name)
 
-    def get_enclosing_func(self):
-        if self.name == Scope.GLOBAL:
-            return None
-        elif self.name != Scope.LOCAL:
-            sym = self.resolve(self.name)
-            if isinstance(sym,FunctionSymbol):
-                return sym
-        return self.enclosing_scope.get_enclosing_func()
-
-
-
     def define(self,name,symbol):
         super().define(name,symbol)
 
@@ -228,5 +217,15 @@ class ClassSymbol(Type):
 
     def __str__(self):
         return self.name
+
+    def get_member(self,member):
+        return self.members.get(member)
+
+    def resolve_member(self,member):
+        #Also does lookup in super class
+        prop = self.members.get(member)
+        if not prop and self.superclass:
+            return self.superclass.resolve_member(member)
+        return prop
 
 

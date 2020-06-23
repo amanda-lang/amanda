@@ -116,7 +116,7 @@ class Analyzer(ast.Visitor):
         #If declaration has already been resolved,
         #define the member in current scope and exit declaration
         if klass and klass.resolved:
-            self.current_scope.define(name,klass.members.get(name))
+            self.current_scope.define(name,klass.get_member(name))
             return
         var_type = self.current_scope.resolve(node.var_type.lexeme)
         if not var_type or not var_type.is_type():
@@ -144,7 +144,7 @@ class Analyzer(ast.Visitor):
         #just execute the body
         klass = self.current_class
         if klass and klass.resolved:
-            function = klass.members.get(name)
+            function = klass.get_member(name)
             self.check_function(name,function,node)
             return
         if self.current_scope.get(name):
@@ -215,12 +215,11 @@ class Analyzer(ast.Visitor):
         #Check if class has a valid superclass
         superclass = node.superclass
         if superclass:
-            #check superclass here
-            pass
+            superclass = self.current_scope.resolve(superclass)
+            if not superclass:
+                self.error(Analysis.UNDECLARED_ID,name=superclass)
         klass = SYM.ClassSymbol(name,superclass=superclass)
         self.current_scope.define(name,klass)
-        #Do some superclass stuff here
-        #//////////////////////////////
         res_scope = SYM.Scope(name,self.current_scope)
         prev_class = self.current_class
         self.current_class = klass
@@ -314,7 +313,7 @@ class Analyzer(ast.Visitor):
         obj_type = target.type if target else node.target.eval_type
         #check if member exists
         member = node.member.lexeme
-        member_obj = obj_type.members.get(member)
+        member_obj = obj_type.resolve_member(member)
         if not member_obj:
             self.error(f"O objecto do tipo '{obj_type.name}' não possui o atributo {member}")
         if member_obj.name == "constructor":
@@ -497,7 +496,7 @@ class Analyzer(ast.Visitor):
     def validate_constructor(self,sym,fargs):
         ''' Helper method to validate function
         instantiation'''
-        constructor = sym.members.get("constructor")
+        constructor = sym.get_member("constructor")
         if not constructor or not constructor.is_constructor:
             #Use an empty constructor if no constructor or
             #user defined constructor violated rules of

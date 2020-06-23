@@ -1,0 +1,17 @@
+
+classe Animal
+    
+    func falar(palavras : Texto): Texto
+        mostra palvras
+        retorna palavras
+    fim
+
+fim
+
+
+classe Humano < Animal  fim
+
+
+var humano : Humano = Humano()
+
+humano.falar()
