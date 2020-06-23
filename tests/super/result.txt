@@ -1,0 +1,4 @@
+Erro na linha 6: O objecto do tipo 'Animal' não possui o atributo falar.
+Erro na linha 2: a palavra reservada 'super' só pode ser usada dentro de uma classe.
+Erro na linha 2: a palavra reservada 'super' só pode ser usada dentro de uma classe.
+Erro na linha 6: Esta classe não possui uma superclasse.

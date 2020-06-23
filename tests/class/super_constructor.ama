@@ -24,6 +24,10 @@ classe Humano < Animal
         super(nome,idade)
     fim
 
+    func meu_nome():Texto
+        retorna super.nome
+    fim
+
 fim
 
 var humano : Humano = Humano("John",21)
@@ -32,3 +36,5 @@ humano.falar("Eu sou um humano") # Eu sou humano
 mostra humano.nome # expect John
 
 mostra humano.idade # expect 21
+
+mostra humano.meu_nome()
