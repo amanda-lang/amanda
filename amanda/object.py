@@ -176,11 +176,23 @@ class AmaClass(AmaCallable):
         and all the fields defined in superclass
         '''
         instance = AmaInstance(self,copy.copy(self.members))
-        constructor = instance.members.resolve("constructor")
+        constructor = self.members.resolve("constructor")
         if not constructor:
+            self.super_constructor(instance,interpreter,**kwargs)
             return instance
+        #Check if superclass has no param constructor
+        self.super_constructor(instance,interpreter,**kwargs)
         AmandaMethod(instance,constructor).call(interpreter,**kwargs)
         return instance
+
+    def super_constructor(self,instance,interpreter,**kwargs):
+        if not self.superclass:
+            return
+        constructor = self.superclass.members.resolve("constructor")
+        if constructor:
+            AmandaMethod(instance,constructor).\
+            call(interpreter,**kwargs)
+        
 
 
 class NativeFunction(AmaCallable):

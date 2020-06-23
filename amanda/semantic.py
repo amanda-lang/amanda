@@ -171,11 +171,29 @@ class Analyzer(ast.Visitor):
         #Checks if this is a class constructor 
         #Only functions that are not allowed to have
         #a return type
-        if name != "constructor" or not self.current_class:
+        klass = self.current_class
+        if name != "constructor" or not klass:
             self.error("As funções devem especificar o tipo de retorno ")
         symbol = SYM.FunctionSymbol(name,self.current_class)
         symbol.is_constructor = True
+        if klass.superclass and \
+        not self.check_super(name,klass.superclass,node.block):
+            self.error("O constructor da superclasse deve ser invocado")
         self.check_function(name,symbol,node)
+
+    def check_super(self,name,superclass,body):
+        ''' Checks if the constructor calls superclass
+        constructor with arguments'''
+        super_constructor = superclass.get_member("constructor")
+        if not super_constructor:
+            return True
+        if super_constructor.arity() == 0:
+            return True
+        for child in body.children:
+            if isinstance(child,ast.Call):
+                if isinstance(child.callee,ast.Super):
+                    return True
+        return False
 
     def check_function(self,name,symbol,node):
         self.current_scope.define(name,symbol)
@@ -491,6 +509,8 @@ class Analyzer(ast.Visitor):
             sym = self.visit(callee)
         elif isinstance(callee,ast.Super):
             self.visit(callee)
+            if not self.current_function.is_constructor:
+                self.error(f"O constructor da superclasse só pode ser invocado no constructor da subclasse")
             sym = self.current_class.superclass
             #Just to be cautious
             #TODO: Remove this later
@@ -513,7 +533,15 @@ class Analyzer(ast.Visitor):
             #Use an empty constructor if no constructor or
             #user defined constructor violated rules of
             #valid constructors
-            #TODO: Find out WTF is causing the 'ghost param bug'
+            #If class being instatiated has a superclass,
+            #Check if it has an empty constructor and throw
+            #error in case not
+            superclass = sym.superclass
+            super_constructor = superclass.get_member("constructor") if superclass else None
+            if superclass and super_constructor and \
+            super_constructor.arity() > 0:
+                self.error(f"A classe '{sym.name}' deve implementar um constructor para satisfazer o constructor da superclasse")
+        
             constructor = SYM.FunctionSymbol(sym.name,sym,{})
             constructor.is_constructor = True
         self.validate_call(constructor,fargs)
