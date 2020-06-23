@@ -143,8 +143,8 @@ class AmaClass(AmaCallable):
         #Copy fields defined in the superclass
         if superclass:
             self.members.memory = { 
-                **self.members.memory,
-                **self.superclass.members.memory
+                **self.superclass.members.memory,
+                **self.members.memory
             }
 
     def call(self,interpreter,**kwargs):
