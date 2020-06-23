@@ -71,6 +71,11 @@ class Eu(Expr):
     def accept(self,visitor):
         return visitor.exec_eu(self)
 
+class Super(Expr):
+
+    def __init__(self,token):
+        super().__init__(token)
+
 
 class BinOp(Expr):
     def __init__(self,token,left=None,right=None):
