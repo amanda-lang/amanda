@@ -1,8 +1,11 @@
 
 classe Animal
+
+    var nome:Texto
+    var idade:int
     
     func falar(palavras : Texto): Texto
-        mostra palvras
+        mostra palavras
         retorna palavras
     fim
 
@@ -11,7 +14,11 @@ fim
 
 classe Humano < Animal  fim
 
-
 var humano : Humano = Humano()
+humano.falar("Eu sou um humano")
 
-humano.falar()
+humano.nome = "John"
+mostra humano.nome
+
+humano.idade = 21
+mostra humano.idade

@@ -215,17 +215,17 @@ class Analyzer(ast.Visitor):
         #Check if class has a valid superclass
         superclass = node.superclass
         if superclass:
-            superclass = self.current_scope.resolve(superclass)
+            super_name = superclass.lexeme
+            superclass = self.current_scope.resolve(super_name)
             if not superclass:
-                self.error(Analysis.UNDECLARED_ID,name=superclass)
+                self.error(error.Analysis.UNDECLARED_ID,name=super_name)
         klass = SYM.ClassSymbol(name,superclass=superclass)
         self.current_scope.define(name,klass)
         res_scope = SYM.Scope(name,self.current_scope)
         prev_class = self.current_class
         self.current_class = klass
         #Resolve class
-        members = self.visit_classbody(node.body,res_scope)
-        klass.members = members
+        klass.members = self.visit_classbody(node.body,res_scope)
         klass.resolved = True
         #Revisit class
         self.visit_classbody(node.body,SYM.Scope(name,self.current_scope))
@@ -338,7 +338,6 @@ class Analyzer(ast.Visitor):
             self.error(f"atribuição inválida. incompatibilidade entre os operandos da atribuição: '{target.eval_type.name}' e '{expr.eval_type.name}'")
         node.eval_type = target.eval_type
 
-        
 
     def visit_binop(self,node):
         ls = self.visit(node.left)
@@ -409,8 +408,6 @@ class Analyzer(ast.Visitor):
         sym = self.visit(node.exp)
         #Check if it is trying to reference method
         self.validate_get(node.exp,sym)
-
-
 
     def visit_retorna(self,node):
         expr = node.exp

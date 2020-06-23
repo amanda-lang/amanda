@@ -92,10 +92,6 @@ class AmaInstance:
         self.members.define(target,value)
 
 
-
-
-
-
 class AmandaNull:
     ''' Class used as default value of uninitalized 
     object variables'''
@@ -144,12 +140,20 @@ class AmaClass(AmaCallable):
         self.name = name
         self.members = members
         self.superclass = superclass
+        #Copy fields defined in the superclass
+        if superclass:
+            self.members.memory = { 
+                **self.members.memory,
+                **self.superclass.members.memory
+            }
 
     def call(self,interpreter,**kwargs):
         ''' Method that creates a new instance object.
         It checks wheter a constructor has been defined and calls
         it.
         If no constructor has been declared, it uses an empty one.
+        Instance will contain all the fields defined in his class
+        and all the fields defined in superclass
         '''
         instance = AmaInstance(self,copy.copy(self.members))
         constructor = instance.members.resolve("constructor")
