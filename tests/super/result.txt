@@ -1,4 +1,5 @@
 Erro na linha 25: atribuição inválida. incompatibilidade entre os operandos da atribuição.
+Erro sintático na linha 24: alvo inválido para atribuição.
 Erro na linha 6: O objecto do tipo 'Animal' não possui o atributo falar.
 Erro na linha 27: O constructor da superclasse só pode ser invocado no constructor da subclasse.
 Erro na linha 2: a palavra reservada 'super' só pode ser usada dentro de uma classe.
