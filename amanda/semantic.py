@@ -34,6 +34,7 @@ class Analyzer(ast.Visitor):
         self.global_scope.define("int",SYM.BuiltInType("int",SYM.Tag.INT))
         self.global_scope.define("real",SYM.BuiltInType("real",SYM.Tag.REAL))
         self.global_scope.define("bool",SYM.BuiltInType("bool",SYM.Tag.BOOL))
+        self.global_scope.define("vazio",SYM.BuiltInType("vazio",SYM.Tag.VAZIO))
         
         #Initialize builtin types
         builtins = natives.builtin_types.values()
@@ -115,7 +116,10 @@ class Analyzer(ast.Visitor):
 
         #If declaration has already been resolved,
         #define the member in current scope and exit declaration
-        if klass and klass.resolved:
+        #Only skip declarations in the class scope not in local
+        #scope
+        if klass and klass.resolved and not \
+        self.current_function:
             self.current_scope.define(name,klass.get_member(name))
             return
         var_type = self.current_scope.resolve(node.var_type.lexeme)
@@ -414,12 +418,13 @@ class Analyzer(ast.Visitor):
     def visit_assign(self,node):
         lhs = node.left
         rhs = node.right
-        
+
         rs = self.visit(rhs)
         #Check rhs of assignment
         #is expression
         self.validate_get(rhs,rs)
         self.visit(lhs)
+        #Check rhs is call to super constructor
 
         #Set node types
         node.eval_type = lhs.eval_type
@@ -519,7 +524,10 @@ class Analyzer(ast.Visitor):
             self.error(f"o símbolo '{node.callee.token.lexeme}' não é invocável")
         if isinstance(sym,SYM.ClassSymbol):
             self.validate_constructor(sym,node.fargs)
-            node.eval_type = sym
+            if isinstance(callee,ast.Super):
+                node.eval_type = self.global_scope.get("vazio")  
+            else:
+                node.eval_type = sym
         else:
             self.validate_call(sym,node.fargs)
             node.eval_type = sym.type        
@@ -541,7 +549,7 @@ class Analyzer(ast.Visitor):
             if superclass and super_constructor and \
             super_constructor.arity() > 0:
                 self.error(f"A classe '{sym.name}' deve implementar um constructor para satisfazer o constructor da superclasse")
-        
+
             constructor = SYM.FunctionSymbol(sym.name,sym,{})
             constructor.is_constructor = True
         self.validate_call(constructor,fargs)

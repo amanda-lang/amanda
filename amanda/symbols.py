@@ -79,6 +79,7 @@ class Tag(Enum):
     REAL = 1
     BOOL = 2
     REF = 3
+    VAZIO = 4
 
     def __str__(self):
         return self.name.lower()
@@ -147,7 +148,8 @@ class Type(Symbol):
     def validate_op(self,op,other,scope):
 
         #Reference types don't participate in ops 
-        if self.tag == Tag.REF or other.tag == Tag.REF:
+        if self.tag == Tag.REF or other.tag == Tag.REF or \
+        self.tag == Tag.VAZIO or other.tag == Tag.VAZIO:
             return None
 
         result = None
@@ -166,7 +168,8 @@ class Type(Symbol):
 
     def promote_to(self,other,scope):
         #Reference types don't participate in ops 
-        if self.tag == Tag.REF or other.tag == Tag.REF:
+        if self.tag == Tag.REF or other.tag == Tag.REF or \
+        self.tag == Tag.VAZIO or other.tag == Tag.VAZIO:
             return None
 
         result = self.promotion[self.tag.value][other.tag.value]
