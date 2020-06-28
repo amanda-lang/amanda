@@ -1,0 +1,9 @@
+classe Animal fim
+
+
+classe Humano < Animal
+    func falar():Texto
+        retorna super.falar() #expect error
+    fim
+
+fim

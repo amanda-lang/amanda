@@ -43,17 +43,6 @@ class Scope(SymbolTable):
     def get(self,name):
         return super().resolve(name)
 
-    def get_enclosing_func(self):
-        if self.name == Scope.GLOBAL:
-            return None
-        elif self.name != Scope.LOCAL:
-            sym = self.resolve(self.name)
-            if isinstance(sym,FunctionSymbol):
-                return sym
-        return self.enclosing_scope.get_enclosing_func()
-
-
-
     def define(self,name,symbol):
         super().define(name,symbol)
 
@@ -90,6 +79,7 @@ class Tag(Enum):
     REAL = 1
     BOOL = 2
     REF = 3
+    VAZIO = 4
 
     def __str__(self):
         return self.name.lower()
@@ -158,7 +148,8 @@ class Type(Symbol):
     def validate_op(self,op,other,scope):
 
         #Reference types don't participate in ops 
-        if self.tag == Tag.REF or other.tag == Tag.REF:
+        if self.tag == Tag.REF or other.tag == Tag.REF or \
+        self.tag == Tag.VAZIO or other.tag == Tag.VAZIO:
             return None
 
         result = None
@@ -177,7 +168,8 @@ class Type(Symbol):
 
     def promote_to(self,other,scope):
         #Reference types don't participate in ops 
-        if self.tag == Tag.REF or other.tag == Tag.REF:
+        if self.tag == Tag.REF or other.tag == Tag.REF or \
+        self.tag == Tag.VAZIO or other.tag == Tag.VAZIO:
             return None
 
         result = self.promotion[self.tag.value][other.tag.value]
@@ -228,5 +220,15 @@ class ClassSymbol(Type):
 
     def __str__(self):
         return self.name
+
+    def get_member(self,member):
+        return self.members.get(member)
+
+    def resolve_member(self,member):
+        #Also does lookup in super class
+        prop = self.members.get(member)
+        if not prop and self.superclass:
+            return self.superclass.resolve_member(member)
+        return prop
 
 

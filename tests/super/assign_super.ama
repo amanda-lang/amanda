@@ -1,0 +1,34 @@
+
+
+classe Animal
+
+    var nome:Texto
+    var idade:int
+
+    func constructor(nome:Texto,idade:int)
+        eu.nome = nome
+        eu.idade = idade
+    fim
+    
+    func falar(palavras : Texto): Texto
+        mostra palavras
+        retorna palavras
+    fim
+
+fim
+
+
+classe Humano < Animal  
+    
+    func constructor(nome:Texto,idade:int)
+        super(nome,idade) 
+        var teste:Animal = super(nome,idade) #expect error
+    fim
+
+fim
+
+
+
+var humano : Humano = Humano("john",21)
+
+mostra humano.idade

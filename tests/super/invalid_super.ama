@@ -1,0 +1,9 @@
+
+
+classe Humano
+    
+    func falar():Texto
+        retorna super.nome #expect error
+    fim
+
+fim

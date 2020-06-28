@@ -92,10 +92,6 @@ class AmaInstance:
         self.members.define(target,value)
 
 
-
-
-
-
 class AmandaNull:
     ''' Class used as default value of uninitalized 
     object variables'''
@@ -136,6 +132,26 @@ class AmandaMethod(AmaCallable):
             return e.value
 
 
+class AmandaSuper(AmaCallable):
+    ''' Wrapper around an instance object that
+    is used to handle calls and member lookups
+    opearations on the instance object's superclass'''
+
+    def __init__(self,instance):
+        self.instance = instance
+
+    def call(self,interpreter,**kwargs):
+        klass = self.instance.klass.superclass
+        constructor = klass.members.resolve("constructor")
+        AmandaMethod(self.instance,constructor).\
+        call(interpreter,**kwargs)
+    
+    def get(self,member):
+        return self.instance.get(member)
+
+    def set(self,target,value):
+        self.instance.set(target,value)
+
 
 
 class AmaClass(AmaCallable):
@@ -144,19 +160,39 @@ class AmaClass(AmaCallable):
         self.name = name
         self.members = members
         self.superclass = superclass
+        #Copy fields defined in the superclass
+        if superclass:
+            self.members.memory = { 
+                **self.superclass.members.memory,
+                **self.members.memory
+            }
 
     def call(self,interpreter,**kwargs):
         ''' Method that creates a new instance object.
         It checks wheter a constructor has been defined and calls
         it.
         If no constructor has been declared, it uses an empty one.
+        Instance will contain all the fields defined in his class
+        and all the fields defined in superclass
         '''
         instance = AmaInstance(self,copy.copy(self.members))
-        constructor = instance.members.resolve("constructor")
+        constructor = self.members.resolve("constructor")
         if not constructor:
+            self.super_constructor(instance,interpreter,**kwargs)
             return instance
+        #Check if superclass has no param constructor
+        self.super_constructor(instance,interpreter,**kwargs)
         AmandaMethod(instance,constructor).call(interpreter,**kwargs)
         return instance
+
+    def super_constructor(self,instance,interpreter,**kwargs):
+        if not self.superclass:
+            return
+        constructor = self.superclass.members.resolve("constructor")
+        if constructor:
+            AmandaMethod(instance,constructor).\
+            call(interpreter,**kwargs)
+        
 
 
 class NativeFunction(AmaCallable):

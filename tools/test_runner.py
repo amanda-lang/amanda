@@ -25,6 +25,7 @@ CALL = join(TEST_DIR,"call")
 GET = join(TEST_DIR,"get")
 SET = join(TEST_DIR,"set")
 EU = join(TEST_DIR,"eu")
+SUPER = join(TEST_DIR,"super")
 COMMENT = join(TEST_DIR,"comment")
 
 EXCLUDED = ("lexer.py","parser.py","result.txt")
@@ -76,13 +77,9 @@ class TestAmanda(unittest.TestCase):
         with open(join(MOSTRA,"result.txt"),"r") as res_file:
             self.assertTrue(run_suite(MOSTRA,self,res_file))
     
-
-
-    
     def test_para(self):
         with open(join(PARA,"result.txt"),"r") as res_file:
             self.assertTrue(run_suite(PARA,self,res_file))
-
     
     def test_retorna(self):
         with open(join(RETORNA,"result.txt"),"r") as res_file:
@@ -115,6 +112,10 @@ class TestAmanda(unittest.TestCase):
     def test_eu(self):
         with open(join(EU,"result.txt"),"r") as res_file:
             self.assertTrue(run_suite(EU,self,res_file))
+
+    def test_super(self):
+        with open(join(SUPER,"result.txt"),"r") as res_file:
+            self.assertTrue(run_suite(SUPER,self,res_file))
 
     def test_comment(self):
         with open(join(COMMENT,"result.txt"),"r") as res_file:

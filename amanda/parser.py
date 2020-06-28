@@ -446,6 +446,9 @@ class Parser:
         elif self.match(TT.EU):
             expr = AST.Eu(self.lookahead)
             self.consume(TT.EU)
+        elif self.match(TT.SUPER):
+            expr = AST.Super(self.lookahead)
+            self.consume(TT.SUPER)
         else:
             self.error(f"início inválido de expressão: '{self.lookahead.lexeme}'")
         return expr

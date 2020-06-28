@@ -1,0 +1,45 @@
+classe Animal
+
+    var nome:Texto
+    var idade:int
+    
+    func falar(palavras : Texto): Texto
+        mostra palavras
+        retorna palavras
+    fim
+
+fim
+
+
+classe Mamifero < Animal
+
+    var e_bipede : bool
+
+
+    func correr(): Texto
+        se e_bipede entao
+            mostra "Correndo de pé"
+        senao
+            mostra "Correndo de outra forma"
+        fim
+        retorna ""
+    fim
+
+fim
+
+
+classe Humano < Mamifero  fim
+
+var humano : Humano = Humano()
+humano.falar("Eu sou um humano")
+
+humano.nome = "John"
+mostra humano.nome
+
+humano.idade = 21
+mostra humano.idade
+
+humano.e_bipede = verdadeiro
+mostra humano.e_bipede
+
+humano.correr()

@@ -68,7 +68,7 @@ class LexerTestCase(unittest.TestCase):
         self.assertEqual(token.lexeme,'"Ramboeiro"',msg="STRING value Test Failed")
 
     def test_identifier(self):
-        self.buffer.write("_test1 test test2 __test3 var mostra verdadeiro falso retorna se senao enquanto entao inc para faca de fim func classe eu")
+        self.buffer.write("_test1 test test2 __test3 var mostra verdadeiro falso retorna se senao enquanto entao inc para faca de fim func classe eu super")
         self.buffer.seek(0)
         lexer = Lexer(self.buffer)
         token = lexer.get_token()
@@ -134,6 +134,9 @@ class LexerTestCase(unittest.TestCase):
         token = lexer.get_token()
         self.assertEqual(token.token,TokenType.EU,msg="EU Test Failed")
         self.assertEqual(token.lexeme,"eu",msg="EU value test Failed")
+        token = lexer.get_token()
+        self.assertEqual(token.token,TokenType.SUPER,msg="SUPER Test Failed")
+        self.assertEqual(token.lexeme,"super",msg="SUPER value test Failed")
         
 
         
@@ -371,6 +374,8 @@ class ParserTestCase(unittest.TestCase):
 
             func constructor(nome:Texto,idade:int)
                 eu.nome = nome
+                super()
+                super(minha,idade)
                 eu.idade = idade
             fim
 

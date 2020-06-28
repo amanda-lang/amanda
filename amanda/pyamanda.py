@@ -99,12 +99,13 @@ class Interpreter:
 
     def exec_classdecl(self,node):
         name = node.name.lexeme
+        superclass = node.superclass
         if node.superclass:
-            pass
+            superclass = self.memory.resolve(superclass.lexeme)
         #Get blueprint for class
         env = Environment(self.memory)
         members = self.exec_classbody(node.body,env)
-        self.memory.define(name,AmaClass(name,members))
+        self.memory.define(name,AmaClass(name,members,superclass))
         #print(members)
 
 
@@ -234,6 +235,11 @@ class Interpreter:
 
     def exec_eu(self,node):
         return self.memory.resolve("eu")
+
+    def exec_super(self,node):
+        return AmandaSuper(
+            self.memory.resolve("eu")
+        )
 
 
 

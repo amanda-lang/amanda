@@ -34,6 +34,7 @@ class Analyzer(ast.Visitor):
         self.global_scope.define("int",SYM.BuiltInType("int",SYM.Tag.INT))
         self.global_scope.define("real",SYM.BuiltInType("real",SYM.Tag.REAL))
         self.global_scope.define("bool",SYM.BuiltInType("bool",SYM.Tag.BOOL))
+        self.global_scope.define("vazio",SYM.BuiltInType("vazio",SYM.Tag.VAZIO))
         
         #Initialize builtin types
         builtins = natives.builtin_types.values()
@@ -90,6 +91,12 @@ class Analyzer(ast.Visitor):
         # If there is no else branch return None immediately
         return False if not node.else_branch else self.has_return(node.else_branch)
 
+    def has_return_enquanto(self,node):
+        return self.has_return(node.statement)
+
+    def has_return_para(self,node):
+        return self.has_return(node.statement)
+
 
     def has_return_retorna(self,node):
         return True
@@ -115,8 +122,11 @@ class Analyzer(ast.Visitor):
 
         #If declaration has already been resolved,
         #define the member in current scope and exit declaration
-        if klass and klass.resolved:
-            self.current_scope.define(name,klass.members.get(name))
+        #Only skip declarations in the class scope not in local
+        #scope
+        if klass and klass.resolved and not \
+        self.current_function:
+            self.current_scope.define(name,klass.get_member(name))
             return
         var_type = self.current_scope.resolve(node.var_type.lexeme)
         if not var_type or not var_type.is_type():
@@ -144,7 +154,7 @@ class Analyzer(ast.Visitor):
         #just execute the body
         klass = self.current_class
         if klass and klass.resolved:
-            function = klass.members.get(name)
+            function = klass.get_member(name)
             self.check_function(name,function,node)
             return
         if self.current_scope.get(name):
@@ -171,11 +181,29 @@ class Analyzer(ast.Visitor):
         #Checks if this is a class constructor 
         #Only functions that are not allowed to have
         #a return type
-        if name != "constructor" or not self.current_class:
+        klass = self.current_class
+        if name != "constructor" or not klass:
             self.error("As funções devem especificar o tipo de retorno ")
         symbol = SYM.FunctionSymbol(name,self.current_class)
         symbol.is_constructor = True
+        if klass.superclass and \
+        not self.check_super(name,klass.superclass,node.block):
+            self.error("O constructor da superclasse deve ser invocado")
         self.check_function(name,symbol,node)
+
+    def check_super(self,name,superclass,body):
+        ''' Checks if the constructor calls superclass
+        constructor with arguments'''
+        super_constructor = superclass.get_member("constructor")
+        if not super_constructor:
+            return True
+        if super_constructor.arity() == 0:
+            return True
+        for child in body.children:
+            if isinstance(child,ast.Call):
+                if isinstance(child.callee,ast.Super):
+                    return True
+        return False
 
     def check_function(self,name,symbol,node):
         self.current_scope.define(name,symbol)
@@ -215,18 +243,17 @@ class Analyzer(ast.Visitor):
         #Check if class has a valid superclass
         superclass = node.superclass
         if superclass:
-            #check superclass here
-            pass
+            super_name = superclass.lexeme
+            superclass = self.current_scope.resolve(super_name)
+            if not superclass:
+                self.error(error.Analysis.UNDECLARED_ID,name=super_name)
         klass = SYM.ClassSymbol(name,superclass=superclass)
         self.current_scope.define(name,klass)
-        #Do some superclass stuff here
-        #//////////////////////////////
         res_scope = SYM.Scope(name,self.current_scope)
         prev_class = self.current_class
         self.current_class = klass
         #Resolve class
-        members = self.visit_classbody(node.body,res_scope)
-        klass.members = members
+        klass.members = self.visit_classbody(node.body,res_scope)
         klass.resolved = True
         #Revisit class
         self.visit_classbody(node.body,SYM.Scope(name,self.current_scope))
@@ -247,6 +274,15 @@ class Analyzer(ast.Visitor):
         node.eval_type = self.current_class
         return SYM.VariableSymbol('eu',self.current_class)
 
+    def visit_super(self,node):
+        klass = self.current_class
+        if not klass:
+            self.error("a palavra reservada 'super' só pode ser usada dentro de uma classe")
+        if not klass.superclass:
+            self.error("Esta classe não possui uma superclasse")
+        klass = klass.superclass
+        node.eval_type = klass
+        return SYM.VariableSymbol('super',klass)
 
 
     def visit_block(self,node,scope=None):
@@ -314,7 +350,7 @@ class Analyzer(ast.Visitor):
         obj_type = target.type if target else node.target.eval_type
         #check if member exists
         member = node.member.lexeme
-        member_obj = obj_type.members.get(member)
+        member_obj = obj_type.resolve_member(member)
         if not member_obj:
             self.error(f"O objecto do tipo '{obj_type.name}' não possui o atributo {member}")
         if member_obj.name == "constructor":
@@ -339,7 +375,6 @@ class Analyzer(ast.Visitor):
             self.error(f"atribuição inválida. incompatibilidade entre os operandos da atribuição: '{target.eval_type.name}' e '{expr.eval_type.name}'")
         node.eval_type = target.eval_type
 
-        
 
     def visit_binop(self,node):
         ls = self.visit(node.left)
@@ -389,12 +424,13 @@ class Analyzer(ast.Visitor):
     def visit_assign(self,node):
         lhs = node.left
         rhs = node.right
-        
+
         rs = self.visit(rhs)
         #Check rhs of assignment
         #is expression
         self.validate_get(rhs,rs)
         self.visit(lhs)
+        #Check rhs is call to super constructor
 
         #Set node types
         node.eval_type = lhs.eval_type
@@ -410,8 +446,6 @@ class Analyzer(ast.Visitor):
         sym = self.visit(node.exp)
         #Check if it is trying to reference method
         self.validate_get(node.exp,sym)
-
-
 
     def visit_retorna(self,node):
         expr = node.exp
@@ -484,11 +518,22 @@ class Analyzer(ast.Visitor):
             self.error(f"Não pode invocar o resultado de uma invocação")
         elif isinstance(callee,ast.Get):
             sym = self.visit(callee)
+        elif isinstance(callee,ast.Super):
+            self.visit(callee)
+            if not self.current_function.is_constructor:
+                self.error(f"O constructor da superclasse só pode ser invocado no constructor da subclasse")
+            sym = self.current_class.superclass
+            #Just to be cautious
+            #TODO: Remove this later
+            assert sym != None
         else:
             self.error(f"o símbolo '{node.callee.token.lexeme}' não é invocável")
         if isinstance(sym,SYM.ClassSymbol):
             self.validate_constructor(sym,node.fargs)
-            node.eval_type = sym
+            if isinstance(callee,ast.Super):
+                node.eval_type = self.global_scope.get("vazio")  
+            else:
+                node.eval_type = sym
         else:
             self.validate_call(sym,node.fargs)
             node.eval_type = sym.type        
@@ -497,12 +542,20 @@ class Analyzer(ast.Visitor):
     def validate_constructor(self,sym,fargs):
         ''' Helper method to validate function
         instantiation'''
-        constructor = sym.members.get("constructor")
+        constructor = sym.get_member("constructor")
         if not constructor or not constructor.is_constructor:
             #Use an empty constructor if no constructor or
             #user defined constructor violated rules of
             #valid constructors
-            #TODO: Find out WTF is causing the 'ghost param bug'
+            #If class being instatiated has a superclass,
+            #Check if it has an empty constructor and throw
+            #error in case not
+            superclass = sym.superclass
+            super_constructor = superclass.get_member("constructor") if superclass else None
+            if superclass and super_constructor and \
+            super_constructor.arity() > 0:
+                self.error(f"A classe '{sym.name}' deve implementar um constructor para satisfazer o constructor da superclasse")
+
             constructor = SYM.FunctionSymbol(sym.name,sym,{})
             constructor.is_constructor = True
         self.validate_call(constructor,fargs)
