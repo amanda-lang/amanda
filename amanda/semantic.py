@@ -91,6 +91,12 @@ class Analyzer(ast.Visitor):
         # If there is no else branch return None immediately
         return False if not node.else_branch else self.has_return(node.else_branch)
 
+    def has_return_enquanto(self,node):
+        return self.has_return(node.statement)
+
+    def has_return_para(self,node):
+        return self.has_return(node.statement)
+
 
     def has_return_retorna(self,node):
         return True
