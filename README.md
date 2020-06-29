@@ -1,5 +1,39 @@
 # Amanda
-Implementation of a tree walk intepreter for a language designed for educational purposes.
-Amanda is directed at portuguese speakers who are just getting into programming and don't have knowledge of the english language.
-Since Amanda is based on portuguese, it's user will be able to get a used to it much easier than if they had started with
-a more traditional GPL (most of them are english based on english).
+
+Amanda a statically typed programming language in portuguese. 
+It is implemented using a tree walk intepreter and was mainly made to help me get a feel for progamming language design and implementation. 
+You can't do much with it due to it's slowness and lack of more expressive features.
+
+###Usage
+
+**On Windows**
+
+1- Download and install python 3.0 or higher. Instructions [here](https://www.python.org/downloads/windows/)
+2- In the main directory of the project run the following command:
+```
+python -m amanda FILE 
+```
+
+replace 'FILE' with the path to an amanda file. You can run the "hello world.ama" with the following command:
+
+```
+python -m amanda examples/hello_word.ama 
+```
+
+**On Linux** 
+
+You probably already have python installed so just run the pyamanda script in the main directory of the project
+with the following command:
+
+```
+pyamanda FILE
+```
+
+replace 'FILE' with the path to an amanda file. You can run the "hello world.ama" with the following command:
+
+```
+pyamanda examples/hello_word.ama 
+```
+**TODO: Make this instructions better**
+
+
