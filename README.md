@@ -1,10 +1,10 @@
 # Amanda
 
-Amanda a statically typed programming language in portuguese. 
+Amanda is a statically typed programming language with portuguese constructs. 
 It is implemented using a tree walk intepreter and was mainly made to help me get a feel for progamming language design and implementation. 
 You can't do much with it due to it's slowness and lack of more expressive features.
 
-###Usage
+## Usage
 
 **On Windows**
 
@@ -14,7 +14,7 @@ You can't do much with it due to it's slowness and lack of more expressive featu
 python -m amanda FILE 
 ```
 
-replace 'FILE' with the path to an amanda file. You can run the "hello world.ama" with the following command:
+Replace 'FILE' with the path to an amanda file. You can run the "hello world.ama" with the following command:
 
 ```
 python -m amanda examples/hello_word.ama 
@@ -29,11 +29,11 @@ with the following command:
 pyamanda FILE
 ```
 
-replace 'FILE' with the path to an amanda file. You can run the "hello world.ama" with the following command:
+Replace 'FILE' with the path to an amanda file. You can run the "hello world.ama" with the following command:
 
 ```
 pyamanda examples/hello_word.ama 
 ```
-**TODO: Make this instructions better**
+*TODO: Make instructions better*
 
 
