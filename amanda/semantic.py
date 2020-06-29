@@ -179,16 +179,17 @@ class Analyzer(ast.Visitor):
     def validate_void_func(self,name,node):
 
         #Checks if this is a class constructor 
-        #Only functions that are not allowed to have
-        #a return type
+        #If it's not, just consider it a normal
+        #plain void function
         klass = self.current_class
-        if name != "constructor" or not klass:
-            self.error("As funções devem especificar o tipo de retorno ")
-        symbol = SYM.FunctionSymbol(name,self.current_class)
-        symbol.is_constructor = True
-        if klass.superclass and \
-        not self.check_super(name,klass.superclass,node.block):
-            self.error("O constructor da superclasse deve ser invocado")
+        if name == "constructor" and klass:
+            symbol = SYM.FunctionSymbol(name,self.current_class)
+            symbol.is_constructor = True
+            if klass.superclass and \
+            not self.check_super(name,klass.superclass,node.block):
+                self.error("O constructor da superclasse deve ser invocado")
+        else:
+            symbol = SYM.FunctionSymbol(name,self.current_scope.get("vazio"))
         self.check_function(name,symbol,node)
 
     def check_super(self,name,superclass,body):
@@ -456,13 +457,12 @@ class Analyzer(ast.Visitor):
         if self.current_function.is_constructor:
             self.error("Não pode usar a directiva 'retorna' dentro de um constructor")
         func_type = self.current_function.type
-        #TODO: Work out what to do about void types
-        if not func_type:
-            raise NotImplementedError("Void functions have not been implemented")
+        #TODO: Allow empty return from void functions
+        if self.current_function.type.name == "vazio":
+            self.error("Não pode usar a directiva 'retorna' em uma função vazia")
         expr.prom_type = expr.eval_type.promote_to(func_type,self.current_scope)
         if func_type.tag != expr.eval_type.tag and not expr.prom_type:
             self.error(f"expressão de retorno inválida. O tipo do valor de retorno é incompatível com o tipo de retorno da função")
-
 
 
     def visit_se(self,node):

@@ -1,0 +1,7 @@
+func escreva_num(a:int)
+    mostra a
+fim
+
+
+
+mostra 2 + escreva_num(5) #expect error

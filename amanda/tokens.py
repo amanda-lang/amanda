@@ -68,6 +68,7 @@ class TokenType(Enum):
     FIM = "FIM"
     FUNC = "FUNC"
     NULO = "NULO"
+    VAZIO = "VAZIO"
     CLASSE = "CLASSE"
 
 

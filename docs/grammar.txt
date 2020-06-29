@@ -26,7 +26,7 @@ type
   ;
 
 function_declaration
-  : FUNC IDENTIFIER LPAR formal_parameter_section? RPAR COL type 
+  : FUNC IDENTIFIER LPAR formal_parameter_section? RPAR COL (type | VAZIO)
   body
   ;
 
