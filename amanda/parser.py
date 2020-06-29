@@ -147,7 +147,10 @@ class Parser:
         func_type = None
         if self.match(TT.COLON):
             self.consume(TT.COLON)
-            func_type = self.type()
+            if self.match(TT.VAZIO):
+                self.consume(TT.VAZIO)
+            else:
+                func_type = self.type()
         block = self.block()
         self.consume(TT.FIM,"Os blocos devem ser terminados com a palavra fim")
         return AST.FunctionDecl(name=name,block=block,func_type=func_type,params=params)

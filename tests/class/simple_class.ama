@@ -7,9 +7,8 @@ classe Acumulador
     #Fields must be declared explicitly
     var contador : int 
     #Can have methods
-    func incrementa(diff : int):int
+    func incrementa(diff : int)
         contador += diff
-        retorna contador
     fim
 
     func get_contador():int

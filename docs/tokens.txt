@@ -43,6 +43,7 @@ INC : inc
 PROC : proc
 FIM : fim
 CLASSE : classe
+VAZIO : vazio
 NULO : nulo
 EU : eu
 SUPER : super

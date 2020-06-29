@@ -7,3 +7,7 @@ Erro na linha 7: a função 'inner_func' não possui a instrução 'retorna'.
 String<-
 Erro na linha 4: o parâmetro 'a' já foi especificado nesta função.
 3 150.0 4 120
+Erro na linha 8: atribuição inválida. incompatibilidade entre os operandos da atribuição.
+2 3 9 12 
+Erro na linha 7: os tipos 'int' e 'vazio' não suportam operações com o operador '+'.
+Erro na linha 3: Não pode usar a directiva 'retorna' em uma função vazia.

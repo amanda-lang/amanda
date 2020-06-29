@@ -1,0 +1,8 @@
+
+func escreva_num(a:int)
+    mostra a
+fim
+
+
+
+var num : int = escreva_num(5) # expect error
