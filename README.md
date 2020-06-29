@@ -7,9 +7,11 @@ You can't do much with it due to it's slowness and lack of more expressive featu
 ## Usage
 
 *TODO: Make instructions better*
-*TODO: Add PT version of this lool*
+
+*TODO: Add Portuguese version of this lool*
 
 **On Windows**
+
 To run the interpreter on Windows, download and install python 3.0 or higher from [here](https://www.python.org/downloads/windows/) and
 then run the following command in the project folder:
 
@@ -24,6 +26,7 @@ python -m amanda examples/hello_word.ama
 ```
 
 **On Linux** 
+
 You probably already have python installed so just run the pyamanda script in the main directory of the project
 with the following command:
 
