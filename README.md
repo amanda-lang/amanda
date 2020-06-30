@@ -1,8 +1,8 @@
 # Amanda
 
 Amanda is a statically typed programming language with portuguese constructs. 
-It is implemented using a tree walk intepreter and was mainly made to help me get a feel for progamming language design and implementation. 
-You can't do much with it due to it's slowness and lack of more expressive features.
+It is implemented using a tree walk intepreter written in python and was mainly made to help me get a feel for progamming language design and implementation. 
+You can't do much with it due to it's lacklustre perfomance and lack of serious features.
 
 ## Usage
 
@@ -19,7 +19,7 @@ then run the following command in the project folder (using CMD):
 python -m amanda FILE 
 ```
 
-Replace 'FILE' with the path to an amanda file. You can run the "hello world.ama" example with the following command:
+Replace 'FILE' with the path to an amanda file. You can run the "hello_world.ama" example with the following command:
 
 ```
 python -m amanda examples/hello_word.ama 
@@ -34,7 +34,7 @@ with the following command:
 pyamanda FILE
 ```
 
-Replace 'FILE' with the path to an amanda file. You can run the "hello world.ama" with the following command:
+Replace 'FILE' with the path to an amanda file. You can run the "hello_world.ama" with the following command:
 
 ```
 pyamanda examples/hello_word.ama 
@@ -45,13 +45,13 @@ If the script doesn't work just run the same command as in windows replacing 'py
 
 **On Mac**
 
-Just install python and use the same command used in windows.
+Can't help you, sorry :-( .
 
 
 
 ## Language Tour
 
-*TODO: Just make this better*
+*TODO: Improve the tour*
 
 #### Syntax
 
@@ -93,9 +93,9 @@ var b : int = 10 # declaração e atribuição
 
 | Types         | Values                | 
 | ------------- |:----------------------|
-| int           | 2,4,-2,0              |
-| real          | 2.0,3.15,8.2          |
-| bool          | verdadeiro,falso      |
+| int           | 2, 4, -2, 0           |
+| real          | 2.0, 3.15, -8.2       |
+| bool          | verdadeiro, falso     |
 | Texto         | "eu", 'meu'           |
 
 #### Operators
@@ -178,7 +178,7 @@ var i : int = leia_int("Digite um inteiro: ") # Exibe a mensagem e lê um inteir
 var r : real = leia_real("Digite um real: ") # Exibe a mensagem e lê um real do teclado
 
 
-var s : Texto = leia_real("Digite uma string: ") # Exibe a mensagem e lê uma cadeia de caracteres do teclado
+var s : Texto = leia("Digite uma string: ") # Exibe a mensagem e lê uma cadeia de caracteres do teclado
 ```
 
 #### Output
@@ -198,21 +198,21 @@ mostra s # exibe carro
 
 ```python
 #Função que recebe dois inteiros e retorna a soma deles
-func soma (a:int,b:int): int 
+func soma (a:int,b:int): int # retorna um inteiro
     retorna a + b
 fim
 
  
 # Função sem tipo de retorno indica que
 # a função não retorna nenhum valor
-func mostra_soma(a:int,b:int)
+func mostra_soma(a:int,b:int) # sem tipo de retorno
     mostra a + b
 fim
 ```
 
 #### Classes
 
-**Work in progress**
+*Work in progress*
 
 
 
