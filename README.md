@@ -31,13 +31,13 @@ You probably already have python installed so just run the pyamanda script in th
 with the following command:
 
 ```
-pyamanda FILE
+./pyamanda FILE
 ```
 
 Replace 'FILE' with the path to an amanda file. You can run the "hello_world.ama" with the following command:
 
 ```
-pyamanda examples/hello_word.ama 
+./pyamanda examples/hello_word.ama 
 ```
 
 If the script doesn't work just run the same command as in windows replacing 'python' with your python 3 binary
