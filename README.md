@@ -1,7 +1,7 @@
 # Amanda
 
 Amanda is a statically typed programming language with portuguese constructs. 
-It is implemented using a tree walk intepreter written in python and was mainly made to help me get a feel for progamming language design and implementation. 
+It is implemented using a tree walk intepreter written in Python and was mainly made to help me get a feel for progamming language design and implementation. 
 You can't do much with it due to it's lacklustre perfomance and lack of serious features.
 
 ## Usage
@@ -45,7 +45,7 @@ If the script doesn't work just run the same command as in windows replacing 'py
 
 **On Mac**
 
-Can't help you, sorry :-( .
+Can't help you, i'm sorry :cry: .
 
 
 
