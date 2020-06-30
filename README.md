@@ -59,16 +59,24 @@ Just install python and use the same command used in windows.
 
 # Comentário simples
 
+
+
+# Instruções são delimitadas por uma nova linha
+# ou por ';'
+
 var a : int = 1 # o ';' não é necessário
-var b : int = 2; # Mas pode ser usado 
+var b : int = 2
+
+
+# Mas pode ser usado
+var a : int = 1; 
+var b : int = 2;
+
+
 
 func soma(a:int,b:int):int
-
     retorna a+b
-
-
-# a palavra 'fim' indica o fim de corpo de uma função, classe e e.t.c
-fim 
+fim # a palavra 'fim' indica o fim de corpo de uma função, classe e e.t.c
 ```
 
 #### Variables
@@ -103,7 +111,7 @@ var b : int = 10 # declaração e atribuição
 2.1 / 4 # divisão real :  0.525
 2 % 2 # resto: 0
 
-# Operadores relacionas
+# Operadores relacionais
 
 2 > 3 # maior: falso
 2 < 3 # menor: verdadeiro
@@ -204,8 +212,9 @@ fim
 
 #### Classes
 
+**Work in progress**
 
-#### Other stuff
+
 
 
 
