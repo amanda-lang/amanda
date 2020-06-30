@@ -23,8 +23,5 @@ def main():
 
 
 
-
-start = time.time()
 main()
-print(f"Exec time:{time.time()-start}")
 
