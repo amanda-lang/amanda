@@ -1,4 +1,4 @@
-#Sample factorial program in amanda
+#Factorial 
 
 
 func factorial(n : int) : int
