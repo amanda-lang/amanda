@@ -12,8 +12,8 @@ You can't do much with it due to it's lacklustre perfomance and lack of serious 
 
 **On Windows**
 
-To run the interpreter on Windows, download and install python 3.0 or higher from [here](https://www.python.org/downloads/windows/) and
-then run the following command in the project folder (using CMD):
+
+To run the interpreter on Windows, download python 3.0 or higher from [here](https://www.python.org/downloads/windows/), run the installer and make sure the install to PATH option is selected, wait for the installation to finish and run the following command in the project folder (using CMD):
 
 ```
 python -m amanda FILE 
