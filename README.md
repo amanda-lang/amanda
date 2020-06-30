@@ -6,9 +6,9 @@ You can't do much with it due to it's lacklustre perfomance and lack of serious 
 
 ## Usage
 
-*TODO: Make instructions better*
+~~TODO: Make instructions better~~
 
-*TODO: Add Portuguese version of this lool*
+~~TODO: Add Portuguese version of this lool~~
 
 **On Windows**
 
@@ -51,7 +51,7 @@ Can't help you, i'm sorry :cry: .
 
 ## Language Tour
 
-*TODO: Improve the tour*
+~~TODO: Improve the tour~~
 
 #### Syntax
 
@@ -212,7 +212,7 @@ fim
 
 #### Classes
 
-*Work in progress*
+~~Work in progress~~
 
 
 
