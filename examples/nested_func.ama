@@ -1,0 +1,6 @@
+func outer()
+    2+2
+    func inner()
+        2+2
+    fim
+fim

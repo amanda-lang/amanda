@@ -10,4 +10,4 @@ func fibo(n : int) : int
     retorna fibo(n-1) + fibo(n-2)
 fim
 
-mostra fibo(6)
+mostra fibo(35)

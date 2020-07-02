@@ -16,6 +16,8 @@ class Transpiler:
         self.src = src
         self.handler = error.ErrorHandler.get_handler()
         self.output = []
+        #current nesting level, used to set indentation
+        self.indent_level = 0
 
     def compile(self):
         ''' Method that runs an Amanda script. Errors raised by the
@@ -30,7 +32,7 @@ class Transpiler:
         compiled_src = StringIO()
 
         for construct in self.output:
-            print(construct,file=compiled_src)
+            print(construct,end="\n\n",file=compiled_src)
 
         return compiled_src.getvalue()
 
@@ -53,10 +55,13 @@ class Transpiler:
             
     
     def gen_block(self,node,scope=None):
+        self.indent_level += 1
         gens = []
         for child in node.children:
             gens.append(self.gen(child))
-        return generators.Block(gens)
+        level = self.indent_level
+        self.indent_level -= 1
+        return generators.Block(gens,level)
 
     def gen_vardecl(self,node):
         assign = node.assign
@@ -74,9 +79,9 @@ class Transpiler:
             params
         )
 
-    
-
-            
+    def gen_call(self,node) :
+        args = [self.gen(arg) for arg in node.fargs]
+        return generators.Call(self.gen(node.callee),args)
 
 
     def gen_assign(self,node):
@@ -101,6 +106,22 @@ class Transpiler:
             node.token.lexeme,
             self.gen(node.operand)
         )
+
+    
+    def gen_se(self,node):
+
+        gen = generators.Se(
+            self.gen(node.condition),
+            self.gen(node.then_branch),
+        )
+
+        if node.else_branch:
+            gen.else_branch = self.gen(node.else_branch)
+        return gen
+
+
+    def gen_retorna(self,node):
+        return generators.Retorna(self.gen(node.exp))
 
     def gen_mostra(self,node):
         expression = self.gen(node.exp)
