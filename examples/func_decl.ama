@@ -1,0 +1,5 @@
+func mostra_int(num : int)
+    mostra num
+fim
+
+# mostra_int(5)
