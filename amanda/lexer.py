@@ -43,10 +43,12 @@ class Lexer:
 
     def newline(self):
         if self.current_char == "\n":
+            pos = self.pos
+            line = self.line
             self.line += 1
             self.pos = 1
             self.advance()
-            return Token(TokenType.NEWLINE,"\\n",self.pos-1)
+            return Token(TokenType.NEWLINE,"\\n",line,pos)
 
 
     def whitespace(self):
