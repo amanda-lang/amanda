@@ -70,11 +70,16 @@ def run_tests(backend):
                     with open(test_case,"r") as script:
                         output = run_program(script,backend)
                     expected = res_file.readline().strip()
+                    symbol = ""
                     if output.strip() == expected:
                         passed += 1
+                        symbol = "."
                     else:
                         failed += 1
                         failed_tests.append(test_case)
+                        symbol = "x"
+                    print(symbol,end="")
+    print("\n\n")
     print("Tests have finished running.")
     print(f"Total:{passed + failed}",f"Passed:{passed}",f"Failed:{failed}")
     if len(failed_tests) > 0:
