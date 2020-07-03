@@ -7,48 +7,23 @@ from tools.util import run_program
 import amanda.error as error
 
 join = os.path.join
-#test paths
 TEST_DIR = os.path.abspath("./tests")
-ASSIGNMENT = join(TEST_DIR,"assignment")
-DECLARATION = join(TEST_DIR,"declaration")
-EXPRESSION = join(TEST_DIR,"expression")
-FUNCTION = join(TEST_DIR,"function")
 STATEMENT = join(TEST_DIR,"statement")
-ENQUANTO = join(STATEMENT,"enquanto")
-MOSTRA = join(STATEMENT,"mostra")
-PARA = join(STATEMENT,"para")
-RETORNA = join(STATEMENT,"retorna")
-SE = join(STATEMENT,"se")
-CLASS = join(TEST_DIR,"class")
-OPERATOR = join(TEST_DIR,"operator")
-CALL = join(TEST_DIR,"call")
-GET = join(TEST_DIR,"get")
-SET = join(TEST_DIR,"set")
-EU = join(TEST_DIR,"eu")
-SUPER = join(TEST_DIR,"super")
-COMMENT = join(TEST_DIR,"comment")
 EXCLUDED = ("lexer.py","parser.py","result.txt")
 
+#test paths
 DIRS = [
-ASSIGNMENT,
-DECLARATION,
-EXPRESSION,
-FUNCTION,
-ENQUANTO,
-MOSTRA,
-PARA,
-RETORNA,
-SE,
-CLASS,
-OPERATOR,
-CALL,
-GET,
-SET,
-EU,
-SUPER,
-COMMENT,
+join(TEST_DIR,"assignment"),join(TEST_DIR,"declaration"),
+join(TEST_DIR,"expression"),
+join(TEST_DIR,"function"),
+join(STATEMENT,"enquanto"),
+join(STATEMENT,"mostra"),join(STATEMENT,"para"),
+join(STATEMENT,"retorna"),join(STATEMENT,"se"),
+join(TEST_DIR,"class"),join(TEST_DIR,"operator"),
+join(TEST_DIR,"call"),join(TEST_DIR,"get"),
+join(TEST_DIR,"set"),join(TEST_DIR,"eu"),
+join(TEST_DIR,"super"),join(TEST_DIR,"comment")
 ]
-
 
 
 
