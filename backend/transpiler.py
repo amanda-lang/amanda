@@ -67,7 +67,7 @@ class Transpiler:
         assign = node.assign
         if assign:
             return self.gen(assign)
-        return generators.VarDecl(node.name.lexeme)
+        return generators.VarDecl(node.name.lexeme,node.var_type.tag)
 
     def gen_functiondecl(self,node):
         params = []
@@ -112,11 +112,14 @@ class Transpiler:
 
         gen = generators.Se(
             self.gen(node.condition),
-            self.gen(node.then_branch),
+            self.gen(node.then_branch)
         )
 
         if node.else_branch:
-            gen.else_branch = self.gen(node.else_branch)
+            gen.else_branch = generators.Senao(
+                self.gen(node.else_branch),
+                self.indent_level
+            )
         return gen
 
 

@@ -1,5 +1,8 @@
 ''' Classes for code objects used to generate python code'''
     
+from amanda.symbols import Tag
+
+
 INDENT = "    "
 
 
@@ -36,12 +39,17 @@ class UnaryOp(CodeObj):
 
 class VarDecl(CodeObj):
 
-    def __init__(self,name,assign=None):
+    def __init__(self,name,var_type):
         self.name = name
-        self.assign = assign
+        self.var_type = var_type
 
     def __str__(self):
-        return f"{self.name} = None"
+        value = None
+        if self.var_type == Tag.INT:
+            value = 0
+        if self.var_type == Tag.REAL:
+            value = 0.0
+        return f"{self.name} = {value}"
 
 class Block(CodeObj):
 
@@ -97,12 +105,25 @@ class Se(CodeObj):
         self.else_branch = else_branch
 
     def __str__(self):
-
-        then_branch = f"if {str(self.condition)}:\n{str(self.then_branch)}\n"
+        if_stmt = f"if {str(self.condition)}:\n{str(self.then_branch)}\n"
         if self.else_branch:
-            return f"{then_branch}else:\n{str(self.else_branch)}"
-        return then_branch
+            #Hack to get current indent level and use in the else block
+            if_stmt = f"{if_stmt}{str(self.else_branch)}"
+        return if_stmt
         
+
+class Senao(CodeObj):
+
+    def __init__(self,then_branch,level):
+        self.then_branch = then_branch
+        self.level = level
+
+    def __str__(self):
+        return f"{INDENT*self.level}else:\n{str(self.then_branch)}\n"
+        
+
+
+
 
 class Retorna(CodeObj):
 
