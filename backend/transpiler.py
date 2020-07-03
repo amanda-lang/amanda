@@ -15,9 +15,16 @@ class Transpiler:
     def __init__(self,src,debug=False):
         self.src = src
         self.handler = error.ErrorHandler.get_handler()
-        self.output = []
-        #current nesting level, used to set indentation
+        self.compiled_src = None
+        #used to set indentation in blocks
         self.indent_level = 0
+        self.debug = debug
+        self.test_buffer = None
+        if self.debug:
+            #If debug is enabled, redirect output to
+            #an in memory buffer
+            self.test_buffer = StringIO()
+
 
     def compile(self):
         ''' Method that runs an Amanda script. Errors raised by the
@@ -25,16 +32,30 @@ class Transpiler:
         try:
             program = Parser(self.src).parse()
             valid_program = sem.Analyzer().check_program(program)
-            self.gen(valid_program)
+            code_objs = self.gen(valid_program)
         except error.AmandaError as e:
+            if self.debug:
+                self.test_buffer.write(str(e).strip())
+                sys.exit()
             self.handler.throw_error(e,self.src)
 
-        compiled_src = StringIO()
+        str_buffer = StringIO()
 
-        for construct in self.output:
-            print(construct,end="\n\n",file=compiled_src)
+        for obj in code_objs:
+            print(obj,end="\n\n",file=str_buffer)
 
-        return compiled_src.getvalue()
+        self.compiled_src = str_buffer.getvalue()
+        return self.compiled_src
+
+    def exec(self):
+        if not self.compiled_src:
+            self.compile()
+        code = compile(self.compiled_src,"<string>","exec")
+        scope = {}
+        if self.debug:
+        #Add buffer to local dict
+            scope["__buffer__"] = self.test_buffer
+        exec(code,scope)
 
 
 
@@ -49,9 +70,10 @@ class Transpiler:
 
 
     def gen_program(self,node):
+        code_objs = []
         for child in node.children:
-            code = self.gen(child)
-            self.output.append(code)
+            code_objs.append(self.gen(child))
+        return code_objs
             
     
     def gen_block(self,node,scope=None):
@@ -152,7 +174,7 @@ class Transpiler:
 
     def gen_mostra(self,node):
         expression = self.gen(node.exp)
-        return generators.Mostra(expression)
+        return generators.Mostra(expression,self.debug)
 
 
 

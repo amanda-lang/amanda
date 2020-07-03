@@ -23,9 +23,9 @@ class Interpreter:
         #If debug is enabled, redirect output to
         #an in memory buffer
         if self.debug:
-            self.output = StringIO()
+            self.test_buffer = StringIO()
 
-    def run(self):
+    def exec(self):
         ''' Method that runs an Amanda script. Errors raised by the
         frontend are handled by an error handler instance'''
         try:
@@ -35,7 +35,7 @@ class Interpreter:
             valid_program.accept(self)
         except error.AmandaError as e:
             if self.debug:
-                self.output.write(str(e).strip())
+                self.test_buffer.write(str(e).strip())
                 sys.exit()
             else:
                 self.handler.throw_error(e,self.src)
@@ -299,7 +299,7 @@ class Interpreter:
         if node.exp.eval_type.tag == Tag.BOOL:
             expr = "verdadeiro" if expr else "falso"
         if self.debug:
-            print(expr,end=" ",file=self.output)
+            print(expr,end=" ",file=self.test_buffer)
         else:
             print(expr)
 

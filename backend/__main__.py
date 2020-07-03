@@ -9,15 +9,12 @@ def main():
     args = parser.parse_args()
     # Try and open file
     try:
-        with open(abspath(args.file)) as script:
+        with open(abspath(args.file)) as script,\
+        open("output.py","w") as output:
             amac = Transpiler(script)
             code = amac.compile()
-        
-        with open("output.py","w") as output:
             output.write(code)
-
-
-
+        amac.exec()
     except FileNotFoundError:
         print(f"The file '{abspath(args.file)}' was not found on this system")
 

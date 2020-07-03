@@ -181,8 +181,13 @@ class Retorna(CodeObj):
 
 class Mostra(CodeObj):
 
-    def __init__(self,expression):
+    def __init__(self,expression,debug):
         self.expression = expression
+        self.debug = debug
 
     def __str__(self):
-        return f"print({str(self.expression)})"
+        output=""
+        #Redirect output to buffer of compiler
+        if self.debug:
+            output=",file=__buffer__"
+        return f"print({str(self.expression)}{output})"
