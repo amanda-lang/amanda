@@ -22,7 +22,7 @@ python -m amanda FILE
 Replace 'FILE' with the path to an amanda file. You can run the "hello_world.ama" example with the following command:
 
 ```
-python -m amanda examples/hello_word.ama 
+python -m amanda examples/hello_world.ama 
 ```
 
 **On Linux** 
