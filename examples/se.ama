@@ -2,7 +2,7 @@ var n: int = -2
 se n>1 entao
     mostra "maior"
 senao
-    se n == 0 entao
+    se (n == 0) ou (n >= 0) entao
         mostra "sou zero"
     senao
         se n < 0 entao

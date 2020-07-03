@@ -1,6 +1,7 @@
 ''' Classes for code objects used to generate python code'''
     
 from amanda.symbols import Tag
+from amanda.tokens import TokenType as tt
 
 
 INDENT = "    "
@@ -21,7 +22,14 @@ class BinOp(CodeObj):
         self.rhs = rhs
 
     def __str__(self):
-        return f"({str(self.lhs)} {self.operator} {str(self.rhs)}) "
+
+        operator = self.operator
+        if self.operator == tt.E.value.lower():
+            operator = "and"
+        elif self.operator == tt.OU.value.lower():
+            operator = "or"
+
+        return f"({str(self.lhs)} {operator} {str(self.rhs)}) "
 
 
 class UnaryOp(CodeObj):
@@ -33,7 +41,10 @@ class UnaryOp(CodeObj):
 
 
     def __str__(self):
-        return f"({self.operator}{self.operand})"
+        operator = self.operator
+        if self.operator == tt.NAO.value.lower():
+            operator = "not"
+        return f"({operator}{self.operand})"
 
 
 
@@ -120,10 +131,44 @@ class Senao(CodeObj):
 
     def __str__(self):
         return f"{INDENT*self.level}else:\n{str(self.then_branch)}\n"
-        
 
 
+class Enquanto(CodeObj):
 
+    def __init__(self,condition,body):
+
+        self.condition = condition
+        self.body = body
+
+    def __str__(self):
+        return f"while {str(self.condition)}:\n{str(self.body)}"
+
+class Para(CodeObj):
+
+
+    def __init__(self,expression,body):
+
+        self.expression = expression
+        self.body = body
+
+    def __str__(self):
+        return f"for {str(self.expression)}:\n{str(self.body)}"
+
+class ParaExpr(CodeObj):
+
+    def __init__(self,name,start,stop,inc=None):
+        if not inc:
+            #TODO: Fix this at some point
+            #Hack in case of empty inc value
+            # step defaults to -1 if start > stop else 1 
+            inc = f"-1 if {str(start)} > {str(stop)} else 1"
+        self.name = name
+        self.start = start
+        self.stop = stop
+        self.inc = inc
+
+    def __str__(self):
+        return f"{str(self.name)} in range({self.start},{self.stop},{self.inc})"
 
 class Retorna(CodeObj):
 

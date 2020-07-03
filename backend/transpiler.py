@@ -122,6 +122,30 @@ class Transpiler:
             )
         return gen
 
+    def gen_enquanto(self,node):
+        return generators.Enquanto(
+            self.gen(node.condition),
+            self.gen(node.statement)
+        )
+
+
+    def gen_para(self,node):
+        return generators.Para(
+            self.gen(node.expression),
+            self.gen(node.statement)
+        )
+
+    def gen_paraexpr(self,node):
+        range_expr = node.range_expr
+        gen = generators.ParaExpr(
+            node.name.lexeme,
+            self.gen(range_expr.start),
+            self.gen(range_expr.end),
+        )
+        if range_expr.inc:
+            gen.inc = self.gen(range_expr.inc)
+        return gen
+            
 
     def gen_retorna(self,node):
         return generators.Retorna(self.gen(node.exp))
