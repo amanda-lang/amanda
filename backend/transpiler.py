@@ -219,6 +219,10 @@ class Transpiler:
 
     
     def gen_constant(self,node):
+        prom_type = node.prom_type
+        if prom_type:
+            if prom_type.tag == symbols.Tag.REAL:
+                return float(node.token.lexeme)
         return node.token.lexeme
 
     def gen_variable(self,node):
