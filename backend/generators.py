@@ -102,6 +102,15 @@ class Global(CodeObj):
         return f"global {names}"
 
 
+class NonLocal(CodeObj):
+
+    def __init__(self,names):
+        self.names = names
+
+
+    def __str__(self):
+        names = ",".join(self.names)
+        return f"nonlocal {names}"
 
 
 

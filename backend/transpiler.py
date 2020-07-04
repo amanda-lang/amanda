@@ -40,9 +40,7 @@ class Transpiler:
         self.test_buffer = None
         self.global_scope = symbols.Scope("Main")
         self.current_scope = self.global_scope
-        self.in_function = False
-        #Number of locals in scope
-        self.locals = 0
+        self.func_depth = 0 # Current func nesting level
         if self.debug:
             #If debug is enabled, redirect output to
             #an in memory buffer
@@ -108,15 +106,20 @@ class Transpiler:
     def gen_block(self,node,scope=None):
         self.depth += 1
         gens = []
-        if self.in_function:
-            if self.depth == 1:
-                gens.append(self.add_globals())
-            else:
-                raise NotImplementedError("Nested functions have not been done")
+        #Add global and nonlocal statements
+        #to beginning of a function
+        if self.func_depth >= 1:
+            global_stmt = self.add_globals()
+            if global_stmt:
+                gens.append(global_stmt)
         if scope:
             self.current_scope = scope
         else:
             self.current_scope = symbols.Scope("local",self.current_scope)
+        if self.func_depth > 1:
+            non_local = self.add_non_locals()
+            if non_local:
+                gens.append(non_local)
         for child in node.children:
             gens.append(self.gen(child))
         level = self.depth
@@ -124,23 +127,43 @@ class Transpiler:
         self.current_scope = self.current_scope.enclosing_scope
         return generators.Block(gens,level)
 
+    def get_names(self,scope):
+        names = []
+        for name,info in scope.symbols.items():
+            if info[1] == self.VAR:
+                names.append(info[0])
+        return names
+
+
     def add_globals(self):
         ''' Adds global statements to
         the beginning of a function'''
-        names = []
-        for name,sym_type in self.current_scope.symbols.items():
-            if sym_type == self.VAR:
-                names.append(name)
+        names = self.get_names(self.global_scope)
+        if len(names)==0:
+            return None
         return generators.Global(names)
 
-    def define_local(self,name):
+    def add_non_locals(self):
+        ''' Adds nonlocal statements to
+        the beginning of a function'''
+        names = []
+        scope = self.current_scope.enclosing_scope
+        while scope and scope != self.global_scope:
+            names = [*names,*self.get_names(scope)]
+            scope = scope.enclosing_scope
+        if len(names)==0:
+            return None
+        return generators.NonLocal(names)
+
+
+    def define_local(self,name,scope,sym_type):
         ''' Defines a new local variable
         for the current_scope. Gives it a
         generic name based on the number of 
         defined local.'''
-        reg_name = f"__r{self.locals}__"
-        self.current_scope.define(name,reg_name)
-        self.locals += 1
+        num_locals = scope.count()
+        reg_name = f"__r{self.func_depth-1}{num_locals}__"
+        scope.define(name,(reg_name,sym_type))
         return reg_name
 
 
@@ -148,32 +171,40 @@ class Transpiler:
         assign = node.assign
         name = node.name.lexeme
         #Do scope stuff
-        if self.in_function:
+        if self.func_depth >= 1:
             #Defines a new local
-            name = self.define_local(name)
+            name = self.define_local(name,self.current_scope,self.VAR)
         else:
-            self.current_scope.define(name,self.VAR)
+            self.current_scope.define(name,(name,self.VAR))
         if assign:
             return self.gen(assign)
         return generators.VarDecl(name,node.var_type.tag)
 
+    #1.Any functions declared inside another
+    #should alsob be regarded as a local
+    #2. After inner function local params are declared,
+    # use the non local stmt to get nonlocal names
+    #3. Local names are depth dependent
+    #e.g at nesting level 1 __r0__,__r1__
+    #at level 2 __r10__,__r11__
     def gen_functiondecl(self,node):
         name = node.name.lexeme
-        self.current_scope.define(name,self.FUNC)
-        self.in_function = True
+        if self.func_depth >= 1:
+            #Nested function
+            name = self.define_local(name,self.current_scope,self.FUNC)
+        self.func_depth += 1
+        self.current_scope.define(name,(name,self.FUNC))
         params = []
         scope = symbols.Scope(name,self.current_scope)
-        self.current_scope = scope
         for param in node.params:
-            param_name = self.define_local(param.name.lexeme)
+            param_name = self.define_local(param.name.lexeme,scope,self.VAR)
             params.append(param_name)
-        self.current_scope = scope.enclosing_scope
         gen = generators.FunctionDecl(
             name,
             self.gen(node.block,scope),
             params
         )
-        self.in_function = False
+        self.func_depth -= 1
         return gen
 
     def gen_call(self,node) :
@@ -192,13 +223,12 @@ class Transpiler:
 
     def gen_variable(self,node):
         name = node.token.lexeme
-        if not self.in_function:
-            return name
-        reg_name = self.current_scope.get(name)
-        if reg_name:
-            return reg_name
-        else:
-            return name
+        #If in a function scope
+        #and name is defined, return local var name
+        info = self.current_scope.get(name)
+        if self.func_depth > 0 and info:
+            return info[0]
+        return self.current_scope.resolve(name)[0]
 
     def gen_binop(self,node):
 

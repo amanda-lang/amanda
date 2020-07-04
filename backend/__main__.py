@@ -15,7 +15,6 @@ def main():
             code = amac.compile()
             output.write(code)
         amac.exec()
-        print(amac.current_scope)
     except FileNotFoundError:
         print(f"The file '{abspath(args.file)}' was not found on this system")
 

@@ -45,6 +45,9 @@ class Scope(SymbolTable):
     def define(self,name,symbol):
         super().define(name,symbol)
 
+    def count(self):
+        return len(self.symbols)
+
     def __str__(self):
         return f"SCOPE: {self.name}\n\n______\n{super().__str__()}\n\n<Exiting {self.name}>\n"
 
