@@ -7,12 +7,16 @@ from backend.types import Bool
 
 INDENT = "    "
 
-
-
 class CodeObj:
-
     def __str__(self):
         raise NotImplementedError("Subclasses must override this method")
+
+
+class Pass(CodeObj):
+    def __str__(self):
+        return "pass"
+
+
 
 class BinOp(CodeObj):
 
@@ -142,7 +146,10 @@ class Se(CodeObj):
         self.else_branch = else_branch
 
     def __str__(self):
-        if_stmt = f"if {str(self.condition)}:\n{str(self.then_branch)}\n"
+        then_branch = self.then_branch
+        if len(str(then_branch)) == 0:
+            then_branch.instructions.append(Pass()) 
+        if_stmt = f"if {str(self.condition)}:\n{str(then_branch)}\n"
         if self.else_branch:
             #Hack to get current indent level and use in the else block
             if_stmt = f"{if_stmt}{str(self.else_branch)}"
@@ -156,7 +163,10 @@ class Senao(CodeObj):
         self.level = level
 
     def __str__(self):
-        return f"{INDENT*self.level}else:\n{str(self.then_branch)}\n"
+        then_branch = self.then_branch
+        if len(str(then_branch)) == 0:
+            then_branch.instructions.append(Pass()) 
+        return f"{INDENT*self.level}else:\n{str(then_branch)}\n"
 
 
 class Enquanto(CodeObj):
@@ -217,3 +227,6 @@ class Mostra(CodeObj):
         if self.debug:
             output=",end=' ',file=__buffer__"
         return f"printc({str(self.expression)}{output})"
+
+
+
