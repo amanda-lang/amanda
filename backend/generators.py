@@ -2,6 +2,7 @@
     
 from amanda.symbols import Tag
 from amanda.tokens import TokenType as tt
+from backend.types import Bool
 
 
 INDENT = "    "
@@ -24,9 +25,9 @@ class BinOp(CodeObj):
     def __str__(self):
 
         operator = self.operator
-        if self.operator == tt.E.value.lower():
+        if operator == tt.E.value.lower():
             operator = "and"
-        elif self.operator == tt.OU.value.lower():
+        elif operator == tt.OU.value.lower():
             operator = "or"
 
         return f"({str(self.lhs)} {operator} {str(self.rhs)}) "
@@ -44,7 +45,7 @@ class UnaryOp(CodeObj):
         operator = self.operator
         if self.operator == tt.NAO.value.lower():
             operator = "not"
-        return f"({operator}{self.operand})"
+        return f"({operator} {self.operand})"
 
 
 
@@ -60,6 +61,8 @@ class VarDecl(CodeObj):
             value = 0
         if self.var_type == Tag.REAL:
             value = 0.0
+        if self.var_type == Tag.BOOL:
+            value = Bool.FALSO
         return f"{self.name} = {value}"
 
 class Block(CodeObj):
@@ -86,6 +89,20 @@ class FunctionDecl(CodeObj):
     def __str__(self):
         params = ",".join(self.params)
         return f"def {self.name}({params}):\n{str(self.body)}"
+
+
+class Global(CodeObj):
+
+    def __init__(self,names):
+        self.names = names
+
+
+    def __str__(self):
+        names = ",".join(self.names)
+        return f"global {names}"
+
+
+
 
 
 class Call(CodeObj):
@@ -189,5 +206,5 @@ class Mostra(CodeObj):
         output=""
         #Redirect output to buffer of compiler
         if self.debug:
-            output=",file=__buffer__"
-        return f"print({str(self.expression)}{output})"
+            output=",end=' ',file=__buffer__"
+        return f"printc({str(self.expression)}{output})"
