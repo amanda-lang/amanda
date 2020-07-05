@@ -4,4 +4,6 @@ Erro na linha 3: a condição da instrução 'se' deve ser um valor lógico.
 0
 4 -3
 4
+4 0
+9 0
 2 not larger dez não oito não nove dez não dez

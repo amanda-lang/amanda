@@ -27,8 +27,12 @@ def print_wrapper(obj,**kwargs):
     
 class Transpiler:
 
+    #Var types
     VAR = "VAR"
     FUNC = "FUNC"
+
+    #Scope names
+    GLOBAL = "GLOBAL"
     LOCAL = "LOCAL"
 
     def __init__(self,src,debug=False):
@@ -39,7 +43,7 @@ class Transpiler:
         self.depth = 0
         self.debug = debug
         self.test_buffer = None
-        self.global_scope = symbols.Scope("Main")
+        self.global_scope = symbols.Scope(self.GLOBAL)
         self.current_scope = self.global_scope
         self.func_depth = 0 # Current func nesting level
         self.scope_depth = 0 # Scope nesting level
@@ -277,17 +281,32 @@ class Transpiler:
     
     def gen_se(self,node):
 
+        self.scope_depth += 1
+        scope = symbols.Scope(self.LOCAL,self.current_scope)
         gen = generators.Se(
             self.gen(node.condition),
-            self.compile_block(node.then_branch,[])
+            self.compile_block(node.then_branch,[],scope)
         )
+        self.scope_depth -=1
+        self.unbind_locals(scope,gen.then_branch)
 
         if node.else_branch:
+            self.scope_depth += 1
+            else_scope = symbols.Scope(self.LOCAL,self.current_scope)
             gen.else_branch = generators.Senao(
-                self.compile_block(node.else_branch,[]),
+                self.compile_block(node.else_branch,[],else_scope),
                 self.depth
             )
+            self.scope_depth -= 1
+            self.unbind_locals(else_scope,gen.else_branch.then_branch)
+
         return gen
+    
+    def unbind_locals(self,scope,body):
+        names = self.get_all_names(scope)
+        if len(names) > 0:
+            body.instructions.append(generators.Del(names))
+
 
     def gen_enquanto(self,node):
         self.scope_depth += 1

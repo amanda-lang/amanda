@@ -160,7 +160,6 @@ class Se(CodeObj):
         self.then_branch = then_branch
         self.else_branch = else_branch
 
-    #TODO: Put pass logic in transpiler
     def __str__(self):
         then_branch = self.then_branch
         if_stmt = f"if {str(self.condition)}:\n{str(then_branch)}\n"
