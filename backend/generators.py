@@ -6,6 +6,10 @@ from backend.types import Bool
 
 
 INDENT = "    "
+#Name of buffer used in test
+TEST_BUFFER = "_buffer_"
+
+
 
 class CodeObj:
     def __str__(self):
@@ -236,7 +240,7 @@ class Mostra(CodeObj):
         output=""
         #Redirect output to buffer of compiler
         if self.debug:
-            output=",end=' ',file=__buffer__"
+            output=f",end=' ',file={TEST_BUFFER}"
         return f"printc({str(self.expression)}{output})"
 
 

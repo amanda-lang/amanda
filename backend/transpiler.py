@@ -81,7 +81,7 @@ class Transpiler:
         scope = {}
         if self.debug:
         #Add buffer to local dict
-            scope["__buffer__"] = self.test_buffer
+            scope[generators.TEST_BUFFER] = self.test_buffer
         #Set verdadeiro e falso
         scope["verdadeiro"] = Bool.VERDADEIRO
         scope["falso"] = Bool.FALSO
@@ -134,7 +134,7 @@ class Transpiler:
         for the current_scope. Gives it a
         generic name based on the number of 
         defined local.'''
-        reg_name = f"__r{self.scope_depth-1}{scope.count()}__"
+        reg_name = f"_r{self.scope_depth-1}{scope.count()}_"
         scope.define(name,(reg_name,sym_type))
         return reg_name
 
