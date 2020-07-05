@@ -103,57 +103,22 @@ class Transpiler:
         return code_objs
             
     
-    def gen_block(self,node,scope=None):
+    def compile_block(self,node,stmts,scope=None):
+        #stmts param is a list of stmts
+        #node defined here because caller may want
+        #to add custom statement to the beginning of
+        #a block
         self.depth += 1
-        gens = []
-        #Add global and nonlocal statements
-        #to beginning of a function
-        if self.func_depth >= 1:
-            global_stmt = self.add_globals()
-            if global_stmt:
-                gens.append(global_stmt)
         if scope:
             self.current_scope = scope
         else:
             self.current_scope = symbols.Scope("local",self.current_scope)
-        if self.func_depth > 1:
-            non_local = self.add_non_locals()
-            if non_local:
-                gens.append(non_local)
         for child in node.children:
-            gens.append(self.gen(child))
+            stmts.append(self.gen(child))
         level = self.depth
         self.depth -= 1
         self.current_scope = self.current_scope.enclosing_scope
-        return generators.Block(gens,level)
-
-    def get_names(self,scope):
-        names = []
-        for name,info in scope.symbols.items():
-            if info[1] == self.VAR:
-                names.append(info[0])
-        return names
-
-
-    def add_globals(self):
-        ''' Adds global statements to
-        the beginning of a function'''
-        names = self.get_names(self.global_scope)
-        if len(names)==0:
-            return None
-        return generators.Global(names)
-
-    def add_non_locals(self):
-        ''' Adds nonlocal statements to
-        the beginning of a function'''
-        names = []
-        scope = self.current_scope.enclosing_scope
-        while scope and scope != self.global_scope:
-            names = [*names,*self.get_names(scope)]
-            scope = scope.enclosing_scope
-        if len(names)==0:
-            return None
-        return generators.NonLocal(names)
+        return generators.Block(stmts,level)
 
 
     def define_local(self,name,scope,sym_type):
@@ -180,13 +145,6 @@ class Transpiler:
             return self.gen(assign)
         return generators.VarDecl(name,node.var_type.tag)
 
-    #1.Any functions declared inside another
-    #should alsob be regarded as a local
-    #2. After inner function local params are declared,
-    # use the non local stmt to get nonlocal names
-    #3. Local names are depth dependent
-    #e.g at nesting level 1 __r0__,__r1__
-    #at level 2 __r10__,__r11__
     def gen_functiondecl(self,node):
         name = node.name.lexeme
         if self.func_depth >= 1:
@@ -201,11 +159,61 @@ class Transpiler:
             params.append(param_name)
         gen = generators.FunctionDecl(
             name,
-            self.gen(node.block,scope),
+            self.get_func_block(node.block,scope),
             params
         )
         self.func_depth -= 1
         return gen
+
+    #1.Any functions declared inside another
+    #should also be regarded as a local
+    #2. After inner function local params are declared,
+    # use the non local stmt to get nonlocal names
+    #3. Local names are depth dependent
+    #e.g at nesting level 1 __r0__,__r1__
+    #at level 2 __r10__,__r11__
+    def get_func_block(self,block,scope):
+        #Add global and nonlocal statements
+        #to beginning of a function
+        stmts=[]
+        if self.func_depth >= 1:
+            global_stmt = self.add_globals()
+            if global_stmt:
+                stmts.append(global_stmt)
+        if self.func_depth > 1:
+            non_local = self.add_non_locals(scope)
+            if non_local:
+                stmts.append(non_local)
+        return self.compile_block(block,stmts,scope)
+
+    def get_names(self,scope):
+        names = []
+        for name,info in scope.symbols.items():
+            if info[1] == self.VAR:
+                names.append(info[0])
+        return names
+
+
+    def add_globals(self):
+        ''' Adds global statements to
+        the beginning of a function'''
+        names = self.get_names(self.global_scope)
+        if len(names)==0:
+            return None
+        return generators.Global(names)
+
+    def add_non_locals(self,scope):
+        ''' Adds nonlocal statements to
+        the beginning of a function'''
+        names = []
+        scope = scope.enclosing_scope
+        while scope and scope != self.global_scope:
+            names = [*names,*self.get_names(scope)]
+            scope = scope.enclosing_scope
+        if len(names)==0:
+            return None
+        return generators.NonLocal(names)
+
 
     def gen_call(self,node) :
         args = [self.gen(arg) for arg in node.fargs]
@@ -256,33 +264,37 @@ class Transpiler:
 
         gen = generators.Se(
             self.gen(node.condition),
-            self.gen(node.then_branch)
+            self.compile_block(node.then_branch,[])
         )
 
         if node.else_branch:
             gen.else_branch = generators.Senao(
-                self.gen(node.else_branch),
+                self.compile_block(node.else_branch,[]),
                 self.depth
             )
         return gen
 
     def gen_enquanto(self,node):
-        return generators.Enquanto(
+        gen = generators.Enquanto(
             self.gen(node.condition),
-            self.gen(node.statement)
+            self.compile_block(node.statement,[])
         )
+        return gen
 
 
     def gen_para(self,node):
-        return generators.Para(
+        gen = generators.Para(
             self.gen(node.expression),
-            self.gen(node.statement)
+            self.compile_block(node.statement,[])
         )
+        return gen
 
     def gen_paraexpr(self,node):
         range_expr = node.range_expr
+        name = node.name.lexeme
+        self.current_scope.define(name,(name,self.VAR))
         gen = generators.ParaExpr(
-            node.name.lexeme,
+            name,
             self.gen(range_expr.start),
             self.gen(range_expr.end),
         )
