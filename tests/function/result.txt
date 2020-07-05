@@ -5,6 +5,7 @@ Erro na linha 5: expressão de retorno inválida. O tipo do valor de retorno é 
 3 2 4
 Erro na linha 7: a função 'inner_func' não possui a instrução 'retorna'.
 1 0
+5 4 4 3 3 2
 String<-
 Erro na linha 4: o parâmetro 'a' já foi especificado nesta função.
 3 150.0 4 120
