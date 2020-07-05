@@ -3,11 +3,12 @@ Module responsible for generating python code
 from an AST
 '''
 from io import StringIO
+import sys
+import keyword
 import amanda.symbols as symbols
 import amanda.ast_nodes as ast
 import amanda.semantic as sem
 import amanda.error as error
-import sys
 from amanda.parser import Parser
 import backend.generators as generators
 from backend.types import Bool
@@ -128,6 +129,14 @@ class Transpiler:
             stmts.append(generators.Pass())
         return generators.Block(stmts,level)
 
+    def is_valid_name(self,name):
+        ''' Checks whether name is a python keyword, reserved var or
+        python builtin method'''
+        return not (keyword.iskeyword(name) or 
+             (name.startswith("_") and name.endswith("_")) or
+             name in globals().get("__builtins__")
+        )
+        
 
     def define_local(self,name,scope,sym_type):
         ''' Defines a new local variable
@@ -139,17 +148,28 @@ class Transpiler:
         return reg_name
 
 
+    
+    def define_global(self,name,name_type):
+        ''' Defines a new global variable. Variable id is changed
+        in case of invalid identifiers'''
+        real_id = name
+        if not self.is_valid_name(name):
+            real_id = f"_g{self.global_scope.count()}_"
+        self.global_scope.define(name,(real_id,name_type))
+        return real_id
+
+
     #TODO: Add check for names that use python keywords
     # and reserved transpiler identifiers
     def gen_vardecl(self,node):
         assign = node.assign
         name = node.name.lexeme
-        #Do scope stuff
         if self.scope_depth >= 1:
             #Defines a new local
             name = self.define_local(name,self.current_scope,self.VAR)
         else:
-            self.current_scope.define(name,(name,self.VAR))
+            #In global scope
+            name = self.define_global(name,self.VAR)
         if assign:
             return self.gen(assign)
         return generators.VarDecl(name,node.var_type.tag)
@@ -159,9 +179,10 @@ class Transpiler:
         if self.scope_depth >= 1:
             #Nested function
             name = self.define_local(name,self.current_scope,self.FUNC)
+        else:
+            name = self.define_global(name,self.FUNC)
         self.scope_depth += 1
         self.func_depth += 1
-        self.current_scope.define(name,(name,self.FUNC))
         params = []
         scope = symbols.Scope(name,self.current_scope)
         for param in node.params:
@@ -188,11 +209,11 @@ class Transpiler:
         #to beginning of a function
         stmts=[]
         if self.func_depth >= 1:
-            global_stmt = self.add_globals()
+            global_stmt = self.gen_global_stmt()
             if global_stmt:
                 stmts.append(global_stmt)
         if self.func_depth > 1:
-            non_local = self.add_non_locals(scope)
+            non_local = self.gen_nonlocal_stmt(scope)
             if non_local:
                 stmts.append(non_local)
         return self.compile_block(block,stmts,scope)
@@ -213,7 +234,7 @@ class Transpiler:
             names.append(info[0])
         return names
 
-    def add_globals(self):
+    def gen_global_stmt(self):
         ''' Adds global statements to
         the beginning of a function'''
         names = self.get_names(self.global_scope)
@@ -221,7 +242,7 @@ class Transpiler:
             return None
         return generators.Global(names)
 
-    def add_non_locals(self,scope):
+    def gen_nonlocal_stmt(self,scope):
         ''' Adds nonlocal statements to
         the beginning of a function'''
         names = []

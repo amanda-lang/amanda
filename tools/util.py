@@ -40,9 +40,9 @@ def get_script_output(test_dir):
             if file == ".coverage":
                 continue
             filename = join(root,file)
-            with open(join(root,RESULTS_FILE),"a") as result, open(filename,"r") as src:
-                buffer = run_script(src)
-                result.write(buffer.getvalue().strip()+"\n")
+            with open(join(root,RESULTS_FILE),"a") as result_file, open(filename,"r") as src:
+                result = run_program(src,Interpreter)
+                result_file.write(result.strip()+"\n")
 
 
 def main():
