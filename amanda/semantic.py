@@ -511,6 +511,8 @@ class Analyzer(ast.Visitor):
         if isinstance(callee,ast.Variable):
             name = callee.token.lexeme
             sym = self.current_scope.resolve(name)
+            if not sym:
+                self.error(f"o identificador '{name}' não foi definido neste escopo")
         #Call is made on another call
         elif isinstance(callee,ast.Call):
             # Since amanda doesn't have first class functions,
@@ -566,8 +568,6 @@ class Analyzer(ast.Visitor):
         ''' Helper method that enforces a host of semantic 
         checks on a call operation. '''
         name = sym.name
-        if not sym:
-            self.error(f"o identificador '{name}' não foi definido neste escopo")
         if not sym.is_callable():
             self.error(f"identificador '{name}' não é invocável")
         for arg in fargs:

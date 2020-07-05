@@ -29,6 +29,7 @@ class Transpiler:
 
     VAR = "VAR"
     FUNC = "FUNC"
+    LOCAL = "LOCAL"
 
     def __init__(self,src,debug=False):
         self.src = src
@@ -41,6 +42,7 @@ class Transpiler:
         self.global_scope = symbols.Scope("Main")
         self.current_scope = self.global_scope
         self.func_depth = 0 # Current func nesting level
+        self.scope_depth = 0 # Scope nesting level
         if self.debug:
             #If debug is enabled, redirect output to
             #an in memory buffer
@@ -112,7 +114,7 @@ class Transpiler:
         if scope:
             self.current_scope = scope
         else:
-            self.current_scope = symbols.Scope("local",self.current_scope)
+            self.current_scope = symbols.Scope(self.LOCAL,self.current_scope)
         for child in node.children:
             stmts.append(self.gen(child))
         level = self.depth
@@ -128,8 +130,7 @@ class Transpiler:
         for the current_scope. Gives it a
         generic name based on the number of 
         defined local.'''
-        num_locals = scope.count()
-        reg_name = f"__r{self.func_depth-1}{num_locals}__"
+        reg_name = f"__r{self.scope_depth-1}{scope.count()}__"
         scope.define(name,(reg_name,sym_type))
         return reg_name
 
@@ -140,7 +141,7 @@ class Transpiler:
         assign = node.assign
         name = node.name.lexeme
         #Do scope stuff
-        if self.func_depth >= 1:
+        if self.scope_depth >= 1:
             #Defines a new local
             name = self.define_local(name,self.current_scope,self.VAR)
         else:
@@ -151,9 +152,10 @@ class Transpiler:
 
     def gen_functiondecl(self,node):
         name = node.name.lexeme
-        if self.func_depth >= 1:
+        if self.scope_depth >= 1:
             #Nested function
             name = self.define_local(name,self.current_scope,self.FUNC)
+        self.scope_depth += 1
         self.func_depth += 1
         self.current_scope.define(name,(name,self.FUNC))
         params = []
@@ -166,6 +168,7 @@ class Transpiler:
             self.get_func_block(node.block,scope),
             params
         )
+        self.scope_depth -= 1
         self.func_depth -= 1
         return gen
 
@@ -197,6 +200,14 @@ class Transpiler:
                 names.append(info[0])
         return names
 
+    def get_all_names(self,scope):
+        names = []
+        for name,info in scope.symbols.items():
+            #Lol don't know why i have to do it
+            if info[0] in names:
+                continue
+            names.append(info[0])
+        return names
 
     def add_globals(self):
         ''' Adds global statements to
@@ -278,32 +289,43 @@ class Transpiler:
             )
         return gen
 
-    #Steps to simulate local scope:
-    #Increase depth 
-    #Declare locals
-    #Delete locals
     def gen_enquanto(self,node):
-        #self.scope_depth += 1
+        self.scope_depth += 1
+        scope = symbols.Scope(self.LOCAL,self.current_scope)
         gen = generators.Enquanto(
             self.gen(node.condition),
-            self.compile_block(node.statement,[])
+            self.compile_block(node.statement,[],scope)
         )
-        #self.scope_depth -=1
+        names = self.get_all_names(scope)
+        if len(names) > 0:
+            gen.body.del_stmt = generators.Del(names)
+        self.scope_depth -=1
         return gen
 
 
 
     def gen_para(self,node):
+        self.scope_depth += 1
+        #Define control var
+        scope = symbols.Scope(self.LOCAL,self.current_scope)
+        para_expr = node.expression
+        control_var = para_expr.name.lexeme
+        #Change control var name to local name
+        para_expr.name.lexeme = self.define_local(control_var,scope,self.VAR)
         gen = generators.Para(
-            self.gen(node.expression),
-            self.compile_block(node.statement,[])
+            self.gen(para_expr),
+            self.compile_block(node.statement,[],scope)
         )
+        #Delete names
+        names = self.get_all_names(scope)
+        if len(names) > 0:
+            gen.body.del_stmt = generators.Del(names)
+        self.scope_depth -=1
         return gen
 
     def gen_paraexpr(self,node):
         range_expr = node.range_expr
         name = node.name.lexeme
-        self.current_scope.define(name,(name,self.VAR))
         gen = generators.ParaExpr(
             name,
             self.gen(range_expr.start),

@@ -1,4 +1,9 @@
 5 10 5 10 4
 0 0 0 0 0
 1 1 1 1 1
+Erro na linha 9: o identificador 'v' não foi declarado.
+0 1
+Erro na linha 9: o identificador 'v' não foi declarado.
+Erro na linha 6: o identificador 'empty' não foi definido neste escopo.
+0 1 2 3 4
 Erro na linha 3: os parâmetros de uma série devem ser do tipo 'int'.

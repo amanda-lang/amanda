@@ -22,7 +22,7 @@ class Del(CodeObj):
         self.names = names
 
     def __str__(self):
-        names = ",".join(names)
+        names = ",".join(self.names)
         return f"del {names}"
         
 
