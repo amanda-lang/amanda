@@ -16,6 +16,15 @@ class Pass(CodeObj):
     def __str__(self):
         return "pass"
 
+class Del(CodeObj):
+
+    def __init__(self,names):
+        self.names = names
+
+    def __str__(self):
+        names = ",".join(names)
+        return f"del {names}"
+        
 
 
 class BinOp(CodeObj):
@@ -71,16 +80,22 @@ class VarDecl(CodeObj):
 
 class Block(CodeObj):
 
-    def __init__(self,instructions,level):
+    def __init__(self,instructions,level,del_stmt=None):
         self.instructions = instructions
         self.level = level
+        self.del_stmt = del_stmt
 
     def __str__(self):
         #Add indentation to every instruction in the block
         #and separate instructions with Newline
-        return "\n".join([
+        block = "\n".join([
             f"{INDENT*self.level}{str(instr)}" for instr in self.instructions
         ])
+        if self.del_stmt:
+            block += f"\n{INDENT*(self.level-1)}{str(self.del_stmt)}"
+
+        return block
+
 
 
 class FunctionDecl(CodeObj):
@@ -145,10 +160,9 @@ class Se(CodeObj):
         self.then_branch = then_branch
         self.else_branch = else_branch
 
+    #TODO: Put pass logic in transpiler
     def __str__(self):
         then_branch = self.then_branch
-        if len(str(then_branch)) == 0:
-            then_branch.instructions.append(Pass()) 
         if_stmt = f"if {str(self.condition)}:\n{str(then_branch)}\n"
         if self.else_branch:
             #Hack to get current indent level and use in the else block
@@ -164,8 +178,6 @@ class Senao(CodeObj):
 
     def __str__(self):
         then_branch = self.then_branch
-        if len(str(then_branch)) == 0:
-            then_branch.instructions.append(Pass()) 
         return f"{INDENT*self.level}else:\n{str(then_branch)}\n"
 
 

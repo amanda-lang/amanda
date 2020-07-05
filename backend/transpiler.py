@@ -118,6 +118,8 @@ class Transpiler:
         level = self.depth
         self.depth -= 1
         self.current_scope = self.current_scope.enclosing_scope
+        if len(stmts) == 0:
+            stmts.append(generators.Pass())
         return generators.Block(stmts,level)
 
 
@@ -276,12 +278,19 @@ class Transpiler:
             )
         return gen
 
+    #Steps to simulate local scope:
+    #Increase depth 
+    #Declare locals
+    #Delete locals
     def gen_enquanto(self,node):
+        #self.scope_depth += 1
         gen = generators.Enquanto(
             self.gen(node.condition),
             self.compile_block(node.statement,[])
         )
+        #self.scope_depth -=1
         return gen
+
 
 
     def gen_para(self,node):
