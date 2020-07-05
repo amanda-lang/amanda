@@ -15,7 +15,7 @@ def main():
     try:
         with open(abspath(args.file)) as script:
             py_ama = Interpreter(script)
-            py_ama.run()
+            py_ama.exec()
 
     except FileNotFoundError:
         print(f"The file '{abspath(args.file)}' was not found on this system")

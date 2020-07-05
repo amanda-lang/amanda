@@ -132,6 +132,8 @@ class Transpiler:
         return reg_name
 
 
+    #TODO: Add check for names that use python keywords
+    # and reserved transpiler identifiers
     def gen_vardecl(self,node):
         assign = node.assign
         name = node.name.lexeme

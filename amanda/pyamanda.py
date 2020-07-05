@@ -255,9 +255,8 @@ class Interpreter:
     def exec_enquanto(self,node):
         condition = node.condition
         body = node.statement
-        env = Environment(self.memory)
         while bool(condition.accept(self)):
-            self.run_block(body,env)
+            self.run_block(body,Environment(self.memory))
 
 
     def exec_para(self,node):
@@ -273,16 +272,13 @@ class Interpreter:
         #If there is  no inc
         inc = range_exp.inc
         if not inc:
-            if start > end:
-                inc = -1
-            else:
-                inc = 1
+            inc = -1 if start > end else 1
         else:
             inc = inc.accept(self)
         #Create local mem space for the loop
-        env = Environment(self.memory)
         body = node.statement
         for control in range(start,end,inc):
+            env = Environment(self.memory)
             env.define(var,control)
             self.run_block(body,env)
 
