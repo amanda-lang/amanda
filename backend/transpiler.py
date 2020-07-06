@@ -278,7 +278,7 @@ class Transpiler:
         #If in a function scope
         #and name is defined, return local var name
         info = self.current_scope.get(name)
-        if self.func_depth > 0 and info:
+        if self.depth > 0 and info:
             return info[0]
         return self.current_scope.resolve(name)[0]
 
