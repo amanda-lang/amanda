@@ -10,13 +10,13 @@ import amanda.ast_nodes as ast
 import amanda.semantic as sem
 import amanda.error as error
 from amanda.parser import Parser
-import backend.generators as generators
+import backend.codeobj as codeobj
 from backend.types import Bool
 
 
+#TODO: Find a cleaner way to run tests on classes that execute code
 
 #This is a big hack
-#Put this somewhere else
 def print_wrapper(obj,**kwargs):
     if str(obj) == "True":
         print(Bool.VERDADEIRO,**kwargs)
@@ -27,7 +27,6 @@ def print_wrapper(obj,**kwargs):
 
     
 class Transpiler:
-
     #Var types
     VAR = "VAR"
     FUNC = "FUNC"
@@ -36,18 +35,21 @@ class Transpiler:
     GLOBAL = "GLOBAL"
     LOCAL = "LOCAL"
 
+    #Error messages
+    DIVISION_BY_ZERO = "não pode dividir um número por zero"
+
     def __init__(self,src,debug=False):
-        self.src = src
+        self.src = StringIO(src.read())
         self.handler = error.ErrorHandler.get_handler()
-        self.compiled_src = None
-        #used to set indentation in blocks
-        self.depth = 0
-        self.debug = debug
-        self.test_buffer = None
+        self.py_lineno = 1  # tracks lineno in compiled python src
+        self.ama_lineno = 1 # tracks lineno in input amanda src
+        self.compiled_program = None
+        self.depth = -1 # current indent level
+        self.debug = debug 
         self.global_scope = symbols.Scope(self.GLOBAL)
         self.current_scope = self.global_scope
-        self.func_depth = 0 # Current func nesting level
-        self.scope_depth = 0 # Scope nesting level
+        self.func_depth = 0 # current func nesting level
+        self.scope_depth = 0 # scope nesting level
         if self.debug:
             #If debug is enabled, redirect output to
             #an in memory buffer
@@ -60,35 +62,48 @@ class Transpiler:
         try:
             program = Parser(self.src).parse()
             valid_program = sem.Analyzer().check_program(program)
-            code_objs = self.gen(valid_program)
+            self.compiled_program = self.gen(valid_program)
         except error.AmandaError as e:
             if self.debug:
                 self.test_buffer.write(str(e).strip())
                 sys.exit()
             self.handler.throw_error(e,self.src)
-
-        str_buffer = StringIO()
-
-        for obj in code_objs:
-            print(obj,end="\n\n",file=str_buffer)
-
-        self.compiled_src = str_buffer.getvalue()
-        return self.compiled_src
+        return str(self.compiled_program)
 
     def exec(self):
-        if not self.compiled_src:
+        if not self.compiled_program:
             self.compile()
-        code = compile(self.compiled_src,"<string>","exec")
+        py_codeobj = compile(str(self.compiled_program),"<string>","exec")
         scope = {}
         if self.debug:
         #Add buffer to local dict
-            scope[generators.TEST_BUFFER] = self.test_buffer
+            scope[codeobj.TEST_BUFFER] = self.test_buffer
         #Set verdadeiro e falso
         scope["verdadeiro"] = Bool.VERDADEIRO
         scope["falso"] = Bool.FALSO
         scope["printc"] = print_wrapper
-        exec(code,scope)
+        try:
+            exec(py_codeobj,scope)
+        except Exception as e:
+            if self.debug:
+                #Some stuff for tests
+                sys.exit()
+            self.throw_rt_error(e)
 
+    def throw_rt_error(self,e):
+        ''' Method that gets info about exceptions that
+        happens during execution of compiled source and 
+        use info to raise an amanda exception'''
+        py_lineno = e.__traceback__.tb_next.tb_lineno
+        print("PY_LINENO: ",py_lineno)
+        ama_lineno = self.compiled_program.get_ama_lineno(py_lineno)
+        assert ama_lineno != None
+        #Throw error
+        if isinstance(e,ZeroDivisionError):
+            ama_error = error.AmandaError.runtime_error(self.DIVISION_BY_ZERO,ama_lineno)
+            self.handler.throw_error(ama_error,self.src)
+        else:
+            raise error
 
 
     def bad_gen(self,node):
@@ -98,16 +113,15 @@ class Transpiler:
         node_class = type(node).__name__.lower()
         method_name = f"gen_{node_class}"
         gen_method = getattr(self,method_name,self.bad_gen)
+        #Update line only if node type has line attribute
+        self.ama_lineno = getattr(getattr(node,"token",None),"line",self.ama_lineno)
         if node_class == "block":
             return gen_method(node,args)
         return gen_method(node)
 
 
     def gen_program(self,node):
-        code_objs = []
-        for child in node.children:
-            code_objs.append(self.gen(child))
-        return code_objs
+        return self.compile_block(node,[],self.global_scope)
             
     
     def compile_block(self,node,stmts,scope=None):
@@ -121,13 +135,17 @@ class Transpiler:
         else:
             self.current_scope = symbols.Scope(self.LOCAL,self.current_scope)
         for child in node.children:
-            stmts.append(self.gen(child))
+            instr = self.gen(child)
+            #Increase line count
+            self.py_lineno += instr.get_lines()
+            stmts.append(instr)
         level = self.depth
         self.depth -= 1
         self.current_scope = self.current_scope.enclosing_scope
         if len(stmts) == 0:
-            stmts.append(generators.Pass())
-        return generators.Block(stmts,level)
+            stmts.append(codeobj.Pass(self.py_lineno,self.ama_lineno,))
+            self.py_lineno += 1
+        return codeobj.Block(self.py_lineno,self.ama_lineno,stmts,level)
 
     def is_valid_name(self,name):
         ''' Checks whether name is a python keyword, reserved var or
@@ -172,7 +190,7 @@ class Transpiler:
             name = self.define_global(name,self.VAR)
         if assign:
             return self.gen(assign)
-        return generators.VarDecl(name,node.var_type.tag)
+        return codeobj.VarDecl(self.py_lineno,self.ama_lineno,name,node.var_type.tag)
 
     def gen_functiondecl(self,node):
         name = node.name.lexeme
@@ -188,8 +206,8 @@ class Transpiler:
         for param in node.params:
             param_name = self.define_local(param.name.lexeme,scope,self.VAR)
             params.append(param_name)
-        gen = generators.FunctionDecl(
-            name,
+        gen = codeobj.FunctionDecl(
+            self.py_lineno,self.ama_lineno,name,
             self.get_func_block(node.block,scope),
             params
         )
@@ -240,7 +258,7 @@ class Transpiler:
         names = self.get_names(self.global_scope)
         if len(names)==0:
             return None
-        return generators.Global(names)
+        return codeobj.Global(self.py_lineno,self.ama_lineno,names)
 
     def gen_nonlocal_stmt(self,scope):
         ''' Adds nonlocal statements to
@@ -252,18 +270,18 @@ class Transpiler:
             scope = scope.enclosing_scope
         if len(names)==0:
             return None
-        return generators.NonLocal(names)
+        return codeobj.NonLocal(self.py_lineno,self.ama_lineno,names)
 
 
-    def gen_call(self,node) :
+    def gen_call(self,node):
         args = [self.gen(arg) for arg in node.fargs]
-        return generators.Call(self.gen(node.callee),args)
+        return codeobj.Call(self.py_lineno,self.ama_lineno,self.gen(node.callee),args)
 
 
     def gen_assign(self,node):
         lhs = self.gen(node.left)
         rhs = self.gen(node.right)
-        return generators.Assign(lhs,rhs)
+        return codeobj.Assign(self.py_lineno,self.ama_lineno,lhs,rhs)
 
     
     def gen_constant(self,node):
@@ -291,10 +309,11 @@ class Transpiler:
         if operator.lexeme == "/":
             if node.prom_type == None and node.left.eval_type.tag == symbols.Tag.INT:
                 operator.lexeme = "//"
-        return generators.BinOp(operator.lexeme,lhs,rhs)
+        return codeobj.BinOp(self.py_lineno,self.ama_lineno,operator.lexeme,lhs,rhs)
 
     def gen_unaryop(self,node):
-        return generators.UnaryOp(
+        return codeobj.UnaryOp(
+            self.py_lineno,self.ama_lineno,
             node.token.lexeme,
             self.gen(node.operand)
         )
@@ -304,7 +323,8 @@ class Transpiler:
 
         self.scope_depth += 1
         scope = symbols.Scope(self.LOCAL,self.current_scope)
-        gen = generators.Se(
+        gen = codeobj.Se(
+            self.py_lineno,self.ama_lineno,
             self.gen(node.condition),
             self.compile_block(node.then_branch,[],scope)
         )
@@ -314,7 +334,8 @@ class Transpiler:
         if node.else_branch:
             self.scope_depth += 1
             else_scope = symbols.Scope(self.LOCAL,self.current_scope)
-            gen.else_branch = generators.Senao(
+            gen.else_branch = codeobj.Senao(
+                self.py_lineno,self.ama_lineno,
                 self.compile_block(node.else_branch,[],else_scope),
                 self.depth
             )
@@ -326,19 +347,20 @@ class Transpiler:
     def unbind_locals(self,scope,body):
         names = self.get_all_names(scope)
         if len(names) > 0:
-            body.instructions.append(generators.Del(names))
+            body.instructions.append(codeobj.Del(self.py_lineno,self.ama_lineno,names))
 
 
     def gen_enquanto(self,node):
         self.scope_depth += 1
         scope = symbols.Scope(self.LOCAL,self.current_scope)
-        gen = generators.Enquanto(
+        gen = codeobj.Enquanto(
+            self.py_lineno,self.ama_lineno,
             self.gen(node.condition),
             self.compile_block(node.statement,[],scope)
         )
         names = self.get_all_names(scope)
         if len(names) > 0:
-            gen.body.del_stmt = generators.Del(names)
+            gen.body.del_stmt = codeobj.Del(self.py_lineno,self.ama_lineno,names)
         self.scope_depth -=1
         return gen
 
@@ -352,22 +374,23 @@ class Transpiler:
         control_var = para_expr.name.lexeme
         #Change control var name to local name
         para_expr.name.lexeme = self.define_local(control_var,scope,self.VAR)
-        gen = generators.Para(
+        gen = codeobj.Para(
+            self.py_lineno,self.ama_lineno,
             self.gen(para_expr),
             self.compile_block(node.statement,[],scope)
         )
         #Delete names
         names = self.get_all_names(scope)
         if len(names) > 0:
-            gen.body.del_stmt = generators.Del(names)
+            gen.body.del_stmt = codeobj.Del(self.py_lineno,self.ama_lineno,names)
         self.scope_depth -=1
         return gen
 
     def gen_paraexpr(self,node):
         range_expr = node.range_expr
         name = node.name.lexeme
-        gen = generators.ParaExpr(
-            name,
+        gen = codeobj.ParaExpr(
+            self.py_lineno,self.ama_lineno,name,
             self.gen(range_expr.start),
             self.gen(range_expr.end),
         )
@@ -377,11 +400,14 @@ class Transpiler:
             
 
     def gen_retorna(self,node):
-        return generators.Retorna(self.gen(node.exp))
+        return codeobj.Retorna(
+            self.py_lineno,self.ama_lineno,
+            self.gen(node.exp)
+        )
 
     def gen_mostra(self,node):
         expression = self.gen(node.exp)
-        return generators.Mostra(expression,self.debug)
+        return codeobj.Mostra(self.py_lineno,self.ama_lineno,expression,self.debug)
 
 
 

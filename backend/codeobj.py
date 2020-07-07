@@ -12,17 +12,38 @@ TEST_BUFFER = "_buffer_"
 
 
 class CodeObj:
+
+
+    def __init__(self,py_lineno=0,ama_lineno=0):
+        self.py_lineno = py_lineno #Line number in python output src
+        self.ama_lineno = ama_lineno #Line number in amanda src
+
+    def get_lines(self):
+        return 1 
+
+    def get_ama_lineno(self,py_lineno):
+        #Check if this CodeObj generates the line py_lineno
+        #and returns the ama_lineno
+        if self.py_lineno == py_lineno:
+            return self.ama_lineno
+        return None
+
     def __str__(self):
         raise NotImplementedError("Subclasses must override this method")
 
 
 class Pass(CodeObj):
+    def __init(self):
+        super().__init__(py_lineno,ama_lineno)
+
+
     def __str__(self):
         return "pass"
 
 class Del(CodeObj):
 
-    def __init__(self,names):
+    def __init__(self,py_lineno,ama_lineno,names):
+        super().__init__(py_lineno,ama_lineno)
         self.names = names
 
     def __str__(self):
@@ -33,7 +54,8 @@ class Del(CodeObj):
 
 class BinOp(CodeObj):
 
-    def __init__(self,operator,lhs,rhs):
+    def __init__(self,py_lineno,ama_lineno,operator,lhs,rhs):
+        super().__init__(py_lineno,ama_lineno)
 
         self.operator = operator
         self.lhs = lhs
@@ -52,8 +74,9 @@ class BinOp(CodeObj):
 
 class UnaryOp(CodeObj):
 
-    def __init__(self,operator,operand):
+    def __init__(self,py_lineno,ama_lineno,operator,operand):
 
+        super().__init__(py_lineno,ama_lineno)
         self.operator = operator
         self.operand = operand
 
@@ -68,7 +91,8 @@ class UnaryOp(CodeObj):
 
 class VarDecl(CodeObj):
 
-    def __init__(self,name,var_type):
+    def __init__(self,py_lineno,ama_lineno,name,var_type):
+        super().__init__(py_lineno,ama_lineno)
         self.name = name
         self.var_type = var_type
 
@@ -84,16 +108,31 @@ class VarDecl(CodeObj):
 
 class Block(CodeObj):
 
-    def __init__(self,instructions,level,del_stmt=None):
+    def __init__(self,py_lineno,ama_lineno,instructions,level,del_stmt=None):
+        super().__init__(py_lineno,ama_lineno)
         self.instructions = instructions
         self.level = level
         self.del_stmt = del_stmt
+
+    def get_lines(self):
+        return str(self).count("\n")
+
+    def get_ama_lineno(self,py_lineno):
+        if self.py_lineno == py_lineno:
+            return self.ama_lineno
+        ama_lineno = None
+        for instr in self.instructions:
+            ama_lineno = instr.get_ama_lineno(py_lineno)
+        return ama_lineno
+        
+            
+        
 
     def __str__(self):
         #Add indentation to every instruction in the block
         #and separate instructions with Newline
         block = "\n".join([
-            f"{INDENT*self.level}{str(instr)}" for instr in self.instructions
+            f"{INDENT*self.level}{str(instr)}#{instr.py_lineno}" for instr in self.instructions
         ])
         if self.del_stmt:
             block += f"\n{INDENT*(self.level-1)}{str(self.del_stmt)}"
@@ -104,10 +143,21 @@ class Block(CodeObj):
 
 class FunctionDecl(CodeObj):
 
-    def __init__(self,name,body,params):
+    def __init__(self,py_lineno,ama_lineno,name,body,params):
+        super().__init__(py_lineno,ama_lineno)
         self.name = name
         self.body = body 
         self.params = params
+
+    def get_lines(self):
+        return str(self).count("\n")
+
+
+    def get_ama_lineno(self,py_lineno):
+        if self.py_lineno == py_lineno:
+            return self.ama_lineno
+        return self.body.get_ama_lineno(py_lineno)
+
 
     def __str__(self):
         params = ",".join(self.params)
@@ -116,7 +166,8 @@ class FunctionDecl(CodeObj):
 
 class Global(CodeObj):
 
-    def __init__(self,names):
+    def __init__(self,py_lineno,ama_lineno,names):
+        super().__init__(py_lineno,ama_lineno)
         self.names = names
 
 
@@ -127,7 +178,8 @@ class Global(CodeObj):
 
 class NonLocal(CodeObj):
 
-    def __init__(self,names):
+    def __init__(self,py_lineno,ama_lineno,names):
+        super().__init__(py_lineno,ama_lineno)
         self.names = names
 
 
@@ -139,7 +191,8 @@ class NonLocal(CodeObj):
 
 class Call(CodeObj):
 
-    def __init__(self,callee,args):
+    def __init__(self,py_lineno,ama_lineno,callee,args):
+        super().__init__(py_lineno,ama_lineno)
         self.callee = callee
         self.args = args
 
@@ -150,7 +203,8 @@ class Call(CodeObj):
 
 class Assign(CodeObj):
 
-    def __init__(self,lhs,rhs):
+    def __init__(self,py_lineno,ama_lineno,lhs,rhs):
+        super().__init__(py_lineno,ama_lineno)
         self.lhs = lhs
         self.rhs = rhs
 
@@ -159,10 +213,22 @@ class Assign(CodeObj):
 
 class Se(CodeObj):
 
-    def __init__(self,condition,then_branch,else_branch=None):
+    def __init__(self,py_lineno,ama_lineno,condition,then_branch,else_branch=None):
+        super().__init__(py_lineno,ama_lineno)
         self.condition = condition
         self.then_branch = then_branch
         self.else_branch = else_branch
+
+    def get_lines(self):
+        return str(self).count("\n")
+
+    def get_ama_lineno(self,py_lineno):
+        if self.py_lineno == py_lineno:
+            return self.ama_lineno
+        ama_lineno = self.then_branch.get_ama_lineno(py_lineno)
+        if self.else_branch and not ama_lineno:
+            ama_lineno = self.else_branch.get_ama_lineno(py_lineno)
+        return ama_lineno
 
     def __str__(self):
         then_branch = self.then_branch
@@ -175,9 +241,18 @@ class Se(CodeObj):
 
 class Senao(CodeObj):
 
-    def __init__(self,then_branch,level):
+    def __init__(self,py_lineno,ama_lineno,then_branch,level):
+        super().__init__(py_lineno,ama_lineno)
         self.then_branch = then_branch
         self.level = level
+
+    def get_lines(self):
+        return str(self).count("\n")
+
+    def get_ama_lineno(self,py_lineno):
+        if self.py_lineno == py_lineno:
+            return self.ama_lineno
+        return self.then_branch.get_ama_lineno(py_lineno)
 
     def __str__(self):
         then_branch = self.then_branch
@@ -186,10 +261,19 @@ class Senao(CodeObj):
 
 class Enquanto(CodeObj):
 
-    def __init__(self,condition,body):
+    def __init__(self,py_lineno,ama_lineno,condition,body):
 
+        super().__init__(py_lineno,ama_lineno)
         self.condition = condition
         self.body = body
+
+    def get_lines(self):
+        return str(self).count("\n")
+
+    def get_ama_lineno(self,py_lineno):
+        if self.py_lineno == py_lineno:
+            return self.ama_lineno
+        return self.body.get_ama_lineno(py_lineno)
 
     def __str__(self):
         return f"while {str(self.condition)}:\n{str(self.body)}"
@@ -197,17 +281,28 @@ class Enquanto(CodeObj):
 class Para(CodeObj):
 
 
-    def __init__(self,expression,body):
+    def __init__(self,py_lineno,ama_lineno,expression,body):
 
+        super().__init__(py_lineno,ama_lineno)
         self.expression = expression
         self.body = body
+
+    def get_lines(self):
+        return str(self).count("\n")
+
+    def get_ama_lineno(self,py_lineno):
+        if self.py_lineno == py_lineno:
+            return self.ama_lineno
+        return self.body.get_ama_lineno(py_lineno)
+
 
     def __str__(self):
         return f"for {str(self.expression)}:\n{str(self.body)}"
 
 class ParaExpr(CodeObj):
 
-    def __init__(self,name,start,stop,inc=None):
+    def __init__(self,py_lineno,ama_lineno,name,start,stop,inc=None):
+        super().__init__(py_lineno,ama_lineno)
         if not inc:
             #TODO: Fix this at some point
             #Hack in case of empty inc value
@@ -223,7 +318,8 @@ class ParaExpr(CodeObj):
 
 class Retorna(CodeObj):
 
-    def __init__(self,expression):
+    def __init__(self,py_lineno,ama_lineno,expression):
+        super().__init__(py_lineno,ama_lineno)
         self.expression = expression
 
     def __str__(self):
@@ -232,7 +328,8 @@ class Retorna(CodeObj):
 
 class Mostra(CodeObj):
 
-    def __init__(self,expression,debug):
+    def __init__(self,py_lineno,ama_lineno,expression,debug):
+        super().__init__(py_lineno,ama_lineno)
         self.expression = expression
         self.debug = debug
 

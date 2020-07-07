@@ -3,10 +3,20 @@ import sys
 ''' Base class for all PTScript errors '''
 class AmandaError(Exception):
 
-    def __init__(self,message,line,col):
+    def __init__(self,message,line,col=0):
         self.message = message
         self.line = line
         self.col = col
+
+    @classmethod
+    def runtime_error(cls,message,line):
+        instance = cls(message,line)
+        instance.message = f"Erro na linha {line}: {instance.message}.\n"
+        return instance
+
+
+    def __str__(self):
+        return self.message
 
 
 ''' Errors that happens during lexing or parsing'''
@@ -118,13 +128,9 @@ class ErrorHandler:
         return f"{fmt_message}\n{fmt_context}\n{indicator}\n"
 
 
-
-
     def throw_error(self,error,source):
         '''
         Method that deals with errors thrown at different stages of the program.
-        In theory it's supposed to show the error message and print some context 
-        (Lines around the error)
 
         param: source - io object where the program is being read from
         Ex:

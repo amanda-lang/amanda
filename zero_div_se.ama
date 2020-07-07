@@ -1,0 +1,9 @@
+
+var a : int = 6
+var i : int
+
+se verdadeiro entao
+    mostra a/i
+fim
+
+
