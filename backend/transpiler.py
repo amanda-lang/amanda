@@ -41,7 +41,7 @@ class Transpiler:
     def __init__(self,src,debug=False):
         self.src = StringIO(src.read())
         self.handler = error.ErrorHandler.get_handler()
-        self.py_lineno = 1  # tracks lineno in compiled python src
+        self.py_lineno = 0  # tracks lineno in compiled python src
         self.ama_lineno = 1 # tracks lineno in input amanda src
         self.compiled_program = None
         self.depth = -1 # current indent level
@@ -85,23 +85,27 @@ class Transpiler:
         try:
             exec(py_codeobj,scope)
         except Exception as e:
+            ama_error = self.handle_rt_error(e)
             if self.debug:
-                #Some stuff for tests
+                self.test_buffer.write(str(ama_error).strip())
                 sys.exit()
-            self.throw_rt_error(e)
+            self.handler.throw_error(ama_error,self.src)
 
-    def throw_rt_error(self,e):
+    def handle_rt_error(self,e):
         ''' Method that gets info about exceptions that
         happens during execution of compiled source and 
         use info to raise an amanda exception'''
-        py_lineno = e.__traceback__.tb_next.tb_lineno
-        print("PY_LINENO: ",py_lineno)
+        #Get traceback object
+        tb = e.__traceback__
+        while tb.tb_next:
+            tb = tb.tb_next
+        py_lineno = tb.tb_lineno
         ama_lineno = self.compiled_program.get_ama_lineno(py_lineno)
         assert ama_lineno != None
         #Throw error
         if isinstance(e,ZeroDivisionError):
             ama_error = error.AmandaError.runtime_error(self.DIVISION_BY_ZERO,ama_lineno)
-            self.handler.throw_error(ama_error,self.src)
+            return ama_error
         else:
             raise error
 
@@ -134,18 +138,21 @@ class Transpiler:
             self.current_scope = scope
         else:
             self.current_scope = symbols.Scope(self.LOCAL,self.current_scope)
+        #Break for block header
+        py_lineno = self.py_lineno
+        self.py_lineno += 1
         for child in node.children:
             instr = self.gen(child)
             #Increase line count
-            self.py_lineno += instr.get_lines()
+            self.py_lineno += 1
             stmts.append(instr)
         level = self.depth
         self.depth -= 1
         self.current_scope = self.current_scope.enclosing_scope
         if len(stmts) == 0:
-            stmts.append(codeobj.Pass(self.py_lineno,self.ama_lineno,))
+            stmts.append(codeobj.Pass(self.py_lineno,self.ama_lineno))
             self.py_lineno += 1
-        return codeobj.Block(self.py_lineno,self.ama_lineno,stmts,level)
+        return codeobj.Block(py_lineno,self.ama_lineno,stmts,level)
 
     def is_valid_name(self,name):
         ''' Checks whether name is a python keyword, reserved var or

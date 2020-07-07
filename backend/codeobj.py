@@ -18,8 +18,6 @@ class CodeObj:
         self.py_lineno = py_lineno #Line number in python output src
         self.ama_lineno = ama_lineno #Line number in amanda src
 
-    def get_lines(self):
-        return 1 
 
     def get_ama_lineno(self,py_lineno):
         #Check if this CodeObj generates the line py_lineno
@@ -38,7 +36,7 @@ class Pass(CodeObj):
 
 
     def __str__(self):
-        return "pass"
+        return f"pass"
 
 class Del(CodeObj):
 
@@ -69,7 +67,7 @@ class BinOp(CodeObj):
         elif operator == tt.OU.value.lower():
             operator = "or"
 
-        return f"({str(self.lhs)} {operator} {str(self.rhs)}) "
+        return f"({str(self.lhs)} {operator} {str(self.rhs)})"
 
 
 class UnaryOp(CodeObj):
@@ -104,7 +102,7 @@ class VarDecl(CodeObj):
             value = 0.0
         if self.var_type == Tag.BOOL:
             value = Bool.FALSO
-        return f"{self.name} = {value}"
+        return f"{self.name} = {value}"  
 
 class Block(CodeObj):
 
@@ -114,8 +112,6 @@ class Block(CodeObj):
         self.level = level
         self.del_stmt = del_stmt
 
-    def get_lines(self):
-        return str(self).count("\n")
 
     def get_ama_lineno(self,py_lineno):
         if self.py_lineno == py_lineno:
@@ -123,16 +119,16 @@ class Block(CodeObj):
         ama_lineno = None
         for instr in self.instructions:
             ama_lineno = instr.get_ama_lineno(py_lineno)
+            if ama_lineno: return ama_lineno
         return ama_lineno
         
             
-        
 
     def __str__(self):
         #Add indentation to every instruction in the block
         #and separate instructions with Newline
         block = "\n".join([
-            f"{INDENT*self.level}{str(instr)}#{instr.py_lineno}" for instr in self.instructions
+            f"{INDENT*self.level}{str(instr)}" for instr in self.instructions
         ])
         if self.del_stmt:
             block += f"\n{INDENT*(self.level-1)}{str(self.del_stmt)}"
@@ -149,9 +145,6 @@ class FunctionDecl(CodeObj):
         self.body = body 
         self.params = params
 
-    def get_lines(self):
-        return str(self).count("\n")
-
 
     def get_ama_lineno(self,py_lineno):
         if self.py_lineno == py_lineno:
@@ -164,28 +157,6 @@ class FunctionDecl(CodeObj):
         return f"def {self.name}({params}):\n{str(self.body)}"
 
 
-class Global(CodeObj):
-
-    def __init__(self,py_lineno,ama_lineno,names):
-        super().__init__(py_lineno,ama_lineno)
-        self.names = names
-
-
-    def __str__(self):
-        names = ",".join(self.names)
-        return f"global {names}"
-
-
-class NonLocal(CodeObj):
-
-    def __init__(self,py_lineno,ama_lineno,names):
-        super().__init__(py_lineno,ama_lineno)
-        self.names = names
-
-
-    def __str__(self):
-        names = ",".join(self.names)
-        return f"nonlocal {names}"
 
 
 
@@ -219,8 +190,6 @@ class Se(CodeObj):
         self.then_branch = then_branch
         self.else_branch = else_branch
 
-    def get_lines(self):
-        return str(self).count("\n")
 
     def get_ama_lineno(self,py_lineno):
         if self.py_lineno == py_lineno:
@@ -267,8 +236,6 @@ class Enquanto(CodeObj):
         self.condition = condition
         self.body = body
 
-    def get_lines(self):
-        return str(self).count("\n")
 
     def get_ama_lineno(self,py_lineno):
         if self.py_lineno == py_lineno:
@@ -287,8 +254,6 @@ class Para(CodeObj):
         self.expression = expression
         self.body = body
 
-    def get_lines(self):
-        return str(self).count("\n")
 
     def get_ama_lineno(self,py_lineno):
         if self.py_lineno == py_lineno:
@@ -304,8 +269,6 @@ class ParaExpr(CodeObj):
     def __init__(self,py_lineno,ama_lineno,name,start,stop,inc=None):
         super().__init__(py_lineno,ama_lineno)
         if not inc:
-            #TODO: Fix this at some point
-            #Hack in case of empty inc value
             # step defaults to -1 if start > stop else 1 
             inc = f"-1 if {str(start)} > {str(stop)} else 1"
         self.name = name
@@ -315,6 +278,29 @@ class ParaExpr(CodeObj):
 
     def __str__(self):
         return f"{str(self.name)} in range({self.start},{self.stop},{self.inc})"
+
+
+class Global(CodeObj):
+
+    def __init__(self,py_lineno,ama_lineno,names):
+        super().__init__(py_lineno,ama_lineno)
+        self.names = names
+
+    def __str__(self):
+        names = ",".join(self.names)
+        return f"global {names}"
+
+
+class NonLocal(CodeObj):
+
+    def __init__(self,py_lineno,ama_lineno,names):
+        super().__init__(py_lineno,ama_lineno)
+        self.names = names
+
+    def __str__(self):
+        names = ",".join(self.names)
+        return f"nonlocal {names}"
+
 
 class Retorna(CodeObj):
 

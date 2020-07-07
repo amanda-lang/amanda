@@ -41,7 +41,7 @@ def get_script_output(test_dir):
                 continue
             filename = join(root,file)
             with open(join(root,RESULTS_FILE),"a") as result_file, open(filename,"r") as src:
-                result = run_program(src,Interpreter)
+                result = run_program(src,Transpiler)
                 result_file.write(result.strip()+"\n")
 
 
