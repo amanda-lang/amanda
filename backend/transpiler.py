@@ -15,6 +15,7 @@ from backend.types import Bool
 
 
 #TODO: Find a cleaner way to run tests on classes that execute code
+#TODO: Make line tracking cleaner
 
 #This is a big hack
 def print_wrapper(obj,**kwargs):
@@ -265,7 +266,9 @@ class Transpiler:
         names = self.get_names(self.global_scope)
         if len(names)==0:
             return None
-        return codeobj.Global(self.py_lineno,self.ama_lineno,names)
+        py_lineno = self.py_lineno
+        self.py_lineno += 1
+        return codeobj.Global(py_lineno,self.ama_lineno,names)
 
     def gen_nonlocal_stmt(self,scope):
         ''' Adds nonlocal statements to
@@ -277,7 +280,9 @@ class Transpiler:
             scope = scope.enclosing_scope
         if len(names)==0:
             return None
-        return codeobj.NonLocal(self.py_lineno,self.ama_lineno,names)
+        py_lineno = self.py_lineno
+        self.py_lineno += 1
+        return codeobj.NonLocal(py_lineno,self.ama_lineno,names)
 
 
     def gen_call(self,node):
@@ -336,7 +341,9 @@ class Transpiler:
             self.compile_block(node.then_branch,[],scope)
         )
         self.scope_depth -=1
-        self.unbind_locals(scope,gen.then_branch)
+        names = self.get_all_names(scope)
+        if len(names) > 0:
+            self.unbind_locals(scope,gen.then_branch,names)
 
         if node.else_branch:
             self.scope_depth += 1
@@ -347,14 +354,16 @@ class Transpiler:
                 self.depth
             )
             self.scope_depth -= 1
-            self.unbind_locals(else_scope,gen.else_branch.then_branch)
+            names = self.get_all_names(else_scope)
+            if len(names) > 0:
+                self.unbind_locals(else_scope,gen.else_branch.then_branch,names)
 
         return gen
     
-    def unbind_locals(self,scope,body):
-        names = self.get_all_names(scope)
-        if len(names) > 0:
-            body.instructions.append(codeobj.Del(self.py_lineno,self.ama_lineno,names))
+    def unbind_locals(self,scope,body,names):
+        py_lineno = self.py_lineno
+        self.py_lineno += 1
+        body.instructions.append(codeobj.Del(py_lineno,self.ama_lineno,names))
 
 
     def gen_enquanto(self,node):
@@ -367,7 +376,7 @@ class Transpiler:
         )
         names = self.get_all_names(scope)
         if len(names) > 0:
-            gen.body.del_stmt = codeobj.Del(self.py_lineno,self.ama_lineno,names)
+            self.unbind_loop_locals(gen.body,names)
         self.scope_depth -=1
         return gen
 
@@ -389,9 +398,15 @@ class Transpiler:
         #Delete names
         names = self.get_all_names(scope)
         if len(names) > 0:
-            gen.body.del_stmt = codeobj.Del(self.py_lineno,self.ama_lineno,names)
+            self.unbind_loop_locals(gen.body,names)
         self.scope_depth -=1
         return gen
+    
+    def unbind_loop_locals(self,body,names):
+        py_lineno = self.py_lineno
+        self.py_lineno += 1
+        body.del_stmt = codeobj.Del(py_lineno,self.ama_lineno,names)
+        
 
     def gen_paraexpr(self,node):
         range_expr = node.range_expr
