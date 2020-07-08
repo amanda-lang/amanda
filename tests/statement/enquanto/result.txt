@@ -1,5 +1,6 @@
 5 10 20
 20
 Erro na linha 4: a condição da instrução 'enquanto' deve ser um valor lógico.
+0 1 2 3
 Erro na linha 4: a condição da instrução 'enquanto' deve ser um valor lógico.
 Erro na linha 4: a condição da instrução 'enquanto' deve ser um valor lógico.

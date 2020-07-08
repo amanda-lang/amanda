@@ -1,0 +1,10 @@
+var i : int
+
+
+enquanto i != 4 faca
+
+    mostra i
+    i += 1
+    var i : int
+
+fim

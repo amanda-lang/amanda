@@ -1,0 +1,10 @@
+
+var a : int = 6
+var i : int
+
+para i de 4..-1 faca
+    mostra a/i #expect error
+fim
+
+
+

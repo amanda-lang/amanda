@@ -1,0 +1,9 @@
+var a : int = 6
+var i : int
+
+enquanto verdadeiro faca
+    mostra a/i #expect error
+fim
+
+
+

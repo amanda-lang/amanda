@@ -1,0 +1,7 @@
+var i : int = 2
+var x : int = 5
+var y : int
+y = x + i
+var text : Texto = "Some text"
+mostra y+1
+mostra text

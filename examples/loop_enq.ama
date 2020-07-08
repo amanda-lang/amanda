@@ -1,0 +1,6 @@
+var i : int 
+
+enquanto i != 1000000 faca
+    i += 1
+    mostra i
+fim

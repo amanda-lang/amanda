@@ -1,0 +1,8 @@
+
+var a : int = 6
+var i : int
+
+mostra a/i #expect error
+
+
+
