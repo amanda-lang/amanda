@@ -5,6 +5,7 @@ from io import StringIO
 from amanda.lexer import Lexer
 from amanda.tokens import TokenType,Token
 from amanda.parser import Parser
+from amanda.error import AmandaError
 
 
 
@@ -213,6 +214,17 @@ class LexerTestCase(unittest.TestCase):
         token = lexer.get_token()
         self.assertEqual(token.token,Lexer.EOF)
 
+    def test_invalid_symbol(self):
+        self.buffer.write("$")
+        self.buffer.seek(0)
+        lexer = Lexer(self.buffer)
+        self.assertRaises(AmandaError,lexer.get_token)
+
+    def test_invalid_string(self):
+        self.buffer.write(" 'I am a string without a closing delimeter")
+        self.buffer.seek(0)
+        lexer = Lexer(self.buffer)
+        self.assertRaises(AmandaError,lexer.get_token)
 
 
 
