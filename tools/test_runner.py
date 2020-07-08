@@ -1,6 +1,5 @@
 import os
 from io import StringIO
-from amanda.pyamanda import Interpreter
 from amanda.transpiler import Transpiler
 from tools.util import run_program
 import amanda.error as error
@@ -40,7 +39,6 @@ def print_results(passed,failed,failed_tests):
             print(name)
 
 
-
 #TODO: Refactor this monster 
 def run_tests(backend):
     ''' Convenience method for running
@@ -76,6 +74,4 @@ def run_tests(backend):
     print_results(passed,failed,failed_tests)
 
 if __name__ == "__main__":
-    run_tests(Interpreter)
-    print("\n\n-------------")
     run_tests(Transpiler)
