@@ -67,15 +67,15 @@ se_stmt
   : SE equality ENTAO body (SENAO body)? FIM
   ;
 
-while_stmt
+enquanto_stmt
   : ENQUANTO equality FACA body FIM
   ;
 
-for_stmt
-  : PARA for_expression FACA body FIM
+para_stmt
+  : PARA para_expression FACA body FIM
   ;
 
-for_expression
+para_expression
   : IDENTIFIER DE range_expression
   ;
 
