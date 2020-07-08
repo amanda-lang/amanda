@@ -6,7 +6,7 @@ import amanda.ast_nodes as AST
 import amanda.semantic as SEM
 from amanda.symbols import Tag
 import amanda.natives as natives
-import amanda.error as error
+from amanda.error import AmandaError,throw_error
 import modules.functions as bltins_funcs
 from amanda.parser import Parser
 from amanda.object import *
@@ -19,7 +19,6 @@ class Interpreter:
         self.memory = Environment()
         self.debug = debug
         #Error handler
-        self.handler = error.ErrorHandler.get_handler()
         #If debug is enabled, redirect output to
         #an in memory buffer
         if self.debug:
@@ -33,12 +32,12 @@ class Interpreter:
             valid_program = SEM.Analyzer().check_program(program)
             self.init_builtins()
             valid_program.accept(self)
-        except error.AmandaError as e:
+        except AmandaError as e:
             if self.debug:
                 self.test_buffer.write(str(e).strip())
                 sys.exit()
             else:
-                self.handler.throw_error(e,self.src)
+                throw_error(e,self.src)
 
     def init_builtins(self):
         #Load builtin classes
@@ -51,8 +50,10 @@ class Interpreter:
 
     #TODO: Track line and col numbers using current node
     def error(self,message,line,col):
-        self.handler.throw_error(
-            error.RunTime(message,token.line),self.src)
+        throw_error(
+            AmandaError.common_error(message,token.line),
+            self.src
+        )
 
     def exec_program(self,node):
         children = node.children
