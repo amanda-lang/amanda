@@ -23,21 +23,6 @@ class AmandaError(Exception):
         return self.message
 
 
-''' Errors that happens during lexing or parsing'''
-
-class Syntax(AmandaError):
-    INVALID_SYMBOL = "O símbolo '{symbol}' não foi reconhecido"
-    INVALID_STRING = "A sequência de caracteres não foi delimitada"
-    MISSING_TERM = "as instruções devem ser delimitadas por ';' ou por uma nova linha"
-    ILLEGAL_EXPRESSION = "início inválido de expressão"
-    EXPECTED_ID = "era esperado um identificador depois do símbolo '{symbol}'"
-    EXPECTED_TYPE = "era esperado um tipo depois do símbolo '{symbol}'"
-    ILLEGAL_ASSIGN = "alvo inválido para atribuição"
-
-    def __str__(self):
-        return f"\nErro sintático na linha {self.line}: {self.message}.\n"
-
-
 class Analysis(AmandaError):
 
     UNDEFINED_TYPE = "o tipo de dados '{type}' não foi definido"
