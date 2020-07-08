@@ -1,13 +1,17 @@
 import os
 import copy
 from io import StringIO
-from amanda.tokens import TokenType,Token
+from amanda.tokens import TokenType as TT
+from amanda.tokens import Token
 from amanda.tokens import KEYWORDS as TK_KEYWORDS
-import amanda.error as error
+from amanda.error import AmandaError
 
 class Lexer:
-    #TODO: Put this somewhere else
+    #Special end of file token
     EOF = "__eof__"
+    #Errors that happen during tokenization
+    INVALID_SYMBOL = "O símbolo '{symbol}' não foi reconhecido"
+    INVALID_STRING = "A sequência de caracteres não foi delimitada"
 
     def __init__(self,src):
         self.line = 1
@@ -15,7 +19,6 @@ class Lexer:
         self.current_token = None
         self.current_char = None
         self.file = src # A file object
-
 
     @classmethod
     def string_lexer(cls,string):
@@ -39,24 +42,20 @@ class Lexer:
 
     def error(self,code,**kwargs):
         message = code.format(**kwargs)
-        raise error.Syntax(message,self.line,self.pos)
+        raise AmandaError.syntax_error(message,self.line,self.pos)
 
     def newline(self):
-        if self.current_char == "\n":
-            pos = self.pos
-            line = self.line
-            self.line += 1
-            self.pos = 1
-            self.advance()
-            return Token(TokenType.NEWLINE,"\\n",line,pos)
-
+        pos = self.pos
+        line = self.line
+        self.line += 1
+        self.pos = 1
+        self.advance()
+        return Token(TT.NEWLINE,"\\n",line,pos)
 
     def whitespace(self):
-        while ( 
-                self.current_char!="\n" 
-                and self.current_char.isspace() 
-                and self.current_char != Lexer.EOF 
-        ):
+        while self.current_char!="\n" and \
+        self.current_char.isspace()   and \
+        self.current_char != Lexer.EOF:
             self.advance()
         if self.current_char == "#":
             self.comment()
@@ -65,76 +64,40 @@ class Lexer:
         while self.current_char != "\n" and self.current_char != Lexer.EOF:
             self.advance()
 
-
-
     def arit_operators(self):
         if self.current_char == "+":
-            if self.lookahead() == "=":
-                self.advance()
-                self.advance()
-                return Token(TokenType.PLUSEQ,"+=",self.line,self.pos)
-            self.advance()
-            return Token(TokenType.PLUS,"+",self.line,self.pos)
-
+            return self.get_op_token(self.current_char,TT.PLUS,TT.PLUSEQ)
         elif self.current_char == "-":
-            if self.lookahead() == "=":
-                self.advance()
-                self.advance()
-                return Token(TokenType.MINUSEQ,"-=",self.line,self.pos)
-            self.advance()
-            return Token(TokenType.MINUS,"-",self.line,self.pos)
-
+            return self.get_op_token(self.current_char,TT.MINUS,TT.MINUSEQ)
         elif self.current_char == "*":
-            if self.lookahead() == "=":
-                self.advance()
-                self.advance()
-                return Token(TokenType.STAREQ,"*=",self.line,self.pos)
-            self.advance()
-            return Token(TokenType.STAR,"*",self.line,self.pos)
-
+            return self.get_op_token(self.current_char,TT.STAR,TT.STAREQ)
         elif self.current_char == "/":
-            if self.lookahead() == "=":
-                self.advance()
-                self.advance()
-                return Token(TokenType.SLASHEQ,"/=",self.line,self.pos)
-            self.advance()
-            return Token(TokenType.SLASH,"/",self.line,self.pos)
-
+            return self.get_op_token(self.current_char,TT.SLASH,TT.SLASHEQ)
         elif self.current_char == "%":
             self.advance()
-            return Token(TokenType.MODULO,"%",self.line,self.pos)
+            return Token(TT.MODULO,"%",self.line,self.pos)
 
-    def logic_operators(self):
+    def get_op_token(self,op_lexeme,normal_op,cmp_assign):
+        if self.lookahead() == "=":
+            self.advance()
+            self.advance()
+            return Token(cmp_assign,op_lexeme+"=",self.line,self.pos-1)
+        self.advance()
+        return Token(normal_op,op_lexeme,self.line,self.pos)
+ 
+    def comparison_operators(self):
         if self.current_char == "<":
-            if self.lookahead() == "=":
-                self.advance()
-                self.advance()
-                return Token(TokenType.LESSEQ,"<=",self.line,self.pos-1)
-            self.advance()
-            return Token(TokenType.LESS,"<",self.line,self.pos)
-
+            return self.get_op_token(self.current_char,TT.LESS,TT.LESSEQ)
         elif self.current_char == ">":
-            if self.lookahead() == "=":
-                self.advance()
-                self.advance()
-                return Token(TokenType.GREATEREQ,">=",self.line,self.pos-1)
-            self.advance()
-            return Token(TokenType.GREATER,">",self.line,self.pos)
-
+            return self.get_op_token(self.current_char,TT.GREATER,TT.GREATEREQ)
         elif self.current_char == "=":
-            if self.lookahead() == "=":
-                self.advance()
-                self.advance()
-                return Token(TokenType.DOUBLEEQUAL,"==",self.line,self.pos-1)
-            self.advance()
-            return Token(TokenType.EQUAL,"=",self.line,self.pos)
-
+            return self.get_op_token(self.current_char,TT.EQUAL,TT.DOUBLEEQUAL)
         elif self.current_char == "!":
             if self.lookahead() == "=":
                 self.advance()
                 self.advance()
-                return Token(TokenType.NOTEQUAL,"!=",self.line,self.pos-1)
-
+                return Token(TT.NOTEQUAL,"!=",self.line,self.pos-1)
+            self.error(self.INVALID_SYMBOL,symbol=self.current_char)
 
     def number(self):
         result = ""
@@ -151,18 +114,16 @@ class Lexer:
                     self.advance()
         if "." in result:
             return Token(
-                        TokenType.REAL,float(result),
+                        TT.REAL,float(result),
                         self.line,self.pos-(len(result)+1)
                     )
 
         return Token(
-                    TokenType.INTEGER,
+                    TT.INTEGER,
                     int(result),
                     self.line,
                     self.pos-(len(result)+1)
                 )
-
-
 
     def string(self):
         result = ""
@@ -170,16 +131,15 @@ class Lexer:
         self.advance()
         while self.current_char != symbol :
             if self.current_char == Lexer.EOF:
-                self.error(error.Syntax.INVALID_STRING,line=self.line)
+                self.error(self.INVALID_STRING,line=self.line)
             result += self.current_char
             self.advance()
         self.advance()
         return Token(
-                    TokenType.STRING,f"{symbol}{result}{symbol}",
+                    TT.STRING,f"{symbol}{result}{symbol}",
                     self.line,
                     self.pos
                 )
-
 
     def identifier(self):
         result = ""
@@ -192,7 +152,7 @@ class Lexer:
             token.col = self.pos - (len(result) + 1)  
             return token
         return Token(
-                        TokenType.IDENTIFIER,result,
+                        TT.IDENTIFIER,result,
                         self.line,
                         self.pos - (len(result) + 1)  
                     )
@@ -201,78 +161,61 @@ class Lexer:
         char = self.current_char
         if self.current_char == ")":
             self.advance()
-            return Token(TokenType.RPAR,char,self.line,self.pos)
+            return Token(TT.RPAR,char,self.line,self.pos)
         elif self.current_char == "(":
             self.advance()
-            return Token(TokenType.LPAR,char,self.line,self.pos)
+            return Token(TT.LPAR,char,self.line,self.pos)
         elif self.current_char == ".":
             if self.lookahead() == ".":
                 self.advance()
                 self.advance()
-                return Token(TokenType.DDOT,"..",self.line,self.pos - 1)
+                return Token(TT.DDOT,"..",self.line,self.pos - 1)
             self.advance()
-            return Token(TokenType.DOT,char,self.line,self.pos)
+            return Token(TT.DOT,char,self.line,self.pos)
         elif self.current_char == ";":
             self.advance()
-            return Token(TokenType.SEMI,char,self.line,self.pos)
+            return Token(TT.SEMI,char,self.line,self.pos)
         elif self.current_char == ",":
             self.advance()
-            return Token(TokenType.COMMA,char,self.line,self.pos)
+            return Token(TT.COMMA,char,self.line,self.pos)
         elif self.current_char == "{":
             self.advance()
-            return Token(TokenType.LBRACE,char,self.line,self.pos)
+            return Token(TT.LBRACE,char,self.line,self.pos)
         elif self.current_char == "}":
             self.advance()
-            return Token(TokenType.RBRACE,char,self.line,self.pos)
+            return Token(TT.RBRACE,char,self.line,self.pos)
         elif self.current_char == "[":
             self.advance()
-            return Token(TokenType.LBRACKET,char,self.line,self.pos)
+            return Token(TT.LBRACKET,char,self.line,self.pos)
         elif self.current_char == "]":
             self.advance()
-            return Token(TokenType.RBRACKET,char,self.line,self.pos)
+            return Token(TT.RBRACKET,char,self.line,self.pos)
         elif self.current_char == ":":
             self.advance()
-            return Token(TokenType.COLON,char,self.line,self.pos)
-
+            return Token(TT.COLON,char,self.line,self.pos)
 
     def get_token(self):
         if not self.current_char:
             self.advance()
-
         if self.current_char == "#":
             self.comment()
-
         if self.current_char != "\n" and self.current_char.isspace():
             self.whitespace()
-
         if self.current_char == "\n":
             return self.newline()
-
-        #arit_operators
         if self.current_char in ("+","-","*","/","%"):
             return self.arit_operators()
-
-        #logic ops
         if self.current_char in ("<",">","!","="):
-            return self.logic_operators()
-
-        #numbers (real and integer)
+            return self.comparison_operators()
         if self.current_char.isdigit():
             return self.number()
-
-        #Strings
         if self.current_char == "'" or self.current_char == '"':
             return self.string()
-
-        #Ids
         if self.current_char.isalpha() or self.current_char == "_":
             return self.identifier()
-
-        #delims
-        if ( self.current_char in ( "(",")",".",";",","
-            ,"{","}","[","]",":" ) ):
+        if self.current_char in ("(",")",".",";",",",
+        "{","}","[","]",":"):
             return self.delimeters()
-
         if self.current_char == Lexer.EOF:
             return Token(Lexer.EOF,"")
-        self.error(error.Syntax.INVALID_SYMBOL,symbol=self.current_char)
+        self.error(self.INVALID_SYMBOL,symbol=self.current_char)

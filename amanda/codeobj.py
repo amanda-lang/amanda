@@ -2,7 +2,7 @@
     
 from amanda.symbols import Tag
 from amanda.tokens import TokenType as tt
-from backend.types import Bool
+from amanda.types import Bool
 
 
 INDENT = "    "

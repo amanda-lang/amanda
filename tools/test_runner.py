@@ -1,7 +1,7 @@
 import os
 from io import StringIO
 from amanda.pyamanda import Interpreter
-from backend.transpiler import Transpiler
+from amanda.transpiler import Transpiler
 from tools.util import run_program
 import amanda.error as error
 

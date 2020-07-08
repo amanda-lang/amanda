@@ -8,10 +8,10 @@ import keyword
 import amanda.symbols as symbols
 import amanda.ast_nodes as ast
 import amanda.semantic as sem
-import amanda.error as error
+from amanda.error import AmandaError,throw_error
 from amanda.parser import Parser
-import backend.codeobj as codeobj
-from backend.types import Bool
+import amanda.codeobj as codeobj
+from amanda.types import Bool
 
 
 #TODO: Find a cleaner way to run tests on classes that execute code
@@ -41,7 +41,6 @@ class Transpiler:
 
     def __init__(self,src,debug=False):
         self.src = StringIO(src.read())
-        self.handler = error.ErrorHandler.get_handler()
         self.py_lineno = 0  # tracks lineno in compiled python src
         self.ama_lineno = 1 # tracks lineno in input amanda src
         self.compiled_program = None
@@ -64,11 +63,11 @@ class Transpiler:
             program = Parser(self.src).parse()
             valid_program = sem.Analyzer().check_program(program)
             self.compiled_program = self.gen(valid_program)
-        except error.AmandaError as e:
+        except AmandaError as e:
             if self.debug:
                 self.test_buffer.write(str(e).strip())
                 sys.exit()
-            self.handler.throw_error(e,self.src)
+            throw_error(e,self.src)
         return str(self.compiled_program)
 
     def exec(self):
@@ -86,17 +85,17 @@ class Transpiler:
         try:
             exec(py_codeobj,scope)
         except Exception as e:
-            ama_error = self.handle_rt_error(e)
+            ama_error = self.handle_error(e)
             if self.debug:
                 self.test_buffer.write(str(ama_error).strip())
                 sys.exit()
-            self.handler.throw_error(ama_error,self.src)
+            throw_error(ama_error,self.src)
 
-    def handle_rt_error(self,e):
+    def handle_error(self,e):
         ''' Method that gets info about exceptions that
         happens during execution of compiled source and 
         use info to raise an amanda exception'''
-        #Get traceback object
+        #Get to the first tb object of the trace
         tb = e.__traceback__
         while tb.tb_next:
             tb = tb.tb_next
@@ -104,9 +103,9 @@ class Transpiler:
         ama_lineno = self.compiled_program.get_ama_lineno(py_lineno)
         # REMOVE: this assert here is just for debugging
         assert ama_lineno != None
-        #Throw error
+            #Throw error
         if isinstance(e,ZeroDivisionError):
-            ama_error = error.AmandaError.runtime_error(self.DIVISION_BY_ZERO,ama_lineno)
+            ama_error = AmandaError.common_error(self.DIVISION_BY_ZERO,ama_lineno)
             return ama_error
         else:
             raise error
