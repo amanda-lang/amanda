@@ -4,7 +4,7 @@ import argparse
 from io import StringIO
 from amanda.pyamanda import Interpreter
 import amanda.error as error
-from backend.transpiler import Transpiler
+from amanda.transpiler import Transpiler
 
 
 

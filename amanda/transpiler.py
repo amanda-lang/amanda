@@ -10,8 +10,8 @@ import amanda.ast_nodes as ast
 import amanda.semantic as sem
 from amanda.error import AmandaError,throw_error
 from amanda.parser import Parser
-import backend.codeobj as codeobj
-from backend.types import Bool
+import amanda.codeobj as codeobj
+from amanda.types import Bool
 
 
 #TODO: Find a cleaner way to run tests on classes that execute code
