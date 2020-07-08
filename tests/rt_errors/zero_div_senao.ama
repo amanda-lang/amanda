@@ -1,0 +1,12 @@
+
+
+var a : int = 6
+var i : int
+
+se falso entao
+    mostra a/i
+senao
+    mostra a/i
+fim
+
+

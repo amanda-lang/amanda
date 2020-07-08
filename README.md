@@ -27,21 +27,18 @@ python -m amanda examples/hello_world.ama
 
 **On Linux** 
 
-You probably already have python installed so just run the pyamanda script in the main directory of the project
-with the following command:
+You probably already have python installed so just run the same command as in windows replacing 'python' with your python 3 binary
+(usually python3):
 
 ```
-./pyamanda FILE
+python3 -m amanda FILE
 ```
 
 Replace 'FILE' with the path to an amanda file. You can run the "hello_world.ama" with the following command:
 
 ```
-./pyamanda examples/hello_word.ama 
+python3 -m examples/hello_word.ama 
 ```
-
-If the script doesn't work just run the same command as in windows replacing 'python' with your python 3 binary
-(usually python3).
 
 **On Mac**
 

@@ -1,0 +1,10 @@
+mostra 2 + 2
+mostra 4 + 2
+mostra 2 * 1 - 3 + 5
+mostra 2 * 1 - (3 + 5)
+mostra 3.14
+mostra 2.2 * 2
+mostra -1
+mostra --1
+mostra 2 % 2
+mostra 3 % 2

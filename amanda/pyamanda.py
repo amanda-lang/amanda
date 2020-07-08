@@ -6,7 +6,7 @@ import amanda.ast_nodes as AST
 import amanda.semantic as SEM
 from amanda.symbols import Tag
 import amanda.natives as natives
-import amanda.error as error
+from amanda.error import AmandaError,throw_error
 import modules.functions as bltins_funcs
 from amanda.parser import Parser
 from amanda.object import *
@@ -19,13 +19,12 @@ class Interpreter:
         self.memory = Environment()
         self.debug = debug
         #Error handler
-        self.handler = error.ErrorHandler.get_handler()
         #If debug is enabled, redirect output to
         #an in memory buffer
         if self.debug:
-            self.output = StringIO()
+            self.test_buffer = StringIO()
 
-    def run(self):
+    def exec(self):
         ''' Method that runs an Amanda script. Errors raised by the
         frontend are handled by an error handler instance'''
         try:
@@ -33,12 +32,12 @@ class Interpreter:
             valid_program = SEM.Analyzer().check_program(program)
             self.init_builtins()
             valid_program.accept(self)
-        except error.AmandaError as e:
+        except AmandaError as e:
             if self.debug:
-                self.output.write(str(e).strip())
+                self.test_buffer.write(str(e).strip())
                 sys.exit()
             else:
-                self.handler.throw_error(e,self.src)
+                throw_error(e,self.src)
 
     def init_builtins(self):
         #Load builtin classes
@@ -51,8 +50,10 @@ class Interpreter:
 
     #TODO: Track line and col numbers using current node
     def error(self,message,line,col):
-        self.handler.throw_error(
-            error.RunTime(message,token.line),self.src)
+        throw_error(
+            AmandaError.common_error(message,token.line),
+            self.src
+        )
 
     def exec_program(self,node):
         children = node.children
@@ -255,9 +256,8 @@ class Interpreter:
     def exec_enquanto(self,node):
         condition = node.condition
         body = node.statement
-        env = Environment(self.memory)
         while bool(condition.accept(self)):
-            self.run_block(body,env)
+            self.run_block(body,Environment(self.memory))
 
 
     def exec_para(self,node):
@@ -273,16 +273,13 @@ class Interpreter:
         #If there is  no inc
         inc = range_exp.inc
         if not inc:
-            if start > end:
-                inc = -1
-            else:
-                inc = 1
+            inc = -1 if start > end else 1
         else:
             inc = inc.accept(self)
         #Create local mem space for the loop
-        env = Environment(self.memory)
         body = node.statement
         for control in range(start,end,inc):
+            env = Environment(self.memory)
             env.define(var,control)
             self.run_block(body,env)
 
@@ -299,7 +296,7 @@ class Interpreter:
         if node.exp.eval_type.tag == Tag.BOOL:
             expr = "verdadeiro" if expr else "falso"
         if self.debug:
-            print(expr,end=" ",file=self.output)
+            print(expr,end=" ",file=self.test_buffer)
         else:
             print(expr)
 

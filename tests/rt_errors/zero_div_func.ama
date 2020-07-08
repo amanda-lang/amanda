@@ -1,0 +1,10 @@
+var a : int = 6
+var i : int
+
+
+func test()
+    mostra a/i #expect error
+fim
+
+
+test()

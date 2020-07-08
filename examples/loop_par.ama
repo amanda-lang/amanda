@@ -1,0 +1,7 @@
+
+# Contar até 1 milhão e mostrar os pares no caminho
+para num de 0..1000000 inc 1 faca
+    se num % 2 == 0 entao
+        mostra num
+    fim
+fim

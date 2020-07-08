@@ -16,8 +16,7 @@ class SymbolTable:
     def __str__(self):
         str = "\n"
         #str.join([f"{symbol}:{self.symbols[symbol]}" for symbol in self.symbol])
-        for symbol in self.symbols:
-            sym_obj = self.symbols[symbol]
+        for symbol,sym_obj in self.symbols.items():
             str += f"{symbol}:{sym_obj}\n"
         return str
 
@@ -45,6 +44,9 @@ class Scope(SymbolTable):
 
     def define(self,name,symbol):
         super().define(name,symbol)
+
+    def count(self):
+        return len(self.symbols)
 
     def __str__(self):
         return f"SCOPE: {self.name}\n\n______\n{super().__str__()}\n\n<Exiting {self.name}>\n"

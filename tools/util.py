@@ -4,6 +4,8 @@ import argparse
 from io import StringIO
 from amanda.pyamanda import Interpreter
 import amanda.error as error
+from amanda.transpiler import Transpiler
+
 
 
 join = os.path.join
@@ -12,19 +14,15 @@ TEST_DIR = os.path.abspath("./tests")
 RESULTS_FILE = "result.txt"
 
 
-def run_script(src):
-    intp = Interpreter(src,True)
+def run_program(src,backend_cls):
+    backend = backend_cls(src,True)
     try:
-        intp.run()
-        return intp.output
+        backend.exec()
+        return backend.test_buffer.getvalue()
     except SystemExit:
-        return intp.output
-    except UnicodeError:
-        raise Exception(f"This is the file causing this: {src}")
+        return backend.test_buffer.getvalue()
     except Exception as e:
-        print(f"Error caused by this src file: {src}")
         raise e
-
 
 
 def delete_script_output(test_dir):
@@ -42,9 +40,9 @@ def get_script_output(test_dir):
             if file == ".coverage":
                 continue
             filename = join(root,file)
-            with open(join(root,RESULTS_FILE),"a") as result, open(filename,"r") as src:
-                buffer = run_script(src)
-                result.write(buffer.getvalue().strip()+"\n")
+            with open(join(root,RESULTS_FILE),"a") as result_file, open(filename,"r") as src:
+                result = run_program(src,Transpiler)
+                result_file.write(result.strip()+"\n")
 
 
 def main():
