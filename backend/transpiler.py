@@ -102,6 +102,7 @@ class Transpiler:
             tb = tb.tb_next
         py_lineno = tb.tb_lineno
         ama_lineno = self.compiled_program.get_ama_lineno(py_lineno)
+        # REMOVE: this assert here is just for debugging
         assert ama_lineno != None
         #Throw error
         if isinstance(e,ZeroDivisionError):
