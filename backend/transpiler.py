@@ -95,7 +95,7 @@ class Transpiler:
         ''' Method that gets info about exceptions that
         happens during execution of compiled source and 
         use info to raise an amanda exception'''
-        #Get traceback object
+        #Get to the first tb object of the trace
         tb = e.__traceback__
         while tb.tb_next:
             tb = tb.tb_next
