@@ -61,13 +61,13 @@ Can't help you, i'm sorry :cry: .
 # Instruções são delimitadas por uma nova linha
 # ou por ';'
 
-var a : int = 1 # o ';' não é necessário
-var b : int = 2
+a : int = 1 # o ';' não é necessário
+b : int = 2
 
 
 # Mas pode ser usado
-var a : int = 1; 
-var b : int = 2;
+a : int = 1; 
+b : int = 2;
 
 
 
@@ -80,10 +80,15 @@ fim # a palavra 'fim' indica o fim de corpo de uma função, classe e e.t.c
 
 ```python
 
-# Variáveis são declaradas com palavra reservada 'var'
-var a : int # variável 'a' do tipo int
+# Declaração simples
+a : int # variável 'a' do tipo int
 
-var b : int = 10 # declaração e atribuição
+b : int = 10 # declaração e atribuição
+
+#Variáveis do mesmo tipo podem ser declaradas na mesma linha
+a,b : int
+a = 10
+b =10
 ```
 
 #### Types
@@ -150,7 +155,7 @@ fim
 
 # repetição: enquanto
 
-var i : int
+i : int
 
 enquanto i < 10 faca
     mostra i
@@ -169,13 +174,13 @@ fim
 
 ```python
 
-var i : int = leia_int("Digite um inteiro: ") # Exibe a mensagem e lê um inteiro do teclado
+i : int = leia_int("Digite um inteiro: ") # Exibe a mensagem e lê um inteiro do teclado
 
 
-var r : real = leia_real("Digite um real: ") # Exibe a mensagem e lê um real do teclado
+r : real = leia_real("Digite um real: ") # Exibe a mensagem e lê um real do teclado
 
 
-var s : Texto = leia("Digite uma string: ") # Exibe a mensagem e lê uma cadeia de caracteres do teclado
+s : Texto = leia("Digite uma string: ") # Exibe a mensagem e lê uma cadeia de caracteres do teclado
 ```
 
 #### Output
@@ -186,7 +191,7 @@ mostra 2.1 # exibe 2.1
 mostra verdadeiro # exibe verdadeiro
 mostra "texto" # exibe texto
 
-var s : texto = "carro"
+s : texto = "carro"
 mostra s # exibe carro
 
 ```
