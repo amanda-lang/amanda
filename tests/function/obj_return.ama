@@ -1,7 +1,7 @@
 #Function returns object
 
 func concat_wrapper(str1:Texto,str2:Texto):Texto
-    var str_con : Texto = str1.concat(str2)
+     str_con : Texto = str1.concat(str2)
     retorna str_con.concat(Texto("<-"))
 fim
 

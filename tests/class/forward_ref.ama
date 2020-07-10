@@ -7,11 +7,11 @@ classe A
         eu.field = field
     fim
 
-    var field:int
+     field:int
 
 fim
 
 
 
-var a : A = A(5)
+a : A = A(5)
 mostra a.field # expect 5

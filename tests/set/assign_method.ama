@@ -1,9 +1,9 @@
 classe A
     
-    var nome:Texto
+     nome:Texto
 fim
 
 
-var a:A = A()
+a:A = A()
 
 a.nome = "str".cmp #expect error

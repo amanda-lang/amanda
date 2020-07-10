@@ -1,10 +1,10 @@
 
 se falso entao
-    var a : int = 6
-    var i : int
+     a : int = 6
+     i : int
 senao
-    var a : int = 6
-    var i : int
+     a : int = 6
+     i : int
     mostra a/i
 fim
 

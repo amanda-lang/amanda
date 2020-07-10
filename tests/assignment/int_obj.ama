@@ -1,5 +1,5 @@
 # Incompatible types
 
 
-var teste : Texto = "Texto"
-var temp : int = teste #expect error
+teste : Texto = "Texto"
+temp : int = teste #expect error

@@ -3,7 +3,7 @@
 
 classe A
     
-    var field : Texto 
+     field : Texto 
 
     func constructor(field : Texto)
         eu.field = field
@@ -13,5 +13,5 @@ fim
 
 
 
-var a : A = A("Working")
+a : A = A("Working")
 mostra a.field #expect Working

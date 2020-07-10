@@ -1,4 +1,5 @@
 test.pts
+tools/quick_script.py
 docs/test_plan.txt
 *.pyc
 amac

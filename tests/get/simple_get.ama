@@ -1,7 +1,7 @@
 
 classe Acumulador
     
-    var contador : int 
+     contador : int 
     func incrementa(diff : int):int
         contador += diff
         retorna contador
@@ -12,7 +12,7 @@ classe Acumulador
     fim
 fim
 
-var acum : Acumulador = Acumulador()
+acum : Acumulador = Acumulador()
 acum.incrementa(4)
 mostra acum.get_contador() #expect 4
 

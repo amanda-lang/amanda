@@ -1,5 +1,5 @@
 # Referencing type error
 
 
-var a:int
+a:int
 mostra a + int

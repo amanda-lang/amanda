@@ -47,7 +47,6 @@ class TokenType(Enum):
     DOUBLEEQUAL = "DOUBLEEQUAL"
 
     #KEYWORDS
-    VAR = "VAR"
     MOSTRA = "MOSTRA"
     E = "E"
     OU = "OU"
@@ -88,7 +87,7 @@ def build_reserved_keywords():
     """Build a dictionary of reserved keywords.
     """
     tt_list = list(TokenType)
-    start_index = tt_list.index(TokenType.VAR)
+    start_index = tt_list.index(TokenType.MOSTRA)
     end_index = tt_list.index(TokenType.CLASSE)
     reserved_keywords = {
         token_type.value.lower(): Token(token_type,token_type.value.lower())

@@ -1,6 +1,6 @@
 #Declare function inside se
 
-var i :int = 0
+i :int = 0
 
 
 se i == 0 entao

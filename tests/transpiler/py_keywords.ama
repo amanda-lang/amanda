@@ -1,68 +1,68 @@
-var False:int
+False:int
 mostra False
-var None:bool
+None:bool
 mostra None
-var True:real
+True:real
 mostra True
-var and:int
+and:int
 mostra and
-var as:bool
+as:bool
 mostra as
-var assert:real
+assert:real
 mostra assert
-var break:real
+break:real
 mostra break
-var class:real
+class:real
 mostra class
-var continue:real
+continue:real
 mostra continue
-var def:int
+def:int
 mostra def
-var del:real
+del:real
 mostra del
-var elif:bool
+elif:bool
 mostra elif
-var else:bool
+else:bool
 mostra else
-var except:int
+except:int
 mostra except
-var finally:int
+finally:int
 mostra finally
-var for:bool
+for:bool
 mostra for
-var from:int
+from:int
 mostra from
-var global:bool
+global:bool
 mostra global
-var if:int
+if:int
 mostra if
-var import:bool
+import:bool
 mostra import
-var in:real
+in:real
 mostra in
-var is:bool
+is:bool
 mostra is
-var lambda:real
+lambda:real
 mostra lambda
-var nonlocal:int
+nonlocal:int
 mostra nonlocal
-var not:real
+not:real
 mostra not
-var or:real
+or:real
 mostra or
-var pass:int
+pass:int
 mostra pass
-var raise:bool
+raise:bool
 mostra raise
-var return:int
+return:int
 mostra return
-var try:bool
+try:bool
 mostra try
-var while:real
+while:real
 mostra while
-var with:real
+with:real
 mostra with
-var yield:bool
+yield:bool
 mostra yield
-var _buffer_ : int
+_buffer_ : int
 mostra _buffer_

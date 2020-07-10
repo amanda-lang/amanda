@@ -5,9 +5,6 @@ import amanda.ast_nodes as AST
 from amanda.error import AmandaError
 
 
-'''*Class used to parse input file
-   *Each method of this file is a rule defined in the grammar '''
-
 class Parser:
     #Errors messages
     MISSING_TERM = "as instruções devem ser delimitadas por ';' ou por uma nova linha"
@@ -48,26 +45,31 @@ class Parser:
             if self.match(TT.NEWLINE):
                 self.consume(TT.NEWLINE)
             else:
-                program.add_child(self.declaration())
+                child = self.declaration()
+                self.append_child(program,child)
         return program
 
     def block(self):
-        ''' 
-        Method that does bulk of the parsing.
-        '''
         block = AST.Block()
         #SENAO is because of if statements
         while not self.match(TT.FIM) and not self.match(TT.SENAO):
             if self.match(TT.NEWLINE):
                 self.consume(TT.NEWLINE)
             else:
-                block.add_child(self.declaration())
+                child = self.declaration()
+                self.append_child(block,child)
         return block
 
+    def append_child(self,body,child):
+        ''' Method for desugaring
+        multiple statement'''
+        if isinstance(child,list):
+            body.children += child
+        else:
+            body.add_child(child)
+
     def declaration(self):
-        if self.match(TT.VAR):
-            return self.var_decl()
-        elif self.match(TT.FUNC):
+        if self.match(TT.FUNC):
             return self.function_decl()
         elif self.match(TT.CLASSE):
             return self.class_decl()
@@ -78,10 +80,6 @@ class Parser:
         return self.consume(TT.IDENTIFIER)
     
     def end_stmt(self):
-        ''' 
-            Method used to parse newlines and semicolons at the
-            end of statements
-        '''
         if self.match(TT.NEWLINE):
             self.consume(TT.NEWLINE)
         elif self.match(TT.SEMI):
@@ -89,42 +87,7 @@ class Parser:
         else:
             self.error(self.MISSING_TERM)
 
-    def var_decl(self):
-        ''' 
-        Method for parsing variable declarations
-
-        var my_num : int
-        var my_num : int = 2
-        '''
-        token = self.consume(TT.VAR)
-        name = self.consume(
-            TT.IDENTIFIER,self.EXPECTED_ID.format(symbol="var")
-        )
-        self.consume(TT.COLON)
-        var_type = self.type()
-        assign = None
-        if self.match(TT.EQUAL):
-            assign = self.consume(TT.EQUAL)
-            right = self.expression()
-            assign = AST.Assign(
-                assign,
-                left=AST.Variable(name),
-                right=right
-            )
-        self.end_stmt()
-        return AST.VarDecl(token,name=name,var_type=var_type,assign=assign)
-
-
     def function_decl(self):
-        ''' 
-        Method used to parse function declarations
-
-        Ex: 
-
-            func add(a:int,b:int):int
-                retorna a+b
-            fim
-        '''
         self.consume(TT.FUNC)
         name = self.consume(
             TT.IDENTIFIER,self.EXPECTED_ID.format(symbol="func")
@@ -169,9 +132,7 @@ class Parser:
     def class_body(self):
         body = AST.ClassBody()
         while not self.match(TT.FIM):
-            if self.match(TT.VAR):
-                body.add_child(self.var_decl())
-            elif self.match(TT.FUNC):
+            if self.match(TT.FUNC):
                 body.add_child(self.function_decl())
             elif self.match(TT.NEWLINE):
                 self.consume(TT.NEWLINE)
@@ -180,12 +141,6 @@ class Parser:
         return body
 
     def formal_params(self):
-        '''  
-        Method for parsing parameters in function
-        declarations
-        Ex:
-        func pow (base :float , expoente :int) 
-        '''
         params = []
         if self.lookahead.token == TT.IDENTIFIER:
             name = self.consume(TT.IDENTIFIER)
@@ -212,9 +167,7 @@ class Parser:
         elif self.match(TT.PARA):
             return self.para_stmt()
         else:
-            expr = self.expression()
-            self.end_stmt()
-            return expr
+            return self.decl_stmt()
 
     def mostra_statement(self):
         token = self.consume(TT.MOSTRA)
@@ -272,14 +225,64 @@ class Parser:
             inc = self.equality()
         return AST.RangeExpr(start,stop,inc)
 
+    def decl_stmt(self):
+        stmt = self.expression()
+        if isinstance(stmt,AST.Variable):
+            if self.match(TT.COLON):
+                stmt = self.simple_decl(stmt.token)
+            elif self.match(TT.COMMA):
+                stmt = self.multi_decl(stmt.token)
+        self.end_stmt()
+        return stmt
+
+    def get_decl_assign(self,name):
+        assign = None
+        if self.match(TT.EQUAL):
+            assign = AST.Assign(
+                self.consume(TT.EQUAL),
+                left=AST.Variable(name),
+                right = self.equality()
+            )
+        return assign
+
+
+    def simple_decl(self,name):
+        token = self.consume(TT.COLON)
+        var_type = self.type()
+        assign = self.get_decl_assign(name)
+        return AST.VarDecl(
+                token,name=name,var_type=var_type,
+                assign=assign
+        )
+
+    def multi_decl(self,name):
+        names = []
+        names.append(name)
+        while self.match(TT.COMMA):
+            self.consume(TT.COMMA)
+            name = self.consume(
+                TT.IDENTIFIER,self.EXPECTED_ID.format(symbol=",")
+            )
+            names.append(name)
+        token = self.consume(TT.COLON)
+        var_type = self.type()
+        decls = []
+        for var_name in names:
+            decl = AST.VarDecl(
+                token,name=var_name,var_type=var_type,
+                assign=None
+            )
+            decls.append(decl)
+        return decls
+
+    def expression(self):
+        return self.compound_assignment()
+
     def eq_operator(self):
         if self.match(TT.DOUBLEEQUAL):
             return self.consume(TT.DOUBLEEQUAL)
         elif self.match(TT.NOTEQUAL):
             return self.consume(TT.NOTEQUAL)
-
-    def expression(self):
-        return self.compound_assignment()
 
     def compound_assignment(self):
         expr = self.assignment()

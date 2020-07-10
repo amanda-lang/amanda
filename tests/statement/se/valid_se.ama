@@ -1,7 +1,7 @@
 # Testing out a se with blocks
 
 
-var num:int = 2;
+num:int = 2;
 
 # simple se-entao
 se (verdadeiro) entao
@@ -13,10 +13,10 @@ num = 3;
 
 # se-senao (with declaration)
 se (num > 3) entao 
-  var i:int = num;
+   i:int = num;
   mostra num;
 senao
-  var res:Texto = "not larger";
+   res:Texto = "not larger";
   mostra res; # expect not larger
 fim
 

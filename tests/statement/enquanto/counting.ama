@@ -1,6 +1,6 @@
 #Test of enquanto loop
 
-var i:int
+i:int
 
 enquanto i != 5 faca
   i += 1;
@@ -18,7 +18,7 @@ fim
 mostra i; # expect 10
 
 
-var logico:bool
+logico:bool
 
 i = 0
 enquanto nao logico faca
