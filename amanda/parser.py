@@ -235,17 +235,21 @@ class Parser:
         self.end_stmt()
         return stmt
 
+    def get_decl_assign(self,name):
+        assign = None
+        if self.match(TT.EQUAL):
+            assign = AST.Assign(
+                self.consume(TT.EQUAL),
+                left=AST.Variable(name),
+                right = self.equality()
+            )
+        return assign
+
+
     def simple_decl(self,name):
         token = self.consume(TT.COLON)
         var_type = self.type()
-        assign = None
-        if self.match(TT.EQUAL):
-            assign = self.consume(TT.EQUAL)
-            right = self.equality()
-            assign = AST.Assign(
-                assign,left=AST.Variable(name),
-                right=right
-            )
+        assign = self.get_decl_assign(name)
         return AST.VarDecl(
                 token,name=name,var_type=var_type,
                 assign=assign
