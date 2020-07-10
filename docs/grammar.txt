@@ -4,7 +4,7 @@ program
 
 declaration
   :  var_declaration
-  | class declaration
+  | class_declaration
   | function_declaration
   | stmt
   ;
@@ -30,11 +30,6 @@ function_declaration
   body
   ;
 
-procedure_declaration
-  : PROC IDENTIFIER LPAR formal_parameter_section? RPAR 
-  body
-  ;
-
 
 body
   :( declaration | NEWLINE )*
@@ -47,7 +42,7 @@ formal_parameter_section
 
 stmt
   :
-  | expr_stmt
+  | decl_stmt
   | mostra_stmt
   | retorna_stmt
   | se_stmt
@@ -95,13 +90,23 @@ eq_op
   | DOUBLEEQUAL
   ;
 
-expr_stmt
-  : expression (SEMI|NEWLINE)
+decl_stmt
+  : expression (multi_decl|simple_decl)? (SEMI|NEWLINE)
   ;
+
+multi_decl
+  :  (COMMA IDENTIFIER)+ COLON type 
+  ;
+
+simple_decl
+  :  COLON type assignment?
+  ;
+
 
 expression
   : compound_assignment
   ;
+
 
 compound_assignment
   : assignment ( compound_operator equality )?
@@ -138,7 +143,7 @@ call
 
 
 primary
-  : INTEGER
+  : INTEGER 
   | REAL
   | STRING
   | VERDADEIRO
