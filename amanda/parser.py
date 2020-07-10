@@ -53,9 +53,6 @@ class Parser:
         return program
 
     def block(self):
-        ''' 
-        Method that does bulk of the parsing.
-        '''
         block = AST.Block()
         #SENAO is because of if statements
         while not self.match(TT.FIM) and not self.match(TT.SENAO):
@@ -68,8 +65,7 @@ class Parser:
 
     def append_child(self,body,child):
         ''' Method for desugaring
-        multiple statement of the 
-        same kind'''
+        multiple statement'''
         if isinstance(child,list):
             body.children += child
         else:
@@ -89,10 +85,6 @@ class Parser:
         return self.consume(TT.IDENTIFIER)
     
     def end_stmt(self):
-        ''' 
-            Method used to parse newlines and semicolons at the
-            end of statements
-        '''
         if self.match(TT.NEWLINE):
             self.consume(TT.NEWLINE)
         elif self.match(TT.SEMI):
@@ -127,15 +119,6 @@ class Parser:
 
 
     def function_decl(self):
-        ''' 
-        Method used to parse function declarations
-
-        Ex: 
-
-            func add(a:int,b:int):int
-                retorna a+b
-            fim
-        '''
         self.consume(TT.FUNC)
         name = self.consume(
             TT.IDENTIFIER,self.EXPECTED_ID.format(symbol="func")
@@ -191,12 +174,6 @@ class Parser:
         return body
 
     def formal_params(self):
-        '''  
-        Method for parsing parameters in function
-        declarations
-        Ex:
-        func pow (base :float , expoente :int) 
-        '''
         params = []
         if self.lookahead.token == TT.IDENTIFIER:
             name = self.consume(TT.IDENTIFIER)
