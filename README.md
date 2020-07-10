@@ -88,7 +88,7 @@ b : int = 10 # declaração e atribuição
 #Variáveis do mesmo tipo podem ser declaradas na mesma linha
 a,b : int
 a = 10
-b =10
+b = 50
 ```
 
 #### Types
