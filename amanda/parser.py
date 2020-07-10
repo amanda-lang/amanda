@@ -48,7 +48,8 @@ class Parser:
             if self.match(TT.NEWLINE):
                 self.consume(TT.NEWLINE)
             else:
-                program.add_child(self.declaration())
+                child = self.declaration()
+                self.append_child(program,child)
         return program
 
     def block(self):
@@ -61,8 +62,18 @@ class Parser:
             if self.match(TT.NEWLINE):
                 self.consume(TT.NEWLINE)
             else:
-                block.add_child(self.declaration())
+                child = self.declaration()
+                self.append_child(block,child)
         return block
+
+    def append_child(self,body,child):
+        ''' Method for desugaring
+        multiple statement of the 
+        same kind'''
+        if isinstance(child,list):
+            body.children += child
+        else:
+            body.add_child(child)
 
     def declaration(self):
         if self.match(TT.VAR):
@@ -212,9 +223,7 @@ class Parser:
         elif self.match(TT.PARA):
             return self.para_stmt()
         else:
-            expr = self.expression()
-            self.end_stmt()
-            return expr
+            return self.decl_stmt()
 
     def mostra_statement(self):
         token = self.consume(TT.MOSTRA)
@@ -272,14 +281,60 @@ class Parser:
             inc = self.equality()
         return AST.RangeExpr(start,stop,inc)
 
+    def decl_stmt(self):
+        stmt = self.expression()
+        if isinstance(stmt,AST.Variable):
+            if self.match(TT.COLON):
+                stmt = self.simple_decl(stmt.token)
+            elif self.match(TT.COMMA):
+                stmt = self.multi_decl(stmt.token)
+        self.end_stmt()
+        return stmt
+
+    def simple_decl(self,name):
+        token = self.consume(TT.COLON)
+        var_type = self.type()
+        assign = None
+        if self.match(TT.EQUAL):
+            assign = self.consume(TT.EQUAL)
+            right = self.equality()
+            assign = AST.Assign(
+                assign,left=AST.Variable(name),
+                right=right
+            )
+        return AST.VarDecl(
+                token,name=name,var_type=var_type,
+                assign=assign
+        )
+
+    def multi_decl(self,name):
+        names = []
+        names.append(name)
+        while self.match(TT.COMMA):
+            self.consume(TT.COMMA)
+            name = self.consume(
+                TT.IDENTIFIER,self.EXPECTED_ID.format(symbol=",")
+            )
+            names.append(name)
+        token = self.consume(TT.COLON)
+        var_type = self.type()
+        decls = []
+        for var_name in names:
+            decl = AST.VarDecl(
+                token,name=var_name,var_type=var_type,
+                assign=None
+            )
+            decls.append(decl)
+        return decls
+
+    def expression(self):
+        return self.compound_assignment()
+
     def eq_operator(self):
         if self.match(TT.DOUBLEEQUAL):
             return self.consume(TT.DOUBLEEQUAL)
         elif self.match(TT.NOTEQUAL):
             return self.consume(TT.NOTEQUAL)
-
-    def expression(self):
-        return self.compound_assignment()
 
     def compound_assignment(self):
         expr = self.assignment()

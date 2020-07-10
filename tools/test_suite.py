@@ -245,6 +245,16 @@ class ParserTestCase(unittest.TestCase):
         parser = Parser(self.buffer)
         parser.parse()
 
+    def test_new_declaration(self):
+        phrases = [ " a: int"," a1: real"," a2: bool",
+                " a3:real", " troco : real = 3.14","p1,p2,p3 : real", 
+        ]
+        for phrase in phrases:
+            print(phrase,file=self.buffer,end="\n\n\n")
+        self.buffer.seek(0)
+        parser = Parser(self.buffer)
+        parser.parse()
+
     def test_expression(self):
         phrases = ["2-1","2+1","2/1","2*1","2%1","2+ad",
             "'string'+'op'","2.132+1","'string'*2","string*2",
