@@ -1,6 +1,6 @@
 #Test of para loop
 
-var i:int
+i:int
 
 para a de 0..5 faca
   i += 1;
@@ -35,11 +35,11 @@ para c de 10..0 faca
 fim
 mostra i; # expect 10
 
-# with var params
+# with  params
 i = 0;
-var ini : int = 0;
-var end : int = 10;
-var passo : int = 3;
+ini : int = 0;
+end : int = 10;
+passo : int = 3;
 
 
 para c de ini..end inc passo faca 

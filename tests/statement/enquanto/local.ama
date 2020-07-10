@@ -1,10 +1,10 @@
-var i : int
+i : int
 
 
 enquanto i != 4 faca
 
     mostra i
     i += 1
-    var i : int
+     i : int
 
 fim

@@ -3,7 +3,7 @@
 
 # Change global
 
-var a:int;
+a:int;
 
 func main():int
   a = 3;
@@ -20,7 +20,7 @@ func random(): real
 fim
 
 
-var rand:real = random();
+rand:real = random();
 mostra rand; #expect 150.0
 
 

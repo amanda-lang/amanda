@@ -2,8 +2,8 @@
 
 classe Animal
 
-    var nome:Texto
-    var idade:int
+     nome:Texto
+     idade:int
 
     func constructor(nome:Texto,idade:int)
         eu.nome = nome
@@ -30,7 +30,7 @@ classe Humano < Animal
 
 fim
 
-var humano : Humano = Humano("John",21)
+humano : Humano = Humano("John",21)
 humano.falar("Eu sou um humano") # Eu sou humano
 
 mostra humano.nome # expect John

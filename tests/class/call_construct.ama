@@ -5,7 +5,7 @@
 classe A
     
     #Fields must be declared explicitly
-    var field : int 
+     field : int 
 
     func constructor(field : int)
         eu.field = field
@@ -15,5 +15,5 @@ fim
 
 
 
-var a : A = A(5)
+a : A = A(5)
 a.constructor(5) # expect error

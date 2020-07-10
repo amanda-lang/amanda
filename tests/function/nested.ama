@@ -3,11 +3,11 @@
 
 func crazy_product(a:int,b:int):int
     
-    var v : int = 3
+     v : int = 3
 
     func product(a:int,b:int):int
         mostra v
-        var v : int
+         v : int
         mostra a
         retorna a * b
     fim

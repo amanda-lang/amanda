@@ -1,5 +1,5 @@
 
-var global_var : int
+global_var : int
 
 func test_enquanto(): int
     

@@ -1,2 +1,2 @@
-var num : int = 1
+num : int = 1
 num() #expect error

@@ -1,6 +1,6 @@
 
-var a : int = 6
-var i : int
+a : int = 6
+i : int
 
 se verdadeiro entao
     mostra a/i

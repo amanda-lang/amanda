@@ -85,8 +85,8 @@ class LexerTestCase(unittest.TestCase):
         self.assertEqual(token.token,TokenType.IDENTIFIER,msg="ID Test Failed")
         self.assertEqual(token.lexeme,"__test3",msg="ID value test Failed")
         token = lexer.get_token()
-        self.assertEqual(token.token,TokenType.VAR,msg="VAR Test Failed")
-        self.assertEqual(token.lexeme,"var",msg="VAR value test Failed")
+        self.assertEqual(token.token,TokenType.IDENTIFIER,msg="ID Test Failed")
+        self.assertEqual(token.lexeme,"var",msg="ID value test Failed")
         token = lexer.get_token()
         self.assertEqual(token.token,TokenType.MOSTRA,msg="ID Test Failed")
         self.assertEqual(token.lexeme,"mostra",msg="MOSTRA value test Failed")
@@ -235,9 +235,9 @@ class ParserTestCase(unittest.TestCase):
     def tearDown(self):
         self.buffer = None
 
-    def test_declaration(self):
-        phrases = [ "var a: int","var a1: real","var a2: bool",
-            "var a3:real", "var troco : real = 3.14", 
+    def test_new_declaration(self):
+        phrases = [ " a: int"," a1: real"," a2: bool",
+                " a3:real", " troco : real = 3.14","p1,p2,p3 : real", 
         ]
         for phrase in phrases:
             print(phrase,file=self.buffer,end="\n\n\n")
@@ -290,7 +290,7 @@ class ParserTestCase(unittest.TestCase):
                 se a == 1 entao
                   a -1
                 senao
-                   var a: int 
+                    a: int 
                 fim
             fim
             
@@ -343,14 +343,14 @@ class ParserTestCase(unittest.TestCase):
         phrases = ['''
             func test(a:int,b:int): int
                 2-1
-                var soma : int = a+b
+                 soma : int = a+b
                 #mostra a+b-c*array%(-a)/(-c)+eval(2+1,5)
                 retorna -soma+(2*2%1)
             fim
 
             func test(a:int,b:int): int
                 2-1;
-                var soma : int = a+b;
+                 soma : int = a+b;
                 #mostra a+b-c*array%(-a)/(-c)+eval(2+1,5);
                 retorna -soma+(2*2%1);
             fim
@@ -380,29 +380,4 @@ class ParserTestCase(unittest.TestCase):
         parser.parse()
 
 
-    def test_class_decl(self):
-        src = ''' 
-        classe Animal
-            
-            var nome : Texto
-            var idade : int
-
-            func constructor(nome:Texto,idade:int)
-                eu.nome = nome
-                super()
-                super(minha,idade)
-                eu.idade = idade
-            fim
-
-        fim
-
-        classe Humano < Animal
-
-        fim
-        ''' 
-        print(src,file=self.buffer)
-        #self.buffer.writelines(phrases)
-        self.buffer.seek(0)
-        parser = Parser(self.buffer)
-        parser.parse()
 

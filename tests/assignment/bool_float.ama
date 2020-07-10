@@ -1,3 +1,3 @@
 #Incompatible types
 
-var pi : real = verdadeiro
+pi : real = verdadeiro

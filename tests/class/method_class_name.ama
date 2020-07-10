@@ -11,5 +11,5 @@ fim
 
 
 
-var a : A = A()
+a : A = A()
 mostra a.A() #expect 0 

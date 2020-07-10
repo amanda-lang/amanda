@@ -2,8 +2,8 @@
 
 classe Animal
 
-    var nome:Texto
-    var idade:int
+     nome:Texto
+     idade:int
 
     func constructor(nome:Texto,idade:int)
         eu.nome = nome
@@ -22,13 +22,13 @@ classe Humano < Animal
     
     func constructor(nome:Texto,idade:int)
         super(nome,idade) 
-        var teste:Animal = super(nome,idade) #expect error
+         teste:Animal = super(nome,idade) #expect error
     fim
 
 fim
 
 
 
-var humano : Humano = Humano("john",21)
+humano : Humano = Humano("john",21)
 
 mostra humano.idade
