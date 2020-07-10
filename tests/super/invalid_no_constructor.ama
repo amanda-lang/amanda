@@ -3,8 +3,8 @@
 
 classe Animal
 
-    var nome:Texto
-    var idade:int
+     nome:Texto
+     idade:int
 
     func constructor(nome:Texto,idade:int)
         eu.nome = nome
@@ -29,4 +29,4 @@ fim
 
 
 
-var humano : Humano = Humano() # expect error
+humano : Humano = Humano() # expect error

@@ -1,7 +1,7 @@
 # Mix and match operands
 
 
-var a : int = 20
+a : int = 20
 func duplica(a:int):int
     retorna a*2
 fim

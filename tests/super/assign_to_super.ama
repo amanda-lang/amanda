@@ -1,8 +1,8 @@
 
 classe Animal
 
-    var nome:Texto
-    var idade:int
+     nome:Texto
+     idade:int
 
     func constructor(nome:Texto,idade:int)
         eu.nome = nome
@@ -28,6 +28,6 @@ fim
 
 
 
-var humano : Humano = Humano("john",21)
+humano : Humano = Humano("john",21)
 
 mostra humano.idade

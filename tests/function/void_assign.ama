@@ -5,4 +5,4 @@ fim
 
 
 
-var num : int = escreva_num(5) # expect error
+num : int = escreva_num(5) # expect error

@@ -1,1 +1,1 @@
-var num : int = "str".cmp #expect error
+num : int = "str".cmp #expect error

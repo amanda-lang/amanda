@@ -1,7 +1,7 @@
 classe Animal
 
-    var nome:Texto
-    var idade:int
+     nome:Texto
+     idade:int
     
     func falar(palavras : Texto): Texto
         mostra palavras
@@ -13,7 +13,7 @@ fim
 
 classe Mamifero < Animal
 
-    var e_bipede : bool
+     e_bipede : bool
 
 
     func correr(): Texto
@@ -30,7 +30,7 @@ fim
 
 classe Humano < Mamifero  fim
 
-var humano : Humano = Humano()
+humano : Humano = Humano()
 humano.falar("Eu sou um humano")
 
 humano.nome = "John"

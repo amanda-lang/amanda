@@ -5,9 +5,6 @@ import amanda.ast_nodes as AST
 from amanda.error import AmandaError
 
 
-'''*Class used to parse input file
-   *Each method of this file is a rule defined in the grammar '''
-
 class Parser:
     #Errors messages
     MISSING_TERM = "as instruções devem ser delimitadas por ';' ou por uma nova linha"
@@ -72,9 +69,7 @@ class Parser:
             body.add_child(child)
 
     def declaration(self):
-        if self.match(TT.VAR):
-            return self.var_decl()
-        elif self.match(TT.FUNC):
+        if self.match(TT.FUNC):
             return self.function_decl()
         elif self.match(TT.CLASSE):
             return self.class_decl()
@@ -91,32 +86,6 @@ class Parser:
             self.consume(TT.SEMI)
         else:
             self.error(self.MISSING_TERM)
-
-    def var_decl(self):
-        ''' 
-        Method for parsing variable declarations
-
-        var my_num : int
-        var my_num : int = 2
-        '''
-        token = self.consume(TT.VAR)
-        name = self.consume(
-            TT.IDENTIFIER,self.EXPECTED_ID.format(symbol="var")
-        )
-        self.consume(TT.COLON)
-        var_type = self.type()
-        assign = None
-        if self.match(TT.EQUAL):
-            assign = self.consume(TT.EQUAL)
-            right = self.expression()
-            assign = AST.Assign(
-                assign,
-                left=AST.Variable(name),
-                right=right
-            )
-        self.end_stmt()
-        return AST.VarDecl(token,name=name,var_type=var_type,assign=assign)
-
 
     def function_decl(self):
         self.consume(TT.FUNC)
@@ -163,9 +132,7 @@ class Parser:
     def class_body(self):
         body = AST.ClassBody()
         while not self.match(TT.FIM):
-            if self.match(TT.VAR):
-                body.add_child(self.var_decl())
-            elif self.match(TT.FUNC):
+            if self.match(TT.FUNC):
                 body.add_child(self.function_decl())
             elif self.match(TT.NEWLINE):
                 self.consume(TT.NEWLINE)

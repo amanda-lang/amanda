@@ -1,7 +1,7 @@
 
 
-var a : int = 6
-var i : int
+a : int = 6
+i : int
 
 se falso entao
     mostra a/i

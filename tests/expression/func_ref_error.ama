@@ -1,7 +1,7 @@
 # Referencing function without calling
 
 
-var a:int;
+a:int;
 
 func main(): int
   retorna 0;
