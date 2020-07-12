@@ -1,12 +1,19 @@
-from enum import Enum
-from amanda.lexer import Lexer
 from amanda.tokens import TokenType as TT
-from amanda.tokens import Token
 import amanda.ast_nodes as ast
-import amanda.symbols as SYM
+import amanda.symbols as symbols
+from amanda.symbols import Type
 from amanda.error import AmandaError
-import amanda.natives as natives
-import modules.functions as bltins_funcs
+
+
+#Builtin types 
+Type.REAL = Type("real")
+Type.INT = Type("int",[Type.REAL])
+Type.BOOL = Type("bool")
+Type.TEXTO = Type("texto")
+Type.VAZIO = Type("vazio")
+Type.INDEF = Type("indef")
+
+    
 
 class Analyzer(ast.Visitor):
 
@@ -21,9 +28,10 @@ class Analyzer(ast.Visitor):
     INVALID_UOP = "o operador unário {operator} não pode ser usado com o tipo '{type}' "
     BAD_STR_OP = "o tipo 'texto' não suporta operações com o operador '{operator}'"
 
+
     def __init__(self):
         #Just to have quick access to things like types and e.t.c
-        self.global_scope = SYM.Scope(SYM.Scope.GLOBAL)
+        self.global_scope = symbols.Scope(symbols.Scope.GLOBAL)
         self.current_scope = self.global_scope
         self.current_node = None
         self.current_class = None
@@ -31,22 +39,13 @@ class Analyzer(ast.Visitor):
         self.init_builtins()
 
     def init_builtins(self):
-        self.global_scope.define("int",SYM.BuiltInType("int",SYM.Tag.INT))
-        self.global_scope.define("real",SYM.BuiltInType("real",SYM.Tag.REAL))
-        self.global_scope.define("bool",SYM.BuiltInType("bool",SYM.Tag.BOOL))
-        self.global_scope.define("vazio",SYM.BuiltInType("vazio",SYM.Tag.VAZIO))
-        #TODO: Initialize all thing in one go
         #Initialize builtin types
-        builtins = natives.builtin_types.values()
-        for builtin in builtins:
-            builtin.load_symbol(self.global_scope)
-        for builtin in builtins:
-            builtin.define_symbol(self.global_scope)
-        #Initialize builtin functions
-        for name,data in bltins_funcs.functions.items():
-            function = bltins_funcs.get_func_sym(name,
-                      data["type"],self.global_scope,data["params"])
-            self.global_scope.define(name,function)
+        self.global_scope.define(Type.INT.name,Type.INT)
+        self.global_scope.define(Type.REAL.name,Type.REAL)
+        self.global_scope.define(Type.BOOL.name,Type.BOOL)
+        self.global_scope.define(Type.TEXTO.name,Type.TEXTO)
+        self.global_scope.define(Type.VAZIO.name,Type.VAZIO)
+        self.global_scope.define(Type.INDEF.name,Type.INDEF)
 
     def has_return(self,node):
         ''' Method that checks if function non void 
@@ -129,7 +128,7 @@ class Analyzer(ast.Visitor):
             )
         if self.current_scope.get(name):
             self.error(self.ID_IN_USE,name=name)
-        symbol = SYM.VariableSymbol(name,var_type)
+        symbol = symbols.VariableSymbol(name,var_type)
         self.current_scope.define(name,symbol)
         node.var_type = var_type
         assign = node.assign
@@ -164,7 +163,7 @@ class Analyzer(ast.Visitor):
             #TODO: fix this hack
             self.current_node = node
             self.error(self.NO_RETURN_STMT,name=name)
-        symbol = SYM.FunctionSymbol(name,function_type)
+        symbol = symbols.FunctionSymbol(name,function_type)
         self.check_function(name,symbol,node)
 
     def validate_void_func(self,name,node):
@@ -173,13 +172,13 @@ class Analyzer(ast.Visitor):
         #plain void function
         klass = self.current_class
         if name == "constructor" and klass:
-            symbol = SYM.FunctionSymbol(name,self.current_class)
+            symbol = symbols.FunctionSymbol(name,self.current_class)
             symbol.is_constructor = True
             if klass.superclass and \
             not self.check_super(name,klass.superclass,node.block):
                 self.error("O constructor da superclasse deve ser invocado")
         else:
-            symbol = SYM.FunctionSymbol(name,self.current_scope.get("vazio"))
+            symbol = symbols.FunctionSymbol(name,self.current_scope.get("vazio"))
         self.check_function(name,symbol,node)
 
     def check_super(self,name,superclass,body):
@@ -218,7 +217,7 @@ class Analyzer(ast.Visitor):
             param_symbol = self.visit(param)
             params_dict[param_name] = param_symbol
             #Add params o current_scope
-        scope = SYM.Scope(name,self.current_scope)
+        scope = symbols.Scope(name,self.current_scope)
         for param_name,param in params_dict.items():
             scope.define(param_name,param)
         return (scope,params_dict)
@@ -234,16 +233,16 @@ class Analyzer(ast.Visitor):
             superclass = self.current_scope.resolve(super_name)
             if not superclass:
                 self.error(self.UNDECLARED_ID,name=super_name)
-        klass = SYM.ClassSymbol(name,superclass=superclass)
+        klass = symbols.ClassSymbol(name,superclass=superclass)
         self.current_scope.define(name,klass)
-        res_scope = SYM.Scope(name,self.current_scope)
+        res_scope = symbols.Scope(name,self.current_scope)
         prev_class = self.current_class
         self.current_class = klass
         #Resolve class
         klass.members = self.visit_classbody(node.body,res_scope)
         klass.resolved = True
         #Revisit class
-        self.visit_classbody(node.body,SYM.Scope(name,self.current_scope))
+        self.visit_classbody(node.body,symbols.Scope(name,self.current_scope))
         self.current_class = prev_class
 
     def visit_classbody(self,node,scope):
@@ -258,7 +257,7 @@ class Analyzer(ast.Visitor):
         if not self.current_class or not self.current_function:
             self.error("a palavra reservada 'eu' só pode ser usada dentro de um método")
         node.eval_type = self.current_class
-        return SYM.VariableSymbol('eu',self.current_class)
+        return symbols.VariableSymbol('eu',self.current_class)
 
     def visit_super(self,node):
         klass = self.current_class
@@ -268,11 +267,11 @@ class Analyzer(ast.Visitor):
             self.error("Esta classe não possui uma superclasse")
         klass = klass.superclass
         node.eval_type = klass
-        return SYM.VariableSymbol('super',klass)
+        return symbols.VariableSymbol('super',klass)
 
     def visit_block(self,node,scope=None):
         if not scope:
-            scope = SYM.Scope(SYM.Scope.LOCAL,self.current_scope)
+            scope = symbols.Scope(symbols.Scope.LOCAL,self.current_scope)
         self.current_scope = scope
         for child in node.children:
             self.visit(child)
@@ -287,18 +286,18 @@ class Analyzer(ast.Visitor):
                         type=param_type
                     )
         name = node.name.lexeme
-        return SYM.VariableSymbol(name,var_type)
+        return symbols.VariableSymbol(name,var_type)
 
     def visit_constant(self,node):
         constant = node.token.token
         if constant == TT.INTEGER:
-            node.eval_type = self.global_scope.resolve("int")
+            node.eval_type = Type.INT
         elif constant == TT.REAL:
-            node.eval_type = self.global_scope.resolve("real")
+            node.eval_type = Type.REAL
         elif constant == TT.STRING:
-            node.eval_type = self.global_scope.resolve("Texto")
+            node.eval_type = Type.TEXTO
         elif constant in (TT.VERDADEIRO,TT.FALSO):
-            node.eval_type = self.global_scope.resolve("bool")
+            node.eval_type = Type.BOOL
 
     def visit_variable(self,node):
         name = node.token.lexeme
@@ -321,8 +320,8 @@ class Analyzer(ast.Visitor):
         Returns the resolved symbol of the get expression.'''
         target = self.visit(node.target)
         #Check for literal that are converted to object
-        if (target and target.type.tag != SYM.Tag.REF) or \
-            (node.target.eval_type.tag != SYM.Tag.REF):
+        if (target and target.type != Type.REF) or \
+            (node.target.eval_type != Type.REF):
             self.error("Tipos primitivos não possuem atributos")
         #Get the class symbol
         #This hack is for objects that can be created via a literal
@@ -348,7 +347,7 @@ class Analyzer(ast.Visitor):
         #Check both sides for get expression
         self.validate_get(target,ts)
         self.validate_get(expr,es)
-        expr.prom_type = expr.eval_type.promote_to(target.eval_type,self.current_scope)
+        expr.prom_type = expr.eval_type.promote_to(target.eval_type)
         if target.eval_type != expr.eval_type and not expr.prom_type:
             self.current_node = node
             self.error(f"atribuição inválida. incompatibilidade entre os operandos da atribuição: '{target.eval_type.name}' e '{expr.eval_type.name}'")
@@ -365,7 +364,7 @@ class Analyzer(ast.Visitor):
         #Evaluate type of binary
         #arithmetic operation
         operator = node.token
-        result = lhs.eval_type.validate_op(operator.token,rhs.eval_type,self.current_scope)
+        result = self.get_binop_result(lhs.eval_type,operator.token,rhs.eval_type)
         if not result:
             self.current_node = node
             self.error(
@@ -374,8 +373,37 @@ class Analyzer(ast.Visitor):
                 t2=rhs.eval_type,
                 operator=operator.lexeme)
         node.eval_type = result
-        lhs.prom_type = lhs.eval_type.promote_to(rhs.eval_type,self.current_scope)
-        rhs.prom_type = rhs.eval_type.promote_to(lhs.eval_type,self.current_scope)
+        lhs.prom_type = lhs.eval_type.promote_to(rhs.eval_type)
+        rhs.prom_type = rhs.eval_type.promote_to(lhs.eval_type)
+
+
+    def get_binop_result(self,lhs_type,op,rhs_type):
+        #Get result type of a binary operation based on
+        # on operator and operand type
+        if not lhs_type.is_operable() or not rhs_type.is_operable():
+            return None
+
+        if op in (TT.PLUS,TT.MINUS,TT.STAR,TT.SLASH,TT.MODULO):
+            if lhs_type.is_numeric() and rhs_type.is_numeric(): 
+                return Type.INT if lhs_type == Type.INT and rhs_type == Type.INT else Type.REAL
+
+            elif lhs_type == Type.TEXTO and rhs_type == Type.TEXTO:
+                #For strings only plus operator works
+                return Type.TEXTO if op == TT.PLUS else None
+
+        elif op in (TT.GREATER,TT.LESS,TT.GREATEREQ,TT.LESSEQ):
+            if lhs_type.is_numeric() and rhs_type.is_numeric(): 
+                return Type.BOOL
+
+        elif op in (TT.DOUBLEEQUAL,TT.NOTEQUAL):
+            if (lhs_type.is_numeric() and rhs_type.is_numeric()) or \
+            lhs_type == rhs_type:
+                return Type.BOOL
+
+        elif op in (TT.E,TT.OU):
+            if lhs_type == Type.BOOL and rhs_type == Type.BOOL:
+                return Type.BOOL
+        return None
 
     def visit_unaryop(self,node):
         operand = self.visit(node.operand)
@@ -385,13 +413,14 @@ class Analyzer(ast.Visitor):
         lexeme = node.token.lexeme
         op_type = node.operand.eval_type
         if operator in (TT.PLUS,TT.MINUS):
-            if op_type.tag != SYM.Tag.INT and op_type.tag != SYM.Tag.REAL:
+            if op_type != Type.INT and op_type != Type.REAL:
                 self.current_node = node
-                self.error(self.INVALID_UOP,operator=lexeme,op_type=op_type)
+                self.error(self.INVALID_UOP,operator=lexeme,type=op_type)
         elif operator == TT.NAO:
-            if op_type.tag != SYM.Tag.BOOL:
+            if op_type != Type.BOOL:
                 self.error(self.INVALID_UOP,operator=lexeme,type=op_type)
         node.eval_type = op_type
+
 
     def visit_assign(self,node):
         lhs = node.left
@@ -405,7 +434,7 @@ class Analyzer(ast.Visitor):
         node.eval_type = lhs.eval_type
         node.prom_type = None
         #Set promotion type for right side
-        rhs.prom_type = rhs.eval_type.promote_to(lhs.eval_type,self.current_scope)
+        rhs.prom_type = rhs.eval_type.promote_to(lhs.eval_type)
         if lhs.eval_type != rhs.eval_type and not rhs.prom_type:
             self.current_node = node
             self.error(f"atribuição inválida. incompatibilidade entre os operandos da atribuição")
@@ -427,13 +456,13 @@ class Analyzer(ast.Visitor):
         #TODO: Allow empty return from void functions
         if self.current_function.type.name == "vazio":
             self.error("Não pode usar a directiva 'retorna' em uma função vazia")
-        expr.prom_type = expr.eval_type.promote_to(func_type,self.current_scope)
-        if func_type.tag != expr.eval_type.tag and not expr.prom_type:
+        expr.prom_type = expr.eval_type.promote_to(func_type)
+        if func_type != expr.eval_type and not expr.prom_type:
             self.error(f"expressão de retorno inválida. O tipo do valor de retorno é incompatível com o tipo de retorno da função")
 
     def visit_se(self,node):
         self.visit(node.condition)
-        if node.condition.eval_type.tag != SYM.Tag.BOOL:
+        if node.condition.eval_type != Type.BOOL:
             self.error(f"a condição da instrução 'se' deve ser um valor lógico")
         self.visit(node.then_branch)
         if node.else_branch:
@@ -441,7 +470,7 @@ class Analyzer(ast.Visitor):
 
     def visit_enquanto(self,node):
         self.visit(node.condition)
-        if node.condition.eval_type.tag != SYM.Tag.BOOL:
+        if node.condition.eval_type != Type.BOOL:
             self.current_node = node
             self.error(f"a condição da instrução 'enquanto' deve ser um valor lógico")
         self.visit(node.statement)
@@ -450,8 +479,8 @@ class Analyzer(ast.Visitor):
         self.visit(node.expression)
         #Define control variable for loop
         name = node.expression.name.lexeme
-        sym = SYM.VariableSymbol(name,self.current_scope.resolve("int"))
-        scope = SYM.Scope(SYM.Scope.LOCAL,self.current_scope)
+        sym = symbols.VariableSymbol(name,self.current_scope.resolve("int"))
+        scope = symbols.Scope(symbols.Scope.LOCAL,self.current_scope)
         scope.define(name,sym)
         self.visit(node.statement,scope)
 
@@ -468,7 +497,7 @@ class Analyzer(ast.Visitor):
             #Skip inc node in case it's empty lool
             if not node:
                 continue
-            if node.eval_type.tag != SYM.Tag.INT:
+            if node.eval_type != Type.INT:
                 self.error("os parâmetros de uma série devem ser do tipo 'int'")
 
     def visit_call(self,node):
@@ -496,7 +525,7 @@ class Analyzer(ast.Visitor):
             assert sym != None
         else:
             self.error(f"o símbolo '{node.callee.token.lexeme}' não é invocável")
-        if isinstance(sym,SYM.ClassSymbol):
+        if isinstance(sym,symbols.ClassSymbol):
             self.validate_constructor(sym,node.fargs)
             if isinstance(callee,ast.Super):
                 node.eval_type = self.global_scope.get("vazio")  
@@ -525,7 +554,7 @@ class Analyzer(ast.Visitor):
             super_constructor.arity() > 0:
                 self.error(f"A classe '{sym.name}' deve implementar um constructor para satisfazer o constructor da superclasse")
 
-            constructor = SYM.FunctionSymbol(sym.name,sym,{})
+            constructor = symbols.FunctionSymbol(sym.name,sym,{})
             constructor.is_constructor = True
         self.validate_call(constructor,fargs)
 
@@ -544,8 +573,8 @@ class Analyzer(ast.Visitor):
                 f"número incorrecto de argumentos para a função {name}. Esperava {param_len} argumento(s), porém recebeu {arg_len}")
         #Type promotion for parameter
         for arg,param in zip(fargs,sym.params.values()):
-            arg.prom_type = arg.eval_type.promote_to(param.type,self.current_scope)
-            if param.type.tag != arg.eval_type.tag and not arg.prom_type:
+            arg.prom_type = arg.eval_type.promote_to(param.type)
+            if param.type != arg.eval_type and not arg.prom_type:
                 self.error(
                    f"argumento inválido. Esperava-se um argumento do tipo '{param.type.name}' mas recebeu o tipo '{arg.eval_type.name}'")
         

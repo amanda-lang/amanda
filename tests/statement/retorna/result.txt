@@ -1,4 +1,3 @@
-Erro na linha 5: Não pode usar a directiva 'retorna' dentro de um constructor.
 Erro na linha 5: A directiva 'retorna' só pode ser usada dentro de uma função.
 Erro na linha 4: A directiva 'retorna' só pode ser usada dentro de uma função.
 Erro na linha 5: A directiva 'retorna' só pode ser usada dentro de uma função.

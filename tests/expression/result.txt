@@ -1,4 +1,4 @@
-Erro na linha 4: o identificador 'Texto' não é uma referência válida.
+Erro na linha 4: o identificador 'texto' não é uma referência válida.
 Erro na linha 10: o identificador 'main' não é uma referência válida.
 110
 7 9

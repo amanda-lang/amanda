@@ -1,9 +1,9 @@
 classe Animal
 
-     nome:Texto
+     nome:texto
      idade:int
     
-    func falar(palavras : Texto): Texto
+    func falar(palavras : texto): texto
         mostra palavras
         retorna palavras
     fim
@@ -16,7 +16,7 @@ classe Mamifero < Animal
      e_bipede : bool
 
 
-    func correr(): Texto
+    func correr(): texto
         se e_bipede entao
             mostra "Correndo de pé"
         senao

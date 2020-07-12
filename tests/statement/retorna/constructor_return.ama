@@ -1,7 +1,0 @@
-#Return from constructor
-
-classe A
-    func constructor()
-        retorna 8 #expect error
-    fim
-fim

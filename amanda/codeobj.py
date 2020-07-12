@@ -1,6 +1,6 @@
 ''' Classes for code objects used to generate python code'''
     
-from amanda.symbols import Tag
+from amanda.symbols import Type
 from amanda.tokens import TokenType as tt
 from amanda.types import Bool
 
@@ -96,11 +96,11 @@ class VarDecl(CodeObj):
 
     def __str__(self):
         value = None
-        if self.var_type == Tag.INT:
+        if self.var_type == Type.INT:
             value = 0
-        if self.var_type == Tag.REAL:
+        if self.var_type == Type.REAL:
             value = 0.0
-        if self.var_type == Tag.BOOL:
+        if self.var_type == Type.BOOL:
             value = Bool.FALSO
         return f"{self.name} = {value}"  
 

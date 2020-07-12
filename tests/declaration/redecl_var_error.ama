@@ -1,4 +1,4 @@
 # Redeclaration in the same scope
 
 a:int 
-a:Texto # expect error
+a:texto # expect error

@@ -4,7 +4,6 @@ from io import StringIO
 from amanda.tokens import TokenType as TT
 import amanda.ast_nodes as AST
 import amanda.semantic as SEM
-from amanda.symbols import Tag
 import amanda.natives as natives
 from amanda.error import AmandaError,throw_error
 import modules.functions as bltins_funcs

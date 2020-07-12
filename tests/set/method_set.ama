@@ -1,2 +1,2 @@
-text : Texto = "string"
+text : texto = "string"
 text.cmp = text #expect error
