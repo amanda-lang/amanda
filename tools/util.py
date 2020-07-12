@@ -2,7 +2,6 @@ import os
 import os.path
 import argparse
 from io import StringIO
-from amanda.pyamanda import Interpreter
 import amanda.error as error
 from amanda.transpiler import Transpiler
 
