@@ -3,9 +3,9 @@
 
 classe A
     
-     field : Texto 
+     field : texto 
 
-    func constructor(field : Texto)
+    func constructor(field : texto)
         eu.field = field
     fim
 

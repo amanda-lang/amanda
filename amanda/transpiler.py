@@ -198,7 +198,7 @@ class Transpiler:
             name = self.define_global(name,self.VAR)
         if assign:
             return self.gen(assign)
-        return codeobj.VarDecl(self.py_lineno,self.ama_lineno,name,node.var_type.tag)
+        return codeobj.VarDecl(self.py_lineno,self.ama_lineno,name,node.var_type)
 
     def gen_functiondecl(self,node):
         name = node.name.lexeme
@@ -299,7 +299,7 @@ class Transpiler:
     def gen_constant(self,node):
         prom_type = node.prom_type
         if prom_type:
-            if prom_type.tag == symbols.Tag.REAL:
+            if prom_type == symbols.Type.REAL:
                 return float(node.token.lexeme)
         return node.token.lexeme
 
@@ -319,7 +319,7 @@ class Transpiler:
         operator = node.token
         #Workaround for int division
         if operator.lexeme == "/":
-            if node.prom_type == None and node.left.eval_type.tag == symbols.Tag.INT:
+            if node.prom_type == None and node.left.eval_type == symbols.Type.INT:
                 operator.lexeme = "//"
         return codeobj.BinOp(self.py_lineno,self.ama_lineno,operator.lexeme,lhs,rhs)
 

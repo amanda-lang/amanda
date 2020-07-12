@@ -9,5 +9,5 @@ Erro na linha 2: o tipo de dados 'float' não foi definido.
 Erro na linha 1: o símbolo '3.14' não é invocável.
 Erro na linha 2: identificador 'num' não é invocável.
 Erro na linha 7: argumento inválido. Esperava-se um argumento do tipo 'int' mas recebeu o tipo 'bool'.
-Erro na linha 7: argumento inválido. Esperava-se um argumento do tipo 'int' mas recebeu o tipo 'Texto'.
+Erro na linha 7: argumento inválido. Esperava-se um argumento do tipo 'int' mas recebeu o tipo 'texto'.
 Erro na linha 7: argumento inválido. Esperava-se um argumento do tipo 'real' mas recebeu o tipo 'bool'.

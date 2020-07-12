@@ -98,7 +98,7 @@ b = 50
 | int           | 2, 4, -2, 0           |
 | real          | 2.0, 3.15, -8.2       |
 | bool          | verdadeiro, falso     |
-| Texto         | "eu", 'meu'           |
+| texto         | "eu", 'meu'           |
 
 #### Operators
 
@@ -134,12 +134,10 @@ nao verdadeiro # negação : falso
 
 ```python
 
-# O tipo Texto tem alguns métodos que permitem operações
-# entre strings.
+"ama" + "nda" # concatenação : amanda
 
-"ama".concat("nda") # concatenação : amanda
+"ama" == "nda" # comparação : falso
 
-"amanda".cmp() # tamanho de string : 6 
 ```
 
 #### Control flow
@@ -180,7 +178,7 @@ i : int = leia_int("Digite um inteiro: ") # Exibe a mensagem e lê um inteiro do
 r : real = leia_real("Digite um real: ") # Exibe a mensagem e lê um real do teclado
 
 
-s : Texto = leia("Digite uma string: ") # Exibe a mensagem e lê uma cadeia de caracteres do teclado
+s : texto = leia("Digite uma string: ") # Exibe a mensagem e lê uma cadeia de caracteres do teclado
 ```
 
 #### Output
