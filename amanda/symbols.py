@@ -72,6 +72,27 @@ class Symbol:
     def is_callable(self):
         return False
 
+class VariableSymbol(Symbol):
+    def __init__(self,name,type):
+        super().__init__(name,type)
+    def can_evaluate(self):
+        return True
+
+class FunctionSymbol(Symbol):
+    def __init__(self,name,func_type,params={}):
+        super().__init__(name,func_type)
+        self.params = params #dict of symbols
+        self.is_constructor = False #indicates if param is a constructor
+
+    def __str__(self):
+        params = ",".join(self.params)
+        return f"<{self.__class__.__name__}: ({self.name},{self.type}) ({params})>"
+
+    def is_callable(self):
+        return True
+
+    def arity(self):
+        return len(self.params)
 
 class Type(Symbol):
     ''' Class that represents a type 
@@ -100,30 +121,14 @@ class Type(Symbol):
     def promote_to(self,other):
         return other if other in self.prom_types else None
 
+#Add Builtin types 
+Type.REAL = Type("real")
+Type.INT = Type("int",[Type.REAL])
+Type.BOOL = Type("bool")
+Type.TEXTO = Type("texto")
+Type.VAZIO = Type("vazio")
+Type.INDEF = Type("indef")
 
-class VariableSymbol(Symbol):
-    def __init__(self,name,type):
-        super().__init__(name,type)
-    def can_evaluate(self):
-        return True
-
-
-
-class FunctionSymbol(Symbol):
-    def __init__(self,name,func_type,params={}):
-        super().__init__(name,func_type)
-        self.params = params #dict of symbols
-        self.is_constructor = False #indicates if param is a constructor
-
-    def __str__(self):
-        params = ",".join(self.params)
-        return f"<{self.__class__.__name__}: ({self.name},{self.type}) ({params})>"
-
-    def is_callable(self):
-        return True
-
-    def arity(self):
-        return len(self.params)
 
 class ClassSymbol(Type):
     ''' Represents a class in amanda.

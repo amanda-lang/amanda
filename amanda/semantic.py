@@ -5,15 +5,6 @@ from amanda.symbols import Type
 from amanda.error import AmandaError
 
 
-#Builtin types 
-Type.REAL = Type("real")
-Type.INT = Type("int",[Type.REAL])
-Type.BOOL = Type("bool")
-Type.TEXTO = Type("texto")
-Type.VAZIO = Type("vazio")
-Type.INDEF = Type("indef")
-
-    
 
 class Analyzer(ast.Visitor):
 

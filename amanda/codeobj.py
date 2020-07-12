@@ -98,10 +98,12 @@ class VarDecl(CodeObj):
         value = None
         if self.var_type == Type.INT:
             value = 0
-        if self.var_type == Type.REAL:
+        elif self.var_type == Type.REAL:
             value = 0.0
-        if self.var_type == Type.BOOL:
+        elif self.var_type == Type.BOOL:
             value = Bool.FALSO
+        elif self.var_type == Type.TEXTO:
+            value = "\"\""
         return f"{self.name} = {value}"  
 
 class Block(CodeObj):
