@@ -1,5 +1,5 @@
 # Incompatible types
 
 
-teste : Texto = "Texto"
+teste : texto = "texto"
 temp : real = teste #expect error

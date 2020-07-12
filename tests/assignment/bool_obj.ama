@@ -1,4 +1,4 @@
 # Incompatible types
 
-teste : Texto = "Texto"
+teste : texto = "texto"
 temp : bool = teste #expect error

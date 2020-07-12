@@ -72,124 +72,11 @@ class Symbol:
     def is_callable(self):
         return False
 
-
-
-#Tags used during index lookup of operations
-class Tag(Enum):
-
-    INT = 0
-    REAL = 1
-    BOOL = 2
-    REF = 3
-    VAZIO = 4
-
-    def __str__(self):
-        return self.name.lower()
-
-
-class Type(Symbol):
-    ''' Class that represents a type 
-    in amanda. Types will be used during
-    semantic analysis to enforce type
-    rules
-    '''
-    # Type indexes used for table lookups to validate
-    # operations and type promotions
-    # Two operands must be of the same type before
-    # an operation can be perfomed on them
-
-    arithmetic = [
-    #       int       real       bool
-        [Tag.INT,Tag.REAL,None],
-        [Tag.REAL,Tag.REAL,None],
-        [None,None,None],
-    ]
-
-    #Table for  type for >,<,>=,<=
-    comparison = [
-    #       int       real       bool
-        [Tag.BOOL,Tag.BOOL,None],
-        [Tag.BOOL,Tag.BOOL,None],
-        [None,None,None],
-    ]
-
-    #table for type results for == !=
-    equality = [
-    #       int       real       bool
-        [Tag.BOOL,Tag.BOOL,Tag.BOOL],
-        [Tag.BOOL,Tag.BOOL,Tag.BOOL],
-        [None,None,Tag.BOOL],
-    ]
-
-    #table for type results for e ou !
-    logic = [
-    #    int  real  bool
-        [None,None,None],
-        [None,None,None],
-        [None,None,Tag.BOOL],
-    ]
-
-    promotion = [
-    #    int  real  bool
-        [None,Tag.REAL,None],
-        [None,None,None],
-        [None,None,None],
-    ]
-
-
-    def __init__(self,name,tag):
-        super().__init__(name,None)
-        self.tag = tag
-
-    def __str__(self):
-        return str(self.name)
-
-    def is_type(self):
-        return True
-
-    def validate_op(self,op,other,scope):
-
-        #Reference types don't participate in ops 
-        if self.tag == Tag.REF or other.tag == Tag.REF or \
-        self.tag == Tag.VAZIO or other.tag == Tag.VAZIO:
-            return None
-
-        result = None
-        if op in (TT.PLUS,TT.MINUS,TT.STAR,TT.SLASH,TT.MODULO):
-            result = self.arithmetic[self.tag.value][other.tag.value]
-        elif op in (TT.GREATER,TT.LESS,TT.GREATEREQ,TT.LESSEQ):
-            result = self.comparison[self.tag.value][other.tag.value]
-        elif op in (TT.DOUBLEEQUAL,TT.NOTEQUAL):
-            result = self.equality[self.tag.value][other.tag.value]
-        elif op in (TT.E,TT.OU):
-            result = self.logic[self.tag.value][other.tag.value]
-
-        if not result:
-            return None
-        return scope.resolve(str(result))
-
-    def promote_to(self,other,scope):
-        #Reference types don't participate in ops 
-        if self.tag == Tag.REF or other.tag == Tag.REF or \
-        self.tag == Tag.VAZIO or other.tag == Tag.VAZIO:
-            return None
-
-        result = self.promotion[self.tag.value][other.tag.value]
-        if not result:
-            return None
-        return scope.resolve(str(result))
-
-class BuiltInType(Type):
-    pass
-
-
 class VariableSymbol(Symbol):
     def __init__(self,name,type):
         super().__init__(name,type)
     def can_evaluate(self):
         return True
-
-
 
 class FunctionSymbol(Symbol):
     def __init__(self,name,func_type,params={}):
@@ -206,6 +93,42 @@ class FunctionSymbol(Symbol):
 
     def arity(self):
         return len(self.params)
+
+class Type(Symbol):
+    ''' Class that represents a type 
+    in amanda. Types will be used during
+    semantic analysis to enforce type
+    rules
+    '''
+    
+
+    def __init__(self,name,prom_types=[]):
+        super().__init__(name,None)
+        self.prom_types = prom_types
+
+    def __str__(self):
+        return str(self.name)
+
+    def is_type(self):
+        return True
+
+    def is_numeric(self):
+        return self == Type.INT or self == Type.REAL
+
+    def is_operable(self):
+        return self != Type.VAZIO and self != Type.INDEF
+
+    def promote_to(self,other):
+        return other if other in self.prom_types else None
+
+#Add Builtin types 
+Type.REAL = Type("real")
+Type.INT = Type("int",[Type.REAL])
+Type.BOOL = Type("bool")
+Type.TEXTO = Type("texto")
+Type.VAZIO = Type("vazio")
+Type.INDEF = Type("indef")
+
 
 class ClassSymbol(Type):
     ''' Represents a class in amanda.

@@ -1,10 +1,10 @@
 
 classe Animal
 
-     nome:Texto
+     nome:texto
      idade:int
     
-    func falar(palavras : Texto): Texto
+    func falar(palavras : texto): texto
         mostra palavras
         retorna palavras
     fim

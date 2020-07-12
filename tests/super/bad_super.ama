@@ -2,7 +2,7 @@ classe Animal fim
 
 
 classe Humano < Animal
-    func falar():Texto
+    func falar():texto
         retorna super.falar() #expect error
     fim
 

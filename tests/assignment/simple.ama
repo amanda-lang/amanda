@@ -11,5 +11,5 @@ mostra c; # expect 1.0
 d : bool = 1 > 2;
 mostra d; # expect falso
 
-b : Texto = "a";
+b : texto = "a";
 mostra b; # expect a

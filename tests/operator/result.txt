@@ -3,8 +3,7 @@ Erro na linha 2: os tipos 'bool' e 'bool' não suportam operações com o operad
 verdadeiro verdadeiro
 Erro na linha 2: os tipos 'real' e 'bool' não suportam operações com o operador '+'.
 Erro na linha 3: os tipos 'int' e 'bool' não suportam operações com o operador '+'.
-Erro na linha 3: os tipos 'int' e 'Texto' não suportam operações com o operador '+'.
+Erro na linha 3: os tipos 'int' e 'texto' não suportam operações com o operador '+'.
 falso verdadeiro falso
-Erro na linha 1: os tipos 'Texto' e 'Texto' não suportam operações com o operador '+'.
 Erro na linha 2: os tipos 'real' e 'bool' não suportam operações com o operador '<'.
 verdadeiro falso verdadeiro falso verdadeiro falso verdadeiro verdadeiro

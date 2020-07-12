@@ -1,15 +1,15 @@
 
 classe Animal
 
-     nome:Texto
+     nome:texto
      idade:int
 
-    func constructor(nome:Texto,idade:int)
+    func constructor(nome:texto,idade:int)
         eu.nome = nome
         eu.idade = idade
     fim
     
-    func falar(palavras : Texto): Texto
+    func falar(palavras : texto): texto
         mostra palavras
         retorna palavras
     fim
@@ -19,16 +19,16 @@ fim
 
 classe Humano < Animal  
     
-    func constructor(nome:Texto,idade:int)
+    func constructor(nome:texto,idade:int)
         super(nome,idade)
     fim
 
-    func teste():Texto
+    func teste():texto
         super(nome,idade) #expect error
         retorna ""
     fim
 
-    func meu_nome():Texto
+    func meu_nome():texto
         retorna super.nome
     fim
 
