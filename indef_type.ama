@@ -1,0 +1,10 @@
+
+i : indef = 8
+
+
+
+func random(arg : indef)
+
+    mostra arg
+
+fim
