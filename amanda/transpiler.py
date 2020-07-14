@@ -173,8 +173,6 @@ class Transpiler:
         scope.define(name,(reg_name,sym_type))
         return reg_name
 
-
-    
     def define_global(self,name,name_type):
         ''' Defines a new global variable. Variable id is changed
         in case of invalid identifiers'''
@@ -183,7 +181,6 @@ class Transpiler:
             real_id = f"_g{self.global_scope.count()}_"
         self.global_scope.define(name,(real_id,name_type))
         return real_id
-
 
     #TODO: Add check for names that use python keywords
     # and reserved transpiler identifiers
@@ -276,7 +273,7 @@ class Transpiler:
         names = []
         scope = scope.enclosing_scope
         while scope and scope != self.global_scope:
-            names = [*names,*self.get_names(scope)]
+            names += self.get_names(scope) 
             scope = scope.enclosing_scope
         if len(names)==0:
             return None
@@ -284,18 +281,15 @@ class Transpiler:
         self.py_lineno += 1
         return codeobj.NonLocal(py_lineno,self.ama_lineno,names)
 
-
     def gen_call(self,node):
         args = [self.gen(arg) for arg in node.fargs]
         return codeobj.Call(self.py_lineno,self.ama_lineno,self.gen(node.callee),args)
-
 
     def gen_assign(self,node):
         lhs = self.gen(node.left)
         rhs = self.gen(node.right)
         return codeobj.Assign(self.py_lineno,self.ama_lineno,lhs,rhs)
 
-    
     def gen_constant(self,node):
         prom_type = node.prom_type
         if prom_type:
@@ -313,7 +307,6 @@ class Transpiler:
         return self.current_scope.resolve(name)[0]
 
     def gen_binop(self,node):
-
         lhs = self.gen(node.left)
         rhs = self.gen(node.right)
         operator = node.token
