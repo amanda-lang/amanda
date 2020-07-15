@@ -44,17 +44,21 @@ class Del(CodeObj):
         return f"del {names}"
 
 
-class Box(CodeObj):
-    def __init__(self,py_lineno,ama_lineno,codeobj,value_type):
+class Promotion(CodeObj):
+    def __init__(self,py_lineno,ama_lineno,expr,value_type):
         super().__init__(py_lineno,ama_lineno)
-        self.codeobj = codeobj
+        self.expr = expr
         self.value_type = value_type
 
     def __str__(self):
+        string = str(self.expr)
         if self.value_type == Type.INDEF:
-            return f"Indef({str(self.codeobj)})"
+            string = f"Indef({string})"
+        elif self.value_type == Type.REAL:
+            string = f"float({string})"
         else:
-            return str(self.codeobj)
+            raise NotImplementedError("Unexpected prom_type")
+        return string
         
 
 class BinOp(CodeObj):

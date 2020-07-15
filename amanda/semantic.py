@@ -149,6 +149,8 @@ class Analyzer(ast.Visitor):
             self.current_node = node
             self.error(self.NO_RETURN_STMT,name=name)
         symbol = symbols.FunctionSymbol(name,function_type)
+        #Annotate node with symbol
+        node.symbol = symbol
         self.check_function(name,symbol,node)
 
     def check_super(self,name,superclass,body):

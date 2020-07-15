@@ -202,7 +202,7 @@ class Transpiler:
     def gen_functiondecl(self,node):
         name = node.name.lexeme
         prev_function = self.current_function
-        self.current_function = node
+        self.current_function = node.symbol
         if self.scope_depth >= 1:
             #Nested function
             name = self.define_local(name,self.current_scope,self.FUNC)
@@ -293,16 +293,14 @@ class Transpiler:
     def gen_assign(self,node):
         lhs = self.gen(node.left)
         rhs = self.gen(node.right)
-        if node.left.eval_type == symbols.Type.INDEF:
-            rhs = codeobj.Box(self.py_lineno,self.ama_lineno,rhs,symbols.Type.INDEF)
         return codeobj.Assign(self.py_lineno,self.ama_lineno,lhs,rhs)
 
     def gen_constant(self,node):
         prom_type = node.prom_type
-        if prom_type:
-            if prom_type == symbols.Type.REAL:
-                return float(node.token.lexeme)
-        return node.token.lexeme
+        literal = node.token.lexeme
+        if prom_type is not None:
+            return self.promote_expression(literal,prom_type)
+        return literal
 
     def gen_variable(self,node):
         name = node.token.lexeme
@@ -310,29 +308,52 @@ class Transpiler:
         #and name is defined, return local var name
         info = self.current_scope.get(name)
         if self.depth > 0 and info:
-            return info[0]
-        return self.current_scope.resolve(name)[0]
+            name = info[0]
+        else:
+            name = self.current_scope.resolve(name)[0]
+
+        prom_type = node.prom_type
+        if prom_type is not None:
+            return self.promote_expression(name,prom_type)
+        return name
 
     def gen_binop(self,node):
         lhs = self.gen(node.left)
         rhs = self.gen(node.right)
         operator = node.token
         #Workaround for int division
+        #TODO: Add operator for int division
         if operator.lexeme == "/":
             if node.prom_type == None and node.left.eval_type == symbols.Type.INT:
                 operator.lexeme = "//"
-        return codeobj.BinOp(self.py_lineno,self.ama_lineno,operator.lexeme,lhs,rhs)
+        gen = codeobj.BinOp(
+            self.py_lineno,self.ama_lineno,
+            operator.lexeme,lhs,rhs
+        )
+        
+        # Promote node
+        if node.prom_type is not None:
+            return self.promote_expression(gen,node.prom_type)
+        return gen
 
     def gen_unaryop(self,node):
-        return codeobj.UnaryOp(
+        gen = codeobj.UnaryOp(
             self.py_lineno,self.ama_lineno,
             node.token.lexeme,
             self.gen(node.operand)
         )
+        if node.prom_type is not None:
+            return self.promote_expression(gen,node.prom_type)
+        return gen
+
+    def promote_expression(self,expression,prom_type):
+        return codeobj.Promotion(
+            self.py_lineno,self.ama_lineno,
+            expression,prom_type
+        )
 
     
     def gen_se(self,node):
-
         self.scope_depth += 1
         scope = symbols.Scope(self.LOCAL,self.current_scope)
         gen = codeobj.Se(
@@ -422,6 +443,7 @@ class Transpiler:
             
 
     def gen_retorna(self,node):
+        # Check if promotion is needed
         return codeobj.Retorna(
             self.py_lineno,self.ama_lineno,
             self.gen(node.exp)
