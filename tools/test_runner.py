@@ -19,7 +19,8 @@ join(STATEMENT,"mostra"),join(STATEMENT,"para"),
 join(STATEMENT,"retorna"),join(STATEMENT,"se"),
 join(TEST_DIR,"operator"),
 join(TEST_DIR,"call"),join(TEST_DIR,"comment"),
-join(TEST_DIR,"transpiler"),join(TEST_DIR,"rt_errors")
+join(TEST_DIR,"transpiler"),join(TEST_DIR,"rt_errors"),
+join(TEST_DIR,"indef_type"),
 #join(TEST_DIR,"super")join(TEST_DIR,"get"), # Exclude these tests for now
 #join(TEST_DIR,"set"),join(TEST_DIR,"eu"),
 #,join(TEST_DIR,"class"),
@@ -59,7 +60,7 @@ def run_tests(backend):
                         try:
                             output = run_program(script,backend)
                         except Exception as e:
-                            pass 
+                            pass
                     expected = res_file.readline().strip()
                     symbol = ""
                     if output.strip() == expected:

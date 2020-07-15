@@ -11,7 +11,7 @@ import amanda.semantic as sem
 from amanda.error import AmandaError,throw_error
 from amanda.parser import Parser
 import amanda.codeobj as codeobj
-from amanda.types import Bool
+from amanda.types import Bool,Indef
 
 
 #TODO: Find a cleaner way to run tests on classes that execute code
@@ -48,6 +48,7 @@ class Transpiler:
         self.debug = debug 
         self.global_scope = symbols.Scope(self.GLOBAL)
         self.current_scope = self.global_scope
+        self.current_function = None
         self.func_depth = 0 # current func nesting level
         self.scope_depth = 0 # scope nesting level
         if self.debug:
@@ -82,6 +83,7 @@ class Transpiler:
         scope["verdadeiro"] = Bool.VERDADEIRO
         scope["falso"] = Bool.FALSO
         scope["printc"] = print_wrapper
+        scope["Indef"] = Indef
         try:
             exec(py_codeobj,scope)
         except Exception as e:
@@ -173,8 +175,6 @@ class Transpiler:
         scope.define(name,(reg_name,sym_type))
         return reg_name
 
-
-    
     def define_global(self,name,name_type):
         ''' Defines a new global variable. Variable id is changed
         in case of invalid identifiers'''
@@ -183,7 +183,6 @@ class Transpiler:
             real_id = f"_g{self.global_scope.count()}_"
         self.global_scope.define(name,(real_id,name_type))
         return real_id
-
 
     #TODO: Add check for names that use python keywords
     # and reserved transpiler identifiers
@@ -202,6 +201,8 @@ class Transpiler:
 
     def gen_functiondecl(self,node):
         name = node.name.lexeme
+        prev_function = self.current_function
+        self.current_function = node.symbol
         if self.scope_depth >= 1:
             #Nested function
             name = self.define_local(name,self.current_scope,self.FUNC)
@@ -221,6 +222,7 @@ class Transpiler:
         )
         self.scope_depth -= 1
         self.func_depth -= 1
+        self.current_function = prev_function
         return gen
 
     #1.Any functions declared inside another
@@ -276,7 +278,7 @@ class Transpiler:
         names = []
         scope = scope.enclosing_scope
         while scope and scope != self.global_scope:
-            names = [*names,*self.get_names(scope)]
+            names += self.get_names(scope) 
             scope = scope.enclosing_scope
         if len(names)==0:
             return None
@@ -284,24 +286,21 @@ class Transpiler:
         self.py_lineno += 1
         return codeobj.NonLocal(py_lineno,self.ama_lineno,names)
 
-
     def gen_call(self,node):
         args = [self.gen(arg) for arg in node.fargs]
         return codeobj.Call(self.py_lineno,self.ama_lineno,self.gen(node.callee),args)
-
 
     def gen_assign(self,node):
         lhs = self.gen(node.left)
         rhs = self.gen(node.right)
         return codeobj.Assign(self.py_lineno,self.ama_lineno,lhs,rhs)
 
-    
     def gen_constant(self,node):
         prom_type = node.prom_type
-        if prom_type:
-            if prom_type == symbols.Type.REAL:
-                return float(node.token.lexeme)
-        return node.token.lexeme
+        literal = node.token.lexeme
+        if prom_type is not None:
+            return self.promote_expression(literal,prom_type)
+        return literal
 
     def gen_variable(self,node):
         name = node.token.lexeme
@@ -309,30 +308,52 @@ class Transpiler:
         #and name is defined, return local var name
         info = self.current_scope.get(name)
         if self.depth > 0 and info:
-            return info[0]
-        return self.current_scope.resolve(name)[0]
+            name = info[0]
+        else:
+            name = self.current_scope.resolve(name)[0]
+
+        prom_type = node.prom_type
+        if prom_type is not None:
+            return self.promote_expression(name,prom_type)
+        return name
 
     def gen_binop(self,node):
-
         lhs = self.gen(node.left)
         rhs = self.gen(node.right)
         operator = node.token
         #Workaround for int division
+        #TODO: Add operator for int division
         if operator.lexeme == "/":
             if node.prom_type == None and node.left.eval_type == symbols.Type.INT:
                 operator.lexeme = "//"
-        return codeobj.BinOp(self.py_lineno,self.ama_lineno,operator.lexeme,lhs,rhs)
+        gen = codeobj.BinOp(
+            self.py_lineno,self.ama_lineno,
+            operator.lexeme,lhs,rhs
+        )
+        
+        # Promote node
+        if node.prom_type is not None:
+            return self.promote_expression(gen,node.prom_type)
+        return gen
 
     def gen_unaryop(self,node):
-        return codeobj.UnaryOp(
+        gen = codeobj.UnaryOp(
             self.py_lineno,self.ama_lineno,
             node.token.lexeme,
             self.gen(node.operand)
         )
+        if node.prom_type is not None:
+            return self.promote_expression(gen,node.prom_type)
+        return gen
+
+    def promote_expression(self,expression,prom_type):
+        return codeobj.Promotion(
+            self.py_lineno,self.ama_lineno,
+            expression,prom_type
+        )
 
     
     def gen_se(self,node):
-
         self.scope_depth += 1
         scope = symbols.Scope(self.LOCAL,self.current_scope)
         gen = codeobj.Se(
@@ -422,6 +443,7 @@ class Transpiler:
             
 
     def gen_retorna(self,node):
+        # Check if promotion is needed
         return codeobj.Retorna(
             self.py_lineno,self.ama_lineno,
             self.gen(node.exp)
