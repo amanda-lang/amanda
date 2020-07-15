@@ -1,10 +1,11 @@
-
 i : indef = 8
+t : indef = "texto"
+b : indef = verdadeiro
+r : indef = 8.4
 
 
+mostra i
+mostra t
+mostra b
+mostra r
 
-func random(arg : indef)
-
-    mostra arg
-
-fim

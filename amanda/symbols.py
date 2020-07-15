@@ -122,12 +122,13 @@ class Type(Symbol):
         return other if other in self.prom_types else None
 
 #Add Builtin types 
-Type.REAL = Type("real")
-Type.INT = Type("int",[Type.REAL])
-Type.BOOL = Type("bool")
-Type.TEXTO = Type("texto")
-Type.VAZIO = Type("vazio")
+#All types except vazio can be promoted to indef
 Type.INDEF = Type("indef")
+Type.VAZIO = Type("vazio")
+Type.REAL = Type("real",[Type.INDEF])
+Type.INT = Type("int",[Type.REAL,Type.INDEF])
+Type.BOOL = Type("bool",[Type.INDEF])
+Type.TEXTO = Type("texto",[Type.INDEF])
 
 
 class ClassSymbol(Type):

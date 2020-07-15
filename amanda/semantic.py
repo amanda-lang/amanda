@@ -415,17 +415,21 @@ class Analyzer(ast.Visitor):
         self.validate_get(node.exp,sym)
 
     def visit_retorna(self,node):
-        expr = node.exp
-        self.visit(expr)
         if not self.current_function:
             self.current_node = node
             self.error(f"A directiva 'retorna' só pode ser usada dentro de uma função")
+
+        #REMOVE: Old and unused constructor logic
         if self.current_function.is_constructor:
             self.error("Não pode usar a directiva 'retorna' dentro de um constructor")
         func_type = self.current_function.type
+
         #TODO: Allow empty return from void functions
-        if self.current_function.type.name == "vazio":
+        if self.current_function.type == Type.VAZIO:
             self.error("Não pode usar a directiva 'retorna' em uma função vazia")
+
+        expr = node.exp
+        self.visit(expr)
         expr.prom_type = expr.eval_type.promote_to(func_type)
         if func_type != expr.eval_type and not expr.prom_type:
             self.error(f"expressão de retorno inválida. O tipo do valor de retorno é incompatível com o tipo de retorno da função")

@@ -59,7 +59,7 @@ def run_tests(backend):
                         try:
                             output = run_program(script,backend)
                         except Exception as e:
-                            pass 
+                            pass
                     expected = res_file.readline().strip()
                     symbol = ""
                     if output.strip() == expected:

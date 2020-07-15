@@ -11,7 +11,7 @@ import amanda.semantic as sem
 from amanda.error import AmandaError,throw_error
 from amanda.parser import Parser
 import amanda.codeobj as codeobj
-from amanda.types import Bool
+from amanda.types import Bool,Indef
 
 
 #TODO: Find a cleaner way to run tests on classes that execute code
@@ -48,6 +48,7 @@ class Transpiler:
         self.debug = debug 
         self.global_scope = symbols.Scope(self.GLOBAL)
         self.current_scope = self.global_scope
+        self.current_function = None
         self.func_depth = 0 # current func nesting level
         self.scope_depth = 0 # scope nesting level
         if self.debug:
@@ -82,6 +83,7 @@ class Transpiler:
         scope["verdadeiro"] = Bool.VERDADEIRO
         scope["falso"] = Bool.FALSO
         scope["printc"] = print_wrapper
+        scope["Indef"] = Indef
         try:
             exec(py_codeobj,scope)
         except Exception as e:
@@ -199,6 +201,8 @@ class Transpiler:
 
     def gen_functiondecl(self,node):
         name = node.name.lexeme
+        prev_function = self.current_function
+        self.current_function = node
         if self.scope_depth >= 1:
             #Nested function
             name = self.define_local(name,self.current_scope,self.FUNC)
@@ -218,6 +222,7 @@ class Transpiler:
         )
         self.scope_depth -= 1
         self.func_depth -= 1
+        self.current_function = prev_function
         return gen
 
     #1.Any functions declared inside another
@@ -288,6 +293,8 @@ class Transpiler:
     def gen_assign(self,node):
         lhs = self.gen(node.left)
         rhs = self.gen(node.right)
+        if node.left.eval_type == symbols.Type.INDEF:
+            rhs = codeobj.Box(self.py_lineno,self.ama_lineno,rhs,symbols.Type.INDEF)
         return codeobj.Assign(self.py_lineno,self.ama_lineno,lhs,rhs)
 
     def gen_constant(self,node):
