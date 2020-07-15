@@ -14,6 +14,9 @@ class Indef:
     def __init__(self,value):
         if isinstance(value,Indef):
             value = value.value
+        #TODO: Fix this awful hack
+        elif isinstance(value,bool):
+            value = Bool.VERDADEIRO if value else Bool.FALSO
         self.value = value
 
     def __str__(self):
@@ -23,8 +26,8 @@ class Indef:
         elif isinstance(self.value,float):
             string = f"real -> {self.value}"
         elif isinstance(self.value,str):
-            string = f"texto -> {self.value}"
+            string = f"texto -> '{self.value}'"
         elif isinstance(self.value,Bool):
-            string = f"bool -> {self.value}"
+            string = f"bool -> {str(self.value)}"
         return string 
         
