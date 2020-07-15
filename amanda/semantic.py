@@ -131,45 +131,26 @@ class Analyzer(ast.Visitor):
     def visit_functiondecl(self,node):
         #Check if id is already in use
         name = node.name.lexeme
-        #If current class has been resolved
-        #just execute the body
-        klass = self.current_class
-        if klass and klass.resolved:
-            function = klass.get_member(name)
-            self.check_function(name,function,node)
-            return
         if self.current_scope.get(name):
             self.error(self.ID_IN_USE,name=name)
+
         #Check if return types exists
         if not node.func_type:
-            self.validate_void_func(name,node)
-            return
-        decl_type = node.func_type.lexeme
-        function_type =  self.current_scope.resolve(decl_type)
-        #TODO: fix this hack
+            function_type = Type.VAZIO
+        else:
+            decl_type = node.func_type.lexeme
+            function_type =  self.current_scope.resolve(decl_type)
         if not function_type or not function_type.is_type():
             self.error(self.UNDEFINED_TYPE,type=decl_type)
+
+        #Check if non void function has return
         has_return = self.has_return(node.block)
-        if not has_return:
-            #TODO: fix this hack
+        if not has_return and function_type != Type.VAZIO:
             self.current_node = node
             self.error(self.NO_RETURN_STMT,name=name)
         symbol = symbols.FunctionSymbol(name,function_type)
-        self.check_function(name,symbol,node)
-
-    def validate_void_func(self,name,node):
-        #Checks if this is a class constructor 
-        #If it's not, just consider it a normal
-        #plain void function
-        klass = self.current_class
-        if name == "constructor" and klass:
-            symbol = symbols.FunctionSymbol(name,self.current_class)
-            symbol.is_constructor = True
-            if klass.superclass and \
-            not self.check_super(name,klass.superclass,node.block):
-                self.error("O constructor da superclasse deve ser invocado")
-        else:
-            symbol = symbols.FunctionSymbol(name,self.current_scope.get("vazio"))
+        #Annotate node with symbol
+        node.symbol = symbol
         self.check_function(name,symbol,node)
 
     def check_super(self,name,superclass,body):
@@ -436,17 +417,21 @@ class Analyzer(ast.Visitor):
         self.validate_get(node.exp,sym)
 
     def visit_retorna(self,node):
-        expr = node.exp
-        self.visit(expr)
         if not self.current_function:
             self.current_node = node
             self.error(f"A directiva 'retorna' só pode ser usada dentro de uma função")
+
+        #REMOVE: Old and unused constructor logic
         if self.current_function.is_constructor:
             self.error("Não pode usar a directiva 'retorna' dentro de um constructor")
         func_type = self.current_function.type
+
         #TODO: Allow empty return from void functions
-        if self.current_function.type.name == "vazio":
+        if self.current_function.type == Type.VAZIO:
             self.error("Não pode usar a directiva 'retorna' em uma função vazia")
+
+        expr = node.exp
+        self.visit(expr)
         expr.prom_type = expr.eval_type.promote_to(func_type)
         if func_type != expr.eval_type and not expr.prom_type:
             self.error(f"expressão de retorno inválida. O tipo do valor de retorno é incompatível com o tipo de retorno da função")

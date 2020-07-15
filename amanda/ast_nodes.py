@@ -55,6 +55,7 @@ class Variable(Expr):
 
     def __init__(self,token):
         super().__init__(token)
+        self.symbol = None # Symbol will contain extra info for python code gen phase
 
     def is_assignable(self):
         return True
@@ -226,6 +227,7 @@ class FunctionDecl(ASTNode):
         super().__init__(name)
         self.name = name
         self.params = params
+        self.symbol = None # Symbol will contain extra info for python code gen phase
         self.func_type = func_type
         self.block = block
 
