@@ -125,10 +125,10 @@ class Type(Symbol):
 #All types except vazio can be promoted to indef
 Type.INDEF = Type("indef")
 Type.VAZIO = Type("vazio")
-Type.REAL = Type("real",[Type.INDEF])
-Type.INT = Type("int",[Type.REAL,Type.INDEF])
-Type.BOOL = Type("bool",[Type.INDEF])
-Type.TEXTO = Type("texto",[Type.INDEF])
+Type.REAL = Type("real",(Type.INDEF,))
+Type.INT = Type("int",(Type.REAL,Type.INDEF))
+Type.BOOL = Type("bool",(Type.INDEF,))
+Type.TEXTO = Type("texto",(Type.INDEF,))
 
 
 class ClassSymbol(Type):
