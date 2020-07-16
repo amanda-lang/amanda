@@ -1,12 +1,13 @@
 import os
 import traceback
 from amanda.transpiler import Transpiler
-from tools.util import run_program,RESULTS_DIR
 
 join = os.path.join
 TEST_DIR = os.path.abspath("./tests")
 STATEMENT = join(TEST_DIR,"statement")
 EXCLUDED = ("result.txt")
+RESULTS_FILE = "result.txt"
+RESULTS_DIR = join(TEST_DIR,"results")
 
 #test paths
 DIRS = [
@@ -28,6 +29,47 @@ join(TEST_DIR,"indef_type"),
 passed = 0
 failed = 0
 failed_tests = []
+
+def run_program(src,backend_cls):
+    backend = backend_cls(src,True)
+    try:
+        backend.exec()
+        return backend.test_buffer.getvalue()
+    except SystemExit:
+        return backend.test_buffer.getvalue()
+    except Exception as e:
+        raise e
+
+#Deletes result files for specific test
+#cases
+def delete_script_output():
+    for root,dirs,files in os.walk(TEST_DIR):
+        result = join(root,RESULTS_FILE)
+        try:
+            os.remove(result)
+        except FileNotFoundError:
+            pass
+
+#Generates result files for test cases
+def gen_results():
+    EXCLUDED = (
+        "results","result.txt",
+        "super","get",
+        "set","eu","class"
+    )
+    for root,dirs,files in os.walk(TEST_DIR):
+        dirname = os.path.basename(root)
+        print(dirname)
+        for file in sorted(files):
+            #Crazy workaround because of results.txt and result dir
+            if file in EXCLUDED  or dirname in EXCLUDED:
+                continue
+            filename = join(root,file)
+            result_fname = "_".join(["result",dirname,file])
+            with open(join(RESULTS_DIR,result_fname),"w") as result_file,\
+            open(filename,"r") as src:
+                result = run_program(src,Transpiler)
+                result_file.write(result.strip()+"\n")
 
 def add_success():
     global passed
