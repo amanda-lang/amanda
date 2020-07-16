@@ -26,10 +26,21 @@ join(TEST_DIR,"indef_type"),
 #,join(TEST_DIR,"class"),
 ]
 
+passed = 0
+failed = 0
+failed_tests = []
 
+def add_success():
+    global passed
+    passed += 1
+    print(".",end="")
 
+def add_failure(test_case,error):
+    global failed,failed_tests
+    failed += 1
+    failed_tests.append(os.path.relpath(test_case))
 
-def print_results(passed,failed,failed_tests):
+def print_results():
     print("\n")
     print("Tests have finished running.")
     print(f"Total:{passed + failed}",f"Passed:{passed}",f"Failed:{failed}")
@@ -39,40 +50,40 @@ def print_results(passed,failed,failed_tests):
         for name in failed_tests:
             print(name)
 
+#TODO: Stop relying on sorted for tests to avoid windows cheese
+def load_test_cases(suite):
+    for root,dirs,files in os.walk(suite):
+        test_cases = [
+            join(root,filename) for filename in sorted(files)
+            if filename not in EXCLUDED
+        ]
+    return test_cases
 
-#TODO: Refactor this monster 
-def run_tests(backend):
+def run_suite(test_cases,results,backend):
+    for test_case in test_cases:
+        script = open(test_case,"r")
+        try:
+            output = run_program(script,backend).strip()
+            expected = results.readline().strip()
+            assert output == expected
+            add_success()
+        except AssertionError as e:
+            add_failure(test_case,str(e))
+        except Exception as e:
+            add_failure(test_case,str(e))
+        script.close()
+
+def main(backend):
     ''' Convenience method for running
     test cases.
     '''
-    passed = 0
-    failed = 0
-    failed_tests = []
     #Run test files in each test_directors
     for suite in DIRS:
-        with open(join(suite,"result.txt"),"r") as res_file:
-            for root,dirs,files in os.walk(suite):
-                for file in sorted(files):
-                    if file in EXCLUDED:
-                        continue
-                    test_case = join(root,file)
-                    with open(test_case,"r") as script:
-                        try:
-                            output = run_program(script,backend)
-                        except Exception as e:
-                            pass
-                    expected = res_file.readline().strip()
-                    symbol = ""
-                    if output.strip() == expected:
-                        passed += 1
-                        symbol = "."
-                    else:
-                        failed += 1
-                        failed_tests.append(os.path.relpath(test_case))
-                        symbol = "x"
-                    print(symbol,end="")
-
-    print_results(passed,failed,failed_tests)
+        results = open(join(suite,"result.txt"),"r")
+        test_cases = load_test_cases(suite)
+        run_suite(test_cases,results,backend)
+        results.close()
+    print_results()
 
 if __name__ == "__main__":
-    run_tests(Transpiler)
+    main(Transpiler)
