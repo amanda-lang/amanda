@@ -30,13 +30,14 @@ class LexerTestCase(unittest.TestCase):
         self.assertEqual(lexer.get_token().token,TokenType.NAO,msg="NAO Test Failed")
 
     def test_arit_operators(self):
-        self.buffer.write("+ - * / % += -= *= /=")
+        self.buffer.write("+ - * / // % += -= *= /=")
         self.buffer.seek(0)
         lexer = Lexer(self.buffer)
         self.assertEqual(lexer.get_token().token,TokenType.PLUS,msg="PLUS Test Failed")
         self.assertEqual(lexer.get_token().token,TokenType.MINUS,msg="MINUS Test Failed")
         self.assertEqual(lexer.get_token().token,TokenType.STAR,msg="STAR Test Failed")
         self.assertEqual(lexer.get_token().token,TokenType.SLASH,msg="SLASH Test Failed")
+        self.assertEqual(lexer.get_token().token,TokenType.DOUBLESLASH,msg="DOUBLESLASH Test Failed")
         self.assertEqual(lexer.get_token().token,TokenType.MODULO,msg="MODULO Test Failed")
         self.assertEqual(lexer.get_token().token,TokenType.PLUSEQ,msg="PLUSEQ Test Failed")
         self.assertEqual(lexer.get_token().token,TokenType.MINUSEQ,msg="MINUSEQ Test Failed")
@@ -246,7 +247,7 @@ class ParserTestCase(unittest.TestCase):
         parser.parse()
 
     def test_expression(self):
-        phrases = ["2-1","2+1","2/1","2*1","2%1","2+ad",
+        phrases = ["2-1","2+1","2/1","2//1","2*1//2*1","2*1","2%1","2+ad",
             "'string'+'op'","2.132+1","'string'*2","string*2",
             "string*5","a+b-c*array%(-a)/(-c)+eval(2+1,5)","+--2---5",
             "'string'/2.241 ","(c*array+soma(1-3))/((2.132+1)*('string'*2))",

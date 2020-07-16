@@ -3,7 +3,7 @@ a : int = 6
 i : int
 
 para i de 4..-1 faca
-    mostra a/i #expect error
+    mostra a//i #expect error
 fim
 
 

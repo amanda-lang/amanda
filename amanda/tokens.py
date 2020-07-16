@@ -9,6 +9,7 @@ class TokenType(Enum):
     MINUS = "MINUS"
     STAR = "STAR"
     SLASH = "SLASH"
+    DOUBLESLASH = "DOUBLESLASH"
     MODULO = "MODULO"
     PLUSEQ = "PLUSEQ"
     MINUSEQ = "MINUSEQ"

@@ -323,9 +323,6 @@ class Transpiler:
         operator = node.token
         #Workaround for int division
         #TODO: Add operator for int division
-        if operator.lexeme == "/":
-            if node.prom_type == None and node.left.eval_type == symbols.Type.INT:
-                operator.lexeme = "//"
         gen = codeobj.BinOp(
             self.py_lineno,self.ama_lineno,
             operator.lexeme,lhs,rhs
