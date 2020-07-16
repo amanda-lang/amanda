@@ -1,7 +1,7 @@
 import os
 import traceback
 from amanda.transpiler import Transpiler
-from tools.util import run_program
+from tools.util import run_program,RESULTS_DIR
 
 join = os.path.join
 TEST_DIR = os.path.abspath("./tests")
@@ -64,15 +64,23 @@ def print_results():
 #TODO: Stop relying on sorted for tests to avoid windows cheese
 def load_test_cases(suite):
     for root,dirs,files in os.walk(suite):
+        dirname = os.path.basename(root)
+        #adds tuple containing test case file path and result file path of test case
+        # to the list of test cases of this suite
         test_cases = [
-            join(root,filename) for filename in sorted(files)
+            (
+                join(root,filename),
+                join(RESULTS_DIR,"_".join(["result",dirname,filename]))
+            )
+            for filename in files
             if filename not in EXCLUDED
         ]
     return test_cases
 
-def run_suite(test_cases,results,backend):
-    for test_case in test_cases:
+def run_suite(test_cases,backend):
+    for test_case,result_file in test_cases:
         script = open(test_case,"r")
+        results = open(result_file,"r")
         try:
             output = run_program(script,backend).strip()
             expected = results.readline().strip()
@@ -84,6 +92,7 @@ def run_suite(test_cases,results,backend):
         except Exception as e:
             add_failure(test_case,e)
         script.close()
+        results.close()
 
 def main(backend):
     ''' Convenience method for running
@@ -91,10 +100,8 @@ def main(backend):
     '''
     #Run test files in each test_directors
     for suite in DIRS:
-        results = open(join(suite,"result.txt"),"r")
         test_cases = load_test_cases(suite)
-        run_suite(test_cases,results,backend)
-        results.close()
+        run_suite(test_cases,backend)
     print_results()
 
 if __name__ == "__main__":

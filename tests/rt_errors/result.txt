@@ -1,7 +1,0 @@
-Erro na linha 5: não pode dividir um número por zero.
-Erro na linha 5: não pode dividir um número por zero.
-Erro na linha 6: não pode dividir um número por zero.
-Erro na linha 8: não pode dividir um número por zero.
-1 2 3 6 Erro na linha 6: não pode dividir um número por zero.
-Erro na linha 6: não pode dividir um número por zero.
-Erro na linha 9: não pode dividir um número por zero.

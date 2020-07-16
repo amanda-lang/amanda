@@ -1,8 +1,6 @@
 import os
 import os.path
 import argparse
-from io import StringIO
-import amanda.error as error
 from amanda.transpiler import Transpiler
 
 
@@ -10,7 +8,13 @@ from amanda.transpiler import Transpiler
 join = os.path.join
 #test paths
 TEST_DIR = os.path.abspath("./tests")
+RESULTS_DIR = join(TEST_DIR,"results")
 RESULTS_FILE = "result.txt"
+EXCLUDED = (
+    "results","result.txt",
+    "super","get",
+    "set","eu","class"
+)
 
 
 def run_program(src,backend_cls):
@@ -24,25 +28,28 @@ def run_program(src,backend_cls):
         raise e
 
 
-def delete_script_output(test_dir):
-    for root,dirs,files in os.walk(test_dir):
+def delete_script_output():
+    for root,dirs,files in os.walk(TEST_DIR):
         result = join(root,RESULTS_FILE)
         try:
             os.remove(result)
         except FileNotFoundError:
             pass
 
-def get_script_output(test_dir):
-    for root,dirs,files in os.walk(test_dir):
+def gen_results():
+    for root,dirs,files in os.walk(TEST_DIR):
+        dirname = os.path.basename(root)
+        print(dirname)
         for file in sorted(files):
-            #Crazy workaround because of coverage file
-            if file == ".coverage":
+            #Crazy workaround because of results.txt and result dir
+            if file in EXCLUDED  or dirname in EXCLUDED:
                 continue
             filename = join(root,file)
-            with open(join(root,RESULTS_FILE),"a") as result_file, open(filename,"r") as src:
+            result_fname = "_".join(["result",dirname,file])
+            with open(join(RESULTS_DIR,result_fname),"w") as result_file,\
+            open(filename,"r") as src:
                 result = run_program(src,Transpiler)
                 result_file.write(result.strip()+"\n")
-
 
 def main():
     ''' Gets test subdirectory from command line args and 
@@ -57,6 +64,6 @@ def main():
     except FileNotFoundError:
         print(f"The directory {args.dir} does not exist") 
 
-
 if __name__ == "__main__":
+    #delete_script_output()
     main()
