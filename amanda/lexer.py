@@ -82,6 +82,11 @@ class Lexer:
             self.advance()
             self.advance()
             return Token(cmp_assign,op_lexeme+"=",self.line,self.pos-1)
+
+        if op_lexeme == "/" and self.lookahead() == "/":
+            self.advance()
+            normal_op = TT.DOUBLESLASH
+            op_lexeme = "//"
         self.advance()
         return Token(normal_op,op_lexeme,self.line,self.pos)
  

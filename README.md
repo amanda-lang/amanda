@@ -109,8 +109,8 @@ b = 50
 2 + 2 # Soma: 4
 2 - 2 # Soma: 4
 2 * 3 # multiplicação: 6
-2 / 2 # divisão inteira: 1
-2.1 / 4 # divisão real :  0.525
+1 // 2 # divisão inteira: 0
+1 / 2 # divisão real :  0.5
 2 % 2 # resto: 0
 
 # Operadores relacionais

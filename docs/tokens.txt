@@ -5,6 +5,7 @@ PLUS : +
 MINUS: -
 STAR : *
 SLASH : /
+DOUBLESLASH : //
 MODULO : %
 
 *LOGIC*

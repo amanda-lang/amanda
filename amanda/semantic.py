@@ -355,9 +355,10 @@ class Analyzer(ast.Visitor):
         if not lhs_type.is_operable() or not rhs_type.is_operable():
             return None
 
-        if op in (TT.PLUS,TT.MINUS,TT.STAR,TT.SLASH,TT.MODULO):
+        if op in (TT.PLUS,TT.MINUS,TT.STAR,TT.SLASH,TT.DOUBLESLASH,TT.MODULO):
             if lhs_type.is_numeric() and rhs_type.is_numeric(): 
-                return Type.INT if lhs_type == Type.INT and rhs_type == Type.INT else Type.REAL
+                return Type.INT if lhs_type == Type.INT and rhs_type == Type.INT and\
+                op != TT.SLASH else Type.REAL
 
             elif lhs_type == Type.TEXTO and rhs_type == Type.TEXTO:
                 #For strings only plus operator works

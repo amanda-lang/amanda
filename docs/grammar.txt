@@ -171,6 +171,7 @@ args
 mult_operator
   : STAR
   | SLASH
+  | DOUBLESLASH
   | MODULO
   | AND
   ;

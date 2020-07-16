@@ -361,7 +361,10 @@ class Parser:
 
     def term(self):
         node = self.unary()
-        while self.lookahead.token in (TT.STAR,TT.SLASH,TT.MODULO,TT.E):
+        while self.lookahead.token in (
+            TT.STAR,TT.DOUBLESLASH,
+            TT.SLASH,TT.MODULO,TT.E
+        ):
             op = self.mult_operator()
             node = AST.BinOp(op,left=node,right=self.unary())
         return node
@@ -430,10 +433,12 @@ class Parser:
     def mult_operator(self):
         if self.match(TT.E):
             return self.consume(TT.E)
-        if self.match(TT.STAR):
+        elif self.match(TT.STAR):
             return self.consume(TT.STAR)
         elif self.match(TT.SLASH):
             return self.consume(TT.SLASH)
+        elif self.match(TT.DOUBLESLASH):
+            return self.consume(TT.DOUBLESLASH)
         elif self.match(TT.MODULO):
             return self.consume(TT.MODULO)
 
