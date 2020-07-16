@@ -16,6 +16,6 @@ a *= b;
 mostra a;  # expect 2
 
 
-a /= b;
+a = a//b;
 mostra a; # expect 1
 

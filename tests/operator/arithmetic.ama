@@ -7,7 +7,7 @@ mostra 4 - 2 # expect 2
 
 mostra 4 * 2 # expect 8
 
-mostra 5/2 # expect 2
+mostra 5//2 # expect 2
 
 mostra 2 % 2 # expect 0
 
