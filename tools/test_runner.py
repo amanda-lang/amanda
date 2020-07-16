@@ -61,7 +61,6 @@ def print_results():
     if len(failed_tests):
         print_failed()
 
-#TODO: Stop relying on sorted for tests to avoid windows cheese
 def load_test_cases(suite):
     for root,dirs,files in os.walk(suite):
         dirname = os.path.basename(root)
