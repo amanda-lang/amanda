@@ -1,8 +1,7 @@
 import os
-from io import StringIO
+import traceback
 from amanda.transpiler import Transpiler
 from tools.util import run_program
-import amanda.error as error
 
 join = os.path.join
 TEST_DIR = os.path.abspath("./tests")
@@ -38,17 +37,29 @@ def add_success():
 def add_failure(test_case,error):
     global failed,failed_tests
     failed += 1
-    failed_tests.append(os.path.relpath(test_case))
+    failed_tests.append(
+        (os.path.relpath(test_case),error)
+    )
+
+def print_failed():
+    print("Failed tests:")
+    print("\n")
+    for filename,error in failed_tests:
+        print(filename)
+        print("-"*len(filename))
+        traceback.print_exception(
+            type(error),error,
+            error.__traceback__
+        )
+        print("\n")
 
 def print_results():
     print("\n")
     print("Tests have finished running.")
     print(f"Total:{passed + failed}",f"Passed:{passed}",f"Failed:{failed}")
     print("\n\n")
-    if len(failed_tests) > 0:
-        print("Failed tests:")
-        for name in failed_tests:
-            print(name)
+    if len(failed_tests):
+        print_failed()
 
 #TODO: Stop relying on sorted for tests to avoid windows cheese
 def load_test_cases(suite):
@@ -68,9 +79,10 @@ def run_suite(test_cases,results,backend):
             assert output == expected
             add_success()
         except AssertionError as e:
-            add_failure(test_case,str(e))
+            exception = Exception(f"\nFailed assertion:\n{output} != {expected}")
+            add_failure(test_case,exception)
         except Exception as e:
-            add_failure(test_case,str(e))
+            add_failure(test_case,e)
         script.close()
 
 def main(backend):
