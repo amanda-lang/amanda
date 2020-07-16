@@ -1,8 +1,7 @@
 import os
-from io import StringIO
+import traceback
 from amanda.transpiler import Transpiler
-from tools.util import run_program
-import amanda.error as error
+from tools.util import run_program,RESULTS_DIR
 
 join = os.path.join
 TEST_DIR = os.path.abspath("./tests")
@@ -26,53 +25,83 @@ join(TEST_DIR,"indef_type"),
 #,join(TEST_DIR,"class"),
 ]
 
+passed = 0
+failed = 0
+failed_tests = []
 
+def add_success():
+    global passed
+    passed += 1
+    print(".",end="")
 
+def add_failure(test_case,error):
+    global failed,failed_tests
+    failed += 1
+    failed_tests.append(
+        (os.path.relpath(test_case),error)
+    )
 
-def print_results(passed,failed,failed_tests):
+def print_failed():
+    print("Failed tests:")
+    print("\n")
+    for filename,error in failed_tests:
+        print(filename)
+        print("-"*len(filename))
+        traceback.print_exception(
+            type(error),error,
+            error.__traceback__
+        )
+        print("\n")
+
+def print_results():
     print("\n")
     print("Tests have finished running.")
     print(f"Total:{passed + failed}",f"Passed:{passed}",f"Failed:{failed}")
     print("\n\n")
-    if len(failed_tests) > 0:
-        print("Failed tests:")
-        for name in failed_tests:
-            print(name)
+    if len(failed_tests):
+        print_failed()
 
+def load_test_cases(suite):
+    for root,dirs,files in os.walk(suite):
+        dirname = os.path.basename(root)
+        #adds tuple containing test case file path and result file path of test case
+        # to the list of test cases of this suite
+        test_cases = [
+            (
+                join(root,filename),
+                join(RESULTS_DIR,"_".join(["result",dirname,filename]))
+            )
+            for filename in files
+            if filename not in EXCLUDED
+        ]
+    return test_cases
 
-#TODO: Refactor this monster 
-def run_tests(backend):
+def run_suite(test_cases,backend):
+    for test_case,result_file in test_cases:
+        script = open(test_case,"r")
+        results = open(result_file,"r")
+        try:
+            output = run_program(script,backend).strip()
+            expected = results.readline().strip()
+            assert output == expected
+            add_success()
+        except AssertionError as e:
+            exception = Exception(f"\nFailed assertion:\n{output} != {expected}")
+            add_failure(test_case,exception)
+        except Exception as e:
+            add_failure(test_case,e)
+        script.close()
+        results.close()
+
+def main(backend):
     ''' Convenience method for running
     test cases.
     '''
-    passed = 0
-    failed = 0
-    failed_tests = []
     #Run test files in each test_directors
     for suite in DIRS:
-        with open(join(suite,"result.txt"),"r") as res_file:
-            for root,dirs,files in os.walk(suite):
-                for file in sorted(files):
-                    if file in EXCLUDED:
-                        continue
-                    test_case = join(root,file)
-                    with open(test_case,"r") as script:
-                        try:
-                            output = run_program(script,backend)
-                        except Exception as e:
-                            pass
-                    expected = res_file.readline().strip()
-                    symbol = ""
-                    if output.strip() == expected:
-                        passed += 1
-                        symbol = "."
-                    else:
-                        failed += 1
-                        failed_tests.append(os.path.relpath(test_case))
-                        symbol = "x"
-                    print(symbol,end="")
-
-    print_results(passed,failed,failed_tests)
+        test_cases = load_test_cases(suite)
+        run_suite(test_cases,backend)
+    print_results()
 
 if __name__ == "__main__":
-    run_tests(Transpiler)
+    main(Transpiler)

@@ -1,5 +1,0 @@
-Erro na linha 3: os tipos 'real' e 'indef' não suportam operações com o operador '+'.
-real -> 8.86 real -> -3.16 bool -> falso
-int -> 172 real -> 3.14
-int -> 8 texto -> 'texto' bool -> verdadeiro real -> 8.4
-Erro na linha 3: o operador unário - não pode ser usado com o tipo 'indef' .
