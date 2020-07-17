@@ -36,8 +36,9 @@ class Transpiler:
     GLOBAL = "GLOBAL"
     LOCAL = "LOCAL"
 
-    #Error messages
+    #Runtime errors
     DIVISION_BY_ZERO = "não pode dividir um número por zero"
+
 
     def __init__(self,src,debug=False):
         self.src = StringIO(src.read())
@@ -69,7 +70,7 @@ class Transpiler:
                 self.test_buffer.write(str(e).strip())
                 sys.exit()
             throw_error(e,self.src)
-        return str(self.compiled_program)
+        return self.compiled_program
 
     def exec(self):
         if not self.compiled_program:
@@ -112,7 +113,6 @@ class Transpiler:
         else:
             raise error
 
-
     def bad_gen(self,node):
         raise NotImplementedError(f"Cannot generate code for this node type yet: (TYPE) {type(node)}")
 
@@ -126,11 +126,14 @@ class Transpiler:
             return gen_method(node,args)
         return gen_method(node)
 
+    #Method gets lineno number of amanda file
+    #based on the line number of the generated python file 
+    def get_ama_lineno(self,py_lineno):
+        return self.compiled_program.get_ama_lineno(py_lineno)
 
     def gen_program(self,node):
         return self.compile_block(node,[],self.global_scope)
-            
-    
+                
     def compile_block(self,node,stmts,scope=None):
         #stmts param is a list of stmts
         #node defined here because caller may want
