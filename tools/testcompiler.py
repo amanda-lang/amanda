@@ -1,6 +1,6 @@
 from io import StringIO
 import sys
-from amanda.__main__ import load_ama_builtins,handle_exception
+from amanda.runtime import load_ama_builtins,handle_exception
 from amanda.codeobj import CodeObj
 from amanda.transpiler import Transpiler
 import amanda.semantic as sem
