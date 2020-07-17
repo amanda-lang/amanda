@@ -35,8 +35,7 @@ def handle_exception(exception,pycode):
     tb = exception.__traceback__
     while tb.tb_next:
         tb = tb.tb_next
-    py_lineno = tb.tb_lineno
-    ama_lineno = pycode.get_ama_lineno(py_lineno)
+    ama_lineno = pycode.get_ama_lineno(tb.tb_lineno)
     # REMOVE: this assert here is just for debugging
     assert ama_lineno != None
     if isinstance(exception,ZeroDivisionError):
