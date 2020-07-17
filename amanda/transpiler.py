@@ -8,24 +8,12 @@ import keyword
 import amanda.symbols as symbols
 import amanda.ast_nodes as ast
 import amanda.semantic as sem
-from amanda.error import AmandaError,throw_error
+from amanda.error import AmandaError
 from amanda.parser import Parser
 import amanda.codeobj as codeobj
-from amanda.types import Bool,Indef
 
 
-#TODO: Find a cleaner way to run tests on classes that execute code
 #TODO: Make line tracking cleaner
-
-#This is a big hack
-def print_wrapper(obj,**kwargs):
-    if str(obj) == "True":
-        print(Bool.VERDADEIRO,**kwargs)
-    elif str(obj) == "False":
-        print(Bool.FALSO,**kwargs)
-    else:
-        print(obj,**kwargs)
-
     
 class Transpiler:
     #Var types
@@ -36,26 +24,17 @@ class Transpiler:
     GLOBAL = "GLOBAL"
     LOCAL = "LOCAL"
 
-    #Error messages
-    DIVISION_BY_ZERO = "não pode dividir um número por zero"
-
-    def __init__(self,src,debug=False):
+    def __init__(self,src):
         self.src = StringIO(src.read())
         self.py_lineno = 0  # tracks lineno in compiled python src
         self.ama_lineno = 1 # tracks lineno in input amanda src
         self.compiled_program = None
         self.depth = -1 # current indent level
-        self.debug = debug 
         self.global_scope = symbols.Scope(self.GLOBAL)
         self.current_scope = self.global_scope
         self.current_function = None
         self.func_depth = 0 # current func nesting level
         self.scope_depth = 0 # scope nesting level
-        if self.debug:
-            #If debug is enabled, redirect output to
-            #an in memory buffer
-            self.test_buffer = StringIO()
-
 
     def compile(self):
         ''' Method that runs an Amanda script. Errors raised by the
@@ -65,53 +44,8 @@ class Transpiler:
             valid_program = sem.Analyzer().check_program(program)
             self.compiled_program = self.gen(valid_program)
         except AmandaError as e:
-            if self.debug:
-                self.test_buffer.write(str(e).strip())
-                sys.exit()
             throw_error(e,self.src)
-        return str(self.compiled_program)
-
-    def exec(self):
-        if not self.compiled_program:
-            self.compile()
-        py_codeobj = compile(str(self.compiled_program),"<string>","exec")
-        scope = {}
-        if self.debug:
-        #Add buffer to local dict
-            scope[codeobj.TEST_BUFFER] = self.test_buffer
-        #Set verdadeiro e falso
-        scope["verdadeiro"] = Bool.VERDADEIRO
-        scope["falso"] = Bool.FALSO
-        scope["printc"] = print_wrapper
-        scope["Indef"] = Indef
-        try:
-            exec(py_codeobj,scope)
-        except Exception as e:
-            ama_error = self.handle_error(e)
-            if self.debug:
-                self.test_buffer.write(str(ama_error).strip())
-                sys.exit()
-            throw_error(ama_error,self.src)
-
-    def handle_error(self,e):
-        ''' Method that gets info about exceptions that
-        happens during execution of compiled source and 
-        use info to raise an amanda exception'''
-        #Get to the first tb object of the trace
-        tb = e.__traceback__
-        while tb.tb_next:
-            tb = tb.tb_next
-        py_lineno = tb.tb_lineno
-        ama_lineno = self.compiled_program.get_ama_lineno(py_lineno)
-        # REMOVE: this assert here is just for debugging
-        assert ama_lineno != None
-            #Throw error
-        if isinstance(e,ZeroDivisionError):
-            ama_error = AmandaError.common_error(self.DIVISION_BY_ZERO,ama_lineno)
-            return ama_error
-        else:
-            raise error
-
+        return self.compiled_program
 
     def bad_gen(self,node):
         raise NotImplementedError(f"Cannot generate code for this node type yet: (TYPE) {type(node)}")
@@ -126,11 +60,9 @@ class Transpiler:
             return gen_method(node,args)
         return gen_method(node)
 
-
     def gen_program(self,node):
         return self.compile_block(node,[],self.global_scope)
-            
-    
+                
     def compile_block(self,node,stmts,scope=None):
         #stmts param is a list of stmts
         #node defined here because caller may want
@@ -165,7 +97,6 @@ class Transpiler:
              name in globals().get("__builtins__")
         )
         
-
     def define_local(self,name,scope,sym_type):
         ''' Defines a new local variable
         for the current_scope. Gives it a
@@ -184,8 +115,6 @@ class Transpiler:
         self.global_scope.define(name,(real_id,name_type))
         return real_id
 
-    #TODO: Add check for names that use python keywords
-    # and reserved transpiler identifiers
     def gen_vardecl(self,node):
         assign = node.assign
         name = node.name.lexeme
@@ -321,8 +250,6 @@ class Transpiler:
         lhs = self.gen(node.left)
         rhs = self.gen(node.right)
         operator = node.token
-        #Workaround for int division
-        #TODO: Add operator for int division
         gen = codeobj.BinOp(
             self.py_lineno,self.ama_lineno,
             operator.lexeme,lhs,rhs
@@ -448,10 +375,4 @@ class Transpiler:
 
     def gen_mostra(self,node):
         expression = self.gen(node.exp)
-        return codeobj.Mostra(self.py_lineno,self.ama_lineno,expression,self.debug)
-
-
-
-
-
-
+        return codeobj.Mostra(self.py_lineno,self.ama_lineno,expression)
