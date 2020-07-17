@@ -6,10 +6,6 @@ from amanda.types import Bool
 
 
 INDENT = "    "
-#Name of buffer used in test
-TEST_BUFFER = "_buffer_"
-
-
 
 class CodeObj:
     def __init__(self,py_lineno=0,ama_lineno=0):
@@ -287,17 +283,12 @@ class Retorna(CodeObj):
 
 
 class Mostra(CodeObj):
-    def __init__(self,py_lineno,ama_lineno,expression,debug):
+    def __init__(self,py_lineno,ama_lineno,expression):
         super().__init__(py_lineno,ama_lineno)
         self.expression = expression
-        self.debug = debug
 
     def __str__(self):
-        output=""
-        #Redirect output to buffer of compiler
-        if self.debug:
-            output=f",end=' ',file={TEST_BUFFER}"
-        return f"printc({str(self.expression)}{output})"
+        return f"printc({str(self.expression)})"
 
 
 

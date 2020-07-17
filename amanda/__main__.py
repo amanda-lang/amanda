@@ -2,6 +2,7 @@ import argparse
 import time
 from os.path import abspath
 from amanda.transpiler import Transpiler
+from amanda.runtime import run_pycode
 
 def main():
     parser = argparse.ArgumentParser()
@@ -11,10 +12,10 @@ def main():
     try:
         with open(abspath(args.file)) as script,\
         open("output.py","w") as output:
-            amac = Transpiler(script)
-            code = amac.compile()
-            output.write(code)
-        amac.exec()
+            amandac = Transpiler(script)
+            code = amandac.compile()
+            output.write(str(code))
+            run_pycode(amandac.src,code)
     except FileNotFoundError:
         print(f"The file '{abspath(args.file)}' was not found on this system")
 
