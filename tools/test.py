@@ -1,6 +1,6 @@
 import os
 import traceback
-from amanda.transpiler import Transpiler
+from tools.testcompiler import TestCompiler
 
 join = os.path.join
 TEST_DIR = os.path.abspath("./tests")
@@ -31,7 +31,7 @@ failed = 0
 failed_tests = []
 
 def run_program(src,backend_cls):
-    backend = backend_cls(src,True)
+    backend = backend_cls(src)
     try:
         backend.exec()
         return backend.test_buffer.getvalue()
@@ -68,7 +68,7 @@ def gen_results():
             result_fname = "_".join(["result",dirname,file])
             with open(join(RESULTS_DIR,result_fname),"w") as result_file,\
             open(filename,"r") as src:
-                result = run_program(src,Transpiler)
+                result = run_program(src,TestCompiler)
                 result_file.write(result.strip()+"\n")
 
 def add_success():
@@ -146,4 +146,4 @@ def main(backend):
     print_results()
 
 if __name__ == "__main__":
-    main(Transpiler)
+    main(TestCompiler)
