@@ -31,6 +31,13 @@ class Block(Program):
     def accept(self,visitor):
         return visitor.exec_block(self)
 
+class Converte(ASTNode):
+
+    def __init__(self,token,expression,new_type):
+        super().__init__(token)
+        self.expression = expression
+        self.new_type = new_type
+
 
 class Expr(ASTNode):
 

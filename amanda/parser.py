@@ -417,9 +417,20 @@ class Parser:
         #REMOVE: Not in use
         elif self.match(TT.SUPER):
             expr = AST.Super(self.consume(TT.SUPER))
+        elif self.match(TT.CONVERTE):
+            expr = self.converte_expression()
         else:
             self.error(f"início inválido de expressão: '{self.lookahead.lexeme}'")
         return expr
+    
+    def converte_expression(self):
+        token = self.consume(TT.CONVERTE)
+        self.consume(TT.LPAR)
+        expression = self.equality()
+        self.consume(TT.COMMA)
+        new_type = self.consume(TT.IDENTIFIER)
+        self.consume(TT.RPAR)
+        return AST.Converte(token,expression,new_type)
 
     def args(self):
         current = self.lookahead.token

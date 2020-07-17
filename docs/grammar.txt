@@ -1,6 +1,6 @@
 program
   : ( declaration | NEWLINE )* EOF
-  ;
+ ;
 
 declaration
   :  var_declaration
@@ -151,6 +151,7 @@ primary
   | LPAR expression RPAR
   | IDENTIFIER 
   | EU
+  | TROCA LPAR equality VIRGULA IDENTIFIER RPAR
   | NULO
   | SUPER
   ;

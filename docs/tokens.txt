@@ -24,7 +24,7 @@ EQUAL : =
 PLUSEQ : +=
 MINUSEQ: -=
 STAREQ : *=
-SLASH : /=
+SLASHEQ : /=
 
 *KEYWORDS*
 VAR : var
@@ -32,6 +32,7 @@ MOSTRA : mostra
 VERDADEIRO : verdadeiro
 FALSO : falso
 RETORNA : retorna
+CONVERTE : converte
 SE : se
 SENAO : senao
 ENTAO : entao
@@ -41,7 +42,6 @@ FACA : faca
 DE : de
 FUNC : func
 INC : inc
-PROC : proc
 FIM : fim
 CLASSE : classe
 VAZIO : vazio

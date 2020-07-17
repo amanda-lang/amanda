@@ -70,7 +70,7 @@ class LexerTestCase(unittest.TestCase):
         self.assertEqual(token.lexeme,'"Ramboeiro"',msg="STRING value Test Failed")
 
     def test_identifier(self):
-        self.buffer.write("_test1 test test2 __test3 var mostra verdadeiro falso retorna se senao enquanto entao inc para faca de fim func classe eu super vazio")
+        self.buffer.write("_test1 test test2 __test3 var mostra verdadeiro falso retorna se senao enquanto entao inc para faca de fim func classe eu super vazio converte")
         self.buffer.seek(0)
         lexer = Lexer(self.buffer)
         token = lexer.get_token()
@@ -142,7 +142,9 @@ class LexerTestCase(unittest.TestCase):
         token = lexer.get_token()
         self.assertEqual(token.token,TokenType.VAZIO,msg="VAZIO Test Failed")
         self.assertEqual(token.lexeme,"vazio",msg="VAZIO value test Failed")
-        
+        token = lexer.get_token()
+        self.assertEqual(token.token,TokenType.CONVERTE,msg="CONVERTE Test Failed")
+        self.assertEqual(token.lexeme,"converte",msg="CONVERTE value test Failed")
         
 
         
@@ -247,13 +249,34 @@ class ParserTestCase(unittest.TestCase):
         parser.parse()
 
     def test_expression(self):
-        phrases = ["2-1","2+1","2/1","2//1","2*1//2*1","2*1","2%1","2+ad",
-            "'string'+'op'","2.132+1","'string'*2","string*2",
-            "string*5","a+b-c*array%(-a)/(-c)+eval(2+1,5)","+--2---5",
-            "'string'/2.241 ","(c*array+soma(1-3))/((2.132+1)*('string'*2))",
+        phrases = [
+            "2-1","2+1","2/1","2//1","2*1//2*1","2*1",
+            "2%1","2+ad","'string'+'op'","2.132+1",
+            "'string'*2","string*2","string*5",
+            "a+b-c*array%(-a)/(-c)+eval(2+1,5)","+--2---5",
+            "'string'/2.241 ",
+            "(c*array+soma(1-3))/((2.132+1)*('string'*2))",
             "a","add(1-2)","array","a = b","a = soma(a)",
-            "a = a","b = soma(a)","a=b=c=d=a","a=b=c=d=soma(b)","(a+b>a-b)",
-            "(((a-b>=a+c)<(a-b))<=(a*2+5)) ou falso != nao verdadeiro","a += 1;a-=2*1;a*=4*(76-2)", "callback(a,b,c)()","string.texo","string.get_texto()","klass()()().stop_please()","string.texto='sss'","numero.value+=1","numero.value().set = 1"
+            "a = a","b = soma(a)","a=b=c=d=a","a=b=c=d=soma(b)",
+            "(a+b>a-b)",
+            "(((a-b>=a+c)<(a-b))<=(a*2+5)) ou falso != nao verdadeiro",
+            "a += 1;a-=2*1;a*=4*(76-2)", "callback(a,b,c)()",
+            "string.texo","string.get_texto()",
+            "klass()()().stop_please()","string.texto='sss'",
+            "numero.value+=1","numero.value().set = 1",
+        ]
+        for phrase in phrases:
+            print(phrase,file=self.buffer)
+        #self.buffer.writelines(phrases)
+        self.buffer.seek(0)
+        parser = Parser(self.buffer)
+        parser.parse()
+
+    def test_converte(self):
+        phrases = [
+            "converte(2+2,real)",
+            "converte(8,real) - 8.8 * 1 - 8",
+            "converte(1,bool) == verdadeiro"
         ]
         for phrase in phrases:
             print(phrase,file=self.buffer)
