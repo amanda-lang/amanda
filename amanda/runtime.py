@@ -4,6 +4,7 @@ from amanda.error import AmandaError,throw_error
 
 #Runtime errors
 DIVISION_BY_ZERO = "não pode dividir um número por zero"
+INVALID_CONVERSION = "impossível realizar a conversão entre os tipos especificados"
 
 #Wrapper around print used during execution of
 #amanda code
@@ -15,6 +16,19 @@ def print_wrapper(obj,**kwargs):
     else:
         print(obj,**kwargs)
 
+def converte(value,ama_type):
+    if ama_type == "int" or ama_type == "real":
+        try:
+            return int(value) if ama_type == "int" else float(value)
+        except ValueError:
+           raise ValueError("bad type conversion")
+    elif ama_type == "bool":
+        return bool(value)
+    elif ama_type == "texto":
+        return str(value)
+    else:
+        NotImplementedError("have not considered other types")
+
 def load_ama_builtins():
     scope = {}
     #Define some builtin objects
@@ -22,6 +36,7 @@ def load_ama_builtins():
     scope["falso"] = Bool.FALSO
     scope["printc"] = print_wrapper
     scope["Indef"] = Indef
+    scope["converte"] = converte
     return scope
 
 #Checks if exception type can be handled

@@ -100,8 +100,6 @@ class Type(Symbol):
     semantic analysis to enforce type
     rules
     '''
-    
-
     def __init__(self,name,prom_types=[]):
         super().__init__(name,None)
         self.prom_types = prom_types

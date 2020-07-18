@@ -8,7 +8,7 @@ import keyword
 import amanda.symbols as symbols
 import amanda.ast_nodes as ast
 import amanda.semantic as sem
-from amanda.error import AmandaError
+from amanda.error import AmandaError,throw_error
 from amanda.parser import Parser
 import amanda.codeobj as codeobj
 
@@ -269,6 +269,13 @@ class Transpiler:
         if node.prom_type is not None:
             return self.promote_expression(gen,node.prom_type)
         return gen
+    
+    def gen_converte(self,node):
+        return codeobj.Converte(
+            self.py_lineno,self.ama_lineno,
+            self.gen(node.expression),
+            node.new_type.lexeme
+        )
 
     def promote_expression(self,expression,prom_type):
         return codeobj.Promotion(
