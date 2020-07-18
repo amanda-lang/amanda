@@ -28,8 +28,6 @@ def get_context(error,source):
     is just just an array with a certain number of lines
     from the source file.
     '''
-    if not source.readable():
-        raise Exception("Unable to get context for error reporting")
     context = []
     source.seek(0)
     #number of lines to use as context

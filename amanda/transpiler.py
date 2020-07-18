@@ -91,7 +91,7 @@ class Transpiler:
 
     def is_valid_name(self,name):
         ''' Checks whether name is a python keyword, reserved var or
-        python builtin method'''
+        python builtin object'''
         return not (keyword.iskeyword(name) or 
              (name.startswith("_") and name.endswith("_")) or
              name in globals().get("__builtins__")
