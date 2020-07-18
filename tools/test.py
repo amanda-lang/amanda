@@ -1,8 +1,8 @@
 import os
+from os.path import join 
 import traceback
 from tools.testcompiler import TestCompiler
 
-join = os.path.join
 TEST_DIR = os.path.abspath("./tests")
 STATEMENT = join(TEST_DIR,"statement")
 EXCLUDED = ("result.txt")
@@ -20,7 +20,8 @@ join(STATEMENT,"retorna"),join(STATEMENT,"se"),
 join(TEST_DIR,"operator"),
 join(TEST_DIR,"call"),join(TEST_DIR,"comment"),
 join(TEST_DIR,"transpiler"),join(TEST_DIR,"rt_errors"),
-join(TEST_DIR,"indef_type"),
+join(TEST_DIR,"indef_type"),join(TEST_DIR,"converte"),
+join(TEST_DIR,"builtins")
 #join(TEST_DIR,"super")join(TEST_DIR,"get"), # Exclude these tests for now
 #join(TEST_DIR,"set"),join(TEST_DIR,"eu"),
 #,join(TEST_DIR,"class"),
@@ -49,27 +50,6 @@ def delete_script_output():
             os.remove(result)
         except FileNotFoundError:
             pass
-
-#Generates result files for test cases
-def gen_results():
-    EXCLUDED = (
-        "results","result.txt",
-        "super","get",
-        "set","eu","class"
-    )
-    for root,dirs,files in os.walk(TEST_DIR):
-        dirname = os.path.basename(root)
-        print(dirname)
-        for file in sorted(files):
-            #Crazy workaround because of results.txt and result dir
-            if file in EXCLUDED  or dirname in EXCLUDED:
-                continue
-            filename = join(root,file)
-            result_fname = "_".join(["result",dirname,file])
-            with open(join(RESULTS_DIR,result_fname),"w") as result_file,\
-            open(filename,"r") as src:
-                result = run_program(src,TestCompiler)
-                result_file.write(result.strip()+"\n")
 
 def add_success():
     global passed

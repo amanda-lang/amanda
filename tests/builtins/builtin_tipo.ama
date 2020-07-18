@@ -1,0 +1,6 @@
+mostra tipo(6)
+mostra tipo("")
+mostra tipo(verdadeiro)
+mostra tipo (7.3)
+mostra tipo(6 - 3)
+mostra tipo(6 == 3)

@@ -3,13 +3,14 @@ import amanda.ast_nodes as ast
 import amanda.symbols as symbols
 from amanda.symbols import Type
 from amanda.error import AmandaError
+from amanda.bltins import bltin_symbols
 
 
 
 class Analyzer(ast.Visitor):
 
     #Semnatic analysis errors
-    UNDEFINED_TYPE = "o tipo de dados '{type}' não foi definido"
+    UNDEFINED_TYPE = "o tipo '{type}' não foi declarado"
     ID_IN_USE = "O identificador '{name}' já foi declarado neste escopo"
     NO_RETURN_STMT = "a função '{name}' não possui a instrução 'retorna'"
     REPEAT_PARAM = "o parâmetro '{name}' já foi especificado nesta função"
@@ -37,6 +38,10 @@ class Analyzer(ast.Visitor):
         self.global_scope.define(Type.TEXTO.name,Type.TEXTO)
         self.global_scope.define(Type.VAZIO.name,Type.VAZIO)
         self.global_scope.define(Type.INDEF.name,Type.INDEF)
+        #load builtin symbols
+        for sname,symbol in bltin_symbols.items():
+            self.global_scope.define(sname,symbol)
+
 
     def has_return(self,node):
         ''' Method that checks if function non void 
@@ -181,6 +186,8 @@ class Analyzer(ast.Visitor):
         self.current_function = prev_function
         
     def define_func_scope(self,name,params):
+        #TODO: Check if i can immplements params as list
+        #Instead of dict
         params_dict = {}
         for param in params:
             param_name = param.name.lexeme
@@ -325,6 +332,18 @@ class Analyzer(ast.Visitor):
             self.error(f"atribuição inválida. incompatibilidade entre os operandos da atribuição: '{target.eval_type.name}' e '{expr.eval_type.name}'")
         node.eval_type = target.eval_type
 
+    def visit_converte(self,node):
+        #check expression
+        self.visit(node.expression)
+        type_name = node.new_type.lexeme
+        type_symbol = self.current_scope.resolve(type_name)
+        if type_symbol is None:
+            self.error(self.UNDEFINED_TYPE.format(type=type_name))
+        elif not type_symbol.is_type():
+            self.error(f"o identificador '{type_name}' não é um tipo")
+        #Update eval_type
+        node.eval_type = type_symbol
+       
     def visit_binop(self,node):
         ls = self.visit(node.left)
         rs = self.visit(node.right)
@@ -343,11 +362,11 @@ class Analyzer(ast.Visitor):
                 self.INVALID_OP,
                 t1=lhs.eval_type,
                 t2=rhs.eval_type,
-                operator=operator.lexeme)
+                operator=operator.lexeme
+            )
         node.eval_type = result
         lhs.prom_type = lhs.eval_type.promote_to(rhs.eval_type)
         rhs.prom_type = rhs.eval_type.promote_to(lhs.eval_type)
-
 
     def get_binop_result(self,lhs_type,op,rhs_type):
         #Get result type of a binary operation based on
@@ -393,7 +412,6 @@ class Analyzer(ast.Visitor):
             if op_type != Type.BOOL:
                 self.error(self.INVALID_UOP,operator=lexeme,type=op_type)
         node.eval_type = op_type
-
 
     def visit_assign(self,node):
         lhs = node.left
