@@ -3,6 +3,7 @@ import amanda.ast_nodes as ast
 import amanda.symbols as symbols
 from amanda.symbols import Type
 from amanda.error import AmandaError
+from amanda.bltins import bltin_symbols
 
 
 
@@ -37,6 +38,10 @@ class Analyzer(ast.Visitor):
         self.global_scope.define(Type.TEXTO.name,Type.TEXTO)
         self.global_scope.define(Type.VAZIO.name,Type.VAZIO)
         self.global_scope.define(Type.INDEF.name,Type.INDEF)
+        #load builtin symbols
+        for sname,symbol in bltin_symbols.items():
+            self.global_scope.define(sname,symbol)
+
 
     def has_return(self,node):
         ''' Method that checks if function non void 
@@ -181,6 +186,8 @@ class Analyzer(ast.Visitor):
         self.current_function = prev_function
         
     def define_func_scope(self,name,params):
+        #TODO: Check if i can immplements params as list
+        #Instead of dict
         params_dict = {}
         for param in params:
             param_name = param.name.lexeme

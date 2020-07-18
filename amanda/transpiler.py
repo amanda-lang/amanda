@@ -1,7 +1,3 @@
-'''
-Module responsible for generating python code
-from an AST
-'''
 from io import StringIO
 import sys
 import keyword
@@ -11,10 +7,9 @@ import amanda.semantic as sem
 from amanda.error import AmandaError,throw_error
 from amanda.parser import Parser
 import amanda.codeobj as codeobj
+from amanda.bltins import bltin_symbols
 
 
-#TODO: Make line tracking cleaner
-    
 class Transpiler:
     #Var types
     VAR = "VAR"
@@ -35,6 +30,15 @@ class Transpiler:
         self.current_function = None
         self.func_depth = 0 # current func nesting level
         self.scope_depth = 0 # scope nesting level
+        self.load_builtins()
+
+    def load_builtins(self):
+        for name,symbol in bltin_symbols.items():
+            if type(symbol) == symbols.VariableSymbol:
+                s_info = (name,self.VAR)
+            elif type(symbol) == symbols.FunctionSymbol:
+                s_info = (name,self.FUNC)
+            self.global_scope.define(name,s_info)
 
     def compile(self):
         ''' Method that runs an Amanda script. Errors raised by the
@@ -382,4 +386,6 @@ class Transpiler:
 
     def gen_mostra(self,node):
         expression = self.gen(node.exp)
+        if node.exp.eval_type == symbols.Type.VAZIO:
+            expression = "vazio"
         return codeobj.Mostra(self.py_lineno,self.ama_lineno,expression)
