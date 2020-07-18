@@ -1,0 +1,12 @@
+func escrevaln(arg : indef)
+    str : texto = converte(arg,texto)
+    mostra str
+fim
+
+
+
+escrevaln(10)
+escrevaln("eu")
+escrevaln(verdadeiro)
+escrevaln(3.14)
+escrevaln(falso)

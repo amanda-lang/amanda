@@ -20,15 +20,21 @@ def print_wrapper(obj,**kwargs):
         print(obj,**kwargs)
 
 def converte(value,ama_type):
+    if isinstance(value,Indef):
+        value = value.value
     if ama_type == "int" or ama_type == "real":
         try:
             return int(value) if ama_type == "int" else float(value)
         except ValueError as e:
            raise AmandaError(INVALID_CONVERSION,-1)
+        except TypeError as e:
+           raise AmandaError(INVALID_CONVERSION,-1)
     elif ama_type == "bool":
         return bool(value)
     elif ama_type == "texto":
         return str(value)
+    elif ama_type == "indef":
+        return Indef(value)
     else:
         NotImplementedError("have not considered other types")
 
@@ -75,11 +81,12 @@ def handle_exception(exception,pycode):
     happens during execution of compiled source and 
     use info to raise an amanda exception'''
     #Get to the first tb object of the trace
-    # REMOVE: this assert here is just for debugging
+    #TODO: Refactor this so that all exceptions thrown
+    #equate to amanda errors
     if isinstance(exception,ZeroDivisionError):
         py_lineno = get_info_from_tb(exception,DIVISION_BY_ZERO)
         ama_lineno = pycode.get_ama_lineno(py_lineno)
-        assert ama_lineno != None
+        assert ama_lineno is not None
         return AmandaError.common_error(
             DIVISION_BY_ZERO,ama_lineno
         )
@@ -88,7 +95,7 @@ def handle_exception(exception,pycode):
         msg = exception.message
         py_lineno = get_info_from_tb(exception,msg,pycode)
         ama_lineno = pycode.get_ama_lineno(py_lineno)
-        assert ama_lineno != None
+        assert ama_lineno is not None
         exception.line = ama_lineno
         return AmandaError.common_error(
             msg,ama_lineno
