@@ -1,6 +1,7 @@
 from io import StringIO
 import sys
-from amanda.runtime import load_ama_builtins,handle_exception
+from amanda.runtime import handle_exception,can_handle,FILENAME
+from amanda.bltins import bltin_objs
 from amanda.codeobj import CodeObj
 from amanda.transpiler import Transpiler
 import amanda.semantic as sem
@@ -40,13 +41,18 @@ class TestCompiler(Transpiler):
         #Run compiled source
         if not self.compiled_program:
             self.compile()
-        py_codeobj = compile(str(self.compiled_program),"<string>","exec")
+        py_codeobj = compile(
+            str(self.compiled_program),
+            FILENAME,"exec"
+        )
         #Define runtime scope
-        scope = load_ama_builtins()
+        scope = bltin_objs 
         scope["_buffer_"] = self.test_buffer
         try:
             exec(py_codeobj,scope)
         except Exception as e:
+            if not can_handle(e):
+                raise e
             ama_error = handle_exception(e,self.compiled_program)
             self.test_buffer.write(str(ama_error).strip())
             sys.exit()

@@ -16,7 +16,6 @@ class TokenType(Enum):
     STAREQ = "STAREQ"
     SLASHEQ = "SLASHEQ"
 
-
     #LITERALS
     INTEGER = "INTEGER"
     REAL = "REAL"
@@ -36,7 +35,6 @@ class TokenType(Enum):
     RBRACKET = "RBRACKET"
     COLON = "COLON"
     NEWLINE = "NEWLINE"
-
 
     #LOGIC OP
     LESS = "LESS"
@@ -60,6 +58,7 @@ class TokenType(Enum):
     ENTAO = "ENTAO"
     ENQUANTO = "ENQUANTO"
     PARA = "PARA"
+    CONVERTE = "CONVERTE"
     FACA = "FACA"
     DE = "DE"
     EU = "EU"

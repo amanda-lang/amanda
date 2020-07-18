@@ -5,3 +5,4 @@ docs/test_plan.txt
 amac
 pyamanda
 output.py
+tools/resultgen.py

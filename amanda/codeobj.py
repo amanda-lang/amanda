@@ -55,6 +55,14 @@ class Promotion(CodeObj):
         else:
             raise NotImplementedError("Unexpected prom_type")
         return string
+
+class Converte(CodeObj):
+    def __init__(self,py_lineno,ama_lineno,expr,new_type):
+        super().__init__(py_lineno,ama_lineno)
+        self.expr = expr
+        self.new_type = new_type
+    def __str__(self):
+        return f"converte({str(self.expr)},'{self.new_type}')"
         
 
 class BinOp(CodeObj):

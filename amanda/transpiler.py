@@ -1,20 +1,15 @@
-'''
-Module responsible for generating python code
-from an AST
-'''
 from io import StringIO
 import sys
 import keyword
 import amanda.symbols as symbols
 import amanda.ast_nodes as ast
 import amanda.semantic as sem
-from amanda.error import AmandaError
+from amanda.error import AmandaError,throw_error
 from amanda.parser import Parser
 import amanda.codeobj as codeobj
+from amanda.bltins import bltin_symbols
 
 
-#TODO: Make line tracking cleaner
-    
 class Transpiler:
     #Var types
     VAR = "VAR"
@@ -35,6 +30,15 @@ class Transpiler:
         self.current_function = None
         self.func_depth = 0 # current func nesting level
         self.scope_depth = 0 # scope nesting level
+        self.load_builtins()
+
+    def load_builtins(self):
+        for name,symbol in bltin_symbols.items():
+            if type(symbol) == symbols.VariableSymbol:
+                s_info = (name,self.VAR)
+            elif type(symbol) == symbols.FunctionSymbol:
+                s_info = (name,self.FUNC)
+            self.global_scope.define(name,s_info)
 
     def compile(self):
         ''' Method that runs an Amanda script. Errors raised by the
@@ -91,7 +95,7 @@ class Transpiler:
 
     def is_valid_name(self,name):
         ''' Checks whether name is a python keyword, reserved var or
-        python builtin method'''
+        python builtin object'''
         return not (keyword.iskeyword(name) or 
              (name.startswith("_") and name.endswith("_")) or
              name in globals().get("__builtins__")
@@ -269,6 +273,13 @@ class Transpiler:
         if node.prom_type is not None:
             return self.promote_expression(gen,node.prom_type)
         return gen
+    
+    def gen_converte(self,node):
+        return codeobj.Converte(
+            self.py_lineno,self.ama_lineno,
+            self.gen(node.expression),
+            node.new_type.lexeme
+        )
 
     def promote_expression(self,expression,prom_type):
         return codeobj.Promotion(
@@ -375,4 +386,6 @@ class Transpiler:
 
     def gen_mostra(self,node):
         expression = self.gen(node.exp)
+        if node.exp.eval_type == symbols.Type.VAZIO:
+            expression = "vazio"
         return codeobj.Mostra(self.py_lineno,self.ama_lineno,expression)
