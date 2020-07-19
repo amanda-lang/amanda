@@ -2,6 +2,6 @@
  x : int = 5
  y : int
 y = x + i
- text : Texto = "Some text"
+ text : texto = "Some text"
 mostra y+1
 mostra text
