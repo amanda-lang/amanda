@@ -10,15 +10,17 @@ func e_par(num : int): bool
     fim
 fim
 
-
-
-var num : int = leia_int("Digite um número: ")
+num : int = leia_int("Digite um número: ")
 mostra e_par(num)
 
-
-
-
-
 #Testar o leia
-var msg : Texto = leia("Digite a mensagem que deseja imprimir: ")
+msg : texto = leia("Digite a mensagem que deseja imprimir: ")
 mostra msg
+
+user_pi : real = leia_real("Digite o valor de pi: ")
+
+se user_pi == 3.14 entao
+    mostra "Certo"
+senao
+    mostra "Errado"
+fim

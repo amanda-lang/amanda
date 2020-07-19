@@ -1,4 +1,4 @@
-var n: int = -2 
+ n: int = -2 
 se n>1 entao
     mostra "maior"
 senao
