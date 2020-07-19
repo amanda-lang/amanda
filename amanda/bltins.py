@@ -28,8 +28,6 @@ def add_bltin_func(name,obj,rtn_type,*params):
     )
     bltin_objs[name] = obj
     
-
-    
 def print_wrapper(obj,**kwargs):
     if str(obj) == "True":
         print(Bool.VERDADEIRO,**kwargs)
@@ -38,6 +36,29 @@ def print_wrapper(obj,**kwargs):
     else:
         print(obj,**kwargs)
 
+# Input functions
+def leia(prompt):
+    ''' Calls the python input method using a prompt
+    given by the amanda caller'''
+    return input(prompt)
+
+def leia_int(prompt):
+    ''' Same as 'leia' but converts the result into
+    an int'''
+    try:
+        return int(input(prompt))
+    except ValueError:
+        raise AmandaError(INVALID_CONVERSION,-1)
+
+def leia_real(prompt):
+    ''' Same as 'leia' but converts the result into
+    a float'''
+    try:
+        return float(input(prompt))
+    except ValueError:
+        raise AmandaError(INVALID_CONVERSION,-1)
+
+# Type functions
 def converte(value,ama_type):
     if isinstance(value,Indef):
         value = value.value
@@ -71,9 +92,29 @@ def tipo(indef_obj):
     }
     return types.get(type(value))
 
+#Adding builtins
 bltin_objs["verdadeiro"] = Bool.VERDADEIRO
 bltin_objs["falso"] = Bool.FALSO
 bltin_objs["printc"] = print_wrapper
 bltin_objs["Indef"] = Indef
 bltin_objs["converte"] = converte
-add_bltin_func("tipo",tipo,Type.TEXTO,("valor",Type.INDEF))
+
+add_bltin_func(
+    "leia",leia,
+    Type.TEXTO,("mensagem",Type.TEXTO)
+)
+
+add_bltin_func(
+    "leia_int",leia_int,
+    Type.INT,("mensagem",Type.TEXTO)
+)
+
+add_bltin_func(
+    "leia_real",leia_real,
+    Type.REAL,("mensagem",Type.TEXTO)
+)
+
+add_bltin_func(
+    "tipo",tipo,
+    Type.TEXTO,("valor",Type.INDEF)
+)
