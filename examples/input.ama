@@ -12,7 +12,7 @@ fim
 
 
 
-var num : int = leia_int("Digite um número: ")
+ num : int = leia_int("Digite um número: ")
 mostra e_par(num)
 
 
@@ -20,5 +20,5 @@ mostra e_par(num)
 
 
 #Testar o leia
-var msg : Texto = leia("Digite a mensagem que deseja imprimir: ")
+ msg : Texto = leia("Digite a mensagem que deseja imprimir: ")
 mostra msg
