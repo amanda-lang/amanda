@@ -11,7 +11,6 @@ bltin_symbols = {}
 bltin_objs={}
 
 #Runtime errors
-DIVISION_BY_ZERO = "não pode dividir um número por zero"
 INVALID_CONVERSION = "impossível realizar a conversão entre os tipos especificados"
 
 
