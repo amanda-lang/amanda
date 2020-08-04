@@ -1,6 +1,6 @@
 from io import StringIO
 import sys
-from amanda.runtime import handle_exception,can_handle,FILENAME
+from amanda.runtime import handle_exception,FILENAME
 from amanda.bltins import bltin_objs
 from amanda.codeobj import CodeObj
 from amanda.transpiler import Transpiler
@@ -51,9 +51,9 @@ class TestCompiler(Transpiler):
         try:
             exec(py_codeobj,scope)
         except Exception as e:
-            if not can_handle(e):
-                raise e
             ama_error = handle_exception(e,self.compiled_program)
+            if not ama_error:
+                raise e
             self.test_buffer.write(str(ama_error).strip())
             sys.exit()
 
