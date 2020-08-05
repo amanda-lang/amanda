@@ -77,6 +77,20 @@ class Parser:
             return self.statement()
 
     def type(self):
+        if self.match(TT.LBRACKET):
+            self.consume(TT.LBRACKET)
+            size = self.equality()
+            self.consume(TT.RBRACKET)
+            decl_type = self.consume(TT.IDENTIFIER)
+            return AST.ArraySpec(size,decl_type)
+        return self.consume(TT.IDENTIFIER)
+
+    def type_spec(self):
+        if self.match(TT.LBRACKET):
+            self.consume(TT.LBRACKET)
+            self.consume(TT.RBRACKET)
+            decl_type = self.consume(TT.IDENTIFIER)
+            return AST.ArraySpec(None,decl_type)
         return self.consume(TT.IDENTIFIER)
     
     def end_stmt(self):
@@ -101,7 +115,7 @@ class Parser:
             if self.match(TT.VAZIO): #REMOVE: Maybe remove this
                 self.consume(TT.VAZIO)
             else:
-                func_type = self.type()
+                func_type = self.type_spec()
         block = self.block()
         self.consume(TT.FIM,"O corpo de um função deve ser terminado com a directiva 'fim'")
         return AST.FunctionDecl(name=name,block=block,func_type=func_type,params=params)
@@ -145,13 +159,13 @@ class Parser:
         if self.lookahead.token == TT.IDENTIFIER:
             name = self.consume(TT.IDENTIFIER)
             self.consume(TT.COLON,"esperava-se o símbolo ':'.")
-            param_type = self.type()
+            param_type = self.type_spec()
             params.append(AST.Param(param_type,name))
             while self.match(TT.COMMA):
                 self.consume(TT.COMMA)
                 name = self.consume(TT.IDENTIFIER)
                 self.consume(TT.COLON,"esperava-se o símbolo ':'.")
-                param_type = self.type()
+                param_type = self.type_spec()
                 params.append(AST.Param(param_type,name))
         return params
 
@@ -379,7 +393,8 @@ class Parser:
         
     def call(self):
         expr = self.primary()
-        while self.lookahead.token in (TT.LPAR,TT.DOT):
+        while self.lookahead.token in\
+        (TT.LPAR,TT.DOT,TT.LBRACKET):
             if self.match(TT.LPAR):
                 self.consume(TT.LPAR)
                 args = []
@@ -390,6 +405,11 @@ class Parser:
                     "os argumentos da função devem ser delimitados por ')'"
                 )
                 expr = AST.Call(callee=expr,paren=token,fargs=args)
+            elif self.match(TT.LBRACKET):
+                self.consume(TT.LBRACKET)
+                index = self.equality()
+                self.consume(TT.RBRACKET)
+                expr = AST.Index(expr,index)
             else:
                 self.consume(TT.DOT)
                 identifier = self.lookahead

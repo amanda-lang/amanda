@@ -1,5 +1,5 @@
 program
-  : ( declaration | NEWLINE )* EOF
+ : ( declaration | NEWLINE )* EOF
  ;
 
 declaration
@@ -22,7 +22,7 @@ type
   ;
 
 function_declaration
-  : FUNC IDENTIFIER LPAR formal_parameter_section? RPAR COL (type | VAZIO)
+  : FUNC IDENTIFIER LPAR formal_parameter_section? RPAR COL (type_spec | VAZIO)
   body
   FIM
   ;
@@ -32,12 +32,12 @@ body
   :( declaration | NEWLINE )*
   ;
 
-param_type
+type_spec
   : (LBRACKET RBRACKET)? IDENTIFIER 
   ;
 
 formal_parameter_section
-  : IDENTIFIER COLON param_type (COMMA formal_parameter_section)*
+  : IDENTIFIER COLON type_spec (COMMA formal_parameter_section)*
   ;
 
 
@@ -152,14 +152,9 @@ primary
   | LPAR expression RPAR
   | IDENTIFIER 
   | EU
-  | TROCA LPAR equality VIRGULA IDENTIFIER RPAR
-  | CONVERTE LPAR equality COMMA type RPAR
+  | CONVERTE LPAR equality COMMA IDENTIFIER RPAR
   | NULO
   | SUPER
-  ;
-
-call
-  : LPAR actual_parameters? RPAR
   ;
 
 args
