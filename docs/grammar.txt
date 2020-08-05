@@ -18,12 +18,13 @@ class_body
 
 
 type
-  : IDENTIFIER ( LBRACKET RBRACKET )?
+  : (LBRACKET equality?  RBRACKET)? IDENTIFIER 
   ;
 
 function_declaration
   : FUNC IDENTIFIER LPAR formal_parameter_section? RPAR COL (type | VAZIO)
   body
+  FIM
   ;
 
 
@@ -51,7 +52,7 @@ retorna_stmt
   ;
 
 mostra_stmt
-  : MOSTRA equality (SEMI|NEWLINE)
+  : MOSTRA equality (SEMI|NEWLINE) 
   ;
 
 se_stmt
@@ -134,7 +135,7 @@ unary
   ;
 
 call
-   : primary (LPAR args? RPAR | DOT IDENTIFIER)*
+   : primary (LPAR args? RPAR | index | DOT IDENTIFIER)*
    ;
 
 
@@ -148,6 +149,7 @@ primary
   | IDENTIFIER 
   | EU
   | TROCA LPAR equality VIRGULA IDENTIFIER RPAR
+  | CONVERTE LPAR equality COMMA type RPAR
   | NULO
   | SUPER
   ;
@@ -156,14 +158,13 @@ call
   : LPAR actual_parameters? RPAR
   ;
 
-array_ref
-  : LBRACKET equality RBRACKET
-  ;
-
 args
   : equality (COMMA equality)*
   ;
 
+index
+  : LBRACKET equality RBRACKET
+  ;
 
 mult_operator
   : STAR
