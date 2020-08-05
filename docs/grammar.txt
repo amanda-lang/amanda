@@ -32,8 +32,12 @@ body
   :( declaration | NEWLINE )*
   ;
 
+param_type
+  : (LBRACKET RBRACKET)? IDENTIFIER 
+  ;
+
 formal_parameter_section
-  : IDENTIFIER COLON type (COMMA formal_parameter_section)*
+  : IDENTIFIER COLON param_type (COMMA formal_parameter_section)*
   ;
 
 
