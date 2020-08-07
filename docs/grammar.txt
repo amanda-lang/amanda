@@ -18,11 +18,11 @@ class_body
 
 
 type
-  : (LBRACKET equality?  RBRACKET)? IDENTIFIER 
+  : (LBRACKET RBRACKET)? IDENTIFIER 
   ;
 
 function_declaration
-  : FUNC IDENTIFIER LPAR formal_parameter_section? RPAR COL (type_spec | VAZIO)
+  : FUNC IDENTIFIER LPAR formal_parameter_section? RPAR COL (type | VAZIO)
   body
   FIM
   ;
@@ -32,12 +32,9 @@ body
   :( declaration | NEWLINE )*
   ;
 
-type_spec
-  : (LBRACKET RBRACKET)? IDENTIFIER 
-  ;
 
 formal_parameter_section
-  : IDENTIFIER COLON type_spec (COMMA formal_parameter_section)*
+  : IDENTIFIER COLON type (COMMA formal_parameter_section)*
   ;
 
 

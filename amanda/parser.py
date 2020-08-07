@@ -79,20 +79,11 @@ class Parser:
     def type(self):
         if self.match(TT.LBRACKET):
             self.consume(TT.LBRACKET)
-            size = self.equality()
             self.consume(TT.RBRACKET)
             decl_type = self.consume(TT.IDENTIFIER)
-            return AST.ArraySpec(size,decl_type)
+            return AST.ArraySpec(decl_type)
         return self.consume(TT.IDENTIFIER)
 
-    def type_spec(self):
-        if self.match(TT.LBRACKET):
-            self.consume(TT.LBRACKET)
-            self.consume(TT.RBRACKET)
-            decl_type = self.consume(TT.IDENTIFIER)
-            return AST.ArraySpec(None,decl_type)
-        return self.consume(TT.IDENTIFIER)
-    
     def end_stmt(self):
         if self.match(TT.NEWLINE):
             self.consume(TT.NEWLINE)
@@ -115,7 +106,7 @@ class Parser:
             if self.match(TT.VAZIO): #REMOVE: Maybe remove this
                 self.consume(TT.VAZIO)
             else:
-                func_type = self.type_spec()
+                func_type = self.type()
         block = self.block()
         self.consume(TT.FIM,"O corpo de um função deve ser terminado com a directiva 'fim'")
         return AST.FunctionDecl(name=name,block=block,func_type=func_type,params=params)
@@ -159,13 +150,13 @@ class Parser:
         if self.lookahead.token == TT.IDENTIFIER:
             name = self.consume(TT.IDENTIFIER)
             self.consume(TT.COLON,"esperava-se o símbolo ':'.")
-            param_type = self.type_spec()
+            param_type = self.type()
             params.append(AST.Param(param_type,name))
             while self.match(TT.COMMA):
                 self.consume(TT.COMMA)
                 name = self.consume(TT.IDENTIFIER)
                 self.consume(TT.COLON,"esperava-se o símbolo ':'.")
-                param_type = self.type_spec()
+                param_type = self.type()
                 params.append(AST.Param(param_type,name))
         return params
 

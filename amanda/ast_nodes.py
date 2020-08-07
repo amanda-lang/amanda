@@ -198,9 +198,8 @@ class Param(ASTNode):
     
 class ArraySpec(ASTNode):
 
-    def __init__(self,size,decl_type):
+    def __init__(self,decl_type):
         super().__init__(decl_type)
-        self.size = size
         self.decl_type = decl_type
 
 #Base class for visitor objects
