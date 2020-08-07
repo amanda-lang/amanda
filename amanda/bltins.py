@@ -1,4 +1,4 @@
-from amanda.types import Bool,Indef
+from amanda.types import Bool,Indef,Lista
 import amanda.symbols as symbols
 from amanda.symbols import Type
 from amanda.error import AmandaError,throw_error
@@ -86,7 +86,7 @@ def lista(subtype,size):
         "bool":Bool.FALSO,
     }
     default = inits.get(subtype)
-    return [default for i in range(size)]
+    return Lista(subtype,[default for i in range(size)])
 
 def tipo(indef_obj):
     ''' Returns the type of a 

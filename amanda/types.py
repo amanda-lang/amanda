@@ -30,4 +30,15 @@ class Indef:
         elif isinstance(self.value,Bool):
             string = f"bool -> {str(self.value)}"
         return string 
-        
+
+class Lista:
+
+    def __init__(self,subtype,elements=[]):
+        self.elements = elements
+        self.subtype = subtype
+
+    def __getitem__(self,key):
+        return self.elements[key]
+
+    def __setitem__(self,key,value):
+        self.elements[key] = value
