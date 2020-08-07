@@ -1,7 +1,7 @@
 from amanda.tokens import TokenType as TT
 import amanda.ast_nodes as ast
 import amanda.symbols as symbols
-from amanda.symbols import Type
+from amanda.symbols import Type,Lista
 from amanda.error import AmandaError
 from amanda.bltins import bltin_symbols
 
@@ -103,6 +103,14 @@ class Analyzer(ast.Visitor):
     def visit_program(self,node):
         for child in node.children:
             self.visit(child)
+    
+    def check_type(self,var_type,type_name):
+        if not var_type or not var_type.is_type():
+            self.error(
+                self.UNDEFINED_TYPE,
+                type=type_name
+            )
+
 
     def visit_vardecl(self,node):
         klass = self.current_class
@@ -116,14 +124,21 @@ class Analyzer(ast.Visitor):
         self.current_function:
             self.current_scope.define(name,klass.get_member(name))
             return
-        var_type = self.current_scope.resolve(node.var_type.lexeme)
-        if not var_type or not var_type.is_type():
-            self.error(
-                self.UNDEFINED_TYPE,
-                type=node.var_type.lexeme
-            )
+
+        if type(node.var_type) == ast.ArraySpec:
+            type_node = node.var_type
+            type_name = type_node.decl_type.lexeme
+            subtype = self.current_scope.resolve(type_name)
+            self.check_type(subtype,type_name)
+            var_type = Lista(subtype)
+        else:
+            type_name = node.var_type.lexeme
+            var_type = self.current_scope.resolve(type_name)
+            self.check_type(var_type,type_name)
+
         if self.current_scope.get(name):
             self.error(self.ID_IN_USE,name=name)
+
         symbol = symbols.VariableSymbol(name,var_type)
         self.current_scope.define(name,symbol)
         node.var_type = var_type
@@ -284,10 +299,30 @@ class Analyzer(ast.Visitor):
         if not sym:
             self.error(self.UNDECLARED_ID,name=name)
         #Referencing array by name 
+        #TODO: Remove this in favour of creating
+        #a separate table just for the function symbols.
         elif not sym.can_evaluate():
             self.error(self.INVALID_REF,name=name)
         node.eval_type = sym.type
         return sym
+
+    def visit_lista(self,node):
+        #check type
+        type_name = node.array_type.lexeme
+        type_symbol = self.current_scope.resolve(type_name)
+        if type_symbol is None:
+            self.error(self.UNDEFINED_TYPE.format(type=type_name))
+        elif not type_symbol.is_type():
+            self.error(f"o identificador '{type_name}' não é um tipo")
+
+        #check expression
+        expression = node.expression
+        self.visit(expression)
+        if expression.eval_type != Type.INT:
+            self.error("O tamanho de uma lista deve ser representado por um inteiro")
+
+        #Update eval_type
+        node.eval_type = Lista(type_symbol)
 
     def validate_get(self,node,sym):
         ''' Method to validate get expressions'''
@@ -331,6 +366,22 @@ class Analyzer(ast.Visitor):
             self.current_node = node
             self.error(f"atribuição inválida. incompatibilidade entre os operandos da atribuição: '{target.eval_type.name}' e '{expr.eval_type.name}'")
         node.eval_type = target.eval_type
+
+    def visit_index(self,node):
+        #Check if index is int
+        index = node.index
+        self.visit(index)
+        if index.eval_type != Type.INT:
+            self.error("Os índices de uma lista devem ser inteiros")
+
+        #Check if target supports indexing
+        target = node.target
+        self.visit(target)
+        t_type = target.eval_type 
+        if type(t_type) != Lista:
+            self.error(f"O valor do tipo '{t_type}' não é indexável")
+
+        node.eval_type = t_type.subtype
 
     def visit_converte(self,node):
         #check expression

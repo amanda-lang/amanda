@@ -129,6 +129,17 @@ Type.BOOL = Type("bool",(Type.INDEF,))
 Type.TEXTO = Type("texto",(Type.INDEF,))
 
 
+class Lista(Type):
+
+    def __init__(self,subtype):
+        super().__init__("lista")
+        self.subtype = subtype
+
+    def __eq__(self,other):
+        if type(other) != Lista:
+            return False
+        return self.subtype == other.subtype
+
 class ClassSymbol(Type):
     ''' Represents a class in amanda.
         Both user defined and builtins.'''
