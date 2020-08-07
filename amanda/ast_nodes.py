@@ -51,6 +51,13 @@ class Converte(Expr):
         self.expression = expression
         self.new_type = new_type
 
+class Lista(Expr):
+
+    def __init__(self,token,array_type,expression):
+        super().__init__(token)
+        self.array_type = array_type
+        self.expression = expression
+
 class Eu(Expr):
 
     def __init__(self,token):

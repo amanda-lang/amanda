@@ -430,10 +430,21 @@ class Parser:
             expr = AST.Super(self.consume(TT.SUPER))
         elif self.match(TT.CONVERTE):
             expr = self.converte_expression()
+        elif self.match(TT.LISTA):
+            expr = self.lista_expr()
         else:
             self.error(f"início inválido de expressão: '{self.lookahead.lexeme}'")
         return expr
     
+    def lista_expr(self):
+        token = self.consume(TT.LISTA)
+        self.consume(TT.LPAR)
+        array_type = self.consume(TT.IDENTIFIER)
+        self.consume(TT.COMMA)
+        expression = self.equality()
+        self.consume(TT.RPAR)
+        return AST.Lista(token,array_type,expression)
+
     def converte_expression(self):
         token = self.consume(TT.CONVERTE)
         self.consume(TT.LPAR)

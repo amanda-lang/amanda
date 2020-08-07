@@ -150,9 +150,13 @@ primary
   | IDENTIFIER 
   | EU
   | CONVERTE LPAR equality COMMA IDENTIFIER RPAR
+  | LISTA LPAR IDENTIFIER COMMA equality RPAR
   | NULO
   | SUPER
   ;
+
+
+
 
 args
   : equality (COMMA equality)*
