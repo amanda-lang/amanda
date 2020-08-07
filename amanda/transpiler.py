@@ -222,6 +222,12 @@ class Transpiler:
     def gen_call(self,node):
         args = [self.gen(arg) for arg in node.fargs]
         return codeobj.Call(self.py_lineno,self.ama_lineno,self.gen(node.callee),args)
+    
+    def gen_index(self,node):
+        return codeobj.Index(
+            self.py_lineno,self.ama_lineno,
+            self.gen(node.target),self.gen(node.index)
+        )
 
     def gen_assign(self,node):
         lhs = self.gen(node.left)
@@ -279,6 +285,13 @@ class Transpiler:
             self.py_lineno,self.ama_lineno,
             self.gen(node.expression),
             node.new_type.lexeme
+        )
+
+    def gen_lista(self,node):
+        return codeobj.Lista(
+            self.py_lineno,self.ama_lineno,
+            self.gen(node.expression),
+            node.array_type.lexeme
         )
 
     def promote_expression(self,expression,prom_type):

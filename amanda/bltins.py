@@ -77,6 +77,17 @@ def converte(value,ama_type):
     else:
         NotImplementedError("have not considered other types")
 
+def lista(subtype,size):
+    #Returns a list of the desired size
+    inits = {
+        "int":0,
+        "real":0.0,
+        "texto":"",
+        "bool":Bool.FALSO,
+    }
+    default = inits.get(subtype)
+    return [default for i in range(size)]
+
 def tipo(indef_obj):
     ''' Returns the type of a 
     value. Useful for 'unwrapping' 
@@ -97,6 +108,7 @@ bltin_objs["falso"] = Bool.FALSO
 bltin_objs["printc"] = print_wrapper
 bltin_objs["Indef"] = Indef
 bltin_objs["converte"] = converte
+bltin_objs["lista"] = lista
 
 add_bltin_func(
     "leia",leia,

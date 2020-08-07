@@ -61,9 +61,18 @@ class Converte(CodeObj):
         super().__init__(py_lineno,ama_lineno)
         self.expr = expr
         self.new_type = new_type
+
     def __str__(self):
         return f"converte({str(self.expr)},'{self.new_type}')"
         
+class Lista(CodeObj):
+    def __init__(self,py_lineno,ama_lineno,expr,array_type):
+        super().__init__(py_lineno,ama_lineno)
+        self.expr = expr
+        self.array_type = array_type
+
+    def __str__(self):
+        return f"lista('{str(self.array_type)}',{self.expr})"
 
 class BinOp(CodeObj):
 
@@ -160,6 +169,15 @@ class FunctionDecl(CodeObj):
         params = ",".join(self.params)
         return f"def {self.name}({params}):\n{str(self.body)}"
 
+class Index(CodeObj):
+    def __init__(self,py_lineno,ama_lineno,target,index):
+        super().__init__(py_lineno,ama_lineno)
+        self.target = target
+        self.index = index
+
+    def __str__(self):
+        return f"{str(self.target)}[{str(self.index)}]"
+        
 class Call(CodeObj):
     def __init__(self,py_lineno,ama_lineno,callee,args):
         super().__init__(py_lineno,ama_lineno)
@@ -169,7 +187,7 @@ class Call(CodeObj):
     def __str__(self):
         args = ",".join([str(arg) for arg in self.args])
         return f"{self.callee}({args})"
-        
+
 class Assign(CodeObj):
     def __init__(self,py_lineno,ama_lineno,lhs,rhs):
         super().__init__(py_lineno,ama_lineno)
