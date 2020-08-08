@@ -1,0 +1,17 @@
+
+
+n_letras : int = leia_int("Digite o número de letras no seu primeiro nome: ")
+letras : [] texto = lista(texto,n_letras)
+
+
+para i de 0..n_letras faca
+    letra : texto = leia("Digite a próxima letra do seu nome")
+    letras[i] = letra
+fim
+
+
+para i de 0..n_letras faca
+    mostra letras[i]
+fim
+
+

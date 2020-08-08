@@ -41,7 +41,6 @@ python3 -m examples/hello_word.ama
 ```
 
 **On Mac**
-
 Can't help you, i'm sorry :cry: .
 
 
@@ -209,6 +208,29 @@ func mostra_soma(a:int,b:int) # sem tipo de retorno
     mostra a + b
 fim
 ```
+
+### Lists (Arrays)
+```python
+
+# Uma lista serve para armazenar vários valores
+#do mesmo tipo
+#Para criar a lista use a 'função' lista
+
+minha_lista : [] int = lista(int,4) # tipo e o tamanho
+
+# Preencher a lista
+
+para i de 0..tamanho(minha_lista) faca
+    minha_lista[i] = i*i
+fim
+
+# Imprimir todos elementos da lista
+# usando "," como o separador
+
+fmt_lista(minha_lista,",") # 0,1,4,9 
+
+```
+
 
 #### Classes
 
