@@ -288,10 +288,14 @@ class Transpiler:
         )
 
     def gen_lista(self,node):
+        list_type = node.eval_type.subtype
+        prom_type = node.prom_type
+        if prom_type and prom_type.subtype != symbols.Type.INDEF:
+            list_type = node.prom_type.subtype
         return codeobj.Lista(
             self.py_lineno,self.ama_lineno,
             self.gen(node.expression),
-            node.array_type.lexeme
+            list_type
         )
 
     def promote_expression(self,expression,prom_type):

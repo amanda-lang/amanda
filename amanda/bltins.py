@@ -14,15 +14,15 @@ bltin_objs={}
 INVALID_CONVERSION = "impossível realizar a conversão entre os tipos especificados"
 
 
-def add_bltin_func(name,obj,rtn_type,*params):
+def add_bltin_func(name,obj,return_type,*params):
     ''' Helper that creates a function_symbol and adds it
     to the dict of bltin symbols'''
-    rtn_type = rtn_type if rtn_type else Type.VAZIO
+    return_type = return_type if return_type else Type.VAZIO
     formal_params = {}
     for pname,ptype in params:
         formal_params[pname] = symbols.VariableSymbol(pname,ptype)
     bltin_symbols[name] = symbols.FunctionSymbol(
-        name,rtn_type,
+        name,return_type,
         formal_params
     )
     bltin_objs[name] = obj
@@ -75,10 +75,12 @@ def converte(value,ama_type):
     elif ama_type == "indef":
         return Indef(value)
     else:
-        NotImplementedError("have not considered other types")
+        raise NotImplementedError("have not considered other types")
 
 def lista(subtype,size):
     #Returns a list of the desired size
+    if subtype == "indef":
+        raise AmandaError("Não pode criar uma lista com este tipo")
     inits = {
         "int":0,
         "real":0.0,
@@ -93,6 +95,8 @@ def tipo(indef_obj):
     value. Useful for 'unwrapping' 
     indef type values'''
     value = indef_obj.value # unwrap value
+    if type(value) == Lista:
+        return f"[]{value.subtype}"
     types = {
         int : "int",
         float : "real",
@@ -101,6 +105,16 @@ def tipo(indef_obj):
         str : "texto",
     }
     return types.get(type(value))
+
+def tamanho(indef_obj):
+    value = indef_obj.value # unwrap value 
+    if type(value) == Lista:
+        return len(value.elements)
+    elif type(value) == str:
+        return len(value)
+    else:
+        return -1
+    
 
 #Adding builtins
 bltin_objs["verdadeiro"] = Bool.VERDADEIRO
@@ -128,4 +142,9 @@ add_bltin_func(
 add_bltin_func(
     "tipo",tipo,
     Type.TEXTO,("valor",Type.INDEF)
+)
+
+add_bltin_func(
+    "tamanho",tamanho,
+    Type.INT,("objecto",Type.INDEF)
 )

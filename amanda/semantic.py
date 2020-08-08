@@ -104,12 +104,29 @@ class Analyzer(ast.Visitor):
         for child in node.children:
             self.visit(child)
     
-    def check_type(self,var_type,type_name):
-        if not var_type or not var_type.is_type():
+    def get_type(self,type_node):
+        if not type_node:
+            return Type.VAZIO
+    
+        if type(type_node) == ast.ArraySpec:
+            type_name = type_node.decl_type.lexeme
+            type_symbol = self.current_scope.resolve(type_name)
+            ama_type = Lista(type_symbol)
+        else:
+            type_name = type_node.lexeme
+            type_symbol = self.current_scope.resolve(type_name)
+            ama_type = type_symbol
+
+        if not type_symbol or not type_symbol.is_type():
             self.error(
                 self.UNDEFINED_TYPE,
                 type=type_name
             )
+
+        return ama_type
+
+    def types_match(self,expected,received):
+        return expected == received or received.promote_to(expected)
 
 
     def visit_vardecl(self,node):
@@ -125,20 +142,10 @@ class Analyzer(ast.Visitor):
             self.current_scope.define(name,klass.get_member(name))
             return
 
-        if type(node.var_type) == ast.ArraySpec:
-            type_node = node.var_type
-            type_name = type_node.decl_type.lexeme
-            subtype = self.current_scope.resolve(type_name)
-            self.check_type(subtype,type_name)
-            var_type = Lista(subtype)
-        else:
-            type_name = node.var_type.lexeme
-            var_type = self.current_scope.resolve(type_name)
-            self.check_type(var_type,type_name)
-
         if self.current_scope.get(name):
             self.error(self.ID_IN_USE,name=name)
 
+        var_type = self.get_type(node.var_type)
         symbol = symbols.VariableSymbol(name,var_type)
         self.current_scope.define(name,symbol)
         node.var_type = var_type
@@ -154,14 +161,7 @@ class Analyzer(ast.Visitor):
         if self.current_scope.get(name):
             self.error(self.ID_IN_USE,name=name)
 
-        #Check if return types exists
-        if not node.func_type:
-            function_type = Type.VAZIO
-        else:
-            decl_type = node.func_type.lexeme
-            function_type =  self.current_scope.resolve(decl_type)
-        if not function_type or not function_type.is_type():
-            self.error(self.UNDEFINED_TYPE,type=decl_type)
+        function_type = self.get_type(node.func_type)
 
         #Check if non void function has return
         has_return = self.has_return(node.block)
@@ -169,8 +169,6 @@ class Analyzer(ast.Visitor):
             self.current_node = node
             self.error(self.NO_RETURN_STMT,name=name)
         symbol = symbols.FunctionSymbol(name,function_type)
-        #Annotate node with symbol
-        node.symbol = symbol
         self.check_function(name,symbol,node)
 
     def check_super(self,name,superclass,body):
@@ -272,14 +270,8 @@ class Analyzer(ast.Visitor):
         self.current_scope = self.current_scope.enclosing_scope
 
     def visit_param(self,node):
-        param_type = node.param_type.lexeme
-        var_type = self.current_scope.resolve(param_type)
-        if not var_type or not var_type.is_type():
-            self.error(
-                        self.UNDEFINED_TYPE,
-                        type=param_type
-                    )
         name = node.name.lexeme
+        var_type = self.get_type(node.param_type)
         return symbols.VariableSymbol(name,var_type)
 
     def visit_constant(self,node):
@@ -334,8 +326,7 @@ class Analyzer(ast.Visitor):
         Returns the resolved symbol of the get expression.'''
         target = self.visit(node.target)
         #Check for literal that are converted to object
-        if (target and target.type != Type.REF) or \
-            (node.target.eval_type != Type.REF):
+        if node.target.eval_type != Type.REF:
             self.error("Tipos primitivos não possuem atributos")
         #Get the class symbol
         #This hack is for objects that can be created via a literal
@@ -477,7 +468,7 @@ class Analyzer(ast.Visitor):
         node.prom_type = None
         #Set promotion type for right side
         rhs.prom_type = rhs.eval_type.promote_to(lhs.eval_type)
-        if lhs.eval_type != rhs.eval_type and not rhs.prom_type:
+        if not self.types_match(lhs.eval_type,rhs.eval_type):
             self.current_node = node
             self.error(f"atribuição inválida. incompatibilidade entre os operandos da atribuição")
 
@@ -503,7 +494,7 @@ class Analyzer(ast.Visitor):
         expr = node.exp
         self.visit(expr)
         expr.prom_type = expr.eval_type.promote_to(func_type)
-        if func_type != expr.eval_type and not expr.prom_type:
+        if not self.types_match(func_type,expr.eval_type):
             self.error(f"expressão de retorno inválida. O tipo do valor de retorno é incompatível com o tipo de retorno da função")
 
     def visit_se(self,node):
@@ -620,7 +611,7 @@ class Analyzer(ast.Visitor):
         #Type promotion for parameter
         for arg,param in zip(fargs,sym.params.values()):
             arg.prom_type = arg.eval_type.promote_to(param.type)
-            if param.type != arg.eval_type and not arg.prom_type:
+            if not self.types_match(param.type,arg.eval_type):
                 self.error(
-                   f"argumento inválido. Esperava-se um argumento do tipo '{param.type.name}' mas recebeu o tipo '{arg.eval_type.name}'")
+                   f"argumento inválido. Esperava-se um argumento do tipo '{param.type}' mas recebeu o tipo '{arg.eval_type}'")
         

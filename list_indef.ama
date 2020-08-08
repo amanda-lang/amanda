@@ -1,0 +1,6 @@
+
+l1 : [] indef = lista(int,4)
+
+para i de 0..4 faca
+    mostra l1[i]
+fim

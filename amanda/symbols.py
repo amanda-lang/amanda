@@ -132,13 +132,21 @@ Type.TEXTO = Type("texto",(Type.INDEF,))
 class Lista(Type):
 
     def __init__(self,subtype):
-        super().__init__("lista")
+        super().__init__("lista",(Type.INDEF,))
         self.subtype = subtype
+
+    def __str__(self):
+        return f"[]{self.subtype}"
 
     def __eq__(self,other):
         if type(other) != Lista:
             return False
         return self.subtype == other.subtype
+
+    def promote_to(self,other):
+        if type(other) == Lista:
+            return other if other.subtype in self.subtype.prom_types else None
+        return other if other in self.prom_types else None
 
 class ClassSymbol(Type):
     ''' Represents a class in amanda.
