@@ -4,10 +4,9 @@ from io import StringIO
 import sys
 from os.path import abspath
 from amanda.transpiler import Transpiler
-from amanda.runtime import handle_exception,throw_error
+from amanda.error import handle_exception,throw_error
 from amanda.bltins import bltin_objs
 
-FILENAME = "<output>"
 
 def main():
     parser = argparse.ArgumentParser()
@@ -25,14 +24,15 @@ def main():
     code = amandac.compile()
     #TODO: Make this optional because i don't need
     #to write output to disk
-    with open("output.py","w") as output:
+    out_file = "output.py"
+    with open(out_file,"w") as output:
         output.write(str(code))
     #Run compiled python code
-    pycode_obj = compile(str(code),FILENAME,"exec")
+    pycode_obj = compile(str(code),out_file,"exec")
     try:
         exec(pycode_obj,bltin_objs)
     except Exception as e:
-        ama_error = handle_exception(e,amandac.src_map)
+        ama_error = handle_exception(e,out_file,amandac.src_map)
         if not ama_error:
             raise e
         throw_error(ama_error,src)
