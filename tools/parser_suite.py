@@ -70,7 +70,7 @@ class LexerTestCase(unittest.TestCase):
         self.assertEqual(token.lexeme,'"Ramboeiro"',msg="STRING value Test Failed")
 
     def test_identifier(self):
-        self.buffer.write("_test1 test test2 __test3 var mostra verdadeiro falso retorna se senao enquanto entao inc para faca de fim func classe eu super vazio converte")
+        self.buffer.write("_test1 test test2 __test3 var mostra verdadeiro falso retorna se senao enquanto entao inc para faca de fim func classe eu super vazio converte lista")
         self.buffer.seek(0)
         lexer = Lexer(self.buffer)
         token = lexer.get_token()
@@ -145,6 +145,9 @@ class LexerTestCase(unittest.TestCase):
         token = lexer.get_token()
         self.assertEqual(token.token,TokenType.CONVERTE,msg="CONVERTE Test Failed")
         self.assertEqual(token.lexeme,"converte",msg="CONVERTE value test Failed")
+        token = lexer.get_token()
+        self.assertEqual(token.token,TokenType.LISTA,msg="LISTA Test Failed")
+        self.assertEqual(token.lexeme,"lista",msg="LISTA value test Failed")
         
 
         
@@ -241,6 +244,8 @@ class ParserTestCase(unittest.TestCase):
     def test_new_declaration(self):
         phrases = [ " a: int"," a1: real"," a2: bool",
                 " a3:real", " troco : real = 3.14","p1,p2,p3 : real", 
+                "array : []int","array1 : []bool",
+                "array2 : []texto","array : []real"
         ]
         for phrase in phrases:
             print(phrase,file=self.buffer,end="\n\n\n")
@@ -264,6 +269,8 @@ class ParserTestCase(unittest.TestCase):
             "string.texo","string.get_texto()",
             "klass()()().stop_please()","string.texto='sss'",
             "numero.value+=1","numero.value().set = 1",
+            "array[0]","(array[i] - array[i-u])*array[m]",
+            "lista(int,3)","lista(int,3 + a)",
         ]
         for phrase in phrases:
             print(phrase,file=self.buffer)
@@ -393,7 +400,13 @@ class ParserTestCase(unittest.TestCase):
 
             fim
 
+            func test(a: []real,b: []int)  
 
+            fim
+
+            func test(a: []real,b: []int) : []int  
+
+            fim
         '''
         ]
         for phrase in phrases:
