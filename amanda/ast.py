@@ -6,6 +6,7 @@ from amanda.tokens import Token,TokenType
 class ASTNode:
     def __init__(self,token=None):
         self.token = token
+        self.lineno = token.line
 
     def is_assignable(self):
         return False
@@ -130,8 +131,8 @@ class ParaExpr(ASTNode):
         self.range_expr = range_expr
     
 class RangeExpr(ASTNode):
-    def __init__(self,start=None,end=None,inc=None):
-        super().__init__(start)
+    def __init__(self,token,start=None,end=None,inc=None):
+        super().__init__(token)
         self.start = start
         self.end = end
         self.inc = inc
@@ -154,8 +155,8 @@ class Get(Expr):
     
 class Index(Expr):
 
-    def __init__(self,target,index):
-        super().__init__(target)
+    def __init__(self,token,target,index):
+        super().__init__(token)
         self.target = target
         self.index = index
 

@@ -217,10 +217,10 @@ class Parser:
     def for_expression(self):
         name = self.consume(TT.IDENTIFIER)
         self.consume(TT.DE)
-        range_expr = self.range_expression()
+        range_expr = self.range_expression(name)
         return ast.ParaExpr(name,range_expr)
 
-    def range_expression(self):
+    def range_expression(self,token):
         start = self.equality()
         self.consume(TT.DDOT)
         stop = self.equality()
@@ -228,7 +228,7 @@ class Parser:
         if self.lookahead.token == TT.INC:
             self.consume(TT.INC)
             inc = self.equality()
-        return ast.RangeExpr(start,stop,inc)
+        return ast.RangeExpr(token,start,stop,inc)
 
     def decl_stmt(self):
         stmt = self.expression()
@@ -399,8 +399,8 @@ class Parser:
             elif self.match(TT.LBRACKET):
                 self.consume(TT.LBRACKET)
                 index = self.equality()
-                self.consume(TT.RBRACKET)
-                expr = ast.Index(expr,index)
+                token = self.consume(TT.RBRACKET)
+                expr = ast.Index(token,expr,index)
             else:
                 self.consume(TT.DOT)
                 identifier = self.lookahead

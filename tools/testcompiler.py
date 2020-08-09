@@ -6,20 +6,8 @@ from amanda.codeobj import CodeObj
 from amanda.transpiler import Transpiler
 import amanda.semantic as sem
 from amanda.error import AmandaError
-from amanda.parser import Parser
-
-#Generates code to print output to buffer
-class TestMostra(CodeObj):
-
-    def __init__(self,py_lineno,ama_lineno,expression,buffer):
-        super().__init__(py_lineno,ama_lineno)
-        self.expression = expression
-        self.buffer = buffer
-
-    def __str__(self):
-        #Redirect output to test buffer of compiler
-        return f"printc({str(self.expression)},end=' ',file={self.buffer})"
-
+from amanda.parser import Parser 
+import pdb
 #Subclass of the transpiler made for running tests 
 class TestCompiler(Transpiler):
 
@@ -43,9 +31,11 @@ class TestCompiler(Transpiler):
             self.compile()
         out_file = "testfile.py"
         py_codeobj = compile(
-            str(self.compiled_program),
+            self.compiled_program,
             out_file,"exec"
         )
+        with open("output.py","w") as output:
+            output.write(self.compiled_program)
         #Define runtime scope
         scope = bltin_objs 
         scope["_buffer_"] = self.test_buffer
@@ -58,9 +48,7 @@ class TestCompiler(Transpiler):
             self.test_buffer.write(str(ama_error).strip())
             sys.exit()
 
+    #Generates code to print output to buffer
     def gen_mostra(self,node):
         expression = self.gen(node.exp)
-        return TestMostra(
-            self.py_lineno,self.ama_lineno,
-            expression,"_buffer_"
-        )
+        return f"printc({expression},end=' ',file=_buffer_)"
