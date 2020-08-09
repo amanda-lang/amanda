@@ -1,5 +1,5 @@
 from amanda.tokens import TokenType as TT
-import amanda.ast_nodes as ast
+import amanda.ast as ast
 import amanda.symbols as symbols
 from amanda.symbols import Type,Lista
 from amanda.error import AmandaError

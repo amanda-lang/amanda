@@ -1,13 +1,15 @@
-from io import StringIO
 import sys
+import pdb
 import keyword
+from io import StringIO
 import amanda.symbols as symbols
-import amanda.ast_nodes as ast
+from amanda.symbols import Type
+import amanda.ast as ast
 import amanda.semantic as sem
 from amanda.error import AmandaError,throw_error
 from amanda.parser import Parser
-import amanda.codeobj as codeobj
 from amanda.bltins import bltin_symbols
+
 
 
 class Transpiler:
@@ -19,17 +21,20 @@ class Transpiler:
     GLOBAL = "GLOBAL"
     LOCAL = "LOCAL"
 
+    #Indentation string
+    INDENT = "    "
+
     def __init__(self,src):
-        self.src = StringIO(src.read())
+        self.src = src
         self.py_lineno = 0  # tracks lineno in compiled python src
         self.ama_lineno = 1 # tracks lineno in input amanda src
         self.compiled_program = None
         self.depth = -1 # current indent level
         self.global_scope = symbols.Scope(self.GLOBAL)
         self.current_scope = self.global_scope
-        self.current_function = None
         self.func_depth = 0 # current func nesting level
         self.scope_depth = 0 # scope nesting level
+        self.src_map = {} #Maps py_fileno to ama_fileno
         self.load_builtins()
 
     def load_builtins(self):
@@ -47,6 +52,7 @@ class Transpiler:
             program = Parser(self.src).parse()
             valid_program = sem.Analyzer().check_program(program)
             self.compiled_program = self.gen(valid_program)
+            print(self.src_map)
         except AmandaError as e:
             throw_error(e,self.src)
         return self.compiled_program
@@ -59,7 +65,9 @@ class Transpiler:
         method_name = f"gen_{node_class}"
         gen_method = getattr(self,method_name,self.bad_gen)
         #Update line only if node type has line attribute
-        self.ama_lineno = getattr(getattr(node,"token",None),"line",self.ama_lineno)
+        self.ama_lineno =getattr(
+            node,"lineno",self.ama_lineno
+        )
         if node_class == "block":
             return gen_method(node,args)
         return gen_method(node)
@@ -67,31 +75,51 @@ class Transpiler:
     def gen_program(self,node):
         return self.compile_block(node,[],self.global_scope)
                 
+    def update_line_info(self):
+        self.src_map[self.py_lineno] = self.ama_lineno
+        self.py_lineno += 1
+
+    def build_str(self,str_buffer):
+        string = str_buffer.getvalue()
+        str_buffer.close()
+        return string
+
+
     def compile_block(self,node,stmts,scope=None):
         #stmts param is a list of stmts
         #node defined here because caller may want
         #to add custom statement to the beginning of
         #a block
         self.depth += 1
+        indent_level = self.INDENT * self.depth
         if scope:
             self.current_scope = scope
         else:
-            self.current_scope = symbols.Scope(self.LOCAL,self.current_scope)
-        #Break for block header
-        py_lineno = self.py_lineno
-        self.py_lineno += 1
+            self.current_scope = symbols.Scope(
+                self.LOCAL,self.current_scope
+            )
+        #Newline for header
+        self.update_line_info()
+        block = StringIO()
+        #Add caller stmts to buffer
+        for stmt in stmts:
+            block.write(indent_level + stmt)
+            block.write("\n")
+            self.update_line_info()
+
         for child in node.children:
-            instr = self.gen(child)
-            #Increase line count
-            self.py_lineno += 1
-            stmts.append(instr)
+            block.write(indent_level + self.gen(child))
+            block.write("\n")
+            self.update_line_info()
         level = self.depth
         self.depth -= 1
         self.current_scope = self.current_scope.enclosing_scope
-        if len(stmts) == 0:
-            stmts.append(codeobj.Pass(self.py_lineno,self.ama_lineno))
-            self.py_lineno += 1
-        return codeobj.Block(py_lineno,self.ama_lineno,stmts,level)
+        #Add pass statement
+        if len(block.getvalue()) == 0:
+            block.write(f"{indent_level}pass")
+            block.write("\n")
+            self.update_line_info()
+        return self.build_str(block)
 
     def is_valid_name(self,name):
         ''' Checks whether name is a python keyword, reserved var or
@@ -122,23 +150,38 @@ class Transpiler:
     def gen_vardecl(self,node):
         assign = node.assign
         name = node.name.lexeme
+
         if self.scope_depth >= 1:
             #Defines a new local
-            name = self.define_local(name,self.current_scope,self.VAR)
+            name = self.define_local(
+                name,self.current_scope,self.VAR
+            )
         else:
             #In global scope
             name = self.define_global(name,self.VAR)
+
         if assign:
-            return self.gen(assign)
-        return codeobj.VarDecl(self.py_lineno,self.ama_lineno,name,node.var_type)
+            value = self.gen(assign.right)
+        else:
+            #Check for initializer
+            init_values = {
+                "int"  : 0,
+                "real" : 0.0,
+                "bool" : "falso",
+                "texto": '''""'''
+
+            }
+            value = init_values.get(str(node.var_type))
+        return f"{name} = {value}"
 
     def gen_functiondecl(self,node):
         name = node.name.lexeme
-        prev_function = self.current_function
-        self.current_function = node.symbol
+        func_def = StringIO()
         if self.scope_depth >= 1:
             #Nested function
-            name = self.define_local(name,self.current_scope,self.FUNC)
+            name = self.define_local(
+                name,self.current_scope,self.FUNC
+            )
         else:
             name = self.define_global(name,self.FUNC)
         self.scope_depth += 1
@@ -146,17 +189,22 @@ class Transpiler:
         params = []
         scope = symbols.Scope(name,self.current_scope)
         for param in node.params:
-            param_name = self.define_local(param.name.lexeme,scope,self.VAR)
+            param_name = self.define_local(
+                param.name.lexeme,scope,self.VAR
+            )
             params.append(param_name)
-        gen = codeobj.FunctionDecl(
-            self.py_lineno,self.ama_lineno,name,
+        params = ",".join(params)
+        #Add function signature
+        func_def.write(
+            f"def {name}({params}):\n"
+        )
+        #Add function block
+        func_def.write(
             self.get_func_block(node.block,scope),
-            params
         )
         self.scope_depth -= 1
         self.func_depth -= 1
-        self.current_function = prev_function
-        return gen
+        return self.build_str(func_def)
 
     #1.Any functions declared inside another
     #should also be regarded as a local
@@ -201,9 +249,8 @@ class Transpiler:
         names = self.get_names(self.global_scope)
         if len(names)==0:
             return None
-        py_lineno = self.py_lineno
-        self.py_lineno += 1
-        return codeobj.Global(py_lineno,self.ama_lineno,names)
+        names = ",".join(names)
+        return f"global {names}"
 
     def gen_nonlocal_stmt(self,scope):
         ''' Adds nonlocal statements to
@@ -215,31 +262,32 @@ class Transpiler:
             scope = scope.enclosing_scope
         if len(names)==0:
             return None
-        py_lineno = self.py_lineno
-        self.py_lineno += 1
-        return codeobj.NonLocal(py_lineno,self.ama_lineno,names)
+        names = ",".join(names)
+        return f"nonlocal {names}"
 
     def gen_call(self,node):
-        args = [self.gen(arg) for arg in node.fargs]
-        return codeobj.Call(self.py_lineno,self.ama_lineno,self.gen(node.callee),args)
+        args = ",".join([
+            str(self.gen(arg)) for arg in node.fargs
+        ])
+        callee = self.gen(node.callee)
+        return f"{callee}({args})"
     
     def gen_index(self,node):
-        return codeobj.Index(
-            self.py_lineno,self.ama_lineno,
-            self.gen(node.target),self.gen(node.index)
-        )
+        target = self.gen(node.target)
+        index = self.gen(node.index)
+        return f"{target}[{index}]"
 
     def gen_assign(self,node):
         lhs = self.gen(node.left)
         rhs = self.gen(node.right)
-        return codeobj.Assign(self.py_lineno,self.ama_lineno,lhs,rhs)
+        return f"{lhs} = {rhs}"
 
     def gen_constant(self,node):
         prom_type = node.prom_type
         literal = node.token.lexeme
         if prom_type is not None:
             return self.promote_expression(literal,prom_type)
-        return literal
+        return str(literal)
 
     def gen_variable(self,node):
         name = node.token.lexeme
@@ -259,147 +307,117 @@ class Transpiler:
     def gen_binop(self,node):
         lhs = self.gen(node.left)
         rhs = self.gen(node.right)
-        operator = node.token
-        gen = codeobj.BinOp(
-            self.py_lineno,self.ama_lineno,
-            operator.lexeme,lhs,rhs
-        )
-        
+        operator = node.token.lexeme
+        if operator == "e":
+            operator = "and"
+        elif operator == "ou":
+            operator = "or"
+        binop  = f"({lhs} {operator} {rhs})"
         # Promote node
         if node.prom_type is not None:
-            return self.promote_expression(gen,node.prom_type)
-        return gen
+            return self.promote_expression(
+                binop,node.prom_type
+            )
+        return binop
 
     def gen_unaryop(self,node):
-        gen = codeobj.UnaryOp(
-            self.py_lineno,self.ama_lineno,
-            node.token.lexeme,
-            self.gen(node.operand)
-        )
+        operator = node.token.lexeme
+        operand = self.gen(node.operand)
+        if operator == "nao":
+            operator = "not"
+        unaryop = f"({operator} {operand})"
+
         if node.prom_type is not None:
-            return self.promote_expression(gen,node.prom_type)
-        return gen
+            return self.promote_expression(
+                unaryop,node.prom_type
+            )
+
+        return unaryop
     
     def gen_converte(self,node):
-        return codeobj.Converte(
-            self.py_lineno,self.ama_lineno,
-            self.gen(node.expression),
-            node.new_type.lexeme
-        )
+        expr = self.gen(node.expression)
+        new_type = node.new_type.lexeme
+        return f"converte({expr},'{new_type}')"
 
     def gen_lista(self,node):
         list_type = node.eval_type.subtype
+        expr = self.gen(node.expression)
         prom_type = node.prom_type
         if prom_type:
             list_type = prom_type.subtype
-        return codeobj.Lista(
-            self.py_lineno,self.ama_lineno,
-            self.gen(node.expression),
-            list_type
-        )
+        return f"lista('{list_type}',{expr})"
 
     def promote_expression(self,expression,prom_type):
-        return codeobj.Promotion(
-            self.py_lineno,self.ama_lineno,
-            expression,prom_type
-        )
-
+        if prom_type == Type.INDEF:
+            return f"Indef({expression})"
+        elif prom_type == Type.REAL:
+            return f"float({expression})"
+        else:
+            raise NotImplementedError("Unexpected prom_type")
     
     def gen_se(self,node):
+        if_stmt = StringIO()
+        condition = self.gen(node.condition)
+        then_branch = self.compile_branch(node.then_branch)
+        if_stmt.write(f"if {condition}:\n{then_branch}")
+        if node.else_branch:
+            indent_level = self.INDENT * self.depth
+            else_branch = self.compile_branch(node.else_branch) 
+            if_stmt.write(f"\n{indent_level}else:\n{else_branch}")
+        return self.build_str(if_stmt)
+
+    def compile_branch(self,block,scope=None):
         self.scope_depth += 1
-        scope = symbols.Scope(self.LOCAL,self.current_scope)
-        gen = codeobj.Se(
-            self.py_lineno,self.ama_lineno,
-            self.gen(node.condition),
-            self.compile_block(node.then_branch,[],scope)
+        if scope is None:
+            scope = symbols.Scope(self.LOCAL,self.current_scope)
+        branch = self.compile_block(
+            block,[],scope
         )
-        self.scope_depth -=1
         names = self.get_all_names(scope)
         if len(names) > 0:
-            self.unbind_locals(scope,gen.then_branch,names)
-
-        if node.else_branch:
-            self.scope_depth += 1
-            else_scope = symbols.Scope(self.LOCAL,self.current_scope)
-            gen.else_branch = codeobj.Senao(
-                self.py_lineno,self.ama_lineno,
-                self.compile_block(node.else_branch,[],else_scope),
-                self.depth
-            )
-            self.scope_depth -= 1
-            names = self.get_all_names(else_scope)
-            if len(names) > 0:
-                self.unbind_locals(else_scope,gen.else_branch.then_branch,names)
-
-        return gen
-    
-    def unbind_locals(self,scope,body,names):
-        py_lineno = self.py_lineno
-        self.py_lineno += 1
-        body.instructions.append(codeobj.Del(py_lineno,self.ama_lineno,names))
+            self.update_line_info()
+            names = ",".join(names)
+            #Add del stmt to end of block
+            indent_level = self.INDENT * (self.depth + 1)
+            branch += f"{indent_level}del {names}"
+        self.scope_depth -= 1
+        return branch
 
     def gen_enquanto(self,node):
-        self.scope_depth += 1
-        scope = symbols.Scope(self.LOCAL,self.current_scope)
-        gen = codeobj.Enquanto(
-            self.py_lineno,self.ama_lineno,
-            self.gen(node.condition),
-            self.compile_block(node.statement,[],scope)
-        )
-        names = self.get_all_names(scope)
-        if len(names) > 0:
-            self.unbind_loop_locals(gen.body,names)
-        self.scope_depth -=1
-        return gen
+        condition = self.gen(node.condition)
+        body = self.compile_branch(node.statement)
+        return f"while {condition}:\n{body}"
 
     def gen_para(self,node):
-        self.scope_depth += 1
-        #Define control var
-        scope = symbols.Scope(self.LOCAL,self.current_scope)
         para_expr = node.expression
-        control_var = para_expr.name.lexeme
+        scope = symbols.Scope(self.LOCAL,self.current_scope)
         #Change control var name to local name
-        para_expr.name.lexeme = self.define_local(control_var,scope,self.VAR)
-        gen = codeobj.Para(
-            self.py_lineno,self.ama_lineno,
-            self.gen(para_expr),
-            self.compile_block(node.statement,[],scope)
+        self.scope_depth += 1
+        para_expr.name.lexeme = self.define_local(
+            para_expr.name.lexeme,
+            scope,self.VAR
         )
-        #Delete names
-        names = self.get_all_names(scope)
-        if len(names) > 0:
-            self.unbind_loop_locals(gen.body,names)
-        self.scope_depth -=1
-        return gen
+        self.scope_depth -= 1
+        body = self.compile_branch(node.statement,scope)
+        expression = self.gen(para_expr)
+        return f"for {expression}:\n{body}"
     
-    def unbind_loop_locals(self,body,names):
-        py_lineno = self.py_lineno
-        self.py_lineno += 1
-        body.del_stmt = codeobj.Del(py_lineno,self.ama_lineno,names)
-        
-
     def gen_paraexpr(self,node):
         range_expr = node.range_expr
         name = node.name.lexeme
-        gen = codeobj.ParaExpr(
-            self.py_lineno,self.ama_lineno,name,
-            self.gen(range_expr.start),
-            self.gen(range_expr.end),
-        )
+        start = self.gen(range_expr.start)
+        stop = self.gen(range_expr.end)
+        inc = f"-1 if {start} > {stop} else 1"
         if range_expr.inc:
-            gen.inc = self.gen(range_expr.inc)
-        return gen
+            inc = self.gen(range_expr.inc)
+        return f"{name} in range({start},{stop},{inc})"
             
-
     def gen_retorna(self,node):
-        # Check if promotion is needed
-        return codeobj.Retorna(
-            self.py_lineno,self.ama_lineno,
-            self.gen(node.exp)
-        )
+        expression = self.gen(node.exp)
+        return f"return {expression}"
 
     def gen_mostra(self,node):
         expression = self.gen(node.exp)
-        if node.exp.eval_type == symbols.Type.VAZIO:
+        if node.exp.eval_type == Type.VAZIO:
             expression = "vazio"
-        return codeobj.Mostra(self.py_lineno,self.ama_lineno,expression)
+        return f"printc({expression})"
