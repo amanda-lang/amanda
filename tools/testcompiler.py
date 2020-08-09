@@ -1,13 +1,11 @@
 from io import StringIO
 import sys
-from amanda.error import handle_exception
+from amanda.error import handle_exception,AmandaError
 from amanda.bltins import bltin_objs
-from amanda.codeobj import CodeObj
 from amanda.transpiler import Transpiler
 import amanda.semantic as sem
-from amanda.error import AmandaError
 from amanda.parser import Parser 
-import pdb
+
 #Subclass of the transpiler made for running tests 
 class TestCompiler(Transpiler):
 
