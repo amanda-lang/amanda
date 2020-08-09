@@ -59,6 +59,7 @@ class TokenType(Enum):
     ENQUANTO = "ENQUANTO"
     PARA = "PARA"
     CONVERTE = "CONVERTE"
+    LISTA = "LISTA"
     FACA = "FACA"
     DE = "DE"
     EU = "EU"
@@ -96,5 +97,3 @@ def build_reserved_keywords():
     return reserved_keywords
 
 KEYWORDS = build_reserved_keywords()
-if __name__ == "__main__":
-    print(build_reserved_keywords())

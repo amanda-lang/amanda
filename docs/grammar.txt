@@ -1,9 +1,8 @@
 program
-  : ( declaration | NEWLINE )* EOF
+ : ( declaration | NEWLINE )* EOF
  ;
 
 declaration
-  :  var_declaration
   | class_declaration
   | function_declaration
   | stmt
@@ -17,23 +16,22 @@ class_declaration
 class_body
   : ( var_declaration | function_declaration | NEWLINE )*
 
-var_declaration
-  : VAR IDENTIFIER COLON type assignment? ( SEMI | NEWLINE )
-  ;
 
 type
-  : IDENTIFIER ( LBRACKET RBRACKET )?
+  : (LBRACKET RBRACKET)? IDENTIFIER 
   ;
 
 function_declaration
   : FUNC IDENTIFIER LPAR formal_parameter_section? RPAR COL (type | VAZIO)
   body
+  FIM
   ;
 
 
 body
   :( declaration | NEWLINE )*
   ;
+
 
 formal_parameter_section
   : IDENTIFIER COLON type (COMMA formal_parameter_section)*
@@ -42,12 +40,12 @@ formal_parameter_section
 
 stmt
   :
-  | decl_stmt
   | mostra_stmt
   | retorna_stmt
   | se_stmt
   | enquanto_stmt
   | para_stmt
+  | decl_stmt
   ;
 
 retorna_stmt
@@ -55,7 +53,7 @@ retorna_stmt
   ;
 
 mostra_stmt
-  : MOSTRA equality (SEMI|NEWLINE)
+  : MOSTRA equality (SEMI|NEWLINE) 
   ;
 
 se_stmt
@@ -138,7 +136,7 @@ unary
   ;
 
 call
-   : primary (LPAR args? RPAR | DOT IDENTIFIER)*
+   : primary (LPAR args? RPAR | index | DOT IDENTIFIER)*
    ;
 
 
@@ -151,23 +149,22 @@ primary
   | LPAR expression RPAR
   | IDENTIFIER 
   | EU
-  | TROCA LPAR equality VIRGULA IDENTIFIER RPAR
+  | CONVERTE LPAR equality COMMA IDENTIFIER RPAR
+  | LISTA LPAR IDENTIFIER COMMA equality RPAR
   | NULO
   | SUPER
   ;
 
-call
-  : LPAR actual_parameters? RPAR
-  ;
 
-array_ref
-  : LBRACKET equality RBRACKET
-  ;
+
 
 args
   : equality (COMMA equality)*
   ;
 
+index
+  : LBRACKET equality RBRACKET
+  ;
 
 mult_operator
   : STAR

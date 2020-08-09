@@ -6,8 +6,7 @@ You can't do much with it due to it's lacklustre perfomance and lack of serious 
 
 ## Usage
 
-~~TODO: Make instructions better~~
-
+~~TODO: Make instructions better~~ 
 ~~TODO: Add Portuguese version of this lool~~
 
 **On Windows**
@@ -41,7 +40,6 @@ python3 -m examples/hello_word.ama
 ```
 
 **On Mac**
-
 Can't help you, i'm sorry :cry: .
 
 
@@ -209,6 +207,29 @@ func mostra_soma(a:int,b:int) # sem tipo de retorno
     mostra a + b
 fim
 ```
+
+### Lists (Arrays)
+```python
+
+# Uma lista serve para armazenar vários valores
+#do mesmo tipo
+#Para criar a lista use a 'função' lista
+
+minha_lista : [] int = lista(int,4) # tipo e o tamanho
+
+# Preencher a lista
+
+para i de 0..tamanho(minha_lista) faca
+    minha_lista[i] = i*i
+fim
+
+# Imprimir todos elementos da lista
+
+para i de 0..tamanho(minha_lista) faca
+    mostra minha_lista[i]
+fim
+```
+
 
 #### Classes
 

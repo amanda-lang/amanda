@@ -33,6 +33,7 @@ VERDADEIRO : verdadeiro
 FALSO : falso
 RETORNA : retorna
 CONVERTE : converte
+LISTA : lista
 SE : se
 SENAO : senao
 ENTAO : entao

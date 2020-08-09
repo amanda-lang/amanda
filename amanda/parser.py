@@ -77,8 +77,13 @@ class Parser:
             return self.statement()
 
     def type(self):
+        if self.match(TT.LBRACKET):
+            self.consume(TT.LBRACKET)
+            self.consume(TT.RBRACKET)
+            decl_type = self.consume(TT.IDENTIFIER)
+            return AST.ArraySpec(decl_type)
         return self.consume(TT.IDENTIFIER)
-    
+
     def end_stmt(self):
         if self.match(TT.NEWLINE):
             self.consume(TT.NEWLINE)
@@ -379,7 +384,8 @@ class Parser:
         
     def call(self):
         expr = self.primary()
-        while self.lookahead.token in (TT.LPAR,TT.DOT):
+        while self.lookahead.token in\
+        (TT.LPAR,TT.DOT,TT.LBRACKET):
             if self.match(TT.LPAR):
                 self.consume(TT.LPAR)
                 args = []
@@ -390,6 +396,11 @@ class Parser:
                     "os argumentos da função devem ser delimitados por ')'"
                 )
                 expr = AST.Call(callee=expr,paren=token,fargs=args)
+            elif self.match(TT.LBRACKET):
+                self.consume(TT.LBRACKET)
+                index = self.equality()
+                self.consume(TT.RBRACKET)
+                expr = AST.Index(expr,index)
             else:
                 self.consume(TT.DOT)
                 identifier = self.lookahead
@@ -419,10 +430,21 @@ class Parser:
             expr = AST.Super(self.consume(TT.SUPER))
         elif self.match(TT.CONVERTE):
             expr = self.converte_expression()
+        elif self.match(TT.LISTA):
+            expr = self.lista_expr()
         else:
             self.error(f"início inválido de expressão: '{self.lookahead.lexeme}'")
         return expr
     
+    def lista_expr(self):
+        token = self.consume(TT.LISTA)
+        self.consume(TT.LPAR)
+        array_type = self.consume(TT.IDENTIFIER)
+        self.consume(TT.COMMA)
+        expression = self.equality()
+        self.consume(TT.RPAR)
+        return AST.Lista(token,array_type,expression)
+
     def converte_expression(self):
         token = self.consume(TT.CONVERTE)
         self.consume(TT.LPAR)
