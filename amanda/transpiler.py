@@ -119,9 +119,7 @@ class Transpiler:
             block.write(f"{indent_level}pass")
             block.write("\n")
             self.update_line_info()
-        #HACK: to remove excess lines from source
-        block = self.build_str(block)
-        return block
+        return self.build_str(block)
 
     def is_valid_name(self,name):
         ''' Checks whether name is a python keyword, reserved var or
