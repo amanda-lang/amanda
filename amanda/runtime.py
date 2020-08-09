@@ -1,7 +1,6 @@
 import traceback
 from amanda.types import Bool,Indef
 from amanda.error import AmandaError,throw_error
-from amanda.bltins import bltin_objs
 
 #Exec filename
 FILENAME = "<output>"
@@ -22,13 +21,13 @@ def get_info_from_tb(exception):
         tb = tb.tb_next
     return tb.tb_lineno
 
-def handle_exception(exception,pycode):
+def handle_exception(exception,src_map):
     ''' Method that gets info about exceptions that
     happens during execution of compiled source and 
     uses info to raise an amanda exception'''
     #Get to the first tb object of the trace
     py_lineno = get_info_from_tb(exception)
-    ama_lineno = pycode.get_ama_lineno(py_lineno)
+    ama_lineno = src_map[py_lineno]
     assert ama_lineno is not None
     if type(exception) == ZeroDivisionError:
         return AmandaError.common_error(
@@ -40,13 +39,3 @@ def handle_exception(exception,pycode):
         )
     return None
         
-def run_pycode(ama_src,pycode):
-    pycode_obj = compile(str(pycode),FILENAME,"exec")
-    try:
-        exec(pycode_obj,bltin_objs)
-    except Exception as e:
-        ama_error = handle_exception(e,pycode)
-        if not ama_error:
-            raise e
-        throw_error(ama_error,ama_src)
-

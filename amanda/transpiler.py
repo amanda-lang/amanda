@@ -14,13 +14,14 @@ class Transpiler:
     #Var types
     VAR = "VAR"
     FUNC = "FUNC"
+    INDENT = "    "
 
     #Scope names
     GLOBAL = "GLOBAL"
     LOCAL = "LOCAL"
 
     def __init__(self,src):
-        self.src = StringIO(src.read())
+        self.src = src
         self.py_lineno = 0  # tracks lineno in compiled python src
         self.ama_lineno = 1 # tracks lineno in input amanda src
         self.compiled_program = None
@@ -30,6 +31,7 @@ class Transpiler:
         self.current_function = None
         self.func_depth = 0 # current func nesting level
         self.scope_depth = 0 # scope nesting level
+        self.src_map = {} #Maps py_fileno to ama_fileno
         self.load_builtins()
 
     def load_builtins(self):
@@ -67,6 +69,11 @@ class Transpiler:
     def gen_program(self,node):
         return self.compile_block(node,[],self.global_scope)
                 
+    def update_src_map(self):
+        self.src_map[self.py_lineno] = self.ama_lineno
+        self.py_lineno += 1
+
+
     def compile_block(self,node,stmts,scope=None):
         #stmts param is a list of stmts
         #node defined here because caller may want
@@ -79,18 +86,18 @@ class Transpiler:
             self.current_scope = symbols.Scope(self.LOCAL,self.current_scope)
         #Break for block header
         py_lineno = self.py_lineno
-        self.py_lineno += 1
+        self.update_src_map()
         for child in node.children:
             instr = self.gen(child)
             #Increase line count
-            self.py_lineno += 1
+            self.update_src_map()
             stmts.append(instr)
         level = self.depth
         self.depth -= 1
         self.current_scope = self.current_scope.enclosing_scope
         if len(stmts) == 0:
             stmts.append(codeobj.Pass(self.py_lineno,self.ama_lineno))
-            self.py_lineno += 1
+            self.update_src_map()
         return codeobj.Block(py_lineno,self.ama_lineno,stmts,level)
 
     def is_valid_name(self,name):
@@ -202,7 +209,7 @@ class Transpiler:
         if len(names)==0:
             return None
         py_lineno = self.py_lineno
-        self.py_lineno += 1
+        self.update_src_map()
         return codeobj.Global(py_lineno,self.ama_lineno,names)
 
     def gen_nonlocal_stmt(self,scope):
@@ -216,7 +223,7 @@ class Transpiler:
         if len(names)==0:
             return None
         py_lineno = self.py_lineno
-        self.py_lineno += 1
+        self.update_src_map()
         return codeobj.NonLocal(py_lineno,self.ama_lineno,names)
 
     def gen_call(self,node):
@@ -335,7 +342,7 @@ class Transpiler:
     
     def unbind_locals(self,scope,body,names):
         py_lineno = self.py_lineno
-        self.py_lineno += 1
+        self.update_src_map()
         body.instructions.append(codeobj.Del(py_lineno,self.ama_lineno,names))
 
     def gen_enquanto(self,node):
@@ -374,7 +381,7 @@ class Transpiler:
     
     def unbind_loop_locals(self,body,names):
         py_lineno = self.py_lineno
-        self.py_lineno += 1
+        self.update_src_map()
         body.del_stmt = codeobj.Del(py_lineno,self.ama_lineno,names)
         
 

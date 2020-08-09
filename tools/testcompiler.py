@@ -51,7 +51,7 @@ class TestCompiler(Transpiler):
         try:
             exec(py_codeobj,scope)
         except Exception as e:
-            ama_error = handle_exception(e,self.compiled_program)
+            ama_error = handle_exception(e,self.src_map)
             if not ama_error:
                 raise e
             self.test_buffer.write(str(ama_error).strip())
