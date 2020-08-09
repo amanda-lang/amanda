@@ -34,8 +34,6 @@ class TestCompiler(Transpiler):
             self.compiled_program,
             out_file,"exec"
         )
-        with open("output.py","w") as output:
-            output.write(self.compiled_program)
         #Define runtime scope
         scope = bltin_objs 
         scope["_buffer_"] = self.test_buffer

@@ -1,13 +1,13 @@
-from io import StringIO
 import sys
+import pdb
 import keyword
+from io import StringIO
 import amanda.symbols as symbols
 from amanda.symbols import Type
 import amanda.ast as ast
 import amanda.semantic as sem
 from amanda.error import AmandaError,throw_error
 from amanda.parser import Parser
-import amanda.codeobj as codeobj
 from amanda.bltins import bltin_symbols
 
 
@@ -120,7 +120,7 @@ class Transpiler:
             block.write("\n")
             self.update_line_info()
         #HACK: to remove excess lines from source
-        block = self.build_str(block).replace("\n\n","\n")
+        block = self.build_str(block)
         return block
 
     def is_valid_name(self,name):
@@ -251,7 +251,6 @@ class Transpiler:
         names = self.get_names(self.global_scope)
         if len(names)==0:
             return None
-        self.update_line_info()
         names = ",".join(names)
         return f"global {names}"
 
@@ -265,7 +264,6 @@ class Transpiler:
             scope = scope.enclosing_scope
         if len(names)==0:
             return None
-        self.update_line_info()
         names = ",".join(names)
         return f"nonlocal {names}"
 
