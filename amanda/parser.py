@@ -1,7 +1,7 @@
 from amanda.lexer import Lexer
 from amanda.tokens import TokenType as TT
 from amanda.tokens import Token
-import amanda.ast_nodes as AST
+import amanda.ast as ast
 from amanda.error import AmandaError
 
 
@@ -40,7 +40,7 @@ class Parser:
         return self.lookahead.token == token
 
     def program(self):
-        program = AST.Program() 
+        program = ast.Program() 
         while not self.match(Lexer.EOF):
             if self.match(TT.NEWLINE):
                 self.consume(TT.NEWLINE)
@@ -50,7 +50,7 @@ class Parser:
         return program
 
     def block(self):
-        block = AST.Block()
+        block = ast.Block()
         #SENAO is because of if statements
         while not self.match(TT.FIM) and not self.match(TT.SENAO):
             if self.match(TT.NEWLINE):
@@ -81,7 +81,7 @@ class Parser:
             self.consume(TT.LBRACKET)
             self.consume(TT.RBRACKET)
             decl_type = self.consume(TT.IDENTIFIER)
-            return AST.ArraySpec(decl_type)
+            return ast.ArraySpec(decl_type)
         return self.consume(TT.IDENTIFIER)
 
     def end_stmt(self):
@@ -109,7 +109,7 @@ class Parser:
                 func_type = self.type()
         block = self.block()
         self.consume(TT.FIM,"O corpo de um função deve ser terminado com a directiva 'fim'")
-        return AST.FunctionDecl(name=name,block=block,func_type=func_type,params=params)
+        return ast.FunctionDecl(name=name,block=block,func_type=func_type,params=params)
 
     #REMOVE: Not sure if superclasses are going
     # to be a thing
@@ -131,11 +131,11 @@ class Parser:
         superclass = self.get_superclass()
         body = self.class_body()
         self.consume(TT.FIM,"O corpo de uma classe deve ser terminado com o símbolo fim")
-        return AST.ClassDecl(name=name,superclass=superclass,body=body)
+        return ast.ClassDecl(name=name,superclass=superclass,body=body)
 
     #REMOVE: Not sure if class syntax will be the same
     def class_body(self):
-        body = AST.ClassBody()
+        body = ast.ClassBody()
         while not self.match(TT.FIM):
             if self.match(TT.FUNC):
                 body.add_child(self.function_decl())
@@ -151,13 +151,13 @@ class Parser:
             name = self.consume(TT.IDENTIFIER)
             self.consume(TT.COLON,"esperava-se o símbolo ':'.")
             param_type = self.type()
-            params.append(AST.Param(param_type,name))
+            params.append(ast.Param(param_type,name))
             while self.match(TT.COMMA):
                 self.consume(TT.COMMA)
                 name = self.consume(TT.IDENTIFIER)
                 self.consume(TT.COLON,"esperava-se o símbolo ':'.")
                 param_type = self.type()
-                params.append(AST.Param(param_type,name))
+                params.append(ast.Param(param_type,name))
         return params
 
     def statement(self):
@@ -178,13 +178,13 @@ class Parser:
         token = self.consume(TT.MOSTRA)
         exp = self.equality()
         self.end_stmt()
-        return AST.Mostra(token,exp)
+        return ast.Mostra(token,exp)
 
     def retorna_statement(self):
         token = self.consume(TT.RETORNA)
         exp = self.equality()
         self.end_stmt()
-        return AST.Retorna(token,exp)
+        return ast.Retorna(token,exp)
 
     def se_statement(self):
         token = self.consume(TT.SE)
@@ -196,7 +196,7 @@ class Parser:
             self.consume(TT.SENAO)
             else_branch = self.block()
         self.consume(TT.FIM,"esperava-se a símbolo fim para terminar a directiva 'se'")
-        return AST.Se(token,condition,then_branch,else_branch)
+        return ast.Se(token,condition,then_branch,else_branch)
 
     def enquanto_stmt(self):
         token = self.consume(TT.ENQUANTO)
@@ -204,7 +204,7 @@ class Parser:
         self.consume(TT.FACA)
         block = self.block()
         self.consume(TT.FIM,"esperava-se o símbolo fim para terminar a directiva 'enquanto'")
-        return AST.Enquanto(token,condition,block)
+        return ast.Enquanto(token,condition,block)
 
     def para_stmt(self):
         token = self.consume(TT.PARA)
@@ -212,13 +212,13 @@ class Parser:
         self.consume(TT.FACA)
         block = self.block()
         self.consume(TT.FIM,"esperava-se o símbolo fim para terminar a directiva 'para'")
-        return AST.Para(token,expression,block)
+        return ast.Para(token,expression,block)
 
     def for_expression(self):
         name = self.consume(TT.IDENTIFIER)
         self.consume(TT.DE)
         range_expr = self.range_expression()
-        return AST.ParaExpr(name,range_expr)
+        return ast.ParaExpr(name,range_expr)
 
     def range_expression(self):
         start = self.equality()
@@ -228,11 +228,11 @@ class Parser:
         if self.lookahead.token == TT.INC:
             self.consume(TT.INC)
             inc = self.equality()
-        return AST.RangeExpr(start,stop,inc)
+        return ast.RangeExpr(start,stop,inc)
 
     def decl_stmt(self):
         stmt = self.expression()
-        if isinstance(stmt,AST.Variable):
+        if isinstance(stmt,ast.Variable):
             if self.match(TT.COLON):
                 stmt = self.simple_decl(stmt.token)
             elif self.match(TT.COMMA):
@@ -243,9 +243,9 @@ class Parser:
     def get_decl_assign(self,name):
         assign = None
         if self.match(TT.EQUAL):
-            assign = AST.Assign(
+            assign = ast.Assign(
                 self.consume(TT.EQUAL),
-                left=AST.Variable(name),
+                left=ast.Variable(name),
                 right = self.equality()
             )
         return assign
@@ -255,7 +255,7 @@ class Parser:
         token = self.consume(TT.COLON)
         var_type = self.type()
         assign = self.get_decl_assign(name)
-        return AST.VarDecl(
+        return ast.VarDecl(
                 token,name=name,var_type=var_type,
                 assign=assign
         )
@@ -273,7 +273,7 @@ class Parser:
         var_type = self.type()
         decls = []
         for var_name in names:
-            decl = AST.VarDecl(
+            decl = ast.VarDecl(
                 token,name=var_name,var_type=var_type,
                 assign=None
             )
@@ -301,10 +301,10 @@ class Parser:
             eq = Token(TT.EQUAL,"=",line=self.lookahead.line,col=self.lookahead.col)
             token.token,token.lexeme = self.compound_operator()
             self.consume(current)
-            if isinstance(expr,AST.Get):
-                expr = AST.Set(target=expr,expr=self.assignment()) 
+            if isinstance(expr,ast.Get):
+                expr = ast.Set(target=expr,expr=self.assignment()) 
             else:
-                expr = AST.Assign(eq,left=expr,right=AST.BinOp(token,left=expr,right=self.equality()))
+                expr = ast.Assign(eq,left=expr,right=ast.BinOp(token,left=expr,right=self.equality()))
         return expr
 
     def compound_operator(self):
@@ -324,17 +324,17 @@ class Parser:
             token = self.consume(TT.EQUAL)
             if not expr.is_assignable():
                 self.error(self.ILLEGAL_ASSIGN)
-            if isinstance(expr,AST.Get):
-                expr = AST.Set(target=expr,expr=self.assignment()) 
+            if isinstance(expr,ast.Get):
+                expr = ast.Set(target=expr,expr=self.assignment()) 
             else:
-                expr = AST.Assign(token,left=expr,right=self.assignment())
+                expr = ast.Assign(token,left=expr,right=self.assignment())
         return expr
 
     def equality(self):
         node = self.comparison()
         while self.lookahead.token in (TT.DOUBLEEQUAL,TT.NOTEQUAL):
             op = self.eq_operator()
-            node = AST.BinOp(op,left=node,right=self.comparison())
+            node = ast.BinOp(op,left=node,right=self.comparison())
         return node
 
     def comp_operator(self):
@@ -351,7 +351,7 @@ class Parser:
         node = self.addition()
         while self.lookahead.token in (TT.GREATER,TT.GREATEREQ,TT.LESS,TT.LESSEQ):
             op = self.comp_operator()
-            node = AST.BinOp(op,left=node,right=self.addition())
+            node = ast.BinOp(op,left=node,right=self.addition())
         return node
 
     def addition(self):
@@ -361,7 +361,7 @@ class Parser:
                 op = self.consume(TT.OU)
             else:
                 op = self.add_operator()
-            node = AST.BinOp(op,left=node,right=self.term())
+            node = ast.BinOp(op,left=node,right=self.term())
         return node
 
     def term(self):
@@ -371,14 +371,14 @@ class Parser:
             TT.SLASH,TT.MODULO,TT.E
         ):
             op = self.mult_operator()
-            node = AST.BinOp(op,left=node,right=self.unary())
+            node = ast.BinOp(op,left=node,right=self.unary())
         return node
 
     def unary(self):
         current = self.lookahead.token
         if current in (TT.PLUS,TT.MINUS,TT.NAO):
             token = self.consume(current)
-            expr = AST.UnaryOp(token,operand=self.unary())
+            expr = ast.UnaryOp(token,operand=self.unary())
             return expr
         return self.call()
         
@@ -395,17 +395,17 @@ class Parser:
                     TT.RPAR,
                     "os argumentos da função devem ser delimitados por ')'"
                 )
-                expr = AST.Call(callee=expr,paren=token,fargs=args)
+                expr = ast.Call(callee=expr,paren=token,fargs=args)
             elif self.match(TT.LBRACKET):
                 self.consume(TT.LBRACKET)
                 index = self.equality()
                 self.consume(TT.RBRACKET)
-                expr = AST.Index(expr,index)
+                expr = ast.Index(expr,index)
             else:
                 self.consume(TT.DOT)
                 identifier = self.lookahead
                 self.consume(TT.IDENTIFIER)
-                expr = AST.Get(target=expr,member=identifier)
+                expr = ast.Get(target=expr,member=identifier)
         return expr
 
     def primary(self):
@@ -413,9 +413,9 @@ class Parser:
         expr = None
         if current in (TT.INTEGER,TT.REAL,TT.STRING,TT.IDENTIFIER,TT.VERDADEIRO,TT.FALSO):
             if self.match(TT.IDENTIFIER):
-                expr = AST.Variable(self.lookahead)
+                expr = ast.Variable(self.lookahead)
             else:
-                expr = AST.Constant(self.lookahead)
+                expr = ast.Constant(self.lookahead)
             self.consume(current)
         elif self.match(TT.LPAR):
             self.consume(TT.LPAR)
@@ -423,11 +423,11 @@ class Parser:
             self.consume(TT.RPAR)
         #REMOVE: Not in use
         elif self.match(TT.EU):
-            expr = AST.Eu(self.lookahead)
+            expr = ast.Eu(self.lookahead)
             self.consume(TT.EU)
         #REMOVE: Not in use
         elif self.match(TT.SUPER):
-            expr = AST.Super(self.consume(TT.SUPER))
+            expr = ast.Super(self.consume(TT.SUPER))
         elif self.match(TT.CONVERTE):
             expr = self.converte_expression()
         elif self.match(TT.LISTA):
@@ -443,7 +443,7 @@ class Parser:
         self.consume(TT.COMMA)
         expression = self.equality()
         self.consume(TT.RPAR)
-        return AST.Lista(token,array_type,expression)
+        return ast.Lista(token,array_type,expression)
 
     def converte_expression(self):
         token = self.consume(TT.CONVERTE)
@@ -452,7 +452,7 @@ class Parser:
         self.consume(TT.COMMA)
         new_type = self.consume(TT.IDENTIFIER)
         self.consume(TT.RPAR)
-        return AST.Converte(token,expression,new_type)
+        return ast.Converte(token,expression,new_type)
 
     def args(self):
         current = self.lookahead.token
