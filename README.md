@@ -6,8 +6,7 @@ You can't do much with it due to it's lacklustre perfomance and lack of serious 
 
 ## Usage
 
-~~TODO: Make instructions better~~
-
+~~TODO: Make instructions better~~ 
 ~~TODO: Add Portuguese version of this lool~~
 
 **On Windows**
@@ -225,10 +224,10 @@ para i de 0..tamanho(minha_lista) faca
 fim
 
 # Imprimir todos elementos da lista
-# usando "," como o separador
 
-fmt_lista(minha_lista,",") # 0,1,4,9 
-
+para i de 0..tamanho(minha_lista) faca
+    mostra minha_lista[i]
+fim
 ```
 
 
