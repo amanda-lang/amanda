@@ -1,7 +1,10 @@
 import os
+from io import StringIO
 from os.path import join 
+import re
 import traceback
-from tools.testcompiler import TestCompiler
+from contextlib import redirect_stdout,redirect_stderr
+from amanda.__main__ import main as ama_main
 
 TEST_DIR = os.path.abspath("./tests")
 STATEMENT = join(TEST_DIR,"statement")
@@ -30,16 +33,6 @@ join(TEST_DIR,"builtins"),join(TEST_DIR,"list"),
 passed = 0
 failed = 0
 failed_tests = []
-
-def run_program(src,backend_cls):
-    backend = backend_cls(src)
-    try:
-        backend.exec()
-        return backend.test_buffer.getvalue()
-    except SystemExit:
-        return backend.test_buffer.getvalue()
-    except Exception as e:
-        raise e
 
 #Deletes result files for specific test
 #cases
@@ -98,12 +91,40 @@ def load_test_cases(suite):
         ]
     return test_cases
 
-def run_suite(test_cases,backend):
+def fmt_error(output):
+    regex = re.compile(r"-{3,}") 
+    sep = regex.findall(output)[0]
+    return output.split(sep)[0].strip()
+
+def run_case(filename):
+    stdout = StringIO() 
+    stderr = StringIO() 
+    try:
+        with redirect_stdout(stdout),redirect_stderr(stderr):
+            ama_main(filename)
+    except SystemExit as e:
+        #Print stdout + stderr in case some code ran
+        #before error was thrown
+        out = stdout.getvalue()
+        err = stderr.getvalue()
+        #HACK: This is to check if
+        #the system exit was caused by an AmandaError
+        #or some other error in main
+        if len(out) and len(err):
+            return (
+                out + fmt_error(err)
+            ).replace("\n"," ")
+        elif len(err):
+            return fmt_error(err)
+        else:
+            raise e
+    return stdout.getvalue().replace("\n"," ")
+
+def run_suite(test_cases):
     for test_case,result_file in test_cases:
-        script = open(test_case,"r")
         results = open(result_file,"r")
         try:
-            output = run_program(script,backend).strip()
+            output = run_case(test_case).strip()
             expected = results.readline().strip()
             assert output == expected
             add_success()
@@ -112,18 +133,12 @@ def run_suite(test_cases,backend):
             add_failure(test_case,exception)
         except Exception as e:
             add_failure(test_case,e)
-        script.close()
         results.close()
 
-def main(backend):
-    ''' Convenience method for running
-    test cases.
-    '''
+
+if __name__ == "__main__":
     #Run test files in each test_directors
     for suite in DIRS:
         test_cases = load_test_cases(suite)
-        run_suite(test_cases,backend)
+        run_suite(test_cases)
     print_results()
-
-if __name__ == "__main__":
-    main(TestCompiler)
