@@ -59,7 +59,6 @@ class TokenType(Enum):
     ENQUANTO = "ENQUANTO"
     PARA = "PARA"
     CONVERTE = "CONVERTE"
-    LISTA = "LISTA"
     FACA = "FACA"
     DE = "DE"
     EU = "EU"
