@@ -16,6 +16,7 @@ class Transpiler:
     #Var types
     VAR = "VAR"
     FUNC = "FUNC"
+    TYPE = "TYPE"
 
     #Scope names
     GLOBAL = "GLOBAL"
@@ -44,15 +45,19 @@ class Transpiler:
             elif type(symbol) == symbols.FunctionSymbol:
                 s_info = (name,self.FUNC)
             self.global_scope.define(name,s_info)
+        #Add type identifiers
+        self.global_scope.define("int",("Type.INT",self.TYPE))
+        self.global_scope.define("real",("Type.REAL",self.TYPE))
+        self.global_scope.define("bool",("Type.BOOL",self.TYPE))
+        self.global_scope.define("texto",("Type.TEXTO",self.TYPE))
+        self.global_scope.define("indef",("Type.INDEF",self.TYPE))
 
     def compile(self):
-        ''' Method that runs an Amanda script. Errors raised by the
-        frontend are handled by an error handler instance'''
+        ''' Method that begins compilation of amanda source.'''
         try:
             program = Parser(self.src).parse()
             valid_program = sem.Analyzer().check_program(program)
             self.compiled_program = self.gen(valid_program)
-            print(self.src_map)
         except AmandaError as e:
             throw_error(e,self.src)
         return self.compiled_program
@@ -336,16 +341,10 @@ class Transpiler:
     
     def gen_converte(self,node):
         expr = self.gen(node.expression)
-        new_type = node.new_type.lexeme
-        return f"converte({expr},'{new_type}')"
-
-    def gen_lista(self,node):
-        list_type = node.eval_type.subtype
-        expr = self.gen(node.expression)
-        prom_type = node.prom_type
-        if prom_type:
-            list_type = prom_type.subtype
-        return f"lista('{list_type}',{expr})"
+        new_type = self.current_scope.resolve(
+            node.new_type.lexeme
+        )[0]
+        return f"converte({expr},{new_type})"
 
     def promote_expression(self,expression,prom_type):
         if prom_type == Type.INDEF:

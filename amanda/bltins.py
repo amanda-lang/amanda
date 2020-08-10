@@ -26,6 +26,7 @@ def add_bltin_func(name,obj,return_type,*params):
         formal_params
     )
     bltin_objs[name] = obj
+
     
 def print_wrapper(obj,**kwargs):
     if str(obj) == "True":
@@ -61,18 +62,18 @@ def leia_real(prompt):
 def converte(value,ama_type):
     if isinstance(value,Indef):
         value = value.value
-    if ama_type == "int" or ama_type == "real":
+    if ama_type == Type.INT or ama_type == Type.REAL:
         try:
-            return int(value) if ama_type == "int" else float(value)
+            return int(value) if ama_type == Type.INT else float(value)
         except ValueError as e:
            raise AmandaError(INVALID_CONVERSION,-1)
         except TypeError as e:
            raise AmandaError(INVALID_CONVERSION,-1)
-    elif ama_type == "bool":
+    elif ama_type == Type.BOOL:
         return bool(value)
-    elif ama_type == "texto":
+    elif ama_type == Type.TEXTO:
         return str(value)
-    elif ama_type == "indef":
+    elif ama_type == Type.INDEF:
         return Indef(value)
     else:
         raise NotImplementedError("have not considered other types")
@@ -87,7 +88,7 @@ def lista(subtype,size):
         "texto":"",
         "bool":Bool.FALSO,
     }
-    default = inits.get(subtype)
+    default = inits.get(str(subtype))
     return Lista(subtype,[default for i in range(size)])
 
 def tipo(indef_obj):
@@ -122,7 +123,7 @@ bltin_objs["falso"] = Bool.FALSO
 bltin_objs["printc"] = print_wrapper
 bltin_objs["Indef"] = Indef
 bltin_objs["converte"] = converte
-bltin_objs["lista"] = lista
+bltin_objs["Type"] = Type
 
 add_bltin_func(
     "leia",leia,
@@ -147,4 +148,9 @@ add_bltin_func(
 add_bltin_func(
     "tamanho",tamanho,
     Type.INT,("objecto",Type.INDEF)
+)
+
+add_bltin_func(
+    "lista",lista,
+    None
 )

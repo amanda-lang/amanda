@@ -20,6 +20,12 @@ class Analyzer(ast.Visitor):
     INVALID_UOP = "o operador unário {operator} não pode ser usado com o tipo '{type}' "
     BAD_STR_OP = "o tipo 'texto' não suporta operações com o operador '{operator}'"
 
+    #Special builtin function
+    BUILTIN_OPS = (
+        "lista",
+
+    )
+
 
     def __init__(self):
         #Just to have quick access to things like types and e.t.c
@@ -298,24 +304,6 @@ class Analyzer(ast.Visitor):
         node.eval_type = sym.type
         return sym
 
-    def visit_lista(self,node):
-        #check type
-        type_name = node.array_type.lexeme
-        type_symbol = self.current_scope.resolve(type_name)
-        if type_symbol is None:
-            self.error(self.UNDEFINED_TYPE.format(type=type_name))
-        elif not type_symbol.is_type():
-            self.error(f"o identificador '{type_name}' não é um tipo")
-
-        #check expression
-        expression = node.expression
-        self.visit(expression)
-        if expression.eval_type != Type.INT:
-            self.error("O tamanho de uma lista deve ser representado por um inteiro")
-
-        #Update eval_type
-        node.eval_type = Lista(type_symbol)
-
     def validate_get(self,node,sym):
         ''' Method to validate get expressions'''
         if isinstance(node,ast.Get) and not sym.can_evaluate():
@@ -569,32 +557,43 @@ class Analyzer(ast.Visitor):
             else:
                 node.eval_type = sym
         else:
+            if sym.name in self.BUILTIN_OPS:
+                self.builtin_call(sym.name,node)
+                return sym
             self.validate_call(sym,node.fargs)
             node.eval_type = sym.type        
         return sym
+    
+    # Handles calls to special builtin operation
+    def builtin_call(self,name,node):
+        if name == "lista":
+            self.check_arity(node.fargs,name,2)
+            list_type = node.fargs[0]
+            if type(list_type) != ast.Variable:
+                self.error(
+                    "O argumento 1 da função 'lista' deve ser um tipo"
+                )
 
-    #REMOVE: Not in use
-    def validate_constructor(self,sym,fargs):
-        ''' Helper method to validate function
-        instantiation'''
-        constructor = sym.get_member("constructor")
-        if not constructor or not constructor.is_constructor:
-            #Use an empty constructor if no constructor or
-            #user defined constructor violated rules of
-            #valid constructors
-            #If class being instatiated has a superclass,
-            #Check if it has an empty constructor and throw
-            #error in case not
-            superclass = sym.superclass
-            super_constructor = superclass.get_member("constructor") if superclass else None
-            if superclass and super_constructor and \
-            super_constructor.arity() > 0:
-                self.error(f"A classe '{sym.name}' deve implementar um constructor para satisfazer o constructor da superclasse")
+            list_type = self.get_type(list_type.token) 
+            if list_type == Type.INDEF:
+                self.error("Não pode criar uma lista do tipo 'indef'")
 
-            constructor = symbols.FunctionSymbol(sym.name,sym,{})
-            constructor.is_constructor = True
-        self.validate_call(constructor,fargs)
+            size = node.fargs[1]
+            self.visit(size)
+            if size.eval_type != Type.INT:
+                self.error(
+                    "O tamanho de uma lista deve ser representado por um inteiro"
+                )
 
+            node.eval_type = Lista(list_type)
+
+    def check_arity(self,fargs,name,param_len):
+        arg_len = len(fargs)
+        if arg_len != param_len:
+            self.error(
+                f"número incorrecto de argumentos para a função {name}. Esperava {param_len} argumento(s), porém recebeu {arg_len}"
+            )
+            
     def validate_call(self,sym,fargs):
         ''' Helper method that enforces a host of semantic 
         checks on a call operation. '''
@@ -603,11 +602,7 @@ class Analyzer(ast.Visitor):
             self.error(f"identificador '{name}' não é invocável")
         for arg in fargs:
             self.visit(arg)
-        arg_len = len(fargs)
-        param_len = sym.arity()
-        if arg_len != param_len:
-            self.error(
-                f"número incorrecto de argumentos para a função {name}. Esperava {param_len} argumento(s), porém recebeu {arg_len}")
+        self.check_arity(fargs,name,sym.arity())
         #Type promotion for parameter
         for arg,param in zip(fargs,sym.params.values()):
             arg.prom_type = arg.eval_type.promote_to(param.type)
