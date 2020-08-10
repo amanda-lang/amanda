@@ -15,7 +15,6 @@ def main(*args):
         args = parser.parse_args(args)
     else:
         args = parser.parse_args()
-
     try:
         with open(abspath(args.file)) as src_file:
             src = StringIO(src_file.read()) 

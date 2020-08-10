@@ -2,6 +2,7 @@ import os
 from io import StringIO
 from os.path import join 
 import re
+import traceback
 from contextlib import redirect_stdout,redirect_stderr
 from amanda.__main__ import main as ama_main
 
@@ -101,16 +102,22 @@ def run_case(filename):
     try:
         with redirect_stdout(stdout),redirect_stderr(stderr):
             ama_main(filename)
-    except SystemExit:
+    except SystemExit as e:
         #Print stdout + stderr in case some code ran
         #before error was thrown
         out = stdout.getvalue()
         err = stderr.getvalue()
-        if len(out):
+        #HACK: This is to check if
+        #the system exit was caused by an AmandaError
+        #or some other error in main
+        if len(out) and len(err):
             return (
                 out + fmt_error(err)
             ).replace("\n"," ")
-        return fmt_error(err)
+        elif len(err):
+            return fmt_error(err)
+        else:
+            raise e
     return stdout.getvalue().replace("\n"," ")
 
 def run_suite(test_cases):
