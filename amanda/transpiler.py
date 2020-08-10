@@ -25,17 +25,15 @@ class Transpiler:
     #Indentation string
     INDENT = "    "
 
-    def __init__(self,src):
-        self.src = src
+    def __init__(self):
         self.py_lineno = 0  # tracks lineno in compiled python src
         self.ama_lineno = 1 # tracks lineno in input amanda src
-        self.compiled_program = None
         self.depth = -1 # current indent level
         self.global_scope = symbols.Scope(self.GLOBAL)
         self.current_scope = self.global_scope
         self.func_depth = 0 # current func nesting level
         self.scope_depth = 0 # scope nesting level
-        self.src_map = {} #Maps py_fileno to ama_fileno
+        self.line_info = {} #Maps py_fileno to ama_fileno
         self.load_builtins()
 
     def load_builtins(self):
@@ -52,15 +50,16 @@ class Transpiler:
         self.global_scope.define("texto",("Type.TEXTO",self.TYPE))
         self.global_scope.define("indef",("Type.INDEF",self.TYPE))
 
-    def compile(self):
+    def compile(self,src):
         ''' Method that begins compilation of amanda source.'''
+        self.line_info = {} #Reset line info
         try:
-            program = Parser(self.src).parse()
+            program = Parser(src).parse()
             valid_program = sem.Analyzer().check_program(program)
-            self.compiled_program = self.gen(valid_program)
+            compiled_src = self.gen(valid_program)
         except AmandaError as e:
-            throw_error(e,self.src)
-        return self.compiled_program
+            throw_error(e,src)
+        return (compiled_src,self.line_info)
 
     def bad_gen(self,node):
         raise NotImplementedError(f"Cannot generate code for this node type yet: (TYPE) {type(node)}")
@@ -81,7 +80,7 @@ class Transpiler:
         return self.compile_block(node,[],self.global_scope)
                 
     def update_line_info(self):
-        self.src_map[self.py_lineno] = self.ama_lineno
+        self.line_info[self.py_lineno] = self.ama_lineno
         self.py_lineno += 1
 
     def build_str(self,str_buffer):
