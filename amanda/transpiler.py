@@ -274,7 +274,8 @@ class Transpiler:
             str(self.gen(arg)) for arg in node.fargs
         ])
         callee = self.gen(node.callee)
-        return f"{callee}({args})"
+        func_call = f"{callee}({args})"
+        return self.gen_expression(func_call,node.prom_type)
     
     def gen_index(self,node):
         target = self.gen(node.target)
@@ -288,10 +289,8 @@ class Transpiler:
 
     def gen_constant(self,node):
         prom_type = node.prom_type
-        literal = node.token.lexeme
-        if prom_type is not None:
-            return self.promote_expression(literal,prom_type)
-        return str(literal)
+        literal = str(node.token.lexeme)
+        return self.gen_expression(literal,prom_type)
 
     def gen_variable(self,node):
         name = node.token.lexeme
@@ -302,11 +301,8 @@ class Transpiler:
             name = info[0]
         else:
             name = self.current_scope.resolve(name)[0]
-
         prom_type = node.prom_type
-        if prom_type is not None:
-            return self.promote_expression(name,prom_type)
-        return name
+        return self.gen_expression(name,prom_type)
 
     def gen_binop(self,node):
         lhs = self.gen(node.left)
@@ -318,11 +314,9 @@ class Transpiler:
             operator = "or"
         binop  = f"({lhs} {operator} {rhs})"
         # Promote node
-        if node.prom_type is not None:
-            return self.promote_expression(
-                binop,node.prom_type
-            )
-        return binop
+        return self.gen_expression(
+            binop,node.prom_type
+        )
 
     def gen_unaryop(self,node):
         operator = node.token.lexeme
@@ -330,13 +324,10 @@ class Transpiler:
         if operator == "nao":
             operator = "not"
         unaryop = f"({operator} {operand})"
+        return self.gen_expression(
+            unaryop,node.prom_type
+        )
 
-        if node.prom_type is not None:
-            return self.promote_expression(
-                unaryop,node.prom_type
-            )
-
-        return unaryop
     
     def gen_converte(self,node):
         expr = self.gen(node.expression)
@@ -345,8 +336,10 @@ class Transpiler:
         )[0]
         return f"converte({expr},{new_type})"
 
-    def promote_expression(self,expression,prom_type):
-        if prom_type == Type.INDEF:
+    def gen_expression(self,expression,prom_type):
+        if prom_type == None:
+            return expression
+        elif prom_type == Type.INDEF:
             return f"Indef({expression})"
         elif prom_type == Type.REAL:
             return f"float({expression})"
