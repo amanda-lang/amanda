@@ -365,12 +365,7 @@ class Analyzer(ast.Visitor):
     def visit_converte(self,node):
         #check expression
         self.visit(node.expression)
-        type_name = node.new_type.lexeme
-        type_symbol = self.current_scope.resolve(type_name)
-        if type_symbol is None:
-            self.error(self.UNDEFINED_TYPE.format(type=type_name))
-        elif not type_symbol.is_type():
-            self.error(f"o identificador '{type_name}' não é um tipo")
+        type_symbol = self.get_type(node.new_type)
         #Update eval_type
         node.eval_type = type_symbol
        
