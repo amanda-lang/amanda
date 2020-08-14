@@ -1,9 +1,9 @@
 import os
 import copy
 from io import StringIO
-from amanda.tokens import TokenType as TT
-from amanda.tokens import Token
-from amanda.tokens import KEYWORDS as TK_KEYWORDS
+from amanda.frontend.tokens import TokenType as TT
+from amanda.frontend.tokens import Token
+from amanda.frontend.tokens import KEYWORDS as TK_KEYWORDS
 from amanda.error import AmandaError
 
 class Lexer:

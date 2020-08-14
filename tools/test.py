@@ -78,8 +78,7 @@ def print_results():
 
 def load_test_cases(suite):
     for root,dirs,files in os.walk(suite):
-        dirname = os.path.basename(root)
-        #adds tuple containing test case file path and result file path of test case
+        dirname = os.path.basename(root) #adds tuple containing test case file path and result file path of test case
         # to the list of test cases of this suite
         test_cases = [
             (

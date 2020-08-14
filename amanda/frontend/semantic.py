@@ -1,9 +1,9 @@
-from amanda.tokens import TokenType as TT
-import amanda.ast as ast
-import amanda.symbols as symbols
-from amanda.symbols import Type,Lista
+from amanda.frontend.tokens import TokenType as TT
+import amanda.frontend.ast as ast
+import amanda.frontend.symbols as symbols
+from amanda.frontend.symbols import Type,Lista
 from amanda.error import AmandaError
-from amanda.bltins import bltin_symbols
+from amanda.backend.bltins import bltin_symbols
 
 
 
