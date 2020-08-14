@@ -3,9 +3,9 @@ import time
 from io import StringIO
 import sys
 from os.path import abspath
-from amanda.transpiler import Transpiler
+from amanda.backend.transpiler import Transpiler
 from amanda.error import handle_exception,throw_error
-from amanda.bltins import bltin_objs
+from amanda.backend.bltins import bltin_objs
 
 
 def main(*args):

@@ -1,6 +1,6 @@
-from amanda.types import Bool,Indef,Lista
-import amanda.symbols as symbols
-from amanda.symbols import Type
+from amanda.backend.types import Bool,Indef,Lista
+import amanda.frontend.symbols as symbols
+from amanda.frontend.symbols import Type
 from amanda.error import AmandaError,throw_error
 
 #Symbols for builtin functions

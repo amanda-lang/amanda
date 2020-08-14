@@ -1,4 +1,4 @@
-from amanda.tokens import Token,TokenType
+from amanda.frontend.tokens import Token,TokenType
 
 #TODO: Rename fields of some classes
 
