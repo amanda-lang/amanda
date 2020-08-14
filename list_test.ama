@@ -1,0 +1,4 @@
+
+
+m_lista : indef = lista(int,5)
+mostra m_lista

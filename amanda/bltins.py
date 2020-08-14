@@ -80,13 +80,12 @@ def converte(value,ama_type):
 
 def lista(subtype,size):
     #Returns a list of the desired size
-    if subtype == "indef":
-        raise AmandaError("Não pode criar uma lista com este tipo")
     inits = {
         "int":0,
         "real":0.0,
         "texto":"",
         "bool":Bool.FALSO,
+        "indef":None,
     }
     default = inits.get(str(subtype))
     return Lista(subtype,[default for i in range(size)])

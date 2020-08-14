@@ -439,7 +439,7 @@ class Parser:
         self.consume(TT.LPAR)
         expression = self.equality()
         self.consume(TT.COMMA)
-        new_type = self.consume(TT.IDENTIFIER)
+        new_type = self.type()
         self.consume(TT.RPAR)
         return ast.Converte(token,expression,new_type)
 
