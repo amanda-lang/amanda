@@ -365,12 +365,7 @@ class Analyzer(ast.Visitor):
     def visit_converte(self,node):
         #check expression
         self.visit(node.expression)
-        type_name = node.new_type.lexeme
-        type_symbol = self.current_scope.resolve(type_name)
-        if type_symbol is None:
-            self.error(self.UNDEFINED_TYPE.format(type=type_name))
-        elif not type_symbol.is_type():
-            self.error(f"o identificador '{type_name}' não é um tipo")
+        type_symbol = self.get_type(node.new_type)
         #Update eval_type
         node.eval_type = type_symbol
        
@@ -458,7 +453,7 @@ class Analyzer(ast.Visitor):
         rhs.prom_type = rhs.eval_type.promote_to(lhs.eval_type)
         if not self.types_match(lhs.eval_type,rhs.eval_type):
             self.current_node = node
-            self.error(f"atribuição inválida. incompatibilidade entre os operandos da atribuição")
+            self.error(f"atribuição inválida. incompatibilidade entre os operandos da atribuição: '{lhs.eval_type}' e '{rhs.eval_type}'")
 
     def visit_mostra(self,node):
         sym = self.visit(node.exp)
@@ -575,9 +570,6 @@ class Analyzer(ast.Visitor):
                 )
 
             list_type = self.get_type(list_type.token) 
-            if list_type == Type.INDEF:
-                self.error("Não pode criar uma lista do tipo 'indef'")
-
             size = node.fargs[1]
             self.visit(size)
             if size.eval_type != Type.INT:

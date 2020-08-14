@@ -143,11 +143,6 @@ class Lista(Type):
             return False
         return self.subtype == other.subtype
 
-    def promote_to(self,other):
-        if type(other) == Lista:
-            return other if other.subtype in self.subtype.prom_types else None
-        return other if other in self.prom_types else None
-
 class ClassSymbol(Type):
     ''' Represents a class in amanda.
         Both user defined and builtins.'''
