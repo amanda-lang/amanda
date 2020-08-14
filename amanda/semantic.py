@@ -458,7 +458,7 @@ class Analyzer(ast.Visitor):
         rhs.prom_type = rhs.eval_type.promote_to(lhs.eval_type)
         if not self.types_match(lhs.eval_type,rhs.eval_type):
             self.current_node = node
-            self.error(f"atribuição inválida. incompatibilidade entre os operandos da atribuição")
+            self.error(f"atribuição inválida. incompatibilidade entre os operandos da atribuição: '{lhs.eval_type}' e '{rhs.eval_type}'")
 
     def visit_mostra(self,node):
         sym = self.visit(node.exp)
