@@ -2,13 +2,13 @@ import sys
 import pdb
 import keyword
 from io import StringIO
-import amanda.symbols as symbols
-from amanda.symbols import Type
-import amanda.ast as ast
-import amanda.semantic as sem
+import amanda.frontend.symbols as symbols
+from amanda.frontend.symbols import Type
+import amanda.frontend.ast as ast
+import amanda.frontend.semantic as sem
 from amanda.error import AmandaError,throw_error
-from amanda.parser import Parser
-from amanda.bltins import bltin_symbols
+from amanda.frontend.parser import Parser
+from amanda.backend.bltins import bltin_symbols
 
 
 
