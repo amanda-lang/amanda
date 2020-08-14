@@ -280,7 +280,8 @@ class ParserTestCase(unittest.TestCase):
         phrases = [
             "converte(2+2,real)",
             "converte(8,real) - 8.8 * 1 - 8",
-            "converte(1,bool) == verdadeiro"
+            "converte(1,bool) == verdadeiro",
+            "converte(1,[]int) == verdadeiro"
         ]
         for phrase in phrases:
             print(phrase,file=self.buffer)
