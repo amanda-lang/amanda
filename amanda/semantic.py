@@ -575,9 +575,6 @@ class Analyzer(ast.Visitor):
                 )
 
             list_type = self.get_type(list_type.token) 
-            if list_type == Type.INDEF:
-                self.error("Não pode criar uma lista do tipo 'indef'")
-
             size = node.fargs[1]
             self.visit(size)
             if size.eval_type != Type.INT:
