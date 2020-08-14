@@ -6,3 +6,4 @@ amac
 pyamanda
 output.py
 tools/resultgen.py
+./*.ama
