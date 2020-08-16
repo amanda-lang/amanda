@@ -23,6 +23,7 @@ class Analyzer(ast.Visitor):
     #Special builtin function
     BUILTIN_OPS = (
         "lista",
+        "anexe",
 
     )
 
@@ -131,6 +132,7 @@ class Analyzer(ast.Visitor):
 
         return ama_type
 
+    #TODO: just do this in __eq__ of the type class
     def types_match(self,expected,received):
         return expected == received or received.promote_to(expected)
 
@@ -578,6 +580,27 @@ class Analyzer(ast.Visitor):
                 )
 
             node.eval_type = Lista(list_type)
+
+        elif name == "anexe":
+            self.check_arity(node.fargs,name,2)
+            list_node = node.fargs[0]
+            value = node.fargs[1]
+            self.visit(list_node)
+            self.visit(value)
+
+            if type(list_node.eval_type) != Lista:
+                self.error(
+                    "O argumento 1 da função 'anexe' deve ser uma lista"
+                )
+
+            value.prom_type = value.eval_type.promote_to(
+                list_node.eval_type.subtype
+            )
+            if not self.types_match(list_node.eval_type.subtype,value.eval_type):
+                self.error(
+                    f"incompatibilidade de tipos entre a lista e o valor a anexar: '{list_node.eval_type.subtype}' != '{value.eval_type}'"
+                )
+            node.eval_type = Type.VAZIO
 
     def check_arity(self,fargs,name,param_len):
         arg_len = len(fargs)

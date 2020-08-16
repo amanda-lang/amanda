@@ -95,6 +95,9 @@ def lista(subtype,size):
     default = inits.get(str(subtype))
     return Lista(subtype,[default for i in range(size)])
 
+def anexe(list_obj,value):
+    list_obj.elements.append(value)
+
 def tipo(indef_obj):
     ''' Returns the type of a 
     value. Useful for 'unwrapping' 
@@ -156,5 +159,10 @@ add_bltin_func(
 
 add_bltin_func(
     "lista",lista,
+    None
+)
+
+add_bltin_func(
+    "anexe",anexe,
     None
 )
