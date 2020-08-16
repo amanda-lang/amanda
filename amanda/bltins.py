@@ -58,12 +58,14 @@ def leia_real(prompt):
     except ValueError:
         raise AmandaError(INVALID_CONVERSION,-1)
 
-# Type functions
 def converte(value,type_class):
     if isinstance(value,Indef):
         value = value.value
     if type(type_class) == Lista:
-        return None
+        if type(value) != Lista or \
+        value.subtype != type_class.subtype:
+            raise AmandaError(INVALID_CONVERSION,-1)
+        return value 
     try:
         return type_class(value)
     except ValueError as e:
@@ -120,8 +122,9 @@ def tamanho(indef_obj):
 bltin_objs["verdadeiro"] = Bool.VERDADEIRO
 bltin_objs["falso"] = Bool.FALSO
 bltin_objs["printc"] = print_wrapper
-bltin_objs["Indef"] = Indef
 bltin_objs["converte"] = converte
+bltin_objs["Indef"] = Indef
+bltin_objs["Lista"] = Lista
 
 add_bltin_func(
     "leia",leia,

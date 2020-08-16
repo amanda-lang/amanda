@@ -1,5 +1,4 @@
 import sys
-import pdb
 import keyword
 from io import StringIO
 import amanda.frontend.symbols as symbols
@@ -130,7 +129,7 @@ class Transpiler:
         python builtin object'''
         return not (keyword.iskeyword(name) or 
              (name.startswith("_") and name.endswith("_")) or
-             name in globals().get("__builtins__")
+             name in globals().get("__builtins__")  
         )
         
     def define_local(self,name,scope,sym_type):
