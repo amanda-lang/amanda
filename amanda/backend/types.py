@@ -1,4 +1,5 @@
 import enum
+from amanda.error import AmandaError
 #Wrapper around boolean class
 class Bool(enum.Enum):
     VERDADEIRO = True
@@ -38,7 +39,19 @@ class Lista:
         self.subtype = subtype
 
     def __getitem__(self,key):
-        return self.elements[key]
+        try:
+            return self.elements[key]
+        except IndexError:
+            raise AmandaError(
+                "índice de lista inválido",-1
+            )
 
     def __setitem__(self,key,value):
-        self.elements[key] = value
+        try:
+            if key < 0:
+                raise IndexError
+            self.elements[key] = value
+        except IndexError:
+            raise AmandaError(
+                "índice de lista inválido",-1
+            )
