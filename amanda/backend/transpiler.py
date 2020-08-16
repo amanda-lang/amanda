@@ -8,7 +8,7 @@ import amanda.frontend.ast as ast
 import amanda.frontend.semantic as sem
 from amanda.error import AmandaError,throw_error
 from amanda.frontend.parser import Parser
-from amanda.backend.bltins import bltin_symbols
+from amanda.bltins import bltin_symbols
 
 
 

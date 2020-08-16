@@ -3,7 +3,7 @@ import amanda.frontend.ast as ast
 import amanda.frontend.symbols as symbols
 from amanda.frontend.symbols import Type,Lista
 from amanda.error import AmandaError
-from amanda.backend.bltins import bltin_symbols
+from amanda.bltins import bltin_symbols
 
 
 
