@@ -2,9 +2,9 @@ import unittest
 import os
 import sys
 from io import StringIO
-from amanda.lexer import Lexer
-from amanda.tokens import TokenType,Token
-from amanda.parser import Parser
+from amanda.frontend.lexer import Lexer
+from amanda.frontend.tokens import TokenType,Token
+from amanda.frontend.parser import Parser
 from amanda.error import AmandaError
 
 
