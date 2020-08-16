@@ -80,6 +80,11 @@ def converte(value,ama_type):
 
 def lista(subtype,size):
     #Returns a list of the desired size
+    if size < 0:
+        raise AmandaError(
+            "O tamanho de uma lista não pode ser um inteiro negativo",
+            -1
+        )
     inits = {
         "int":0,
         "real":0.0,
