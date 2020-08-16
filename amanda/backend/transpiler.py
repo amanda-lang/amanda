@@ -43,12 +43,12 @@ class Transpiler:
             elif type(symbol) == symbols.FunctionSymbol:
                 s_info = (name,self.FUNC)
             self.global_scope.define(name,s_info)
-        #Add type identifiers
-        self.global_scope.define("int",("Type.INT",self.TYPE))
-        self.global_scope.define("real",("Type.REAL",self.TYPE))
-        self.global_scope.define("bool",("Type.BOOL",self.TYPE))
-        self.global_scope.define("texto",("Type.TEXTO",self.TYPE))
-        self.global_scope.define("indef",("Type.INDEF",self.TYPE))
+        # Add type names to tables
+        self.global_scope.define("int",("int",self.TYPE))
+        self.global_scope.define("real",("float",self.TYPE))
+        self.global_scope.define("bool",("bool",self.TYPE))
+        self.global_scope.define("texto",("str",self.TYPE))
+        self.global_scope.define("indef",("Indef",self.TYPE))
 
     def compile(self,src):
         ''' Method that begins compilation of amanda source.'''
@@ -331,9 +331,14 @@ class Transpiler:
     
     def gen_converte(self,node):
         expr = self.gen(node.expression)
-        new_type = self.current_scope.resolve(
-            node.new_type.lexeme
+        new_type = node.new_type
+        type_name = self.current_scope.resolve(
+            new_type.type_name.lexeme
         )[0]
+        if new_type.is_list:
+            new_type = f"Lista({type_name},[])"
+        else:
+            new_type = type_name
         return f"converte({expr},{new_type})"
 
     def gen_expression(self,expression,prom_type):
