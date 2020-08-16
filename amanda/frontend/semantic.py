@@ -114,22 +114,18 @@ class Analyzer(ast.Visitor):
     def get_type(self,type_node):
         if not type_node:
             return Type.VAZIO
-    
-        if type(type_node) == ast.ArraySpec:
-            type_name = type_node.decl_type.lexeme
-            type_symbol = self.current_scope.resolve(type_name)
-            ama_type = Lista(type_symbol)
-        else:
-            type_name = type_node.lexeme
-            type_symbol = self.current_scope.resolve(type_name)
-            ama_type = type_symbol
-
+        type_name = type_node.type_name.lexeme
+        type_symbol = self.current_scope.resolve(type_name)
         if not type_symbol or not type_symbol.is_type():
             self.error(
                 self.UNDEFINED_TYPE,
                 type=type_name
             )
 
+        if type_node.is_list:
+            ama_type = Lista(type_symbol)
+        else:
+            ama_type = type_symbol
         return ama_type
 
     #TODO: just do this in __eq__ of the type class
@@ -578,15 +574,15 @@ class Analyzer(ast.Visitor):
                     "O argumento 1 da função 'lista' deve ser um tipo"
                 )
 
-            list_type = self.get_type(list_type.token) 
+            node.eval_type = self.get_type(
+                ast.Type(list_type.token,True)
+            ) 
             size = node.fargs[1]
             self.visit(size)
             if size.eval_type != Type.INT:
                 self.error(
                     "O tamanho de uma lista deve ser representado por um inteiro"
                 )
-
-            node.eval_type = Lista(list_type)
 
         elif name == "anexe":
             self.check_arity(node.fargs,name,2)
