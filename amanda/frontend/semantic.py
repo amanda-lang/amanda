@@ -365,7 +365,14 @@ class Analyzer(ast.Visitor):
         node.eval_type = t_type.subtype
 
     def visit_converte(self,node):
+        #Allowed conversions:
+        # int -> bool,real,texto,indef
+        # real -> bool,real,texto,indef
+        # bool -> texto,indef
+        # texto -> int,real,bool,indef
+        # indef -> int,real,bool,texto
         #check expression
+        #TODO: enforce these checks here
         self.visit(node.expression)
         type_symbol = self.get_type(node.new_type)
         #Update eval_type
