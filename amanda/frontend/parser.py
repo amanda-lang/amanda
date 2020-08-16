@@ -77,12 +77,13 @@ class Parser:
             return self.statement()
 
     def type(self):
+        is_list = False
         if self.match(TT.LBRACKET):
             self.consume(TT.LBRACKET)
             self.consume(TT.RBRACKET)
-            decl_type = self.consume(TT.IDENTIFIER)
-            return ast.ArraySpec(decl_type)
-        return self.consume(TT.IDENTIFIER)
+            is_list = True
+        type_name = self.consume(TT.IDENTIFIER)
+        return ast.Type(type_name,is_list)
 
     def end_stmt(self):
         if self.match(TT.NEWLINE):

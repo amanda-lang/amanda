@@ -3,7 +3,7 @@ import amanda.frontend.ast as ast
 import amanda.frontend.symbols as symbols
 from amanda.frontend.symbols import Type,Lista
 from amanda.error import AmandaError
-from amanda.backend.bltins import bltin_symbols
+from amanda.bltins import bltin_symbols
 
 
 
@@ -23,6 +23,7 @@ class Analyzer(ast.Visitor):
     #Special builtin function
     BUILTIN_OPS = (
         "lista",
+        "anexe",
 
     )
 
@@ -113,24 +114,21 @@ class Analyzer(ast.Visitor):
     def get_type(self,type_node):
         if not type_node:
             return Type.VAZIO
-    
-        if type(type_node) == ast.ArraySpec:
-            type_name = type_node.decl_type.lexeme
-            type_symbol = self.current_scope.resolve(type_name)
-            ama_type = Lista(type_symbol)
-        else:
-            type_name = type_node.lexeme
-            type_symbol = self.current_scope.resolve(type_name)
-            ama_type = type_symbol
-
+        type_name = type_node.type_name.lexeme
+        type_symbol = self.current_scope.resolve(type_name)
         if not type_symbol or not type_symbol.is_type():
             self.error(
                 self.UNDEFINED_TYPE,
                 type=type_name
             )
 
+        if type_node.is_list:
+            ama_type = Lista(type_symbol)
+        else:
+            ama_type = type_symbol
         return ama_type
 
+    #TODO: just do this in __eq__ of the type class
     def types_match(self,expected,received):
         return expected == received or received.promote_to(expected)
 
@@ -363,7 +361,14 @@ class Analyzer(ast.Visitor):
         node.eval_type = t_type.subtype
 
     def visit_converte(self,node):
+        #Allowed conversions:
+        # int -> bool,real,texto,indef
+        # real -> bool,real,texto,indef
+        # bool -> texto,indef
+        # texto -> int,real,bool,indef
+        # indef -> int,real,bool,texto
         #check expression
+        #TODO: enforce these checks here
         self.visit(node.expression)
         type_symbol = self.get_type(node.new_type)
         #Update eval_type
@@ -569,7 +574,9 @@ class Analyzer(ast.Visitor):
                     "O argumento 1 da função 'lista' deve ser um tipo"
                 )
 
-            list_type = self.get_type(list_type.token) 
+            node.eval_type = self.get_type(
+                ast.Type(list_type.token,True)
+            ) 
             size = node.fargs[1]
             self.visit(size)
             if size.eval_type != Type.INT:
@@ -577,7 +584,26 @@ class Analyzer(ast.Visitor):
                     "O tamanho de uma lista deve ser representado por um inteiro"
                 )
 
-            node.eval_type = Lista(list_type)
+        elif name == "anexe":
+            self.check_arity(node.fargs,name,2)
+            list_node = node.fargs[0]
+            value = node.fargs[1]
+            self.visit(list_node)
+            self.visit(value)
+
+            if type(list_node.eval_type) != Lista:
+                self.error(
+                    "O argumento 1 da função 'anexe' deve ser uma lista"
+                )
+
+            value.prom_type = value.eval_type.promote_to(
+                list_node.eval_type.subtype
+            )
+            if not self.types_match(list_node.eval_type.subtype,value.eval_type):
+                self.error(
+                    f"incompatibilidade de tipos entre a lista e o valor a anexar: '{list_node.eval_type.subtype}' != '{value.eval_type}'"
+                )
+            node.eval_type = Type.VAZIO
 
     def check_arity(self,fargs,name,param_len):
         arg_len = len(fargs)

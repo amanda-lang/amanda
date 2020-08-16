@@ -1,0 +1,3 @@
+lista1 : []int = lista(int,0) 
+
+anexe(lista1,"strug")

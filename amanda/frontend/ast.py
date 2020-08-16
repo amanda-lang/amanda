@@ -203,12 +203,11 @@ class Param(ASTNode):
         self.param_type = param_type
         self.name = name
 
-    
-class ArraySpec(ASTNode):
-
-    def __init__(self,decl_type):
-        super().__init__(decl_type)
-        self.decl_type = decl_type
+class Type(ASTNode):
+    def __init__(self,type_name,is_list=False):
+        super().__init__(type_name)
+        self.type_name = type_name
+        self.is_list = is_list
 
 #Base class for visitor objects
 class Visitor:

@@ -1,0 +1,4 @@
+
+lista1 : int = -132
+
+anexe(lista1,2)

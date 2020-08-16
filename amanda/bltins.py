@@ -58,37 +58,39 @@ def leia_real(prompt):
     except ValueError:
         raise AmandaError(INVALID_CONVERSION,-1)
 
-# Type functions
-def converte(value,ama_type):
+def converte(value,type_class):
     if isinstance(value,Indef):
         value = value.value
-    if ama_type == Type.INT or ama_type == Type.REAL:
-        try:
-            return int(value) if ama_type == Type.INT else float(value)
-        except ValueError as e:
-           raise AmandaError(INVALID_CONVERSION,-1)
-        except TypeError as e:
-           raise AmandaError(INVALID_CONVERSION,-1)
-    elif ama_type == Type.BOOL:
-        return bool(value)
-    elif ama_type == Type.TEXTO:
-        return str(value)
-    elif ama_type == Type.INDEF:
-        return Indef(value)
-    else:
-        raise NotImplementedError("have not considered other types")
+    if type(type_class) == Lista:
+        if type(value) != Lista or \
+        value.subtype != type_class.subtype:
+            raise AmandaError(INVALID_CONVERSION,-1)
+        return value 
+    try:
+        return type_class(value)
+    except ValueError as e:
+       raise AmandaError(INVALID_CONVERSION,-1)
+    except TypeError as e:
+       raise AmandaError(INVALID_CONVERSION,-1)
 
 def lista(subtype,size):
     #Returns a list of the desired size
+    if size < 0:
+        raise AmandaError(
+            "O tamanho de uma lista não pode ser um inteiro negativo",
+            -1
+        )
     inits = {
-        "int":0,
-        "real":0.0,
-        "texto":"",
-        "bool":Bool.FALSO,
-        "indef":None,
+        int:0,
+        float:0.0,
+        str:"",
+        bool:Bool.FALSO,
     }
-    default = inits.get(str(subtype))
+    default = inits.get(subtype)
     return Lista(subtype,[default for i in range(size)])
+
+def anexe(list_obj,value):
+    list_obj.elements.append(value)
 
 def tipo(indef_obj):
     ''' Returns the type of a 
@@ -120,9 +122,9 @@ def tamanho(indef_obj):
 bltin_objs["verdadeiro"] = Bool.VERDADEIRO
 bltin_objs["falso"] = Bool.FALSO
 bltin_objs["printc"] = print_wrapper
-bltin_objs["Indef"] = Indef
 bltin_objs["converte"] = converte
-bltin_objs["Type"] = Type
+bltin_objs["Indef"] = Indef
+bltin_objs["Lista"] = Lista
 
 add_bltin_func(
     "leia",leia,
@@ -151,5 +153,10 @@ add_bltin_func(
 
 add_bltin_func(
     "lista",lista,
+    None
+)
+
+add_bltin_func(
+    "anexe",anexe,
     None
 )
