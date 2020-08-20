@@ -22,3 +22,18 @@ mostra really_long_func(
     4,
     5
 )
+
+mostra really_long_func(
+    0,1,
+    2,3,
+    4,5
+)
+
+mostra really_long_func(
+    0
+    ,1,
+    2
+    ,3,
+    4
+    ,5
+)
