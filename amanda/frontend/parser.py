@@ -461,7 +461,7 @@ class Parser:
         if not self.match(TT.RPAR):
             args.append(self.equality())
         while not self.match(TT.RPAR):
-            self.consume(TT.COMMA)
+            self.consume(TT.COMMA,skip_newlines=True)
             self.skip_newlines()
             args.append(self.equality())
             self.skip_newlines()
