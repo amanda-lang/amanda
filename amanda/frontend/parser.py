@@ -17,8 +17,13 @@ class Parser:
         self.lexer = Lexer(io_object)
         self.lookahead = self.lexer.get_token()
 
-    def consume(self,expected,error=None):
-        if self.lookahead.token == expected:
+    def consume(
+        self,expected,
+        error=None,skip_newlines=False
+    ):
+        if skip_newlines:
+            self.skip_newlines()
+        if self.match(expected):
             consumed = self.lookahead
             self.lookahead = self.lexer.get_token()
             return consumed
@@ -32,6 +37,10 @@ class Parser:
              message,self.lookahead.line,
              self.lookahead.col
          )
+
+    def skip_newlines(self):
+        while self.match(TT.NEWLINE):
+            self.lookahead = self.lexer.get_token()
 
     def parse(self):
         return self.program()
@@ -148,17 +157,19 @@ class Parser:
 
     def formal_params(self):
         params = []
+        self.skip_newlines()
         if self.lookahead.token == TT.IDENTIFIER:
-            name = self.consume(TT.IDENTIFIER)
+            name = self.consume(TT.IDENTIFIER,skip_newlines=True)
             self.consume(TT.COLON,"esperava-se o símbolo ':'.")
             param_type = self.type()
             params.append(ast.Param(param_type,name))
-            while self.match(TT.COMMA):
-                self.consume(TT.COMMA)
-                name = self.consume(TT.IDENTIFIER)
+            while not self.match(TT.RPAR):
+                self.consume(TT.COMMA,skip_newlines=True)
+                name = self.consume(TT.IDENTIFIER,skip_newlines=True)
                 self.consume(TT.COLON,"esperava-se o símbolo ':'.")
                 param_type = self.type()
                 params.append(ast.Param(param_type,name))
+                self.skip_newlines()
         return params
 
     def statement(self):
@@ -390,8 +401,7 @@ class Parser:
             if self.match(TT.LPAR):
                 self.consume(TT.LPAR)
                 args = []
-                if not self.match(TT.RPAR):
-                    args = self.args()
+                args = self.args()
                 token = self.consume(
                     TT.RPAR,
                     "os argumentos da função devem ser delimitados por ')'"
@@ -447,10 +457,14 @@ class Parser:
     def args(self):
         current = self.lookahead.token
         args = []
-        args.append(self.equality())
-        while self.match(TT.COMMA):
-            self.consume(TT.COMMA)
+        self.skip_newlines()
+        if not self.match(TT.RPAR):
             args.append(self.equality())
+        while not self.match(TT.RPAR):
+            self.consume(TT.COMMA)
+            self.skip_newlines()
+            args.append(self.equality())
+            self.skip_newlines()
         return args
 
     def mult_operator(self):
