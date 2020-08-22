@@ -186,11 +186,12 @@ class Analyzer(ast.Visitor):
         name = node.name.lexeme
         if self.current_scope.get(name):
             self.error(self.ID_IN_USE,name=name)
-        self.current_scope = symbols.Scope(name,self.current_scope)
-        klass = symbols.Klass(name,self.current_scope.symbols)
+        klass = symbols.Klass(name,None)
         self.current_scope.define(name,klass)
+        self.current_scope = symbols.Scope(name,self.current_scope)
         prev_class = self.current_class
         self.current_class = klass
+        klass.members = self.current_scope.symbols
         #Will resolve class in two loops:
         # 1. Get all instance variables
         # 2. Get analyze all functions declarations
@@ -255,25 +256,27 @@ class Analyzer(ast.Visitor):
         node.eval_type = sym.type
         return sym
 
+    #This function is everywhere because
+    #there needs to be a way to check for
+    #things that you can't evaluate (functions and other stuff).
+    #TODO: Find a better way to find this. 
     def validate_get(self,node,sym):
         if isinstance(node,ast.Get) and not sym.can_evaluate():
             self.error(self.INVALID_REF,name=sym.name)
 
     def visit_get(self,node):
-        target = self.visit(node.target)
-        #Check for literal that are converted to object
-        if node.target.eval_type != Type.REF:
+        target = node.target
+        self.visit(target)
+        if type(target.eval_type) != symbols.Klass:
             self.error("Tipos primitivos não possuem atributos")
         #Get the class symbol
         #This hack is for objects that can be created via a literal
-        obj_type = target.type if target else node.target.eval_type
+        obj_type = target.eval_type
         #check if member exists
         member = node.member.lexeme
-        member_obj = obj_type.resolve_member(member)
+        member_obj = obj_type.members.get(member)
         if not member_obj:
             self.error(f"O objecto do tipo '{obj_type.name}' não possui o atributo {member}")
-        if member_obj.name == "constructor":
-            self.error(f"constructor de uma classe não pode ser invocado a partir de um objecto")
         node.eval_type = member_obj.type
         return member_obj
 
