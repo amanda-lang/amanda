@@ -414,5 +414,28 @@ class ParserTestCase(unittest.TestCase):
         parser = Parser(self.buffer)
         parser.parse()
 
+    def test_class_decl(self):
+        phrases = ['''
+             classe Ponto
+                x : int
+                y : int
+
+                func e_origem():bool
+                    retorna falso
+                fim
+
+                func e_origem():bool
+                    eu.x = "lool"
+                fim
+             fim
+
+        '''
+        ]
+        for phrase in phrases:
+            print(phrase,file=self.buffer)
+        #self.buffer.writelines(phrases)
+        self.buffer.seek(0)
+        parser = Parser(self.buffer)
+        parser.parse()
 
 
