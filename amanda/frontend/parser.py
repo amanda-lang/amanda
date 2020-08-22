@@ -147,7 +147,6 @@ class Parser:
                     )
                 if member_type == ast.VarDecl and \
                 member.assign is not None:
-                    #TODO: Fix line number error here
                     self.error(
                         "Não pode inicializar os campos de um classe",
                         member.lineno
