@@ -32,9 +32,12 @@ class Parser:
                 self.error(error)
             self.error(f"era esperado o símbolo {expected.value},porém recebeu o símbolo '{self.lookahead.lexeme}'")
 
-    def error(self,message):
+    def error(self,message,line=None):
+        err_line = self.lookahead.line
+        if line:
+            err_line = line
         raise AmandaError.syntax_error(
-             message,self.lookahead.line,
+             message,err_line,
              self.lookahead.col
          )
 
@@ -138,11 +141,17 @@ class Parser:
                 member_type = type(member)
                 if member_type != ast.FunctionDecl and \
                 member_type != ast.VarDecl:
-                    self.error("directiva inválida para o corpo de uma classe")
+                    self.error(
+                        "directiva inválida para o corpo de uma classe",
+                        member.lineno
+                    )
                 if member_type == ast.VarDecl and \
                 member.assign is not None:
                     #TODO: Fix line number error here
-                    self.error("Não pode inicializar os campos de um classe")
+                    self.error(
+                        "Não pode inicializar os campos de um classe",
+                        member.lineno
+                    )
                 body.add_child(member)
         return body
 
