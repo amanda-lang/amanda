@@ -121,38 +121,29 @@ class Parser:
         self.consume(TT.FIM,"O corpo de um função deve ser terminado com a directiva 'fim'")
         return ast.FunctionDecl(name=name,block=block,func_type=func_type,params=params)
 
-    #REMOVE: Not sure if superclasses are going
-    # to be a thing
-    def get_superclass(self):
-        #Helper to parse classes with inheritance
-        #syntax
-        superclass = None
-        if self.match(TT.LESS):
-            self.consume(TT.LESS)
-            superclass = self.lookahead 
-            self.consume(TT.IDENTIFIER)
-        return superclass
-
-    #REMOVE: Not sure if class syntax will be the same
     def class_decl(self):
         self.consume(TT.CLASSE)
-        name = self.lookahead
-        self.consume(TT.IDENTIFIER)
-        superclass = self.get_superclass()
+        name = self.consume(TT.IDENTIFIER)
         body = self.class_body()
         self.consume(TT.FIM,"O corpo de uma classe deve ser terminado com o símbolo fim")
-        return ast.ClassDecl(name=name,superclass=superclass,body=body)
+        return ast.ClassDecl(name=name,body=body)
 
-    #REMOVE: Not sure if class syntax will be the same
     def class_body(self):
         body = ast.ClassBody()
         while not self.match(TT.FIM):
-            if self.match(TT.FUNC):
-                body.add_child(self.function_decl())
-            elif self.match(TT.NEWLINE):
-                self.consume(TT.NEWLINE)
+            if self.match(TT.NEWLINE):
+                self.skip_newlines()
             else:
-                self.error("Directiva inválida para o corpo de uma classe")
+                member = self.declaration()
+                member_type = type(member)
+                if member_type != ast.FunctionDecl and \
+                member_type != ast.VarDecl:
+                    self.error("directiva inválida para o corpo de uma classe")
+                if member_type == ast.VarDecl and \
+                member.assign is not None:
+                    #TODO: Fix line number error here
+                    self.error("Não pode inicializar os campos de um classe")
+                body.add_child(member)
         return body
 
     def formal_params(self):
@@ -432,13 +423,9 @@ class Parser:
             self.consume(TT.LPAR)
             expr = self.equality()
             self.consume(TT.RPAR)
-        #REMOVE: Not in use
         elif self.match(TT.EU):
             expr = ast.Eu(self.lookahead)
             self.consume(TT.EU)
-        #REMOVE: Not in use
-        elif self.match(TT.SUPER):
-            expr = ast.Super(self.consume(TT.SUPER))
         elif self.match(TT.CONVERTE):
             expr = self.converte_expression()
         else:
