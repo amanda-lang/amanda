@@ -1,7 +1,4 @@
-from amanda.frontend.tokens import Token,TokenType
-
 #TODO: Rename fields of some classes
-
 
 class ASTNode:
     def __init__(self,token=None):
