@@ -10,7 +10,6 @@ from amanda.frontend.parser import Parser
 from amanda.bltins import bltin_symbols
 
 
-
 class Transpiler:
     #Var types
     VAR = "VAR"
@@ -150,18 +149,23 @@ class Transpiler:
         self.global_scope.define(name,(real_id,name_type))
         return real_id
 
-    def gen_vardecl(self,node):
-        assign = node.assign
-        name = node.name.lexeme
-
+    def define_name(self,name,name_type):
         if self.scope_depth >= 1:
             #Defines a new local
             name = self.define_local(
-                name,self.current_scope,self.VAR
+                name,self.current_scope,name_type
             )
         else:
             #In global scope
-            name = self.define_global(name,self.VAR)
+            name = self.define_global(name,name_type)
+        return name
+
+
+    def gen_vardecl(self,node):
+        assign = node.assign
+        name = self.define_name(
+            node.name.lexeme,self.VAR
+        )
 
         if assign:
             value = self.gen(assign.right)
@@ -180,13 +184,9 @@ class Transpiler:
     def gen_functiondecl(self,node):
         name = node.name.lexeme
         func_def = StringIO()
-        if self.scope_depth >= 1:
-            #Nested function
-            name = self.define_local(
-                name,self.current_scope,self.FUNC
-            )
-        else:
-            name = self.define_global(name,self.FUNC)
+        name = self.define_name(
+            node.name.lexeme,self.FUNC
+        )
         self.scope_depth += 1
         self.func_depth += 1
         params = []

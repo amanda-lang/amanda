@@ -1,8 +1,7 @@
 from amanda.frontend.tokens import TokenType as TT
 from enum import Enum
 
-
-
+#REMOVE: This unused class
 class SymbolTable:
     def __init__(self):
         self.symbols = {}
@@ -15,12 +14,12 @@ class SymbolTable:
 
     def __str__(self):
         str = "\n"
-        #str.join([f"{symbol}:{self.symbols[symbol]}" for symbol in self.symbol])
         for symbol,sym_obj in self.symbols.items():
             str += f"{symbol}:{sym_obj}\n"
         return str
 
 
+#REMOVE name attribute from this class
 class Scope(SymbolTable):
     GLOBAL = "GLOBAL_SCOPE"
     LOCAL = "LOCAL_SCOPE"
@@ -82,7 +81,6 @@ class FunctionSymbol(Symbol):
     def __init__(self,name,func_type,params={}):
         super().__init__(name,func_type)
         self.params = params #dict of symbols
-        self.is_constructor = False #indicates if param is a constructor
 
     def __str__(self):
         params = ",".join(self.params)
@@ -143,30 +141,15 @@ class Lista(Type):
             return False
         return self.subtype == other.subtype
 
-class ClassSymbol(Type):
-    ''' Represents a class in amanda.
-        Both user defined and builtins.'''
+class Klass(Type):
 
-    def __init__(self,name,members={},superclass=None):
-        super().__init__(name,Tag.REF)
+    def __init__(self,name,members):
+        super().__init__(name,(Type.INDEF,))
         self.members = members
-        self.resolved = False
-        self.superclass = superclass
-
-    def is_callable(self):
-        return True
+        self.constructor = None
 
     def __str__(self):
         return self.name
 
-    def get_member(self,member):
-        return self.members.get(member)
-
-    def resolve_member(self,member):
-        #Also does lookup in super class
-        prop = self.members.get(member)
-        if not prop and self.superclass:
-            return self.superclass.resolve_member(member)
-        return prop
 
 

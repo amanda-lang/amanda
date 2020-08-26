@@ -1,3 +1,4 @@
+import copy
 from amanda.frontend.tokens import TokenType as TT
 import amanda.frontend.ast as ast
 import amanda.frontend.symbols as symbols
@@ -134,21 +135,9 @@ class Analyzer(ast.Visitor):
 
 
     def visit_vardecl(self,node):
-        klass = self.current_class
         name = node.name.lexeme
-        #If declaration has already been resolved,
-        #define the member in current scope and exit declaration
-        #Only skip declarations in the class scope not in local
-        #scope
-        #REMOVE: This piece of bad code 
-        if klass and klass.resolved and not \
-        self.current_function:
-            self.current_scope.define(name,klass.get_member(name))
-            return
-
         if self.current_scope.get(name):
             self.error(self.ID_IN_USE,name=name)
-
         var_type = self.get_type(node.var_type)
         symbol = symbols.VariableSymbol(name,var_type)
         self.current_scope.define(name,symbol)
@@ -173,38 +162,14 @@ class Analyzer(ast.Visitor):
             self.current_node = node
             self.error(self.NO_RETURN_STMT,name=name)
         symbol = symbols.FunctionSymbol(name,function_type)
-        self.check_function(name,symbol,node)
-
-    def check_super(self,name,superclass,body):
-        ''' Checks if the constructor calls superclass
-        constructor with arguments'''
-        super_constructor = superclass.get_member("constructor")
-        if not super_constructor:
-            return True
-        if super_constructor.arity() == 0:
-            return True
-        for child in body.children:
-            if isinstance(child,ast.Call):
-                if isinstance(child.callee,ast.Super):
-                    return True
-        return False
-
-    def check_function(self,name,symbol,node):
         self.current_scope.define(name,symbol)
-        #If in class and this is resolution phase,
-        #do not visit body
-        klass = self.current_class
-        if klass and not klass.resolved:
-            return
         scope,symbol.params = self.define_func_scope(name,node.params)
         prev_function = self.current_function
         self.current_function = symbol
         self.visit(node.block,scope)
         self.current_function = prev_function
-        
+
     def define_func_scope(self,name,params):
-        #TODO: Check if i can immplements params as list
-        #Instead of dict
         params_dict = {}
         for param in params:
             param_name = param.name.lexeme
@@ -212,7 +177,6 @@ class Analyzer(ast.Visitor):
                 self.error(self.REPEAT_PARAM,name=param_name)
             param_symbol = self.visit(param)
             params_dict[param_name] = param_symbol
-            #Add params o current_scope
         scope = symbols.Scope(name,self.current_scope)
         for param_name,param in params_dict.items():
             scope.define(param_name,param)
@@ -222,48 +186,39 @@ class Analyzer(ast.Visitor):
         name = node.name.lexeme
         if self.current_scope.get(name):
             self.error(self.ID_IN_USE,name=name)
-        #Check if class has a valid superclass
-        superclass = node.superclass
-        if superclass:
-            super_name = superclass.lexeme
-            superclass = self.current_scope.resolve(super_name)
-            if not superclass:
-                self.error(self.UNDECLARED_ID,name=super_name)
-        klass = symbols.ClassSymbol(name,superclass=superclass)
+        klass = symbols.Klass(name,None)
         self.current_scope.define(name,klass)
-        res_scope = symbols.Scope(name,self.current_scope)
+        self.current_scope = symbols.Scope(name,self.current_scope)
         prev_class = self.current_class
         self.current_class = klass
-        #Resolve class
-        klass.members = self.visit_classbody(node.body,res_scope)
-        klass.resolved = True
-        #Revisit class
-        self.visit_classbody(node.body,symbols.Scope(name,self.current_scope))
+        klass.members = self.current_scope.symbols
+        #Will resolve class in two loops:
+        # 1. Get all instance variables
+        # 2. Get analyze all functions declarations
+        # This allows forward references inside a class
+        declarations = node.body.children
+        for declaration in declarations:
+            if type(declaration) == ast.VarDecl:
+                self.visit(declaration)
+        #Make a constructor out of the class instance variables
+        #By copying the current members dict
+        class_attrs = copy.copy(klass.members)
+        klass.constructor = symbols.FunctionSymbol(
+            klass.name,klass,class_attrs
+        )
+
+        for declaration in declarations:
+            if type(declaration) == ast.FunctionDecl:
+                self.visit(declaration) 
+
+        self.current_scope = self.current_scope.enclosing_scope
         self.current_class = prev_class
 
-    def visit_classbody(self,node,scope):
-        self.current_scope = scope
-        for child in node.children:
-            self.visit(child)
-        self.current_scope = self.current_scope.enclosing_scope
-        return scope.symbols
-
     def visit_eu(self,node):
-        #Validate the use of 'eu'
         if not self.current_class or not self.current_function:
             self.error("a palavra reservada 'eu' só pode ser usada dentro de um método")
         node.eval_type = self.current_class
         return symbols.VariableSymbol('eu',self.current_class)
-
-    def visit_super(self,node):
-        klass = self.current_class
-        if not klass:
-            self.error("a palavra reservada 'super' só pode ser usada dentro de uma classe")
-        if not klass.superclass:
-            self.error("Esta classe não possui uma superclasse")
-        klass = klass.superclass
-        node.eval_type = klass
-        return symbols.VariableSymbol('super',klass)
 
     def visit_block(self,node,scope=None):
         if not scope:
@@ -278,6 +233,7 @@ class Analyzer(ast.Visitor):
         var_type = self.get_type(node.param_type)
         return symbols.VariableSymbol(name,var_type)
 
+    #TODO: Rename this to literal
     def visit_constant(self,node):
         constant = node.token.token
         if constant == TT.INTEGER:
@@ -289,41 +245,38 @@ class Analyzer(ast.Visitor):
         elif constant in (TT.VERDADEIRO,TT.FALSO):
             node.eval_type = Type.BOOL
 
+    #TODO: Rename this to 'name' or 'identifier'
     def visit_variable(self,node):
         name = node.token.lexeme
         sym = self.current_scope.resolve(name)
         if not sym:
             self.error(self.UNDECLARED_ID,name=name)
-        #Referencing array by name 
-        #TODO: Remove this in favour of creating
-        #a separate table just for the function symbols.
         elif not sym.can_evaluate():
             self.error(self.INVALID_REF,name=name)
         node.eval_type = sym.type
         return sym
 
+    #This function is everywhere because
+    #there needs to be a way to check for
+    #things that you can't evaluate (functions and other stuff).
+    #TODO: Find a better way to find this. 
     def validate_get(self,node,sym):
-        ''' Method to validate get expressions'''
         if isinstance(node,ast.Get) and not sym.can_evaluate():
             self.error(self.INVALID_REF,name=sym.name)
 
     def visit_get(self,node):
-        ''' Method that processes getter expressions.
-        Returns the resolved symbol of the get expression.'''
-        target = self.visit(node.target)
-        #Check for literal that are converted to object
-        if node.target.eval_type != Type.REF:
+        target = node.target
+        self.visit(target)
+        if type(target.eval_type) != symbols.Klass:
             self.error("Tipos primitivos não possuem atributos")
         #Get the class symbol
         #This hack is for objects that can be created via a literal
-        obj_type = target.type if target else node.target.eval_type
+        obj_type = target.eval_type
         #check if member exists
         member = node.member.lexeme
-        member_obj = obj_type.resolve_member(member)
+        member_obj = obj_type.members.get(member)
         if not member_obj:
             self.error(f"O objecto do tipo '{obj_type.name}' não possui o atributo {member}")
-        if member_obj.name == "constructor":
-            self.error(f"constructor de uma classe não pode ser invocado a partir de um objecto")
         node.eval_type = member_obj.type
         return member_obj
 
@@ -469,12 +422,7 @@ class Analyzer(ast.Visitor):
         if not self.current_function:
             self.current_node = node
             self.error(f"A directiva 'retorna' só pode ser usada dentro de uma função")
-
-        #REMOVE: Old and unused constructor logic
-        if self.current_function.is_constructor:
-            self.error("Não pode usar a directiva 'retorna' dentro de um constructor")
         func_type = self.current_function.type
-
         #TODO: Allow empty return from void functions
         if self.current_function.type == Type.VAZIO:
             self.error("Não pode usar a directiva 'retorna' em uma função vazia")
@@ -527,43 +475,33 @@ class Analyzer(ast.Visitor):
 
     def visit_call(self,node):
         callee = node.callee
-        #Call is made on a variable
-        if isinstance(callee,ast.Variable):
+        calle_type = type(callee)
+        if calle_type == ast.Variable:
             name = callee.token.lexeme
             sym = self.current_scope.resolve(name)
             if not sym:
+                #TODO: Use the default error message for this
                 self.error(f"o identificador '{name}' não foi definido neste escopo")
-        #Call is made on another call
-        elif isinstance(callee,ast.Call):
-            # Since amanda doesn't have first class functions,
-            # calling a call is always illegal
-            self.error(f"Não pode invocar o resultado de uma invocação")
-        elif isinstance(callee,ast.Get):
+        elif calle_type == ast.Get:
             sym = self.visit(callee)
-        elif isinstance(callee,ast.Super):
-            self.visit(callee)
-            if not self.current_function.is_constructor:
-                self.error(f"O constructor da superclasse só pode ser invocado no constructor da subclasse")
-            sym = self.current_class.superclass
-            #Just to be cautious
-            #REMOVE: Remove this assert, was just here for testing
-            assert sym != None
         else:
-            self.error(f"o símbolo '{node.callee.token.lexeme}' não é invocável")
-        if isinstance(sym,symbols.ClassSymbol):
-            self.validate_constructor(sym,node.fargs)
-            if isinstance(callee,ast.Super):
-                node.eval_type = self.global_scope.get("vazio")  
-            else:
-                node.eval_type = sym
+            message = f"Não pode invocar o resultado de uma invocação"\
+                if calle_type == ast.Call \
+                else f"o símbolo '{node.callee.token.lexeme}' não é invocável"
+            self.error(message)
+
+        if type(sym) == symbols.Klass:
+            self.validate_call(sym.constructor,node.fargs)
+            node.eval_type = sym
         else:
+            #TODO: Add special nodes for these guys
             if sym.name in self.BUILTIN_OPS:
                 self.builtin_call(sym.name,node)
                 return sym
             self.validate_call(sym,node.fargs)
             node.eval_type = sym.type        
         return sym
-    
+
     # Handles calls to special builtin operation
     def builtin_call(self,name,node):
         if name == "lista":
@@ -575,7 +513,7 @@ class Analyzer(ast.Visitor):
                 )
 
             node.eval_type = self.get_type(
-                ast.Type(list_type.token,True)
+                ast.Type(list_type.token,is_list=True)
             ) 
             size = node.fargs[1]
             self.visit(size)
@@ -613,8 +551,6 @@ class Analyzer(ast.Visitor):
             )
             
     def validate_call(self,sym,fargs):
-        ''' Helper method that enforces a host of semantic 
-        checks on a call operation. '''
         name = sym.name
         if not sym.is_callable():
             self.error(f"identificador '{name}' não é invocável")
@@ -626,5 +562,6 @@ class Analyzer(ast.Visitor):
             arg.prom_type = arg.eval_type.promote_to(param.type)
             if not self.types_match(param.type,arg.eval_type):
                 self.error(
-                   f"argumento inválido. Esperava-se um argumento do tipo '{param.type}' mas recebeu o tipo '{arg.eval_type}'")
+                   f"argumento inválido. Esperava-se um argumento do tipo '{param.type}' mas recebeu o tipo '{arg.eval_type}'"
+                )
         
