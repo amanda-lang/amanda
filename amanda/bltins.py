@@ -123,7 +123,9 @@ bltin_objs["verdadeiro"] = Bool.VERDADEIRO
 bltin_objs["falso"] = Bool.FALSO
 bltin_objs["printc"] = print_wrapper
 bltin_objs["converte"] = converte
-bltin_objs["Indef"] = Indef
+bltin_objs["real"] = float
+bltin_objs["texto"] = str
+bltin_objs["indef"] = Indef
 bltin_objs["Lista"] = Lista
 
 add_bltin_func(

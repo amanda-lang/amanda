@@ -43,10 +43,10 @@ class Transpiler:
             self.global_scope.define(name,s_info)
         # Add type names to tables
         self.global_scope.define("int",("int",self.TYPE))
-        self.global_scope.define("real",("float",self.TYPE))
+        self.global_scope.define("real",("real",self.TYPE))
         self.global_scope.define("bool",("bool",self.TYPE))
-        self.global_scope.define("texto",("str",self.TYPE))
-        self.global_scope.define("indef",("Indef",self.TYPE))
+        self.global_scope.define("texto",("texto",self.TYPE))
+        self.global_scope.define("indef",("indef",self.TYPE))
 
     def compile(self,src):
         ''' Method that begins compilation of amanda source.'''
@@ -344,7 +344,7 @@ class Transpiler:
         if prom_type == None:
             return expression
         elif prom_type == Type.INDEF:
-            return f"Indef({expression})"
+            return f"indef({expression})"
         elif prom_type == Type.REAL:
             return f"float({expression})"
         else:
