@@ -118,7 +118,7 @@ def tamanho(indef_obj):
         return -1
     
 
-#Adding builtins
+#Aliases for objects
 bltin_objs["verdadeiro"] = Bool.VERDADEIRO
 bltin_objs["falso"] = Bool.FALSO
 bltin_objs["printc"] = print_wrapper
