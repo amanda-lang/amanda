@@ -1,63 +1,10 @@
 from amanda.frontend.tokens import TokenType as TT
 from enum import Enum
 
-#REMOVE: This unused class
-class SymbolTable:
-    def __init__(self):
-        self.symbols = {}
-
-    def define(self,name,symbol):
-        self.symbols[name] = symbol
-
-    def resolve(self,name):
-        return self.symbols.get(name)
-
-    def __str__(self):
-        str = "\n"
-        for symbol,sym_obj in self.symbols.items():
-            str += f"{symbol}:{sym_obj}\n"
-        return str
-
-
-#REMOVE name attribute from this class
-class Scope(SymbolTable):
-    GLOBAL = "GLOBAL_SCOPE"
-    LOCAL = "LOCAL_SCOPE"
-
-    def __init__(self,name,enclosing_scope=None):
-        super().__init__()
-        self.name = name
-        self.enclosing_scope = enclosing_scope
-
-    def resolve(self,name):
-        symbol = super().resolve(name)
-        if not symbol:
-            if self.enclosing_scope is not None:
-                return self.enclosing_scope.resolve(name)
-            else:
-                return None
-        return symbol
-    
-    def get(self,name):
-        return super().resolve(name)
-
-    def define(self,name,symbol):
-        super().define(name,symbol)
-
-    def count(self):
-        return len(self.symbols)
-
-    def __str__(self):
-        return f"SCOPE: {self.name}\n\n______\n{super().__str__()}\n\n<Exiting {self.name}>\n"
-
-
-
-#Abstract base class for all symbols
-#Change this type cheese
 class Symbol:
-    def __init__(self,name,type):
+    def __init__(self,name,sym_type):
         self.name = name
-        self.type = type
+        self.type = sym_type
 
     def __str__(self):
         return f"<{self.__class__.__name__} ({self.name},{self.type})>"
@@ -72,8 +19,9 @@ class Symbol:
         return False
 
 class VariableSymbol(Symbol):
-    def __init__(self,name,type):
-        super().__init__(name,type)
+    def __init__(self,name,var_type):
+        super().__init__(name,var_type)
+
     def can_evaluate(self):
         return True
 
@@ -91,31 +39,64 @@ class FunctionSymbol(Symbol):
 
     def arity(self):
         return len(self.params)
+#REMOVE name attribute from this class
+class Scope:
+    GLOBAL = "GLOBAL_SCOPE"
+    LOCAL = "LOCAL_SCOPE"
+
+    def __init__(self,name,enclosing_scope=None):
+        self.symbols = {}
+        self.name = name
+        self.enclosing_scope = enclosing_scope
+
+    def resolve(self,name):
+        symbol = self.get(name)
+        if not symbol:
+            if self.enclosing_scope is not None:
+                return self.enclosing_scope.resolve(name)
+            else:
+                return None
+        return symbol
+    
+    def get(self,name):
+        return self.symbols.get(name)
+
+    def define(self,name,symbol):
+        self.symbols[name] = symbol
+
+    def count(self):
+        return len(self.symbols)
+
+    def __str__(self):
+        symbols = [
+            f"{symbol}:{sym_obj}"\
+            for symbol,sym_obj in self.symbols.items()
+        ]
+        table = "\n".join(symbols) 
+        return f"SCOPE: {self.name}\n\n______\n{table}\n\n<Exiting {self.name}>\n"
+
+
 
 class Type(Symbol):
-    ''' Class that represents a type 
-    in amanda. Types will be used during
-    semantic analysis to enforce type
-    rules
-    '''
-    def __init__(self,name,prom_types=[]):
+
+   def __init__(self,name,prom_types=[]):
         super().__init__(name,None)
         self.prom_types = prom_types
 
-    def __str__(self):
-        return str(self.name)
+   def __str__(self):
+       return str(self.name)
 
-    def is_type(self):
-        return True
+   def is_type(self):
+       return True
 
-    def is_numeric(self):
-        return self == Type.INT or self == Type.REAL
+   def is_numeric(self):
+       return self == Type.INT or self == Type.REAL
 
-    def is_operable(self):
-        return self != Type.VAZIO and self != Type.INDEF
+   def is_operable(self):
+       return self != Type.VAZIO and self != Type.INDEF
 
-    def promote_to(self,other):
-        return other if other in self.prom_types else None
+   def promote_to(self,other):
+       return other if other in self.prom_types else None
 
 #Add Builtin types 
 #All types except vazio can be promoted to indef
@@ -129,27 +110,25 @@ Type.TEXTO = Type("texto",(Type.INDEF,))
 
 class Lista(Type):
 
-    def __init__(self,subtype):
-        super().__init__("lista",(Type.INDEF,))
-        self.subtype = subtype
+   def __init__(self,subtype):
+       super().__init__("lista",(Type.INDEF,))
+       self.subtype = subtype
 
-    def __str__(self):
-        return f"[]{self.subtype}"
+   def __str__(self):
+       return f"[]{self.subtype}"
 
-    def __eq__(self,other):
-        if type(other) != Lista:
-            return False
-        return self.subtype == other.subtype
+   def __eq__(self,other):
+       if type(other) != Lista:
+           return False
+       return self.subtype == other.subtype
 
 class Klass(Type):
 
-    def __init__(self,name,members):
-        super().__init__(name,(Type.INDEF,))
-        self.members = members
-        self.constructor = None
+   def __init__(self,name,members):
+       super().__init__(name,(Type.INDEF,))
+       self.members = members
+       self.constructor = None
 
-    def __str__(self):
-        return self.name
-
-
+   def __str__(self):
+       return self.name
 
