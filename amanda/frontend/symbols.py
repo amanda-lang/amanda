@@ -4,6 +4,7 @@ from enum import Enum
 class Symbol:
     def __init__(self,name,sym_type):
         self.name = name
+        self.out_name = None
         self.type = sym_type
 
     def __str__(self):
@@ -41,12 +42,9 @@ class FunctionSymbol(Symbol):
         return len(self.params)
 #REMOVE name attribute from this class
 class Scope:
-    GLOBAL = "GLOBAL_SCOPE"
-    LOCAL = "LOCAL_SCOPE"
 
-    def __init__(self,name,enclosing_scope=None):
+    def __init__(self,enclosing_scope=None):
         self.symbols = {}
-        self.name = name
         self.enclosing_scope = enclosing_scope
 
     def resolve(self,name):

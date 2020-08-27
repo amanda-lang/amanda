@@ -31,7 +31,7 @@ class Analyzer(ast.Visitor):
 
     def __init__(self):
         #Just to have quick access to things like types and e.t.c
-        self.global_scope = symbols.Scope(symbols.Scope.GLOBAL)
+        self.global_scope = symbols.Scope()
         self.current_scope = self.global_scope
         self.current_node = None
         self.current_class = None
@@ -129,7 +129,6 @@ class Analyzer(ast.Visitor):
             ama_type = type_symbol
         return ama_type
 
-    #TODO: just do this in __eq__ of the type class
     def types_match(self,expected,received):
         return expected == received or received.promote_to(expected)
 
@@ -177,7 +176,7 @@ class Analyzer(ast.Visitor):
                 self.error(self.REPEAT_PARAM,name=param_name)
             param_symbol = self.visit(param)
             params_dict[param_name] = param_symbol
-        scope = symbols.Scope(name,self.current_scope)
+        scope = symbols.Scope(self.current_scope)
         for param_name,param in params_dict.items():
             scope.define(param_name,param)
         return (scope,params_dict)
@@ -188,7 +187,7 @@ class Analyzer(ast.Visitor):
             self.error(self.ID_IN_USE,name=name)
         klass = symbols.Klass(name,None)
         self.current_scope.define(name,klass)
-        self.current_scope = symbols.Scope(name,self.current_scope)
+        self.current_scope = symbols.Scope(self.current_scope)
         prev_class = self.current_class
         self.current_class = klass
         klass.members = self.current_scope.symbols
@@ -222,7 +221,7 @@ class Analyzer(ast.Visitor):
 
     def visit_block(self,node,scope=None):
         if not scope:
-            scope = symbols.Scope(symbols.Scope.LOCAL,self.current_scope)
+            scope = symbols.Scope(self.current_scope)
         self.current_scope = scope
         for child in node.children:
             self.visit(child)
@@ -453,7 +452,7 @@ class Analyzer(ast.Visitor):
         #Define control variable for loop
         name = node.expression.name.lexeme
         sym = symbols.VariableSymbol(name,self.current_scope.resolve("int"))
-        scope = symbols.Scope(symbols.Scope.LOCAL,self.current_scope)
+        scope = symbols.Scope(self.current_scope)
         scope.define(name,sym)
         self.visit(node.statement,scope)
 

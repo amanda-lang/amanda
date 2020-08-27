@@ -16,10 +16,6 @@ class Transpiler:
     FUNC = "FUNC"
     TYPE = "TYPE"
 
-    #Scope names
-    GLOBAL = "GLOBAL"
-    LOCAL = "LOCAL"
-
     #Indentation string
     INDENT = "    "
 
@@ -27,7 +23,7 @@ class Transpiler:
         self.py_lineno = 0  # tracks lineno in compiled python src
         self.ama_lineno = 1 # tracks lineno in input amanda src
         self.depth = -1 # current indent level
-        self.global_scope = symbols.Scope(self.GLOBAL)
+        self.global_scope = symbols.Scope()
         self.current_scope = self.global_scope
         self.func_depth = 0 # current func nesting level
         self.scope_depth = 0 # scope nesting level
@@ -98,7 +94,7 @@ class Transpiler:
             self.current_scope = scope
         else:
             self.current_scope = symbols.Scope(
-                self.LOCAL,self.current_scope
+                self.current_scope
             )
         #Newline for header
         self.update_line_info()
@@ -190,7 +186,7 @@ class Transpiler:
         self.scope_depth += 1
         self.func_depth += 1
         params = []
-        scope = symbols.Scope(name,self.current_scope)
+        scope = symbols.Scope(self.current_scope)
         for param in node.params:
             param_name = self.define_local(
                 param.name.lexeme,scope,self.VAR
@@ -364,7 +360,7 @@ class Transpiler:
     def compile_branch(self,block,scope=None):
         self.scope_depth += 1
         if scope is None:
-            scope = symbols.Scope(self.LOCAL,self.current_scope)
+            scope = symbols.Scope(self.current_scope)
         branch = self.compile_block(
             block,[],scope
         )
@@ -385,7 +381,7 @@ class Transpiler:
 
     def gen_para(self,node):
         para_expr = node.expression
-        scope = symbols.Scope(self.LOCAL,self.current_scope)
+        scope = symbols.Scope(self.current_scope)
         #Change control var name to local name
         self.scope_depth += 1
         para_expr.name.lexeme = self.define_local(
