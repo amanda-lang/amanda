@@ -1,6 +1,6 @@
 from amanda.backend.types import Bool,Indef,Lista
 import amanda.frontend.symbols as symbols
-from amanda.frontend.symbols import Type
+from amanda.frontend.type import OType,Type
 from amanda.error import AmandaError,throw_error
 
 #Symbols for builtin functions
@@ -17,7 +17,7 @@ INVALID_CONVERSION = "impossível realizar a conversão entre os tipos especific
 def add_bltin_func(name,obj,return_type,*params):
     ''' Helper that creates a function_symbol and adds it
     to the dict of bltin symbols'''
-    return_type = return_type if return_type else Type.VAZIO
+    return_type = return_type if return_type else Type(OType.TVAZIO)
     formal_params = {}
     for pname,ptype in params:
         formal_params[pname] = symbols.VariableSymbol(pname,ptype)
@@ -118,37 +118,39 @@ def tamanho(indef_obj):
         return -1
     
 
-#Adding builtins
+#Aliases for objects
 bltin_objs["verdadeiro"] = Bool.VERDADEIRO
 bltin_objs["falso"] = Bool.FALSO
 bltin_objs["printc"] = print_wrapper
 bltin_objs["converte"] = converte
-bltin_objs["Indef"] = Indef
+bltin_objs["real"] = float
+bltin_objs["texto"] = str
+bltin_objs["indef"] = Indef
 bltin_objs["Lista"] = Lista
 
 add_bltin_func(
     "leia",leia,
-    Type.TEXTO,("mensagem",Type.TEXTO)
+    Type(OType.TTEXTO),("mensagem",Type(OType.TTEXTO))
 )
 
 add_bltin_func(
     "leia_int",leia_int,
-    Type.INT,("mensagem",Type.TEXTO)
+    Type(OType.TINT),("mensagem",Type(OType.TTEXTO))
 )
 
 add_bltin_func(
     "leia_real",leia_real,
-    Type.REAL,("mensagem",Type.TEXTO)
+    Type(OType.TREAL),("mensagem",Type(OType.TTEXTO))
 )
 
 add_bltin_func(
     "tipo",tipo,
-    Type.TEXTO,("valor",Type.INDEF)
+    Type(OType.TTEXTO),("valor",Type(OType.TINDEF))
 )
 
 add_bltin_func(
     "tamanho",tamanho,
-    Type.INT,("objecto",Type.INDEF)
+    Type(OType.TINT),("objecto",Type(OType.TINDEF))
 )
 
 add_bltin_func(
