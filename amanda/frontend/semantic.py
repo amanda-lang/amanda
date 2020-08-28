@@ -15,12 +15,6 @@ class Analyzer(ast.Visitor):
     ID_IN_USE = "O identificador '{name}' já foi declarado neste escopo"
     INVALID_REF = "o identificador '{name}' não é uma referência válida"
 
-    #Special builtin function
-    BUILTIN_OPS = (
-        "lista",
-        "anexe",
-
-    )
 
 
     def __init__(self):
@@ -518,8 +512,10 @@ class Analyzer(ast.Visitor):
             self.validate_call(sym.constructor,node.fargs)
             node.eval_type = sym
         else:
+            #Special builtin function
+            builtin_ops = ("lista","anexe")
             #TODO: Add special nodes for these guys
-            if sym.name in self.BUILTIN_OPS:
+            if sym.name in builtin_ops:
                 self.builtin_call(sym.name,node)
                 return sym
             self.validate_call(sym,node.fargs)
