@@ -6,11 +6,11 @@ import traceback
 from contextlib import redirect_stdout,redirect_stderr
 from amanda.__main__ import main as ama_main
 
-TEST_DIR = os.path.abspath("./tests")
+TEST_DIR = os.path.abspath("./tests/inputs")
 STATEMENT = join(TEST_DIR,"statement")
 EXCLUDED = ("result.txt")
 RESULTS_FILE = "result.txt"
-RESULTS_DIR = join(TEST_DIR,"results")
+RESULTS_DIR = join("./tests/outputs/")
 
 #test paths
 DIRS = [
@@ -33,16 +33,6 @@ join(TEST_DIR,"builtins"),join(TEST_DIR,"list"),
 passed = 0
 failed = 0
 failed_tests = []
-
-#Deletes result files for specific test
-#cases
-def delete_script_output():
-    for root,dirs,files in os.walk(TEST_DIR):
-        result = join(root,RESULTS_FILE)
-        try:
-            os.remove(result)
-        except FileNotFoundError:
-            pass
 
 def add_success():
     global passed
@@ -73,8 +63,9 @@ def print_results():
     print("Tests have finished running.")
     print(f"Total:{passed + failed}",f"Passed:{passed}",f"Failed:{failed}")
     print("\n\n")
-    if len(failed_tests):
+    if failed_tests:
         print_failed()
+        sys.exit("Some tests failed")
 
 def load_test_cases(suite):
     for root,dirs,files in os.walk(suite):
