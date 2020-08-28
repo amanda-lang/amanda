@@ -2,7 +2,7 @@ import copy
 from amanda.frontend.tokens import TokenType as TT
 import amanda.frontend.ast as ast
 import amanda.frontend.symbols as symbols
-from amanda.frontend.symbols import Type,Lista
+from amanda.frontend.type import OType,Type,Lista,Klass
 from amanda.error import AmandaError
 from amanda.bltins import bltin_symbols
 
@@ -10,16 +10,9 @@ from amanda.bltins import bltin_symbols
 
 class Analyzer(ast.Visitor):
 
-    #Semnatic analysis errors
-    UNDEFINED_TYPE = "o tipo '{type}' não foi declarado"
+    #Error messages
     ID_IN_USE = "O identificador '{name}' já foi declarado neste escopo"
-    NO_RETURN_STMT = "a função '{name}' não possui a instrução 'retorna'"
-    REPEAT_PARAM = "o parâmetro '{name}' já foi especificado nesta função"
-    UNDECLARED_ID ="o identificador '{name}' não foi declarado"
     INVALID_REF = "o identificador '{name}' não é uma referência válida"
-    INVALID_OP = "os tipos '{t1}' e '{t2}' não suportam operações com o operador '{operator}'"
-    INVALID_UOP = "o operador unário {operator} não pode ser usado com o tipo '{type}' "
-    BAD_STR_OP = "o tipo 'texto' não suporta operações com o operador '{operator}'"
 
     #Special builtin function
     BUILTIN_OPS = (
@@ -40,12 +33,12 @@ class Analyzer(ast.Visitor):
 
     def init_builtins(self):
         #Initialize builtin types
-        self.global_scope.define(Type.INT.name,Type.INT)
-        self.global_scope.define(Type.REAL.name,Type.REAL)
-        self.global_scope.define(Type.BOOL.name,Type.BOOL)
-        self.global_scope.define(Type.TEXTO.name,Type.TEXTO)
-        self.global_scope.define(Type.VAZIO.name,Type.VAZIO)
-        self.global_scope.define(Type.INDEF.name,Type.INDEF)
+        self.global_scope.define("int",Type(OType.TINT))
+        self.global_scope.define("real",Type(OType.TREAL))
+        self.global_scope.define("bool",Type(OType.TBOOL))
+        self.global_scope.define("texto",Type(OType.TTEXTO))
+        self.global_scope.define("vazio",Type(OType.TVAZIO))
+        self.global_scope.define("indef",Type(OType.TINDEF))
         #load builtin symbols
         for sname,symbol in bltin_symbols.items():
             self.global_scope.define(sname,symbol)
@@ -114,13 +107,12 @@ class Analyzer(ast.Visitor):
     
     def get_type(self,type_node):
         if not type_node:
-            return Type.VAZIO
+            return self.current_scope.resolve("vazio")
         type_name = type_node.type_name.lexeme
         type_symbol = self.current_scope.resolve(type_name)
         if not type_symbol or not type_symbol.is_type():
             self.error(
-                self.UNDEFINED_TYPE,
-                type=type_name
+                f"o tipo '{type_name}' não foi declarado"
             )
 
         if type_node.is_list:
@@ -157,9 +149,9 @@ class Analyzer(ast.Visitor):
 
         #Check if non void function has return
         has_return = self.has_return(node.block)
-        if not has_return and function_type != Type.VAZIO:
+        if not has_return and function_type.otype != OType.TVAZIO:
             self.current_node = node
-            self.error(self.NO_RETURN_STMT,name=name)
+            self.error(f"a função '{name}' não possui a instrução 'retorna'")
         symbol = symbols.FunctionSymbol(name,function_type)
         self.current_scope.define(name,symbol)
         scope,symbol.params = self.define_func_scope(name,node.params)
@@ -173,7 +165,7 @@ class Analyzer(ast.Visitor):
         for param in params:
             param_name = param.name.lexeme
             if params_dict.get(param_name):
-                self.error(self.REPEAT_PARAM,name=param_name)
+                self.error(f"o parâmetro '{param_name}' já foi especificado nesta função")
             param_symbol = self.visit(param)
             params_dict[param_name] = param_symbol
         scope = symbols.Scope(self.current_scope)
@@ -185,7 +177,7 @@ class Analyzer(ast.Visitor):
         name = node.name.lexeme
         if self.current_scope.get(name):
             self.error(self.ID_IN_USE,name=name)
-        klass = symbols.Klass(name,None)
+        klass = Klass(name,None)
         self.current_scope.define(name,klass)
         self.current_scope = symbols.Scope(self.current_scope)
         prev_class = self.current_class
@@ -235,21 +227,22 @@ class Analyzer(ast.Visitor):
     #TODO: Rename this to literal
     def visit_constant(self,node):
         constant = node.token.token
+        scope = self.current_scope
         if constant == TT.INTEGER:
-            node.eval_type = Type.INT
+            node.eval_type = scope.resolve("int")
         elif constant == TT.REAL:
-            node.eval_type = Type.REAL
+            node.eval_type = scope.resolve("real")
         elif constant == TT.STRING:
-            node.eval_type = Type.TEXTO
+            node.eval_type = scope.resolve("texto")
         elif constant in (TT.VERDADEIRO,TT.FALSO):
-            node.eval_type = Type.BOOL
+            node.eval_type = scope.resolve("bool")
 
     #TODO: Rename this to 'name' or 'identifier'
     def visit_variable(self,node):
         name = node.token.lexeme
         sym = self.current_scope.resolve(name)
         if not sym:
-            self.error(self.UNDECLARED_ID,name=name)
+            self.error(f"o identificador '{name}' não foi declarado")
         elif not sym.can_evaluate():
             self.error(self.INVALID_REF,name=name)
         node.eval_type = sym.type
@@ -266,7 +259,7 @@ class Analyzer(ast.Visitor):
     def visit_get(self,node):
         target = node.target
         self.visit(target)
-        if type(target.eval_type) != symbols.Klass:
+        if target.eval_type.otype != OType.TKLASS:
             self.error("Tipos primitivos não possuem atributos")
         #Get the class symbol
         #This hack is for objects that can be created via a literal
@@ -300,14 +293,14 @@ class Analyzer(ast.Visitor):
         #Check if index is int
         index = node.index
         self.visit(index)
-        if index.eval_type != Type.INT:
+        if index.eval_type.otype != OType.TINT:
             self.error("Os índices de uma lista devem ser inteiros")
 
         #Check if target supports indexing
         target = node.target
         self.visit(target)
         t_type = target.eval_type 
-        if type(t_type) != Lista:
+        if t_type.otype != OType.TLISTA:
             self.error(f"O valor do tipo '{t_type}' não é indexável")
 
         node.eval_type = t_type.subtype
@@ -341,10 +334,7 @@ class Analyzer(ast.Visitor):
         if not result:
             self.current_node = node
             self.error(
-                self.INVALID_OP,
-                t1=lhs.eval_type,
-                t2=rhs.eval_type,
-                operator=operator.lexeme
+                f"os tipos '{lhs.eval_type}' e '{rhs.eval_type}' não suportam operações com o operador '{operator.lexeme}'"
             )
         node.eval_type = result
         lhs.prom_type = lhs.eval_type.promote_to(rhs.eval_type)
@@ -353,30 +343,34 @@ class Analyzer(ast.Visitor):
     def get_binop_result(self,lhs_type,op,rhs_type):
         #Get result type of a binary operation based on
         # on operator and operand type
+        scope = self.current_scope
         if not lhs_type.is_operable() or not rhs_type.is_operable():
             return None
 
         if op in (TT.PLUS,TT.MINUS,TT.STAR,TT.SLASH,TT.DOUBLESLASH,TT.MODULO):
             if lhs_type.is_numeric() and rhs_type.is_numeric(): 
-                return Type.INT if lhs_type == Type.INT and rhs_type == Type.INT and\
-                op != TT.SLASH else Type.REAL
+                return scope.resolve("int") if lhs_type.otype == OType.TINT \
+                and rhs_type.otype == OType.TINT \
+                and op != TT.SLASH else scope.resolve("real")
 
-            elif lhs_type == Type.TEXTO and rhs_type == Type.TEXTO:
+            elif lhs_type.otype == OType.TTEXTO \
+            and rhs_type.otype == OType.TTEXTO:
                 #For strings only plus operator works
-                return Type.TEXTO if op == TT.PLUS else None
+                return scope.resolve("texto") if op == TT.PLUS else None
 
         elif op in (TT.GREATER,TT.LESS,TT.GREATEREQ,TT.LESSEQ):
             if lhs_type.is_numeric() and rhs_type.is_numeric(): 
-                return Type.BOOL
+                return scope.resolve("bool")
 
         elif op in (TT.DOUBLEEQUAL,TT.NOTEQUAL):
-            if (lhs_type.is_numeric() and rhs_type.is_numeric()) or \
-            lhs_type == rhs_type:
-                return Type.BOOL
+            if (lhs_type.is_numeric() and rhs_type.is_numeric()) \
+            or lhs_type == rhs_type:
+                return scope.resolve("bool")
 
         elif op in (TT.E,TT.OU):
-            if lhs_type == Type.BOOL and rhs_type == Type.BOOL:
-                return Type.BOOL
+            if lhs_type.otype == OType.TBOOL and rhs_type.otype == OType.TBOOL:
+                return scope.resolve("bool")
+
         return None
 
     def visit_unaryop(self,node):
@@ -386,13 +380,14 @@ class Analyzer(ast.Visitor):
         operator = node.token.token
         lexeme = node.token.lexeme
         op_type = node.operand.eval_type
+        bad_uop = f"o operador unário {lexeme} não pode ser usado com o tipo '{op_type}' "
         if operator in (TT.PLUS,TT.MINUS):
-            if op_type != Type.INT and op_type != Type.REAL:
+            if op_type.otype != OType.TINT and op_type.otype != OType.TREAL:
                 self.current_node = node
-                self.error(self.INVALID_UOP,operator=lexeme,type=op_type)
+                self.error(bad_uop)
         elif operator == TT.NAO:
-            if op_type != Type.BOOL:
-                self.error(self.INVALID_UOP,operator=lexeme,type=op_type)
+            if op_type.otype != OType.TBOOL:
+                self.error(bad_uop)
         node.eval_type = op_type
 
     def visit_assign(self,node):
@@ -423,7 +418,7 @@ class Analyzer(ast.Visitor):
             self.error(f"A directiva 'retorna' só pode ser usada dentro de uma função")
         func_type = self.current_function.type
         #TODO: Allow empty return from void functions
-        if self.current_function.type == Type.VAZIO:
+        if self.current_function.type.otype == OType.TVAZIO:
             self.error("Não pode usar a directiva 'retorna' em uma função vazia")
 
         expr = node.exp
@@ -434,7 +429,7 @@ class Analyzer(ast.Visitor):
 
     def visit_se(self,node):
         self.visit(node.condition)
-        if node.condition.eval_type != Type.BOOL:
+        if node.condition.eval_type.otype != OType.TBOOL:
             self.error(f"a condição da instrução 'se' deve ser um valor lógico")
         self.visit(node.then_branch)
         if node.else_branch:
@@ -442,7 +437,7 @@ class Analyzer(ast.Visitor):
 
     def visit_enquanto(self,node):
         self.visit(node.condition)
-        if node.condition.eval_type != Type.BOOL:
+        if node.condition.eval_type.otype != OType.TBOOL:
             self.current_node = node
             self.error(f"a condição da instrução 'enquanto' deve ser um valor lógico")
         self.visit(node.statement)
@@ -469,7 +464,7 @@ class Analyzer(ast.Visitor):
             #Skip inc node in case it's empty lool
             if not node:
                 continue
-            if node.eval_type != Type.INT:
+            if node.eval_type.otype != OType.TINT:
                 self.error("os parâmetros de uma série devem ser do tipo 'int'")
 
     def visit_call(self,node):
@@ -489,7 +484,7 @@ class Analyzer(ast.Visitor):
                 else f"o símbolo '{node.callee.token.lexeme}' não é invocável"
             self.error(message)
 
-        if type(sym) == symbols.Klass:
+        if type(sym) == Klass:
             self.validate_call(sym.constructor,node.fargs)
             node.eval_type = sym
         else:
@@ -516,7 +511,7 @@ class Analyzer(ast.Visitor):
             ) 
             size = node.fargs[1]
             self.visit(size)
-            if size.eval_type != Type.INT:
+            if size.eval_type.otype != OType.TINT:
                 self.error(
                     "O tamanho de uma lista deve ser representado por um inteiro"
                 )
@@ -540,7 +535,7 @@ class Analyzer(ast.Visitor):
                 self.error(
                     f"incompatibilidade de tipos entre a lista e o valor a anexar: '{list_node.eval_type.subtype}' != '{value.eval_type}'"
                 )
-            node.eval_type = Type.VAZIO
+            node.eval_type = self.current_scope.resolve("vazio")
 
     def check_arity(self,fargs,name,param_len):
         arg_len = len(fargs)

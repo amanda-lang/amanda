@@ -2,7 +2,7 @@ import sys
 import keyword
 from io import StringIO
 import amanda.frontend.symbols as symbols
-from amanda.frontend.symbols import Type
+from amanda.frontend.type import Type,OType
 import amanda.frontend.ast as ast
 import amanda.frontend.semantic as sem
 from amanda.error import AmandaError,throw_error
@@ -339,9 +339,9 @@ class Transpiler:
     def gen_expression(self,expression,prom_type):
         if prom_type == None:
             return expression
-        elif prom_type == Type.INDEF:
+        elif prom_type.otype == OType.TINDEF:
             return f"indef({expression})"
-        elif prom_type == Type.REAL:
+        elif prom_type.otype == OType.TREAL:
             return f"float({expression})"
         else:
             raise NotImplementedError("Unexpected prom_type")
@@ -409,6 +409,6 @@ class Transpiler:
 
     def gen_mostra(self,node):
         expression = self.gen(node.exp)
-        if node.exp.eval_type == Type.VAZIO:
+        if node.exp.eval_type.otype == OType.TVAZIO:
             expression = "vazio"
         return f"printc({expression})"
