@@ -7,6 +7,7 @@ class Symbol:
         self.name = name
         self.out_id = name #symbol id in compiled source program
         self.type = sym_type
+        self.is_property = False # Avoid this repitition
     
     def __str__(self):
         return f"<{self.__class__.__name__} ({self.name},{self.out_id},{self.type})>"
@@ -42,7 +43,6 @@ class FunctionSymbol(Symbol):
     def arity(self):
         return len(self.params)
 
-#REMOVE name attribute from this class
 class Scope:
 
     def __init__(self,enclosing_scope=None):

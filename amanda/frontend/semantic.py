@@ -179,6 +179,7 @@ class Analyzer(ast.Visitor):
 
     def define_func_scope(self,name,params):
         params_dict = {}
+        klass = self.current_class
         for param in params:
             param_name = param.name.lexeme
             if params_dict.get(param_name):
@@ -225,6 +226,11 @@ class Analyzer(ast.Visitor):
             if type(declaration) == ast.FunctionDecl:
                 self.visit(declaration) 
 
+        #Tag class fields of the class
+        for symbol in klass.members.values():
+            symbol.is_property = True
+
+        node.body.symbols = self.current_scope
         self.current_scope = self.current_scope.enclosing_scope
         self.current_class = prev_class
 

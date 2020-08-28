@@ -1,4 +1,4 @@
-from amanda.backend.types import Bool,Indef,Lista
+from amanda.backend.objects import Indef,Lista,BaseClass
 import amanda.frontend.symbols as symbols
 from amanda.frontend.type import OType,Type
 from amanda.error import AmandaError,throw_error
@@ -30,9 +30,9 @@ def add_bltin_func(name,obj,return_type,*params):
     
 def print_wrapper(obj,**kwargs):
     if str(obj) == "True":
-        print(Bool.VERDADEIRO,**kwargs)
+        print("verdadeiro",**kwargs)
     elif str(obj) == "False":
-        print(Bool.FALSO,**kwargs)
+        print("falso",**kwargs)
     else:
         print(obj,**kwargs)
 
@@ -67,6 +67,8 @@ def converte(value,type_class):
             raise AmandaError(INVALID_CONVERSION,-1)
         return value 
     try:
+        if type_class == int and type(value) == bool:
+            raise ValueError
         return type_class(value)
     except ValueError as e:
        raise AmandaError(INVALID_CONVERSION,-1)
@@ -84,7 +86,7 @@ def lista(subtype,size):
         int:0,
         float:0.0,
         str:"",
-        bool:Bool.FALSO,
+        bool:False
     }
     default = inits.get(subtype)
     return Lista(subtype,[default for i in range(size)])
@@ -103,7 +105,6 @@ def tipo(indef_obj):
         int : "int",
         float : "real",
         bool : "bool",
-        Bool : "bool",
         str : "texto",
     }
     return types.get(type(value))
@@ -119,14 +120,15 @@ def tamanho(indef_obj):
     
 
 #Aliases for objects
-bltin_objs["verdadeiro"] = Bool.VERDADEIRO
-bltin_objs["falso"] = Bool.FALSO
+bltin_objs["verdadeiro"] = True
+bltin_objs["falso"] = False
 bltin_objs["printc"] = print_wrapper
 bltin_objs["converte"] = converte
 bltin_objs["real"] = float
 bltin_objs["texto"] = str
 bltin_objs["indef"] = Indef
 bltin_objs["Lista"] = Lista
+bltin_objs["_BaseClass_"] = BaseClass
 
 add_bltin_func(
     "leia",leia,
