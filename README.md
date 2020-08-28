@@ -1,4 +1,5 @@
 # Amanda
+![tests](https://github.com/stackswithans/amanda/workflows/tests/badge.svg)
 
 Amanda is a statically typed programming language with portuguese constructs. 
 It is implemented using a Python backend (The source code is compiled/translated to Python and then executed) and was mainly made to help me get a feel for progamming language design and implementation. 
