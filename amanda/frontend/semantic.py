@@ -1,4 +1,5 @@
 import copy
+import keyword
 from amanda.frontend.tokens import TokenType as TT
 import amanda.frontend.ast as ast
 import amanda.frontend.symbols as symbols
@@ -25,6 +26,7 @@ class Analyzer(ast.Visitor):
     def __init__(self):
         #Just to have quick access to things like types and e.t.c
         self.global_scope = symbols.Scope()
+        self.scope_depth = 0
         self.current_scope = self.global_scope
         self.current_node = None
         self.current_class = None
@@ -79,14 +81,6 @@ class Analyzer(ast.Visitor):
     def general_check(self,node):
         return False
 
-    def visit(self,node,args=None):
-        node_class = type(node).__name__.lower()
-        method_name = f"visit_{node_class}"
-        visitor_method = getattr(self,method_name,self.general_visit)
-        self.current_node = node
-        if node_class == "block":
-            return visitor_method(node,args)
-        return visitor_method(node)
 
     def general_visit(self,node):
         raise NotImplementedError(f"Have not defined method for this node type: {type(node)} {node.__dict__}")
@@ -97,13 +91,23 @@ class Analyzer(ast.Visitor):
             message,self.current_node.token.line
         )
 
+
     def check_program(self,program):
         self.visit(program)
         return program
 
-    def visit_program(self,node):
-        for child in node.children:
-            self.visit(child)
+    def is_valid_name(self,name):
+        ''' Checks whether name is a python keyword, reserved var or
+        python builtin object'''
+        return not (keyword.iskeyword(name) or 
+             (name.startswith("_") and name.endswith("_")) or
+             name in globals().get("__builtins__")  
+        )
+
+    def define_symbol(self,symbol,depth,scope):
+        if not self.is_valid_name(symbol.name) or depth >= 1:
+            symbol.out_id = f"_r{depth}{scope.count()}_" 
+        scope.define(symbol.name,symbol)
     
     def get_type(self,type_node):
         if not type_node:
@@ -124,6 +128,18 @@ class Analyzer(ast.Visitor):
     def types_match(self,expected,received):
         return expected == received or received.promote_to(expected)
 
+    def visit(self,node,args=None):
+        node_class = type(node).__name__.lower()
+        method_name = f"visit_{node_class}"
+        visitor_method = getattr(self,method_name,self.general_visit)
+        self.current_node = node
+        if node_class == "block":
+            return visitor_method(node,args)
+        return visitor_method(node)
+
+    def visit_program(self,node):
+        for child in node.children:
+            self.visit(child)
 
     def visit_vardecl(self,node):
         name = node.name.lexeme
@@ -131,7 +147,10 @@ class Analyzer(ast.Visitor):
             self.error(self.ID_IN_USE,name=name)
         var_type = self.get_type(node.var_type)
         symbol = symbols.VariableSymbol(name,var_type)
-        self.current_scope.define(name,symbol)
+        self.define_symbol(
+            symbol,self.scope_depth,
+            self.current_scope
+        )
         node.var_type = var_type
         assign = node.assign
         if assign is not None:
@@ -153,7 +172,10 @@ class Analyzer(ast.Visitor):
             self.current_node = node
             self.error(f"a função '{name}' não possui a instrução 'retorna'")
         symbol = symbols.FunctionSymbol(name,function_type)
-        self.current_scope.define(name,symbol)
+        self.define_symbol(
+            symbol,self.scope_depth,
+            self.current_scope
+        )
         scope,symbol.params = self.define_func_scope(name,node.params)
         prev_function = self.current_function
         self.current_function = symbol
@@ -170,7 +192,10 @@ class Analyzer(ast.Visitor):
             params_dict[param_name] = param_symbol
         scope = symbols.Scope(self.current_scope)
         for param_name,param in params_dict.items():
-            scope.define(param_name,param)
+            self.define_symbol(
+                param,
+                self.scope_depth+1,scope
+            )
         return (scope,params_dict)
 
     def visit_classdecl(self,node):
@@ -178,7 +203,10 @@ class Analyzer(ast.Visitor):
         if self.current_scope.get(name):
             self.error(self.ID_IN_USE,name=name)
         klass = Klass(name,None)
-        self.current_scope.define(name,klass)
+        self.define_symbol(
+            klass,self.scope_depth,
+            self.current_scope
+        )
         self.current_scope = symbols.Scope(self.current_scope)
         prev_class = self.current_class
         self.current_class = klass
@@ -212,12 +240,14 @@ class Analyzer(ast.Visitor):
         return symbols.VariableSymbol('eu',self.current_class)
 
     def visit_block(self,node,scope=None):
+        self.scope_depth += 1
         if not scope:
             scope = symbols.Scope(self.current_scope)
         self.current_scope = scope
         for child in node.children:
             self.visit(child)
         self.current_scope = self.current_scope.enclosing_scope
+        self.scope_depth -= 1
 
     def visit_param(self,node):
         name = node.name.lexeme
@@ -448,7 +478,7 @@ class Analyzer(ast.Visitor):
         name = node.expression.name.lexeme
         sym = symbols.VariableSymbol(name,self.current_scope.resolve("int"))
         scope = symbols.Scope(self.current_scope)
-        scope.define(name,sym)
+        self.define_symbol(sym,self.scope_depth,scope)
         self.visit(node.statement,scope)
 
     def visit_paraexpr(self,node):

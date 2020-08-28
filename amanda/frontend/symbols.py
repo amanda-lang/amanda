@@ -15,11 +15,11 @@ class BaseSymbol:
 class Symbol(BaseSymbol):
     def __init__(self,name,sym_type):
         self.name = name
-        self.out_name = None
+        self.out_id = name #symbol id in compiled source program
         self.type = sym_type
     
     def __str__(self):
-        return f"<{self.__class__.__name__} ({self.name},{self.type})>"
+        return f"<{self.__class__.__name__} ({self.name},{self.out_id},{self.type})>"
 
 class VariableSymbol(Symbol):
     def __init__(self,name,var_type):
