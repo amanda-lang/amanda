@@ -1,4 +1,4 @@
-from amanda.frontend.symbols import BaseSymbol
+from amanda.frontend.symbols import Symbol
 from enum import IntEnum
 
 #Describes the kind of a type
@@ -12,8 +12,13 @@ class OType(IntEnum):
     TLISTA = 7
     TKLASS = 8
 
-class Type(BaseSymbol):
+    def __str__(self):
+       return self.name.lower()[1:]
+
+
+class Type(Symbol):
    def __init__(self,otype):
+       super().__init__(str(otype),None)
        self.otype = otype
 
    def __eq__(self,other):
@@ -29,7 +34,7 @@ class Type(BaseSymbol):
        return True
 
    def __str__(self):
-       return self.otype.name.lower()[1:]
+       return str(self.otype)
 
    def is_operable(self):
        return self.otype != OType.TVAZIO and self.otype != OType.TINDEF

@@ -15,8 +15,6 @@ class Analyzer(ast.Visitor):
     ID_IN_USE = "O identificador '{name}' já foi declarado neste escopo"
     INVALID_REF = "o identificador '{name}' não é uma referência válida"
 
-
-
     def __init__(self):
         #Just to have quick access to things like types and e.t.c
         self.global_scope = symbols.Scope()
@@ -85,11 +83,6 @@ class Analyzer(ast.Visitor):
             message,self.current_node.token.line
         )
 
-
-    def check_program(self,program):
-        self.visit(program)
-        return program
-
     def is_valid_name(self,name):
         ''' Checks whether name is a python keyword, reserved var or
         python builtin object'''
@@ -98,6 +91,12 @@ class Analyzer(ast.Visitor):
              name in globals().get("__builtins__")  
         )
 
+    #1.Any functions declared inside another
+    #should also be regarded as a local
+    #2. After inner function local params are declared,
+    # use the non local stmt to get nonlocal names
+    #3. Local names are depth dependent
+    #at level 2 __r10__,__r11__
     def define_symbol(self,symbol,depth,scope):
         if not self.is_valid_name(symbol.name) or depth >= 1:
             symbol.out_id = f"_r{depth}{scope.count()}_" 
@@ -134,6 +133,8 @@ class Analyzer(ast.Visitor):
     def visit_program(self,node):
         for child in node.children:
             self.visit(child)
+        node.symbols = self.global_scope
+        return node
 
     def visit_vardecl(self,node):
         name = node.name.lexeme
@@ -240,6 +241,7 @@ class Analyzer(ast.Visitor):
         self.current_scope = scope
         for child in node.children:
             self.visit(child)
+        node.symbols = scope
         self.current_scope = self.current_scope.enclosing_scope
         self.scope_depth -= 1
 
@@ -270,6 +272,8 @@ class Analyzer(ast.Visitor):
         elif not sym.can_evaluate():
             self.error(self.INVALID_REF,name=name)
         node.eval_type = sym.type
+        node.var_symbol = sym
+        assert node.var_symbol
         return sym
 
     #This function is everywhere because
@@ -472,7 +476,7 @@ class Analyzer(ast.Visitor):
         name = node.expression.name.lexeme
         sym = symbols.VariableSymbol(name,self.current_scope.resolve("int"))
         scope = symbols.Scope(self.current_scope)
-        self.define_symbol(sym,self.scope_depth,scope)
+        self.define_symbol(sym,self.scope_depth+1,scope)
         self.visit(node.statement,scope)
 
     def visit_paraexpr(self,node):
