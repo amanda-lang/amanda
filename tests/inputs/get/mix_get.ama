@@ -1,2 +1,17 @@
 
-mostra 3 + "str".cmp() - (-"str".cmp()) # expect 9
+classe String
+
+    value : texto
+
+    func cmp():int
+        
+        retorna tamanho(eu.value)
+
+    fim
+
+fim
+
+
+str : String = String("str")
+
+mostra 3 + str.cmp() - (-str.cmp()) # expect 9

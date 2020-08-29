@@ -1,4 +1,5 @@
 import os
+import sys
 from io import StringIO
 from os.path import join 
 import re
@@ -25,9 +26,9 @@ join(TEST_DIR,"call"),join(TEST_DIR,"comment"),
 join(TEST_DIR,"transpiler"),join(TEST_DIR,"rt_errors"),
 join(TEST_DIR,"indef_type"),join(TEST_DIR,"converte"),
 join(TEST_DIR,"builtins"),join(TEST_DIR,"list"),
-#join(TEST_DIR,"super")join(TEST_DIR,"get"), # Exclude these tests for now
-#join(TEST_DIR,"set"),join(TEST_DIR,"eu"),
-#,join(TEST_DIR,"class"),
+join(TEST_DIR,"class"),
+join(TEST_DIR,"get"),join(TEST_DIR,"set")
+,join(TEST_DIR,"eu"),
 ]
 
 passed = 0

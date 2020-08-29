@@ -1,2 +1,0 @@
-
-mostra "str".cmp + 4 #Expect error

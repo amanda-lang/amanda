@@ -1,4 +1,5 @@
 import sys
+import pdb
 from io import StringIO
 import amanda.frontend.symbols as symbols
 from amanda.frontend.type import Type,OType
@@ -16,6 +17,7 @@ class Transpiler:
         self.ama_lineno = 1 # tracks lineno in input amanda src
         self.depth = -1 # current indent level
         self.func_depth = 0
+        self.class_depth = 0
         self.program_symtab = None
         self.scope_symtab = None
         self.line_info = {} #Maps py_fileno to ama_fileno
@@ -115,20 +117,36 @@ class Transpiler:
         func_symbol = self.scope_symtab.resolve(name)
         name = func_symbol.out_id
         params = []
+        if func_symbol.is_property:
+            params.append("eu")
         for param in func_symbol.params.values():
             params.append(param.out_id)
         params = ",".join(params)
-        #Add function signature
         func_def.write(
             f"def {name}({params}):\n"
         )
         self.func_depth += 1
-        #Add function block
         func_def.write(
             self.get_func_block(node.block),
         )
         self.func_depth -= 1
         return self.build_str(func_def)
+
+    def gen_classdecl(self,node):
+        name = node.name.lexeme
+        class_def = StringIO()
+        klass = self.scope_symtab.resolve(name)
+        name = klass.out_id
+        #name of base class for user defined types
+        base_class = "_BaseClass_"
+        class_def.write(
+            f"class {name}(_BaseClass_):\n"
+        )
+        self.class_depth += 1
+        class_def.write(self.compile_block(node.body,[]))
+        self.class_depth -= 1
+        return self.build_str(class_def)
+
 
     def get_func_block(self,block):
         #Add global and nonlocal statements
@@ -159,6 +177,7 @@ class Transpiler:
 
         return names
 
+    #TODO: Fix unecessary forward global declarations
     def gen_global_stmt(self):
         ''' Adds global statements to
         the beginning of a function'''
@@ -188,11 +207,30 @@ class Transpiler:
         callee = self.gen(node.callee)
         func_call = f"{callee}({args})"
         return self.gen_expression(func_call,node.prom_type)
+
+    def gen_eu(self,node):
+        return "eu"
     
+
+    def gen_set(self,node):
+        target = self.gen(node.target)
+        expr = self.gen(node.expr)
+        return f"{target} = {expr}"
+
     def gen_index(self,node):
         target = self.gen(node.target)
         index = self.gen(node.index)
-        return f"{target}[{index}]"
+        index_expr = f"{target}[{index}]"
+        return self.gen_expression(index_expr,node.prom_type)
+
+    def gen_get(self,node):
+        target = self.gen(node.target)
+        member = node.member.lexeme
+        klass = node.target.eval_type
+        member_sym = klass.members.get(member) 
+        get_expr = f"{target}.{member_sym.out_id}"
+        return self.gen_expression(get_expr,node.prom_type)
+
 
     def gen_assign(self,node):
         lhs = self.gen(node.left)
@@ -211,9 +249,11 @@ class Transpiler:
         # 'visit_variable' so that symbol attribute can be set
         if symbol is None:
             symbol = self.scope_symtab.resolve(name) 
-        name = symbol.out_id
+        expr = symbol.out_id
+        if self.func_depth > 0 and symbol.is_property:
+            expr = f"eu.{expr}"
         prom_type = node.prom_type
-        return self.gen_expression(name,prom_type)
+        return self.gen_expression(expr,prom_type)
 
     def gen_binop(self,node):
         lhs = self.gen(node.left)

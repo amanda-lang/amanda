@@ -1,2 +1,13 @@
-text : texto = "string"
-text.cmp = text #expect error
+
+classe A
+    
+     nome:texto
+
+     func some()
+     fim
+fim
+
+
+a:A = A("str")
+text : texto = "w"
+a.some = text #expect error

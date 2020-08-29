@@ -19,6 +19,6 @@ fim
 
 
 
-acum : Acumulador = Acumulador()
+acum : Acumulador = Acumulador(4)
 acum.incrementa(4)
-mostra acum.get_contador() #expect 4
+mostra acum.get_contador() #expect 8

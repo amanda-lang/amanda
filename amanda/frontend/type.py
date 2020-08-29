@@ -77,6 +77,7 @@ class Klass(Type):
    def __init__(self,name,members):
        super().__init__(OType.TKLASS)
        self.name = name 
+       self.out_id = name 
        self.members = members
        self.constructor = None
 

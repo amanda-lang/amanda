@@ -1,9 +1,12 @@
 classe A
     
      nome:texto
+
+     func some()
+     fim
 fim
 
 
-a:A = A()
+a:A = A("str")
 
-a.nome = "str".cmp #expect error
+a.nome = a.some #expect error

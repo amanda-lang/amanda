@@ -1,39 +1,27 @@
 import enum
 from amanda.error import AmandaError
-#Wrapper around boolean class
-class Bool(enum.Enum):
-    VERDADEIRO = True
-    FALSO = False
-    def __str__(self):
-        return f"{self.name.lower()}"
-
-    def __bool__(self):
-        return self.value
-
 
 class Indef:
     def __init__(self,value):
         if isinstance(value,Indef):
             value = value.value
-        #TODO: Fix this awful hack
-        elif isinstance(value,bool):
-            value = Bool.VERDADEIRO if value else Bool.FALSO
         self.value = value
 
     def __str__(self):
         string = str(self.value)
-        if isinstance(self.value,int):
+        value_type = type(self.value)
+        if value_type == int:
             string = f"int -> {self.value}"
-        elif isinstance(self.value,float):
+        elif value_type == float:
             string = f"real -> {self.value}"
-        elif isinstance(self.value,str):
+        elif value_type == str:
             string = f"texto -> '{self.value}'"
-        elif isinstance(self.value,Bool):
-            string = f"bool -> {str(self.value)}"
+        elif value_type == bool:
+            value = "verdadeiro" if self.value else "falso"
+            string = f"bool -> {value}"
         return string 
 
 class Lista:
-
     def __init__(self,subtype,elements=[]):
         self.elements = elements
         self.subtype = subtype
@@ -55,3 +43,18 @@ class Lista:
             raise AmandaError(
                 "índice de lista inválido",-1
             )
+
+class BaseClass:
+    def __init__(self,*args):
+        class_dict = self.__class__.__dict__
+        for key,value in class_dict.items():
+            #Skip special attributes and functions 
+            if key.startswith("__") or callable(value):
+                continue
+            setattr(self,key,value)
+
+        instance_dict = self.__dict__
+        for key,initializer in zip(instance_dict,args):
+            setattr(self,key,initializer)
+            
+
