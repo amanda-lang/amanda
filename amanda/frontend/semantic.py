@@ -307,8 +307,6 @@ class Analyzer(ast.Visitor):
         return member_obj
 
     def visit_set(self,node):
-        ''' Method that processes setter expressions.
-        Returns the resolved symbol of the set expression.'''
         target = node.target
         expr = node.expr
         #evaluate sides

@@ -117,7 +117,7 @@ class Transpiler:
         func_symbol = self.scope_symtab.resolve(name)
         name = func_symbol.out_id
         params = []
-        if self.class_depth > 0:
+        if func_symbol.is_property:
             params.append("eu")
         for param in func_symbol.params.values():
             params.append(param.out_id)
@@ -177,6 +177,7 @@ class Transpiler:
 
         return names
 
+    #TODO: Fix unecessary forward global declarations
     def gen_global_stmt(self):
         ''' Adds global statements to
         the beginning of a function'''
@@ -206,11 +207,20 @@ class Transpiler:
         callee = self.gen(node.callee)
         func_call = f"{callee}({args})"
         return self.gen_expression(func_call,node.prom_type)
+
+    def gen_eu(self,node):
+        return "eu"
     
     def gen_index(self,node):
         target = self.gen(node.target)
         index = self.gen(node.index)
         return f"{target}[{index}]"
+
+    def gen_set(self,node):
+        target = self.gen(node.target)
+        expr = self.gen(node.expr)
+        return f"{target} = {expr}"
+
 
     def gen_get(self,node):
         target = self.gen(node.target)
