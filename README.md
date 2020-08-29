@@ -37,7 +37,7 @@ python3 -m amanda FILE
 Replace 'FILE' with the path to an amanda file. You can run the "hello_world.ama" with the following command:
 
 ```
-python3 -m examples/hello_word.ama 
+python3 -m amanda examples/hello_word.ama 
 ```
 
 **On Mac**
@@ -45,9 +45,7 @@ Can't help you, i'm sorry :cry: .
 
 
 
-## Language Tour
-
-~~TODO: Improve the tour~~
+## Tour of Amanda
 
 #### Syntax
 
@@ -244,19 +242,8 @@ classe Ponto # Uma classe agrega campos e funções
         retorna (x == 0) e (y == 0)
     fim
 
-
-    func distancia(p2 : Ponto):real
-        dist : real =  (x - p2.x) + (y - p2.y)
-        se dist < 0 entao
-            retorna dist * (-1)
-        fim
-        retorna dist
-    fim
-
     func e_igual(p2 : Ponto) : bool
-
-        retorna (eu.x == p2.x) e (eu.y == p2.y)
-
+        retorna (eu.x == p2.x) e (eu.y == p2.y) 
     fim
 
 fim
