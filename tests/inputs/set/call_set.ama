@@ -1,2 +1,14 @@
 
-"str".cmp() = 5 #expect error
+classe A
+    
+     nome:texto
+
+     func some()
+     fim
+fim
+
+
+a:A = A("str")
+
+
+a.some() = 5 #expect error

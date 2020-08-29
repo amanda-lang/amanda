@@ -14,9 +14,9 @@ fim
 
 
 
-acum : Acumulador = Acumulador()
+acum : Acumulador = Acumulador(0)
 acum.contador = 6
 mostra acum.contador # expect 6
 
-acum.contador = "str".cmp()
+acum.contador = 3 
 mostra acum.contador # expect 3
