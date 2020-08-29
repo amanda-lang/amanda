@@ -225,7 +225,9 @@ class Transpiler:
     def gen_get(self,node):
         target = self.gen(node.target)
         member = node.member.lexeme
-        return f"{target}.{member}"
+        klass = node.target.eval_type
+        member_sym = klass.members.get(member) 
+        return f"{target}.{member_sym.out_id}"
 
 
     def gen_assign(self,node):
