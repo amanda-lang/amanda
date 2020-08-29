@@ -211,23 +211,25 @@ class Transpiler:
     def gen_eu(self,node):
         return "eu"
     
-    def gen_index(self,node):
-        target = self.gen(node.target)
-        index = self.gen(node.index)
-        return f"{target}[{index}]"
 
     def gen_set(self,node):
         target = self.gen(node.target)
         expr = self.gen(node.expr)
         return f"{target} = {expr}"
 
+    def gen_index(self,node):
+        target = self.gen(node.target)
+        index = self.gen(node.index)
+        index_expr = f"{target}[{index}]"
+        return self.gen_expression(index_expr,node.prom_type)
 
     def gen_get(self,node):
         target = self.gen(node.target)
         member = node.member.lexeme
         klass = node.target.eval_type
         member_sym = klass.members.get(member) 
-        return f"{target}.{member_sym.out_id}"
+        get_expr = f"{target}.{member_sym.out_id}"
+        return self.gen_expression(get_expr,node.prom_type)
 
 
     def gen_assign(self,node):

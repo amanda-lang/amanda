@@ -15,5 +15,5 @@ fim
 
 
 
-acum : Acumulador = Acumulador()
+acum : Acumulador = Acumulador(4)
 acum.cmp() #expect error
