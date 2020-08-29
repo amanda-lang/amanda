@@ -233,10 +233,43 @@ fim
 
 
 #### Classes
+```python
 
-~~Work in progress~~
+classe Ponto # Uma classe agrega campos e funções
+
+    x : real
+    y : real
+
+    func e_origem():bool
+        retorna (x == 0) e (y == 0)
+    fim
 
 
+    func distancia(p2 : Ponto):real
+        dist : real =  (x - p2.x) + (y - p2.y)
+        se dist < 0 entao
+            retorna dist * (-1)
+        fim
+        retorna dist
+    fim
+
+    func e_igual(p2 : Ponto) : bool
+
+        retorna (eu.x == p2.x) e (eu.y == p2.y)
+
+    fim
+
+fim
 
 
+p : Ponto = Ponto(0,0) # inicializa um ponto com x = 0  e y = 0 
+
+mostra p.x # 0
+mostra p.y # 0
+
+mostra p.e_origem() # verdadeiro
+
+p1 : Ponto = Ponto(1,3.4)
+mostra p.e_igual(p1) # falso
+```
 
