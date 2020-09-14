@@ -9,3 +9,4 @@ tools/resultgen.py
 ./*.ama
 build/
 dist/
+*.spec
