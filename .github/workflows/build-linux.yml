@@ -21,5 +21,7 @@ jobs:
       run: |
         python3 -m unittest tests.parsersuite
         python3 -m tests.test
+        python3 -m PyInstaller --name="amanda" \
+        --onefile --console amanda/__.main__.py 
         sudo python3 setup.py
         amanda ./examples/hello_world.ama
