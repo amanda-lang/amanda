@@ -19,9 +19,17 @@ def main():
     #Create a symlink pointing to binary in /usr/local/bin/ 
     #in Mac and linux
     if OS_X or LINUX:
+        target = path.join(
+            path.abspath("/usr/local/bin"),BINARY_NAME
+        )
+
+        #Removes old binary symlink
+        if path.exists(target):
+            os.remove(target)
+
         os.symlink(
             path.abspath(path.join(BUILD_DIR,BINARY_NAME)),
-            path.join(path.abspath("/usr/local/bin"),BINARY_NAME)
+            target
         )
 
 
