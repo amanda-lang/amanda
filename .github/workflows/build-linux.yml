@@ -1,5 +1,3 @@
-# This workflow will install Python dependencies and run tests with a single version of Python
-
 name: setup-linux
 on:
   push:
