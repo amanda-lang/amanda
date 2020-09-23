@@ -1,12 +1,12 @@
 import sys
 import pdb
 from io import StringIO
-import amanda.frontend.symbols as symbols
-from amanda.frontend.type import Type,OType
-import amanda.frontend.ast as ast
-import amanda.frontend.semantic as sem
+import amanda.symbols as symbols
+from amanda.type import Type,OType
+import amanda.ast as ast
+import amanda.semantic as sem
 from amanda.error import AmandaError,throw_error
-from amanda.frontend.parser import Parser
+from amanda.parser import Parser
 
 
 class Transpiler:

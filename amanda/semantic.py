@@ -1,9 +1,9 @@
 import copy
 import keyword
-from amanda.frontend.tokens import TokenType as TT
-import amanda.frontend.ast as ast
-import amanda.frontend.symbols as symbols
-from amanda.frontend.type import OType,Type,Lista,Klass
+from amanda.tokens import TokenType as TT
+import amanda.ast as ast
+import amanda.symbols as symbols
+from amanda.type import OType,Type,Lista,Klass
 from amanda.error import AmandaError
 from amanda.bltins import bltin_symbols
 

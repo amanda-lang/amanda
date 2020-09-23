@@ -1,4 +1,4 @@
-from amanda.frontend.symbols import Symbol
+from amanda.symbols import Symbol
 from enum import IntEnum
 
 #Describes the kind of a type

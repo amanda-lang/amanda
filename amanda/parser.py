@@ -1,7 +1,7 @@
-from amanda.frontend.lexer import Lexer
-from amanda.frontend.tokens import TokenType as TT
-from amanda.frontend.tokens import Token
-import amanda.frontend.ast as ast
+from amanda.lexer import Lexer
+from amanda.tokens import TokenType as TT
+from amanda.tokens import Token
+import amanda.ast as ast
 from amanda.error import AmandaError
 
 
