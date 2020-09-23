@@ -1,4 +1,4 @@
-from amanda.frontend.tokens import TokenType as TT
+from amanda.tokens import TokenType as TT
 
 
 

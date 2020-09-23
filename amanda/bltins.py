@@ -1,6 +1,6 @@
-from amanda.backend.objects import Indef,Lista,BaseClass
-import amanda.frontend.symbols as symbols
-from amanda.frontend.type import OType,Type
+from amanda.objects import Indef,Lista,BaseClass
+import amanda.symbols as symbols
+from amanda.type import OType,Type
 from amanda.error import AmandaError,throw_error
 
 #Symbols for builtin functions
