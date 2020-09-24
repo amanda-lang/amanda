@@ -31,10 +31,7 @@ def main():
         link = path.join(
             path.abspath("/usr/local/bin"),BINARY_NAME
         )
-        #Remove if already exists
-        if path.exists(link):
-            os.remove(link)
-        subprocess.run(["ln","-s",target,link],check = True)
+        subprocess.run(["ln","-s","-f",target,link],check = True)
 
 if __name__ == "__main__":
     main()
