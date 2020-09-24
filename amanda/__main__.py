@@ -3,7 +3,7 @@ import time
 from io import StringIO
 import sys
 from os.path import abspath
-from amanda.transpiler import Transpiler
+from amanda.compile import ama_compile
 from amanda.error import handle_exception,throw_error
 from amanda.bltins import bltin_objs
 
@@ -22,8 +22,7 @@ def main(*args):
         print(f"The file '{abspath(args.file)}' was not found on this system")
         sys.exit()
 
-    amandac = Transpiler()
-    code,line_info = amandac.compile(src)
+    code,line_info = ama_compile(src)
     #TODO: Make this optional because i don't need
     #to write output to disk
     out_file = "output.py"
