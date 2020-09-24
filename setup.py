@@ -10,8 +10,8 @@ LINUX = sys.platform == "linux"
 
 def main():
     BINARY_NAME = "amanda"
-    SCRIPT = path.join("./amanda","__main__.py")
-    BUILD_DIR = "./dist"
+    SCRIPT = path.abspath(path.join("./amanda","__main__.py"))
+    BUILD_DIR = path.abspath("./dist")
     #Build binary
     subprocess.run([
         "python3",
@@ -23,7 +23,6 @@ def main():
     # Remove build files
     os.remove(f"{BINARY_NAME}.spec")
     shutil.rmtree("./build")
-
     #Create a symlink pointing to binary in /usr/local/bin/ 
     #in Mac and linux
     if OS_X or LINUX:
