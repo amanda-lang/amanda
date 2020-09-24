@@ -1,6 +1,7 @@
 import os
 import os.path as path
 import shutil
+import subprocess
 import sys
 
 OS_X = sys.platform == "darwin"
@@ -11,27 +12,29 @@ def main():
     BINARY_NAME = "amanda"
     SCRIPT = path.join("./amanda","__main__.py")
     BUILD_DIR = "./dist"
-    #Build executable
-    os.system(f"python3 -m PyInstaller --name={BINARY_NAME} --onefile --console --clean {SCRIPT}")
+    #Build binary
+    subprocess.run([
+        "python3",
+        "-m",
+        "PyInstaller", f"--name={BINARY_NAME}", "--onefile",
+        "--console" ,"--clean" ,f"{SCRIPT}"
+        ],check = True
+    )
     # Remove build files
     os.remove(f"{BINARY_NAME}.spec")
     shutil.rmtree("./build")
+
     #Create a symlink pointing to binary in /usr/local/bin/ 
     #in Mac and linux
     if OS_X or LINUX:
-        target = path.join(
+        target = path.abspath(path.join(BUILD_DIR,BINARY_NAME))
+        link = path.join(
             path.abspath("/usr/local/bin"),BINARY_NAME
         )
-
-        #Removes old binary symlink
-        if path.exists(target):
-            os.remove(target)
-
-        os.symlink(
-            path.abspath(path.join(BUILD_DIR,BINARY_NAME)),
-            target
-        )
-
+        #Remove if already exists
+        if path.exists(link):
+            os.remove(link)
+        subprocess.run(["ln","-s",target,link],check = True)
 
 if __name__ == "__main__":
     main()
