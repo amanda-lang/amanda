@@ -4,12 +4,12 @@ from io import StringIO
 import amanda.symbols as symbols
 from amanda.type import Type,OType
 import amanda.ast as ast
-import amanda.semantic as sem
+from amanda.semantic import check_program
 from amanda.error import AmandaError,throw_error
-from amanda.parser import Parser
+from amanda.parse import parse
 
 
-class Transpiler:
+class CodeGenerator:
     INDENT = "    "
 
     def __init__(self):
@@ -22,17 +22,11 @@ class Transpiler:
         self.scope_symtab = None
         self.line_info = {} #Maps py_fileno to ama_fileno
 
-    def compile(self,src):
+    def gen_py_code(self,program):
         ''' Method that begins compilation of amanda source.'''
-        self.line_info = {} #Reset line info
-        try:
-            program = Parser(src).parse()
-            valid_program = sem.Analyzer().visit(program)
-            self.program_symtab = self.scope_symtab = program.symbols
-            compiled_src = self.gen(valid_program)
-        except AmandaError as e:
-            throw_error(e,src)
-        return (compiled_src,self.line_info)
+        self.program_symtab = self.scope_symtab = program.symbols
+        py_code = self.gen(program)
+        return (py_code,self.line_info)
 
     def bad_gen(self,node):
         raise NotImplementedError(f"Cannot generate code for this node type yet: (TYPE) {type(node)}")
@@ -60,7 +54,6 @@ class Transpiler:
         string = str_buffer.getvalue()
         str_buffer.close()
         return string
-
 
     def compile_block(self,node,stmts):
         #stmts param is a list of stmts
@@ -358,3 +351,12 @@ class Transpiler:
         if node.exp.eval_type.otype == OType.TVAZIO:
             expression = "vazio"
         return f"printc({expression})"
+
+def ama_compile(src):
+    try:
+        program = parse(src)
+        valid_program = check_program(program)
+    except AmandaError as e:
+        throw_error(e,src)
+    generator = CodeGenerator()
+    return generator.gen_py_code(valid_program) 

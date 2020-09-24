@@ -1,4 +1,4 @@
-name: setup-macos
+name: setup-build
 on:
   push:
     branches: [ main ]
@@ -20,7 +20,7 @@ jobs:
         pip3 install -r requirements.txt
     - name: Run build
       run: |
-        python3 -m unittest tests.parsersuite
+        python3 -m unittest tests.test_parse
         python3 -m tests.test
         sudo python3 setup.py
         amanda ./examples/hello_world.ama

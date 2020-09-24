@@ -7,8 +7,6 @@ from amanda.type import OType,Type,Lista,Klass
 from amanda.error import AmandaError
 from amanda.bltins import bltin_symbols
 
-
-
 class Analyzer(ast.Visitor):
 
     #Error messages
@@ -592,4 +590,6 @@ class Analyzer(ast.Visitor):
                 self.error(
                    f"argumento inválido. Esperava-se um argumento do tipo '{param.type}' mas recebeu o tipo '{arg.eval_type}'"
                 )
-        
+
+def check_program(ast_root):
+    return Analyzer().visit_program(ast_root)
