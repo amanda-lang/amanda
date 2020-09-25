@@ -10,7 +10,12 @@ from amanda.bltins import bltin_objs
 
 def main(*args):
     parser = argparse.ArgumentParser()
-    parser.add_argument("file",help = "source file to be executed")
+    parser.add_argument("file", help = "source file to be executed")
+    parser.add_argument("-g","--generate", help="Generate an output file", action = "store_true")
+    parser.add_argument(
+        "-o","--outname", type = str,
+        help = "Name of the output file, Requires the -g option to take effect. Defaults to output.py."
+    )
     if len(args):
         args = parser.parse_args(args)
     else:
@@ -21,13 +26,16 @@ def main(*args):
     except FileNotFoundError:
         print(f"The file '{abspath(args.file)}' was not found on this system")
         sys.exit()
-
     code,line_info = ama_compile(src)
-    #TODO: Make this optional because i don't need
-    #to write output to disk
+
+    #Generate outfile
     out_file = "output.py"
-    with open(out_file,"w") as output:
-        output.write(code)
+    if args.generate:
+        if args.outname:
+            out_file = args.outname
+        with open(out_file,"w") as output:
+            output.write(code)
+
     #Run compiled python code
     pycode_obj = compile(code,out_file,"exec")
     try:
