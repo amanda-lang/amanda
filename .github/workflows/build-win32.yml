@@ -27,4 +27,4 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
           name: amanda.exe
-          path: dist\amanda
+          path: dist/amanda
