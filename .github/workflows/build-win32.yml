@@ -1,0 +1,30 @@
+name: setup-build
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements.txt
+    - name: Run build
+      run: |
+        python -m unittest tests.test_parse
+        python -m tests.test
+        python setup.py
+    - name: Archive binary
+      uses: actions/upload-artifact@v2
+      with:
+          name: amanda.exe
+          path: dist\amanda
