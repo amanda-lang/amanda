@@ -1,4 +1,4 @@
-name: setup-build
+name: windows-build
 on:
   push:
     branches: [ main ]

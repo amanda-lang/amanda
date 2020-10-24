@@ -1,4 +1,4 @@
-name: setup-build
+name: macOS-build
 on:
   push:
     branches: [ main ]
