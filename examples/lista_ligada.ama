@@ -1,0 +1,41 @@
+# simple linked list
+
+classe No
+    valor : int
+    proximo : No
+fim
+
+
+classe ListaLigada
+    cabeca : No
+
+    func add_node(valor : int)
+        novo : No = No(valor, nulo)
+
+        se eu.cabeca == nulo entao
+            eu.cabeca = novo
+        senao
+            ultimo : No = eu.cabeca
+            enquanto ultimo.proximo != nulo faca
+                ultimo = ultimo.proximo
+            fim
+            ultimo.proximo = novo
+        fim
+    fim
+
+    func imprimir()
+        node : No = eu.cabeca
+        enquanto node != nulo faca
+            mostra node.valor
+            node = node.proximo
+        fim
+    fim
+
+fim
+
+
+l : ListaLigada = ListaLigada(nulo)
+l.add_node(1)
+l.add_node(2)
+l.add_node(3)
+l.imprimir()
