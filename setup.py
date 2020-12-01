@@ -13,8 +13,12 @@ def main():
     SCRIPT = path.abspath(path.join("./amanda","__main__.py"))
     BUILD_DIR = path.abspath("./dist")
     #Build binary
+    py_binary = "python3"
+    if WIN_32:
+        py_binary = "python"
+
     subprocess.run([
-        "python3",
+        py_binary,
         "-m",
         "PyInstaller", f"--name={BINARY_NAME}", "--onefile",
         "--console" ,"--clean" ,f"{SCRIPT}"

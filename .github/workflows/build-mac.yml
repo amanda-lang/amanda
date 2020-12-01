@@ -1,7 +1,4 @@
-# This workflow will install Python dependencies and run tests with a single version of Python
-
-name: tests
-
+name: macOS-build
 on:
   push:
     branches: [ main ]
@@ -10,8 +7,7 @@ on:
 
 jobs:
   build:
-
-    runs-on: ubuntu-18.04
+    runs-on: macos-10.15
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python 3.8
@@ -20,10 +16,11 @@ jobs:
         python-version: 3.8
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install flake8 pytest
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: Run tests
+        pip3 install --upgrade pip
+        pip3 install -r requirements.txt
+    - name: Run build
       run: |
         python3 -m unittest tests.test_parse
         python3 -m tests.test
+        sudo python3 setup.py
+        amanda ./examples/hello_world.ama
