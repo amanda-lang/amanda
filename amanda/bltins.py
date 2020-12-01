@@ -33,6 +33,8 @@ def print_wrapper(obj,**kwargs):
         print("verdadeiro",**kwargs)
     elif str(obj) == "False":
         print("falso",**kwargs)
+    elif str(obj) == "None":
+        print("nulo",**kwargs)
     else:
         print(obj,**kwargs)
 
@@ -128,6 +130,7 @@ bltin_objs["real"] = float
 bltin_objs["texto"] = str
 bltin_objs["indef"] = Indef
 bltin_objs["Lista"] = Lista
+bltin_objs["nulo"] = None 
 bltin_objs["_BaseClass_"] = BaseClass
 
 add_bltin_func(

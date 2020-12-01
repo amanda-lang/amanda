@@ -11,6 +11,7 @@ class OType(IntEnum):
     TVAZIO = 6
     TLISTA = 7
     TKLASS = 8
+    TNULO = 9
 
     def __str__(self):
        return self.name.lower()[1:]
@@ -50,6 +51,7 @@ class Type(Symbol):
             OType.TTEXTO : (OType.TINDEF,),
             OType.TLISTA : (OType.TINDEF,),
             OType.TKLASS : (OType.TINDEF,),
+            OType.TNULO :(OType.TKLASS,),
        }
        auto_cast_types = auto_cast_table.get(otype)
 
