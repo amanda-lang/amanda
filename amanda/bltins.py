@@ -1,4 +1,4 @@
-from amanda.objects import Indef,Lista,BaseClass
+from amanda.objects import Indef,Lista,BaseClass,Nulo
 import amanda.symbols as symbols
 from amanda.type import OType,Type
 from amanda.error import AmandaError,throw_error
@@ -33,8 +33,6 @@ def print_wrapper(obj,**kwargs):
         print("verdadeiro",**kwargs)
     elif str(obj) == "False":
         print("falso",**kwargs)
-    elif str(obj) == "None":
-        print("nulo",**kwargs)
     else:
         print(obj,**kwargs)
 
@@ -130,7 +128,7 @@ bltin_objs["real"] = float
 bltin_objs["texto"] = str
 bltin_objs["indef"] = Indef
 bltin_objs["Lista"] = Lista
-bltin_objs["nulo"] = None 
+bltin_objs["nulo"] = Nulo()
 bltin_objs["_BaseClass_"] = BaseClass
 
 add_bltin_func(

@@ -57,4 +57,8 @@ class BaseClass:
         for key,initializer in zip(instance_dict,args):
             setattr(self,key,initializer)
             
-
+class Nulo:
+    def __getattr__(self,attr):
+        raise AmandaError("Não pode aceder uma referência nula",-1)
+    def __str__(self):
+        return "nulo"
