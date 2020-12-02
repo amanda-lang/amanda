@@ -1,0 +1,39 @@
+classe No
+    valor : int
+    proximo : No
+fim
+
+
+classe ListaLigada
+    cabeca : No
+
+    func ad_no(valor : int)
+        novo : No = No(valor, nulo)
+
+        se eu.cabeca == nulo entao
+            eu.cabeca = novo
+        senao
+            ultimo : No = eu.cabeca
+            enquanto ultimo.proximo != nulo faca
+                ultimo = ultimo.proximo
+            fim
+            ultimo.proximo = novo
+        fim
+    fim
+
+    func imprimir()
+        node : No = eu.cabeca
+        enquanto node != nulo faca
+            mostra node.valor
+            node = node.proximo
+        fim
+    fim
+
+fim
+
+
+l : ListaLigada = ListaLigada(nulo)
+l.ad_no(1)
+l.ad_no(2)
+l.ad_no(3)
+l.imprimir()

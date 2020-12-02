@@ -28,7 +28,7 @@ join(TEST_DIR,"indef_type"),join(TEST_DIR,"converte"),
 join(TEST_DIR,"builtins"),join(TEST_DIR,"list"),
 join(TEST_DIR,"class"),
 join(TEST_DIR,"get"),join(TEST_DIR,"set")
-,join(TEST_DIR,"eu"),
+,join(TEST_DIR,"eu"),join(TEST_DIR,"nulo")
 ]
 
 passed = 0

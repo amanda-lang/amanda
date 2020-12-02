@@ -289,12 +289,12 @@ class CodeGenerator:
     def gen_expression(self,expression,prom_type):
         if prom_type == None:
             return expression
-        elif prom_type.otype == OType.TINDEF:
+        if prom_type.otype == OType.TINDEF:
             return f"indef({expression})"
         elif prom_type.otype == OType.TREAL:
             return f"float({expression})"
         else:
-            raise NotImplementedError("Unexpected prom_type")
+            return expression
     
     def gen_se(self,node):
         if_stmt = StringIO()

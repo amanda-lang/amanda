@@ -69,7 +69,7 @@ class LexerTestCase(unittest.TestCase):
         self.assertEqual(token.lexeme,'"Ramboeiro"',msg="STRING value Test Failed")
 
     def test_identifier(self):
-        self.buffer.write("_test1 test test2 __test3 var mostra verdadeiro falso retorna se senao enquanto entao inc para faca de fim func classe eu super vazio converte ")
+        self.buffer.write("_test1 test test2 __test3 nulo var mostra verdadeiro falso retorna se senao enquanto entao inc para faca de fim func classe eu super vazio converte ")
         self.buffer.seek(0)
         lexer = Lexer(self.buffer)
         token = lexer.get_token()
@@ -84,6 +84,9 @@ class LexerTestCase(unittest.TestCase):
         token = lexer.get_token()
         self.assertEqual(token.token,TokenType.IDENTIFIER,msg="ID Test Failed")
         self.assertEqual(token.lexeme,"__test3",msg="ID value test Failed")
+        token = lexer.get_token()
+        self.assertEqual(token.token,TokenType.NULO,msg="ID Test Failed")
+        self.assertEqual(token.lexeme,"nulo",msg="ID value test Failed")
         token = lexer.get_token()
         self.assertEqual(token.token,TokenType.IDENTIFIER,msg="ID Test Failed")
         self.assertEqual(token.lexeme,"var",msg="ID value test Failed")
@@ -266,7 +269,7 @@ class ParserTestCase(unittest.TestCase):
             "klass()()().stop_please()","string.texto='sss'",
             "numero.value+=1","numero.value().set = 1",
             "array[0]","(array[i] - array[i-u])*array[m]",
-            "lista(int,3)","lista(int,3 + a)",
+            "lista(int,3)","lista(int,3 + a);lista(nulo,3)",
         ]
         for phrase in phrases:
             print(phrase,file=self.buffer)
@@ -298,6 +301,7 @@ class ParserTestCase(unittest.TestCase):
 
             se  1 < 2 entao
                 rouba   
+                nulo
             fim
         
             se  1==2  entao

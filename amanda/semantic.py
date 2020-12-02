@@ -31,6 +31,7 @@ class Analyzer(ast.Visitor):
         self.global_scope.define("texto",Type(OType.TTEXTO))
         self.global_scope.define("vazio",Type(OType.TVAZIO))
         self.global_scope.define("indef",Type(OType.TINDEF))
+        self.global_scope.define("nulo",Type(OType.TNULO))
         #load builtin symbols
         for sname,symbol in bltin_symbols.items():
             self.global_scope.define(sname,symbol)
@@ -266,6 +267,8 @@ class Analyzer(ast.Visitor):
             node.eval_type = scope.resolve("texto")
         elif constant in (TT.VERDADEIRO,TT.FALSO):
             node.eval_type = scope.resolve("bool")
+        elif constant == TT.NULO:
+            node.eval_type = scope.resolve("nulo")
 
     #TODO: Rename this to 'name' or 'identifier'
     def visit_variable(self,node):
@@ -394,7 +397,9 @@ class Analyzer(ast.Visitor):
 
         elif op in (TT.DOUBLEEQUAL,TT.NOTEQUAL):
             if (lhs_type.is_numeric() and rhs_type.is_numeric()) \
-            or lhs_type == rhs_type:
+            or lhs_type == rhs_type\
+            or lhs_type.promote_to(rhs_type) != None\
+            or rhs_type.promote_to(lhs_type) != None:
                 return scope.resolve("bool")
 
         elif op in (TT.E,TT.OU):
