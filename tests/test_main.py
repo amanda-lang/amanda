@@ -36,9 +36,7 @@ class MainTestCase(unittest.TestCase):
                 if message == "INPUT":
                     os.write(stdin_w, b"OP")
                     os.close(stdin_w)
-                    child_proc.communicate(b"This is a string")
 
-    
     def tearDown(self):
         os.remove(self.filename)
 
