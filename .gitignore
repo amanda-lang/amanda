@@ -1,6 +1,4 @@
-test.pts
 tools/quick_script.py
-docs/test_plan.txt
 *.pyc
 amac
 pyamanda
@@ -10,3 +8,4 @@ tools/resultgen.py
 build/
 dist/
 *.spec
+.venv
