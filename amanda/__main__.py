@@ -1,21 +1,24 @@
 import argparse
 import time
 from io import StringIO
+import os
 import sys
 from os.path import abspath
+from amanda.events import create_event_hook, event_hook
 from amanda.compile import ama_compile
 from amanda.error import handle_exception,throw_error
 from amanda.bltins import bltin_objs
 
-
 def main(*args):
     parser = argparse.ArgumentParser()
-    parser.add_argument("file", help = "source file to be executed")
+    parser.add_argument("file", help="source file to be executed")
     parser.add_argument("-g","--generate", help="Generate an output file", action = "store_true")
     parser.add_argument(
-        "-o","--outname", type = str,
+        "-o","--outname", type=str,
         help = "Name of the output file, Requires the -g option to take effect. Defaults to output.py."
     )
+    parser.add_argument("-r","--report", help="Activates report mode and sends event messages to specified pipe.", type=int)
+
     if len(args):
         args = parser.parse_args(args)
     else:
@@ -36,6 +39,16 @@ def main(*args):
         with open(out_file,"w") as output:
             output.write(code)
 
+    #Send messages to specified pipe for IPC
+    if args.report:
+        #try:
+        pipe = os.fdopen(args.report, mode="w")
+        hook = create_event_hook(pipe, event_hook)
+        sys.addaudithook(hook)
+        #except OSError:
+            #print("Unable to open file descriptor supplied to -r flag", file=sys.stderr)
+            #sys.exit()
+
     #Run compiled python code
     pycode_obj = compile(code,out_file,"exec")
     try:
@@ -45,6 +58,12 @@ def main(*args):
         if not ama_error:
             raise e
         throw_error(ama_error,src)
+    finally:
+        #Close open pipe
+        if args.report:
+            pipe.write("END\n")
+            pipe.close()
+    
 
 if __name__ == "__main__":
     main()
