@@ -1,11 +1,11 @@
-tools/quick_script.py
+tools/*
 *.pyc
 amac
 pyamanda
 output.py
-tools/resultgen.py
 ./*.ama
 build/
 dist/
 *.spec
 .venv
+.log
