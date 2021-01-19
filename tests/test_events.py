@@ -1,4 +1,3 @@
-
 import unittest
 import os
 import sys
@@ -7,8 +6,9 @@ import subprocess
 import socket
 from multiprocessing import Process, Queue, Condition
 
-PORT = 12000
+PORT = 11000
 HOST = "127.0.0.1"
+
 def run_server(queue):
     print("Starting server")
     serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -20,15 +20,13 @@ def run_server(queue):
         client, _ = serversocket.accept()
         clients += 1
         print("Accepted connection")
-        print("Receiving messages")
-        print("Server recv thread: waiting for message")
+        print("Server recv process: waiting for message")
         while (message := client.recv(4096).decode()):
-            print(message)
             queue.put(message)
         if clients > 1:
             queue.put("")
             break
-    print("Server recv thread: Shutdown")
+    print("Server recv process: Shutdown")
     serversocket.close()
 
 def is_online():
@@ -42,11 +40,11 @@ def is_online():
     finally:
         s.close()
         
-class MainTestCase(unittest.TestCase):
+class EventTestCase(unittest.TestCase):
     def setUp(self):
         self.filename = "input_test_case.ama"
 
-    def test_report_arg(self):
+    def test_input_event(self):
         with open(self.filename, mode="w") as src:
             src.writelines([
                 "str : texto = leia(\"Give us a string\")\n",
@@ -68,9 +66,9 @@ class MainTestCase(unittest.TestCase):
         )
 
         while (message := queue.get()):
-            print("Server main thread: Waiting for message")
+            print("Server main process: Waiting for message")
             print(message)
-            print("Server main thread: Got message")
+            print("Server main process: Got message")
             if message == "<INPUT>":
                 child_proc.communicate(b"I got the message")
 
