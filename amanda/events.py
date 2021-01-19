@@ -23,9 +23,7 @@ def create_event_hook(socket):
     def event_wrapper(*args, **kwargs):
         message = event_hook(*args, **kwargs)
         if message != None:
-            print("Client: Sending message")
             socket.sendall(message)
-            print("Client: message sent")
     return event_wrapper
 
 

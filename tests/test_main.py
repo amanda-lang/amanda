@@ -7,11 +7,12 @@ import subprocess
 import socket
 from multiprocessing import Process, Queue, Condition
 
-
+PORT = 12000
+HOST = "127.0.0.1"
 def run_server(queue):
     print("Starting server")
     serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    serversocket.bind(("127.0.0.1", 11000))
+    serversocket.bind((HOST, PORT))
     serversocket.listen(5)
     clients = 0
     while True:
@@ -33,7 +34,7 @@ def run_server(queue):
 def is_online():
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect(("127.0.0.1", 11000))
+        s.connect((HOST, PORT))
         s.close()
         return True
     except OSError:
@@ -62,7 +63,7 @@ class MainTestCase(unittest.TestCase):
 
         child_proc = subprocess.Popen([
             sys.executable, "-m", "amanda", "-r", 
-            "11000", os.path.abspath(self.filename)],
+            f"{PORT}", os.path.abspath(self.filename)],
             stdin=subprocess.PIPE
         )
 
