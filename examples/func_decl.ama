@@ -6,6 +6,6 @@ func soma(a : int, b:int):int
     retorna a + b
 fim
 
-mostra_int(5)
+mostra_int(5);
 
-mostra soma(5,5)+2
+mostra soma(5,5) + 2;

@@ -4,7 +4,9 @@ from io import StringIO
 import os
 import sys
 from os.path import abspath
-from amanda.events import create_event_hook, event_hook
+from amanda.events import (
+    open_conn, close_conn, create_event_hook
+)
 from amanda.compile import ama_compile
 from amanda.error import handle_exception,throw_error
 from amanda.bltins import bltin_objs
@@ -17,7 +19,7 @@ def main(*args):
         "-o","--outname", type=str,
         help = "Name of the output file, Requires the -g option to take effect. Defaults to output.py."
     )
-    parser.add_argument("-r","--report", help="Activates report mode and sends event messages to specified pipe.", type=int)
+    parser.add_argument("-r","--report", help="Activates report mode and sends event messages to specified port on the local machine.", type=int)
 
     if len(args):
         args = parser.parse_args(args)
@@ -39,19 +41,18 @@ def main(*args):
         with open(out_file,"w") as output:
             output.write(code)
 
-    #Send messages to specified pipe for IPC
+    #Send events to specified port;
     if args.report:
-        #try:
-        pipe = os.fdopen(args.report, mode="w")
-        hook = create_event_hook(pipe, event_hook)
+        socket = open_conn(args.report)
+        if socket is None:
+            sys.stderr.write("Unable to connect to specified port.\n")
+            sys.exit()
+        hook = create_event_hook(socket)
         sys.addaudithook(hook)
-        #except OSError:
-            #print("Unable to open file descriptor supplied to -r flag", file=sys.stderr)
-            #sys.exit()
-
-    #Run compiled python code
+   
     pycode_obj = compile(code,out_file,"exec")
     try:
+        #Run compiled python code
         exec(pycode_obj,bltin_objs)
     except Exception as e:
         ama_error = handle_exception(e,out_file,line_info)
@@ -59,11 +60,9 @@ def main(*args):
             raise e
         throw_error(ama_error,src)
     finally:
-        #Close open pipe
+        #Close open connection
         if args.report:
-            pipe.write("END\n")
-            pipe.close()
-    
+            close_conn(socket)
 
 if __name__ == "__main__":
     main()
