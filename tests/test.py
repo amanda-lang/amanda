@@ -4,6 +4,7 @@ from io import StringIO
 from os.path import join 
 import re
 import traceback
+import subprocess
 from contextlib import redirect_stdout,redirect_stderr
 from amanda.__main__ import main as ama_main
 
@@ -128,7 +129,12 @@ def run_suite(test_cases):
 
 
 if __name__ == "__main__":
-    #Run test files in each test_directors
+    
+    #Run "unit" tests
+    subprocess.call([
+        sys.executable, "-m", "unittest", "discover"
+    ])
+    #Run end_to_end tests
     for suite in DIRS:
         test_cases = load_test_cases(suite)
         run_suite(test_cases)
