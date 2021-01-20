@@ -23,6 +23,7 @@ def run_server(queue):
         print("Server recv process: waiting for message")
         while (message := client.recv(4096).decode()):
             queue.put(message)
+        client.close()
         if clients > 1:
             queue.put("")
             break
