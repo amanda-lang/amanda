@@ -23,7 +23,7 @@ def main():
         ])
     except ImportError:
         subprocess.run([
-            "pyinstaller", f"--name={BINARY_NAME}", 
+            sys.executable, "-m", "PyInstaller", f"--name={BINARY_NAME}", 
             "--onefile", "--console" ,"--clean" ,
             f"{SCRIPT}",
         ])
