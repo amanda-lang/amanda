@@ -2,6 +2,7 @@ import os
 import os.path as path
 import shutil
 import sys
+import subprocess
 import PyInstaller.__main__
 
 OS_X = sys.platform == "darwin"
