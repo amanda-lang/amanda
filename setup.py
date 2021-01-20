@@ -3,7 +3,6 @@ import os.path as path
 import shutil
 import sys
 import subprocess
-import PyInstaller.__main__
 
 OS_X = sys.platform == "darwin"
 WIN_32 = sys.platform == "win32"
@@ -13,11 +12,22 @@ def main():
     BINARY_NAME = "amanda"
     SCRIPT = path.abspath(path.join("./amanda","__main__.py"))
     BUILD_DIR = path.abspath("./dist")
-    #Build binary using pyinstaller
-    PyInstaller.__main__.run([
-        f"--name={BINARY_NAME}", "--onefile",
-        "--console" ,"--clean" ,f"{SCRIPT}",
-    ])
+
+    #HACK:hack because for some reason importing pyinstaller (even after installing it)
+    #may not work in some computer
+    try:
+        import PyInstaller.__main__
+        PyInstaller.__main__.run([
+            f"--name={BINARY_NAME}", "--onefile",
+            "--console" ,"--clean" ,f"{SCRIPT}",
+        ])
+    except ImportError:
+        subprocess.run([
+            "pyinstaller", f"--name={BINARY_NAME}", 
+            "--onefile", "--console" ,"--clean" ,
+            f"{SCRIPT}",
+        ])
+
     # Remove build files
     os.remove(f"{BINARY_NAME}.spec")
     shutil.rmtree("./build")
