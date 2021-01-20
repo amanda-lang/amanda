@@ -20,7 +20,6 @@ jobs:
         pip3.8 install -r requirements.txt
     - name: Run build
       run: |
-        ls $pythonLocation/bin
         python3.8 -m tests.test
-        python3.8 setup.py
+        sudo $pythonLocation/bin/python3.8 setup.py
         dist/amanda ./examples/hello_world.ama
