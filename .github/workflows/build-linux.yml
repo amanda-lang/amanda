@@ -1,4 +1,4 @@
-name: macOS-build
+name: linux-build
 on:
   push:
     branches: [ main ]
@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-10.15
+    runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python 3.8
@@ -16,10 +16,10 @@ jobs:
         python-version: 3.8
     - name: Install dependencies
       run: |
-        pip3 install --upgrade pip
-        pip3 install -r requirements.txt
+        pip3.8 install --upgrade pip
+        pip3.8 install -r requirements.txt
     - name: Run build
       run: |
-        python3 -m tests.test
-        sudo python3 setup.py
+        python3.8 -m tests.test
+        sudo $pythonLocation/bin/python3.8 setup.py
         amanda ./examples/hello_world.ama

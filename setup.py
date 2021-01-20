@@ -1,8 +1,9 @@
 import os
 import os.path as path
 import shutil
-import subprocess
 import sys
+import subprocess
+import PyInstaller.__main__
 
 OS_X = sys.platform == "darwin"
 WIN_32 = sys.platform == "win32"
@@ -12,18 +13,12 @@ def main():
     BINARY_NAME = "amanda"
     SCRIPT = path.abspath(path.join("./amanda","__main__.py"))
     BUILD_DIR = path.abspath("./dist")
-    #Build binary
-    py_binary = "python3"
-    if WIN_32:
-        py_binary = "python"
 
-    subprocess.run([
-        py_binary,
-        "-m",
-        "PyInstaller", f"--name={BINARY_NAME}", "--onefile",
-        "--console" ,"--clean" ,f"{SCRIPT}"
-        ],check = True
-    )
+    PyInstaller.__main__.run([
+        f"--name={BINARY_NAME}", "--onefile",
+        "--console" ,"--clean" ,f"{SCRIPT}",
+    ])
+
     # Remove build files
     os.remove(f"{BINARY_NAME}.spec")
     shutil.rmtree("./build")
@@ -35,6 +30,9 @@ def main():
             path.abspath("/usr/local/bin"),BINARY_NAME
         )
         subprocess.run(["ln","-s","-f",target,link],check = True)
+    elif WIN_32:
+        #Do windows stuff in here
+        pass
 
 if __name__ == "__main__":
     main()
