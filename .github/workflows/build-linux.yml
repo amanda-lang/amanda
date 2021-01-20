@@ -22,4 +22,4 @@ jobs:
       run: |
         python3.8 -m tests.test
         sudo $pythonLocation/bin/python3.8 setup.py
-        dist/amanda ./examples/hello_world.ama
+        amanda ./examples/hello_world.ama
