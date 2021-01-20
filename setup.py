@@ -29,8 +29,13 @@ def main():
         ])
 
     # Remove build files
-    os.remove(f"{BINARY_NAME}.spec")
-    shutil.rmtree("./build")
+    #HACK: Catching exception because for some reason build files aren't
+    #generated on some computers
+    try:
+        os.remove(f"{BINARY_NAME}.spec")
+        shutil.rmtree("./build")
+    except FileNotFoundError:
+        pass
     #Create a symlink pointing to binary in /usr/local/bin/ 
     #in Mac and linux
     if OS_X or LINUX:
