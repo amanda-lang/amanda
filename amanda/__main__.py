@@ -4,9 +4,6 @@ from io import StringIO
 import os
 import sys
 from os.path import abspath
-from amanda.events import (
-    open_conn, close_conn, create_event_hook
-)
 from amanda.compile import ama_compile
 from amanda.error import handle_exception,throw_error
 from amanda.bltins import bltin_objs
@@ -40,15 +37,6 @@ def main(*args):
             out_file = args.outname
         with open(out_file,"w") as output:
             output.write(code)
-
-    #Send events to specified port;
-    if args.report:
-        socket = open_conn(args.report)
-        if socket is None:
-            sys.stderr.write("Unable to connect to specified port.\n")
-            sys.exit()
-        hook = create_event_hook(socket)
-        sys.addaudithook(hook)
    
     pycode_obj = compile(code,out_file,"exec")
     try:
@@ -59,10 +47,6 @@ def main(*args):
         if not ama_error:
             raise e
         throw_error(ama_error,src)
-    finally:
-        #Close open connection
-        if args.report:
-            close_conn(socket)
 
 if __name__ == "__main__":
     main()
