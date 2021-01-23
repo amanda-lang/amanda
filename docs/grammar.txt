@@ -49,11 +49,11 @@ stmt
   ;
 
 retorna_stmt
-  : RETORNA equality (SEMI|NEWLINE)
+  : RETORNA equality end_stmt
   ;
 
 mostra_stmt
-  : MOSTRA equality (SEMI|NEWLINE) 
+  : MOSTRA equality end_stmt 
   ;
 
 se_stmt
@@ -66,6 +66,10 @@ enquanto_stmt
 
 para_stmt
   : PARA para_expression FACA body FIM
+  ;
+
+end_stmt
+  : (SEMI | NEWLINE | EOF)
   ;
 
 para_expression
@@ -89,7 +93,7 @@ eq_op
   ;
 
 decl_stmt
-  : expression (multi_decl|simple_decl)? (SEMI|NEWLINE)
+  : expression (multi_decl|simple_decl)? end_stmt
   ;
 
 multi_decl
