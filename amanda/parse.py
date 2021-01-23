@@ -202,7 +202,7 @@ class Lexer:
             return Token(TT.COLON,char,self.line,self.pos)
 
     def get_token(self):
-        if not self.current_char:
+        if self.current_char is None:
             self.advance()
         if self.current_char == "#":
             self.comment()
@@ -324,6 +324,8 @@ class Parser:
             self.consume(TT.NEWLINE)
         elif self.match(TT.SEMI):
             self.consume(TT.SEMI)
+        elif self.match(Lexer.EOF):
+            self.consume(Lexer.EOF)
         else:
             self.error(self.MISSING_TERM)
 
