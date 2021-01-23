@@ -239,6 +239,28 @@ class ParserTestCase(unittest.TestCase):
 
     def tearDown(self):
         self.buffer = None
+    
+    def test_parse_one_line_eof(self):
+        phrases = [
+            "mostra 1"
+        ]
+        for phrase in phrases:
+            print(phrase,file=self.buffer, end="")
+        #self.buffer.writelines(phrases)
+        self.buffer.seek(0)
+        parser = Parser(self.buffer)
+        parser.parse()
+    
+    def test_parse_two_line_eof(self):
+        phrases = [
+            "mostra 1\n","mostra 2"
+        ]
+        for phrase in phrases:
+            print(phrase,file=self.buffer, end="")
+        #self.buffer.writelines(phrases)
+        self.buffer.seek(0)
+        parser = Parser(self.buffer)
+        parser.parse()
 
     def test_new_declaration(self):
         phrases = [ " a: int"," a1: real"," a2: bool",
@@ -416,7 +438,7 @@ class ParserTestCase(unittest.TestCase):
         self.buffer.seek(0)
         parser = Parser(self.buffer)
         parser.parse()
-
+ 
     def test_class_decl(self):
         phrases = ['''
              classe Ponto
