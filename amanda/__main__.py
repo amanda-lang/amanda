@@ -26,10 +26,8 @@ def main(*args):
     else:
         args = parser.parse_args()
     try:
-        with open(abspath(args.file)) as src_file:
-            #Replace different EOL sequences with "\n"
-            src = src_file.read().replace("\r\n", "\n").replace("\r", "\n")
-            src = StringIO(src)
+        with open(abspath(args.file), encoding="utf-8") as src_file:
+            src = StringIO(src_file.read())
     except FileNotFoundError:
         print(f"The file '{abspath(args.file)}' was not found on this system")
         sys.exit()
