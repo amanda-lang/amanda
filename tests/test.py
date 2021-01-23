@@ -114,7 +114,7 @@ def run_case(filename):
 
 def run_suite(test_cases):
     for test_case,result_file in test_cases:
-        results = open(result_file,"r")
+        results = open(result_file,"r", encoding="utf-8")
         try:
             output = run_case(test_case).strip()
             expected = results.readline().strip()
