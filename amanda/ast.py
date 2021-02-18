@@ -141,8 +141,13 @@ class Call(Expr):
         self.callee = callee
         self.fargs = fargs
 
-class Get(Expr):
+class ArrayLiteral(Expr):
+    def __init__(self, *, token=None, elements=None):
+        super().__init__(token)
+        self.callee = callee
+        self.fargs = fargs
 
+class Get(Expr):
     def __init__(self,target=None,member=None):
         super().__init__(member)
         self.target = target
