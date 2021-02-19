@@ -142,8 +142,9 @@ class Call(Expr):
         self.fargs = fargs
 
 class ListLiteral(Expr):
-    def __init__(self, token, *, elements=None):
+    def __init__(self, token, *,list_type=None, elements=None):
         super().__init__(token)
+        self.list_type = list_type
         self.elements = elements
 
 class Get(Expr):
