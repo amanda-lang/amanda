@@ -151,7 +151,7 @@ primary
   | VERDADEIRO
   | FALSO
   | LPAR expression RPAR
-  | LBRACKET  args? RBRACKET
+  | LBRACKET type COLON args? RBRACKET
   | IDENTIFIER 
   | EU
   | CONVERTE LPAR equality COMMA IDENTIFIER RPAR
