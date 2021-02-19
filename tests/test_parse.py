@@ -439,16 +439,16 @@ class ParserTestCase(unittest.TestCase):
         parser = Parser(self.buffer)
         parser.parse()
 
-    def test_array_literals(self):
+    def test_list_literals(self):
         phrases = ['''
             
-            array : []int = []
-            array : []int = [1, 2, 3, 4]
-            array : []texto = ["1", "2", "3", "4"]
-            array : []texto = [1 + 2, print(), Loum, 2 == 3]
+            array : []int = [int:]
+            array : []int = [texto:1, 2, 3, 4]
+            array : []texto = [real: "1", "2", "3", "4"]
+            array : []texto = [[]int: 1 + 2, print(), Loum, 2 == 3]
             array : []texto = [1 + 2, 1 - 2 + 1 - 7 , 2/5, 2//7]
             array : []texto = [1 > 2, print() > 9, Loum < 2, 2 == 3]
-
+            array : []real = [[]real: [], [], []]
             print([])
 
             [1, 2] + [4, 5]
