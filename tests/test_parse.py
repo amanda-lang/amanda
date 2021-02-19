@@ -443,17 +443,18 @@ class ParserTestCase(unittest.TestCase):
         phrases = ['''
             
             array : []int = [int:]
+            array : []int = [int: 1]
             array : []int = [texto:1, 2, 3, 4]
             array : []texto = [real: "1", "2", "3", "4"]
             array : []texto = [[]int: 1 + 2, print(), Loum, 2 == 3]
-            array : []texto = [1 + 2, 1 - 2 + 1 - 7 , 2/5, 2//7]
-            array : []texto = [1 > 2, print() > 9, Loum < 2, 2 == 3]
-            array : []real = [[]real: [], [], []]
-            print([])
+            array : []texto = [texto: 1 + 2, 1 - 2 + 1 - 7 , 2/5, 2//7]
+            array : []texto = [real: 1 > 2, print() > 9, Loum < 2, 2 == 3]
+            array : []real = [[]real: [real: ], [real: ], [real: ]]
+            print([int: ])
 
-            [1, 2] + [4, 5]
+            [int: 1, 2] + [int: 4, 5]
 
-            se [1, 2, 3, 4, 5][0] > 1 entao
+            se [real: 1, 2, 3, 4, 5][0] > 1 entao
             fim
         '''
         ]

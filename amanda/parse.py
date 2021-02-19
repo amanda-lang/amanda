@@ -653,14 +653,16 @@ class Parser:
             self.consume(current)
         elif self.match(TT.LBRACKET):
             token = self.consume(TT.LBRACKET)
+            list_type = self.type()
             elements = [] 
+            self.consume(TT.COLON)
             if not self.match(TT.RBRACKET):
                 elements.append(self.equality())
                 while not self.match(TT.RBRACKET):
                     self.consume(TT.COMMA)
                     elements.append(self.equality())
             self.consume(TT.RBRACKET)
-            expr = ast.ListLiteral(token, elements=elements)
+            expr = ast.ListLiteral(token, list_type=list_type, elements=elements)
         elif self.match(TT.LPAR):
             self.consume(TT.LPAR)
             expr = self.equality()
