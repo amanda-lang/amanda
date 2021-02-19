@@ -278,8 +278,10 @@ class Analyzer(ast.Visitor):
             return
         for i, element in enumerate(elements):
             self.visit(element)
-            if not self.types_match(list_type, element.eval_type):
+            element_type = element.eval_type
+            if not self.types_match(list_type, element_type):
                 self.error(f"O tipo do elemento {i} da lista não condiz com o tipo da lista")
+            element.prom_type = element_type.promote_to(list_type)
 
     #TODO: Rename this to 'name' or 'identifier'
     def visit_variable(self,node):
