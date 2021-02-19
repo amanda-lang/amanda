@@ -651,6 +651,16 @@ class Parser:
             else:
                 expr = ast.Constant(self.lookahead)
             self.consume(current)
+        elif self.match(TT.LBRACKET):
+            token = self.consume(TT.LBRACKET)
+            elements = [] 
+            if not self.match(TT.RBRACKET):
+                elements.append(self.equality())
+                while not self.match(TT.RBRACKET):
+                    self.consume(TT.COMMA)
+                    elements.append(self.equality())
+            self.consume(TT.RBRACKET)
+            expr = ast.ListLiteral(token, elements=elements)
         elif self.match(TT.LPAR):
             self.consume(TT.LPAR)
             expr = self.equality()
@@ -671,7 +681,7 @@ class Parser:
         self.consume(TT.COMMA)
         new_type = self.type()
         self.consume(TT.RPAR)
-        return ast.Converte(token,expression,new_type)
+        return ast.Converte(token, expression, new_type)
 
     def args(self):
         current = self.lookahead.token
