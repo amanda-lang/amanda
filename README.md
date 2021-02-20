@@ -208,6 +208,9 @@ fim
 
 minha_lista : [] int = lista(int,4) # tipo e o tamanho
 
+# Também é possível cria uma lista de forma directa
+minha_lista = [int: 0, 0, 0, 0] #equivalente a lista(int, 4)
+
 # Preencher a lista
 
 para i de 0..tamanho(minha_lista) faca
@@ -215,7 +218,6 @@ para i de 0..tamanho(minha_lista) faca
 fim
 
 # Imprimir todos elementos da lista
-
 para i de 0..tamanho(minha_lista) faca
     mostra minha_lista[i]
 fim
