@@ -270,6 +270,19 @@ class Analyzer(ast.Visitor):
         elif constant == TT.NULO:
             node.eval_type = scope.resolve("nulo")
 
+    def visit_listliteral(self, node):
+        elements = node.elements
+        list_type = self.get_type(node.list_type)
+        node.eval_type = Lista(list_type)
+        if not len(elements):
+            return
+        for i, element in enumerate(elements):
+            self.visit(element)
+            element_type = element.eval_type
+            if not self.types_match(list_type, element_type):
+                self.error(f"O tipo do elemento {i} da lista não condiz com o tipo da lista")
+            element.prom_type = element_type.promote_to(list_type)
+
     #TODO: Rename this to 'name' or 'identifier'
     def visit_variable(self,node):
         name = node.token.lexeme

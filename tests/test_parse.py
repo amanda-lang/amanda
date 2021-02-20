@@ -438,6 +438,33 @@ class ParserTestCase(unittest.TestCase):
         self.buffer.seek(0)
         parser = Parser(self.buffer)
         parser.parse()
+
+    def test_list_literals(self):
+        phrases = ['''
+            
+            array : []int = [int:]
+            array : []int = [int: 1]
+            array : []int = [texto:1, 2, 3, 4]
+            array : []texto = [real: "1", "2", "3", "4"]
+            array : []texto = [[]int: 1 + 2, print(), Loum, 2 == 3]
+            array : []texto = [texto: 1 + 2, 1 - 2 + 1 - 7 , 2/5, 2//7]
+            array : []texto = [real: 1 > 2, print() > 9, Loum < 2, 2 == 3]
+            array : []real = [[]real: [real: ], [real: ], [real: ]]
+            print([int: ])
+
+            [int: 1, 2] + [int: 4, 5]
+
+            se [real: 1, 2, 3, 4, 5][0] > 1 entao
+            fim
+        '''
+        ]
+        for phrase in phrases:
+            print(phrase,file=self.buffer)
+        #self.buffer.writelines(phrases)
+        self.buffer.seek(0)
+        parser = Parser(self.buffer)
+        parser.parse()
+
  
     def test_class_decl(self):
         phrases = ['''

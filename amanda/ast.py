@@ -141,8 +141,13 @@ class Call(Expr):
         self.callee = callee
         self.fargs = fargs
 
-class Get(Expr):
+class ListLiteral(Expr):
+    def __init__(self, token, *,list_type=None, elements=None):
+        super().__init__(token)
+        self.list_type = list_type
+        self.elements = elements
 
+class Get(Expr):
     def __init__(self,target=None,member=None):
         super().__init__(member)
         self.target = target

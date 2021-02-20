@@ -193,6 +193,12 @@ class CodeGenerator:
         names = ",".join(names)
         return f"nonlocal {names}"
 
+    def gen_listliteral(self, node):
+        elements = ",".join([
+            str(self.gen(element)) for element in node.elements
+        ])
+        return f"Lista({node.eval_type.subtype},[{elements}])"
+
     def gen_call(self,node):
         args = ",".join([
             str(self.gen(arg)) for arg in node.fargs
@@ -223,7 +229,6 @@ class CodeGenerator:
         member_sym = klass.members.get(member) 
         get_expr = f"{target}.{member_sym.out_id}"
         return self.gen_expression(get_expr,node.prom_type)
-
 
     def gen_assign(self,node):
         lhs = self.gen(node.left)
