@@ -26,6 +26,9 @@ class Lista:
         self.elements = elements
         self.subtype = subtype
 
+    def __str__(self):
+        return str(self.elements)
+
     def __getitem__(self,key):
         try:
             return self.elements[key]
