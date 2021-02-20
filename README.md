@@ -24,6 +24,7 @@ amanda examples/hello_world.ama
 ```
 
 **On Linux/Mac** 
+
 Run the following commands at the root folder of the repo:
 
 ```
