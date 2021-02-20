@@ -3,47 +3,39 @@
 
 Amanda is a statically typed programming language with portuguese constructs. 
 It is implemented using a Python backend (The source code is compiled/translated to Python and then executed) and was mainly made to help me get a feel for progamming language design and implementation. 
-You can't do much with it due to it's lacklustre perfomance and lack of serious features.
+It's specifically designed to be used by portuguese speakers who are just getting started with programming.
 
-## Usage
+## Build Instructions
 
-~~TODO: Make instructions better~~ 
-~~TODO: Add Portuguese version of this lool~~
+You can build the compiler directly in your machine using python 3.8 or higher.
 
 **On Windows**
 
-
-To run the interpreter on Windows, download python 3.0 or higher from [here](https://www.python.org/downloads/windows/), run the installer and make sure the install to PATH option is selected, wait for the installation to finish and run the following command in the project folder (using CMD):
-
-```
-python -m amanda FILE 
-```
-
-Replace 'FILE' with the path to an amanda file. You can run the "hello_world.ama" example with the following command:
+Run the following commands at the root folder of the repo using CMD:
 
 ```
-python -m amanda examples/hello_world.ama 
+pip install -r requirements.txt 
+python setup.py
 ```
-
-**On Linux** 
-
-You probably already have python installed so just run the same command as in windows replacing 'python' with your python 3 binary
-(usually python3):
+Test the installation by running the following command on CMD:
 
 ```
-python3 -m amanda FILE
+amanda examples/hello_world.ama 
 ```
 
-Replace 'FILE' with the path to an amanda file. You can run the "hello_world.ama" with the following command:
+**On Linux/Mac** 
+
+Run the following commands at the root folder of the repo:
 
 ```
-python3 -m amanda examples/hello_word.ama 
+pip3 install -r requirements.txt 
+python3 setup.py
 ```
+Test the installation by running:
 
-**On Mac**
-Can't help you, i'm sorry :cry: .
-
-
+```
+amanda examples/hello_world.ama 
+```
 
 ## Tour of Amanda
 
@@ -216,6 +208,9 @@ fim
 
 minha_lista : [] int = lista(int,4) # tipo e o tamanho
 
+# Também é possível cria uma lista de forma directa
+minha_lista = [int: 1, 2, 3]
+
 # Preencher a lista
 
 para i de 0..tamanho(minha_lista) faca
@@ -223,7 +218,6 @@ para i de 0..tamanho(minha_lista) faca
 fim
 
 # Imprimir todos elementos da lista
-
 para i de 0..tamanho(minha_lista) faca
     mostra minha_lista[i]
 fim
