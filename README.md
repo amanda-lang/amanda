@@ -209,7 +209,7 @@ fim
 minha_lista : [] int = lista(int,4) # tipo e o tamanho
 
 # Também é possível cria uma lista de forma directa
-minha_lista = [int: 0, 0, 0, 0] #equivalente a lista(int, 4)
+minha_lista = [int: 0, 0, 0, 0] # equivalente a lista(int, 4)
 
 # Preencher a lista
 
