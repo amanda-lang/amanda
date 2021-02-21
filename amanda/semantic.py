@@ -113,6 +113,8 @@ class Analyzer(ast.Visitor):
 
         if type_node.is_list:
             ama_type = Lista(type_symbol)
+            for i in range(0, type_node.dim - 1):
+                ama_type = Lista(ama_type)
         else:
             ama_type = type_symbol
         return ama_type

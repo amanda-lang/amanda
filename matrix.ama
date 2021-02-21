@@ -1,1 +1,6 @@
-matrix : [][]int = [[]int: [int:], [int: ], [int:]]
+matrix : [][]int = [
+  []int: [int:], 
+  [int:], 
+  [int:]
+]
+mostra matrix[0]

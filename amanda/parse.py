@@ -237,13 +237,14 @@ class Parser:
 
     def __init__(self,io_object):
         self.lexer = Lexer(io_object)
+        self.delimited = False
         self.lookahead = self.lexer.get_token()
 
     def consume(
         self,expected,
         error=None,skip_newlines=False
     ):
-        if skip_newlines:
+        if skip_newlines or self.delimited:
             self.skip_newlines()
         if self.match(expected):
             consumed = self.lookahead
@@ -655,15 +656,19 @@ class Parser:
             self.consume(current)
         elif self.match(TT.LBRACKET):
             token = self.consume(TT.LBRACKET)
+            self.skip_newlines()
             list_type = self.type()
             elements = [] 
             self.consume(TT.COLON)
             if not self.match(TT.RBRACKET):
+                self.skip_newlines()
                 elements.append(self.equality())
                 while not self.match(TT.RBRACKET):
-                    self.consume(TT.COMMA)
+                    self.consume(TT.COMMA, skip_newlines=True)
+                    self.skip_newlines()
                     elements.append(self.equality())
-            self.consume(TT.RBRACKET)
+                    self.skip_newlines()
+            self.consume(TT.RBRACKET, skip_newlines=True)
             expr = ast.ListLiteral(token, list_type=list_type, elements=elements)
         elif self.match(TT.LPAR):
             self.consume(TT.LPAR)
