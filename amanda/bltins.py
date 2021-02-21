@@ -91,6 +91,10 @@ def lista(subtype,size):
     default = inits.get(subtype)
     return Lista(subtype,[default for i in range(size)])
 
+def matriz(subtype, rows, cols):
+    #Returns a list of the desired size
+    return Lista(subtype, [lista(subtype, cols) for i in range(rows)])
+
 def anexe(list_obj,value):
     list_obj.elements.append(value)
 
@@ -158,6 +162,11 @@ add_bltin_func(
 
 add_bltin_func(
     "lista",lista,
+    None
+)
+
+add_bltin_func(
+    "matriz",matriz,
     None
 )
 
