@@ -18,29 +18,29 @@ class OType(IntEnum):
 
 
 class Type(Symbol):
-   def __init__(self,otype):
+    def __init__(self,otype):
        super().__init__(str(otype),None)
        self.otype = otype
 
-   def __eq__(self,other):
+    def __eq__(self,other):
        if not isinstance(other,Type):
            return False
        return self.otype == other.otype
 
 
-   def is_numeric(self):
+    def is_numeric(self):
        return self.otype == OType.TINT or self.otype == OType.TREAL
 
-   def is_type(self):
+    def is_type(self):
        return True
 
-   def __str__(self):
+    def __str__(self):
        return str(self.otype)
 
-   def is_operable(self):
+    def is_operable(self):
        return self.otype != OType.TVAZIO and self.otype != OType.TINDEF
 
-   def promote_to(self,other):
+    def promote_to(self,other):
        otype = self.otype
        other_kind = other.otype
 
@@ -62,26 +62,34 @@ class Type(Symbol):
 
 class Lista(Type):
 
-   def __init__(self,subtype):
+    def __init__(self,subtype):
        super().__init__(OType.TLISTA)
        self.subtype = subtype
 
-   def __str__(self):
+    def get_type(self):
+        subtype = self.subtype
+        while type(subtype) == Lista:
+            subtype = subtype.subtype
+        return subtype
+
+
+
+    def __str__(self):
        return f"[]{self.subtype}"
 
-   def __eq__(self,other):
+    def __eq__(self,other):
        if type(other) != Lista:
            return False
        return self.subtype == other.subtype
 
 class Klass(Type):
 
-   def __init__(self,name,members):
+    def __init__(self,name,members):
        super().__init__(OType.TKLASS)
        self.name = name 
        self.out_id = name 
        self.members = members
        self.constructor = None
 
-   def __str__(self):
+    def __str__(self):
        return self.name

@@ -197,7 +197,8 @@ class CodeGenerator:
         elements = ",".join([
             str(self.gen(element)) for element in node.elements
         ])
-        return f"Lista({node.eval_type.subtype},[{elements}])"
+        list_type = node.eval_type.get_type()
+        return f"Lista({list_type},[{elements}])"
 
     def gen_call(self,node):
         args = ",".join([
