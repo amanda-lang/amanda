@@ -18,7 +18,8 @@ class_body
 
 
 type
-  : (LBRACKET RBRACKET)? IDENTIFIER 
+  : (LBRACKET RBRACKET)? type 
+  | IDENTIFIER
   ;
 
 function_declaration
