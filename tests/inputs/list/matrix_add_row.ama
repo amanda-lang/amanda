@@ -1,0 +1,6 @@
+matrix : [][]int = matriz(int, 2, 2)
+mostra matrix
+
+anexe(matrix, [int: 2, 2])
+
+mostra matrix[1]

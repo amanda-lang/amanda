@@ -582,7 +582,7 @@ class Analyzer(ast.Visitor):
                 self.visit(arg)
                 if arg.eval_type.otype != OType.TINT:
                     self.error(
-                        f"O tamanho de uma matriz deve ser especificado por um inteiro"
+                        f"O argumento {i+2} da função matriz deve ser um inteiro"
                     )
                 
 

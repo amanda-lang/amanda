@@ -1,0 +1,1 @@
+Erro na linha 4: incompatibilidade de tipos entre a lista e o valor a anexar: '[]int' != '[]texto'.
