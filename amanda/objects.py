@@ -27,7 +27,8 @@ class Lista:
         self.subtype = subtype
 
     def __str__(self):
-        return str(self.elements)
+        elements = ", ".join([str(e) for e in self.elements])
+        return f"[{elements}]"
 
     def __getitem__(self,key):
         try:

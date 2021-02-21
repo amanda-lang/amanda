@@ -439,6 +439,26 @@ class ParserTestCase(unittest.TestCase):
         parser = Parser(self.buffer)
         parser.parse()
 
+    def test_multidim_arrays(self):
+        phrases = ['''
+            array : [][]int 
+            array : [][]int = [[][]int: ] 
+            array : [][][][]texto = [[][][]int: ] 
+            [[]int:
+                [int:],
+                [int:],
+                [int:]
+            ]
+        '''
+        ]
+        for phrase in phrases:
+            print(phrase,file=self.buffer)
+        #self.buffer.writelines(phrases)
+        self.buffer.seek(0)
+        parser = Parser(self.buffer)
+        parser.parse()
+        
+
     def test_list_literals(self):
         phrases = ['''
             
@@ -453,8 +473,14 @@ class ParserTestCase(unittest.TestCase):
             print([int: ])
 
             [int: 1, 2] + [int: 4, 5]
+            [int: 
+                1, 2,
+                3, 4
+            ]
 
-            se [real: 1, 2, 3, 4, 5][0] > 1 entao
+            se [real: 
+                1, 2, 3, 4, 5
+            ][0] > 1 entao
             fim
         '''
         ]

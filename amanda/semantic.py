@@ -72,7 +72,6 @@ class Analyzer(ast.Visitor):
     def general_check(self,node):
         return False
 
-
     def general_visit(self,node):
         raise NotImplementedError(f"Have not defined method for this node type: {type(node)} {node.__dict__}")
 
@@ -113,6 +112,8 @@ class Analyzer(ast.Visitor):
 
         if type_node.is_list:
             ama_type = Lista(type_symbol)
+            for i in range(0, type_node.dim - 1):
+                ama_type = Lista(ama_type)
         else:
             ama_type = type_symbol
         return ama_type
@@ -537,7 +538,7 @@ class Analyzer(ast.Visitor):
             node.eval_type = sym
         else:
             #Special builtin function
-            builtin_ops = ("lista","anexe")
+            builtin_ops = ("lista", "anexe", "matriz")
             #TODO: Add special nodes for these guys
             if sym.name in builtin_ops:
                 self.builtin_call(sym.name,node)
@@ -557,7 +558,7 @@ class Analyzer(ast.Visitor):
                 )
 
             node.eval_type = self.get_type(
-                ast.Type(list_type.token,is_list=True)
+                ast.Type(list_type.token, dim=1, is_list=True)
             ) 
             size = node.fargs[1]
             self.visit(size)
@@ -565,6 +566,25 @@ class Analyzer(ast.Visitor):
                 self.error(
                     "O tamanho de uma lista deve ser representado por um inteiro"
                 )
+
+        elif name == "matriz":
+            self.check_arity(node.fargs,name,3)
+            m_type = node.fargs[0]
+            if type(m_type) != ast.Variable:
+                self.error(
+                    "O argumento 1 da função 'matriz' deve ser um tipo"
+                )
+            node.eval_type = self.get_type(
+                ast.Type(m_type.token, dim=2,is_list=True)
+            ) 
+            args = node.fargs[1:]
+            for i, arg in enumerate(args):
+                self.visit(arg)
+                if arg.eval_type.otype != OType.TINT:
+                    self.error(
+                        f"O tamanho de uma matriz deve ser especificado por um inteiro"
+                    )
+                
 
         elif name == "anexe":
             self.check_arity(node.fargs,name,2)
