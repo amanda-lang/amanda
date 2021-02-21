@@ -206,10 +206,11 @@ class Param(ASTNode):
         self.name = name
 
 class Type(ASTNode):
-    def __init__(self,type_name,is_list=False):
+    def __init__(self, type_name, *, dim=0, is_list=False):
         super().__init__(type_name)
         self.type_name = type_name
         self.is_list = is_list
+        self.dim = dim # For lists only
 
 #Base class for visitor objects
 class Visitor:

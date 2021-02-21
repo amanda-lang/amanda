@@ -312,12 +312,14 @@ class Parser:
 
     def type(self):
         is_list = False
-        if self.match(TT.LBRACKET):
+        dim = 0
+        while self.match(TT.LBRACKET):
             self.consume(TT.LBRACKET)
             self.consume(TT.RBRACKET)
+            dim += 1
             is_list = True
         type_name = self.consume(TT.IDENTIFIER)
-        return ast.Type(type_name,is_list)
+        return ast.Type(type_name, dim=dim, is_list=is_list)
 
     def end_stmt(self):
         if self.match(TT.NEWLINE):
