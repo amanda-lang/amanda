@@ -722,9 +722,3 @@ class Parser:
             return self.consume(TT.PLUS)
         elif self.match(TT.MINUS):
             return self.consume(TT.MINUS)
-
-
-# Method called to parse amanda source code  
-
-def parse(source):
-    return Parser(source).parse()

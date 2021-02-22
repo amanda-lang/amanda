@@ -628,6 +628,3 @@ class Analyzer(ast.Visitor):
                 self.error(
                    f"argumento inválido. Esperava-se um argumento do tipo '{param.type}' mas recebeu o tipo '{arg.eval_type}'"
                 )
-
-def check_program(ast_root):
-    return Analyzer().visit_program(ast_root)
