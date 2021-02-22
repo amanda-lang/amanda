@@ -3,7 +3,7 @@ tools/*
 amac
 pyamanda
 output.py
-./*.ama
+/*.ama
 build/
 dist/
 *.spec
