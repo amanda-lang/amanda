@@ -4,14 +4,10 @@ from io import StringIO
 import amanda.symbols as symbols
 from amanda.type import Type,OType
 import amanda.ast as ast
-from amanda.semantic import check_program
 from amanda.error import AmandaError,throw_error
-from amanda.parse import parse
 
-
-class CodeGenerator:
+class Generator:
     INDENT = "    "
-
     def __init__(self):
         self.py_lineno = 0  # tracks lineno in compiled python src
         self.ama_lineno = 1 # tracks lineno in input amanda src
@@ -22,7 +18,7 @@ class CodeGenerator:
         self.scope_symtab = None
         self.line_info = {} #Maps py_fileno to ama_fileno
 
-    def gen_py_code(self,program):
+    def generate_code(self,program):
         ''' Method that begins compilation of amanda source.'''
         self.program_symtab = self.scope_symtab = program.symbols
         py_code = self.gen(program)
@@ -357,12 +353,3 @@ class CodeGenerator:
         if node.exp.eval_type.otype == OType.TVAZIO:
             expression = "vazio"
         return f"printc({expression})"
-
-def ama_compile(src):
-    try:
-        program = parse(src)
-        valid_program = check_program(program)
-    except AmandaError as e:
-        throw_error(e,src)
-    generator = CodeGenerator()
-    return generator.gen_py_code(valid_program) 
