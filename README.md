@@ -29,7 +29,7 @@ Run the following commands at the root folder of the repo:
 
 ```
 pip3 install -r requirements.txt 
-python3 setup.py
+sudo python3 setup.py
 ```
 Test the installation by running:
 
@@ -208,7 +208,7 @@ fim
 
 minha_lista : [] int = lista(int,4) # tipo e o tamanho
 
-# Também é possível cria uma lista de forma directa
+# Também é possível criar uma lista de forma directa
 minha_lista = [int: 1, 2, 3]
 
 # Preencher a lista
@@ -221,6 +221,12 @@ fim
 para i de 0..tamanho(minha_lista) faca
     mostra minha_lista[i]
 fim
+
+#Criar uma matriz 3 x 2
+minha_matriz : [][]int = matriz(int, 3, 2)
+minha_matriz[0][0] = 1
+
+mostra minha_matriz[0][0]
 ```
 
 
