@@ -1,0 +1,2 @@
+matrix : [][]int = matriz(int, 3, 3)
+mostra matrix
