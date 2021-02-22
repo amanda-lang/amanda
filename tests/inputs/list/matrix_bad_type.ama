@@ -1,0 +1,3 @@
+
+matrix : [][]int = matriz("passo", 3, 3)
+mostra matrix
