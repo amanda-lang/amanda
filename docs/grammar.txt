@@ -1,5 +1,9 @@
 program
- : ( declaration | NEWLINE )* EOF
+ : (import_stmt)* ( declaration | NEWLINE )* EOF
+ ;
+
+import_stmt
+ : IMPORTA STRING (COMO IDENTIFIER)? end_stmt
  ;
 
 declaration
@@ -8,14 +12,13 @@ declaration
   | stmt
   ;
 
-
 class_declaration
   : CLASSE IDENTIFIER ( < IDENTIFIER )? class_body FIM
   ;
 
 class_body
   : ( var_declaration | function_declaration | NEWLINE )*
-
+  ;
 
 type
   : (LBRACKET RBRACKET)* IDENTIFIER 
@@ -27,16 +30,13 @@ function_declaration
   FIM
   ;
 
-
 body
   :( declaration | NEWLINE )*
   ;
 
-
 formal_parameter_section
   : IDENTIFIER COLON type (COMMA formal_parameter_section)*
   ;
-
 
 stmt
   :
@@ -85,7 +85,7 @@ comp_op
   | LESSEQ
   | GREATEREQ
   | LESSEQ
-
+  ;
 
 eq_op
   : NOTEQUAL
@@ -179,7 +179,3 @@ add_operator
   | MINUS
   | OR
   ;
-
-
-LINE_COMMENT:
-  : '#'; 

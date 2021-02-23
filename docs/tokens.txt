@@ -47,6 +47,8 @@ CLASSE : classe
 VAZIO : vazio
 NULO : nulo
 EU : eu
+IMPORTA : importa
+COMO : como
 SUPER : super
 
 *OPERANDS*
@@ -68,4 +70,4 @@ LBRACKET : [
 RBRACKET : ]
 COLON : ":"
 NEWLINE : "\n"
-COMMENTS: "#"
+COMMENT: "#"
