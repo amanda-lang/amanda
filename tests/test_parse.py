@@ -306,6 +306,20 @@ class ParserTestCase(unittest.TestCase):
         parser = Parser(self.buffer)
         parser.parse()
 
+    def test_importa(self):
+        phrases = [
+            "\n\nimporta 'calc'",
+            "\nimporta 'calc'",
+            "importa 'calc' como calculo\n\n",
+            "importa \"calc.ama\" como calculo\n",
+        ]
+        for phrase in phrases:
+            print(phrase,file=self.buffer)
+        #self.buffer.writelines(phrases)
+        self.buffer.seek(0)
+        parser = Parser(self.buffer)
+        parser.parse()
+
     def test_converte(self):
         phrases = [
             "converte(2+2,real)",

@@ -92,6 +92,12 @@ class Assign(Expr):
         self.left = left
         self.right = right
 
+class Importa(ASTNode):
+    def __init__(self, token, *, module="", alias=None):
+        super().__init__(token)
+        self.module = module
+        self.alias = alias
+
 class Statement(ASTNode):
     def __init__(self,token,exp=None):
         super().__init__(token)

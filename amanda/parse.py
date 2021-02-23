@@ -8,6 +8,8 @@ from amanda.tokens import KEYWORDS as TK_KEYWORDS
 from amanda.error import AmandaError
 import amanda.ast as ast
 
+#TODO: Find a better way to ignore newlines
+
 class Lexer:
     #Special end of file token
     EOF = "__eof__"
@@ -276,6 +278,14 @@ class Parser:
 
     def program(self):
         program = ast.Program() 
+        imports = []
+        self.skip_newlines()
+        while self.match(TT.IMPORTA):
+            self.skip_newlines()
+            imports.append(self.importa_stmt())
+            self.skip_newlines()
+
+        self.append_child(program, imports)
         while not self.match(Lexer.EOF):
             if self.match(TT.NEWLINE):
                 self.consume(TT.NEWLINE)
@@ -283,6 +293,16 @@ class Parser:
                 child = self.declaration()
                 self.append_child(program,child)
         return program
+    
+    def importa_stmt(self):
+        token = self.consume(TT.IMPORTA)
+        module = self.consume(TT.STRING)
+        alias = None
+        if self.match(TT.COMO):
+            self.consume(TT.COMO)
+            alias = self.consume(TT.IDENTIFIER)
+        self.end_stmt()
+        return ast.Importa(token, module=module, alias=alias)
 
     def block(self):
         block = ast.Block()
