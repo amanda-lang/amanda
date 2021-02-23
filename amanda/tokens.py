@@ -66,6 +66,8 @@ class TokenType(Enum):
     INC = "INC"
     FIM = "FIM"
     FUNC = "FUNC"
+    IMPORTA = "IMPORTA"
+    COMO = "COMO"
     NULO = "NULO"
     VAZIO = "VAZIO"
     CLASSE = "CLASSE"
