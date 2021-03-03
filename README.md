@@ -134,10 +134,14 @@ nao verdadeiro # negação : falso
 ```python
 # se
 
-se 2/6 > 1 entao
+num : real = 5 // 3
+
+se  num > 1 entao
     mostra "maior que 1" 
+senaose num == 1 entao
+    mostra "igual à 1"
 senao
-    mostra "menor que 1"
+    mostrar "menor que 1"
 fim
 
 # repetição: enquanto
