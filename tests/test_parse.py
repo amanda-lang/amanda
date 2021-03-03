@@ -337,6 +337,12 @@ class ParserTestCase(unittest.TestCase):
 
             se  0==0  entao 
                 rebenta 
+            senaose 1==1 entao
+                cria_algo
+            senaose 2-1 > 0 entao
+                a = 0
+            senaose 2-1 > 0 entao
+                a = 0
             senao
                 fecha 
             fim
