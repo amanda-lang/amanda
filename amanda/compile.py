@@ -316,7 +316,7 @@ class Generator:
         cases = node.cases
         default = node.default_case
         indent = self.INDENT * self.depth
-        #No need to generate code
+        # No need to generate code
         if not len(cases) and not default:
             return ""
         for c, case in enumerate(cases):
@@ -330,11 +330,9 @@ class Generator:
             block = self.compile_block(default, [])
             if not len(cases):
                 switch.write(f"if True:\n{block}")
-            else: 
+            else:
                 switch.write(f"{indent}else:\n{block}")
         return self.build_str(switch)
-
-
 
     def gen_para(self, node):
         scope = node.statement.symbols

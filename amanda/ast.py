@@ -139,11 +139,13 @@ class Enquanto(ASTNode):
         self.condition = condition
         self.statement = statement
 
+
 class CaseBlock(ASTNode):
     def __init__(self, token, expression, block):
         super().__init__(token)
         self.expression = expression
         self.block = block
+
 
 class Escolha(ASTNode):
     def __init__(self, token, expression, cases, default_case):
@@ -151,6 +153,7 @@ class Escolha(ASTNode):
         self.expression = expression
         self.cases = cases
         self.default_case = default_case
+
 
 class Para(ASTNode):
     def __init__(self, token, expression=None, statement=None):

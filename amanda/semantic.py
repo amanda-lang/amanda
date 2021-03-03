@@ -503,12 +503,16 @@ class Analyzer(ast.Visitor):
         self.visit(expr)
         expr_type = expr.eval_type
         if expr_type.otype not in (OType.TINT, OType.TTEXTO):
-            self.error(f"A directiva escolha só pode ser usada para avaliar números inteiros e strings")
+            self.error(
+                f"A directiva escolha só pode ser usada para avaliar números inteiros e strings"
+            )
         for case in node.cases:
             case_expr = case.expression
             self.visit(case_expr)
             if not self.types_match(expr_type, case_expr.eval_type):
-                self.error(f"O tipo do valor do caso ({case_expr.eval_type}) deve ser igual ao tipo do valor que está a ser avaliado ({expr_type})")
+                self.error(
+                    f"O tipo do valor do caso ({case_expr.eval_type}) deve ser igual ao tipo do valor que está a ser avaliado ({expr_type})"
+                )
             self.visit(case.block)
         default_case = node.default_case
         if default_case:

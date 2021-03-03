@@ -197,7 +197,6 @@ class LexerTestCase(unittest.TestCase):
         self.assertEqual(token.token, TokenType.CASO, msg="CASO Test Failed")
         self.assertEqual(token.lexeme, "caso", msg="CASO value test Failed")
 
-
     def test_delimeters(self):
         self.buffer.write(". , ; ) ( { } [ ] : ..")
         self.buffer.seek(0)
