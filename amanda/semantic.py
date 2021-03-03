@@ -502,7 +502,6 @@ class Analyzer(ast.Visitor):
         expr = node.expression
         self.visit(expr)
         expr_type = expr.eval_type
-        print(node.expression)
         if expr_type.otype not in (OType.TINT, OType.TTEXTO):
             self.error(f"A directiva escolha só pode ser usada para avaliar números inteiros e strings")
         for case in node.cases:
