@@ -478,10 +478,10 @@ class Parser:
         # Parse cases
         while self.match(TT.CASO):
             block_token = self.consume(TT.CASO)
-            expression = self.equality()
+            case_expr = self.equality()
             self.consume(TT.COLON)
             block = self.block()
-            cases.append(ast.CaseBlock(block_token, expression, block))
+            cases.append(ast.CaseBlock(block_token, case_expr, block))
         # Default case
         if self.match(TT.SENAO):
             self.consume(TT.SENAO)
