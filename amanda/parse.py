@@ -286,8 +286,11 @@ class Parser:
 
     def block(self):
         block = ast.Block()
-        #SENAO is because of if statements
-        while not self.match(TT.FIM) and not self.match(TT.SENAO):
+        #SENAO is because of se statements
+        #SENAOSE is because of se statements
+        #EOF is for better error messages
+        while not self.match(TT.FIM) and not self.match(TT.SENAO) and \
+        not self.match(TT.SENAOSE) and not self.match(Lexer.EOF):
             if self.match(TT.NEWLINE):
                 self.consume(TT.NEWLINE)
             else:
@@ -430,11 +433,25 @@ class Parser:
         self.consume(TT.ENTAO)
         then_branch = self.block()
         else_branch = None
+        elsif_branches = []
+        while self.match(TT.SENAOSE):
+            elsif_branches.append(self.senaose_branch())
         if self.match(TT.SENAO):
             self.consume(TT.SENAO)
             else_branch = self.block()
         self.consume(TT.FIM,"esperava-se a símbolo fim para terminar a directiva 'se'")
-        return ast.Se(token,condition,then_branch,else_branch)
+        return ast.Se(
+            token, condition, then_branch, 
+            elsif_branches=elsif_branches, 
+            else_branch=else_branch
+        )
+
+    def senaose_branch(self):
+        token = self.consume(TT.SENAOSE)
+        condition = self.equality()
+        self.consume(TT.ENTAO)
+        then_branch = self.block()
+        return ast.SenaoSe(token, condition, then_branch)
 
     def enquanto_stmt(self):
         token = self.consume(TT.ENQUANTO)

@@ -57,7 +57,7 @@ mostra_stmt
   ;
 
 se_stmt
-  : SE equality ENTAO body (SENAO body)? FIM
+  : SE equality ENTAO body (SENAOSE equality ENTAO body)* (SENAO body)? FIM
   ;
 
 enquanto_stmt

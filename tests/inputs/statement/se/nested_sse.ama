@@ -1,0 +1,9 @@
+num : int = 4
+
+se num > 3 entao
+    se num >  4 entao
+        mostra "maior que 4"
+    senaose num == 4 entao
+        mostra "igual à 4"
+    fim
+fim

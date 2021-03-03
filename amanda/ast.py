@@ -104,11 +104,21 @@ class Mostra(Statement):
     pass
     
 class Se(ASTNode):
-    def __init__(self,token,condition,then_branch,else_branch=None):
+    def __init__(
+            self,token,condition,then_branch, *, 
+            elsif_branches=None, else_branch=None
+    ):
         super().__init__(token)
         self.condition = condition
         self.then_branch = then_branch
+        self.elsif_branches = elsif_branches
         self.else_branch = else_branch
+
+class SenaoSe(ASTNode):
+    def __init__(self,token,condition,then_branch):
+        super().__init__(token)
+        self.condition = condition
+        self.then_branch = then_branch
 
 class Enquanto(ASTNode):
     def __init__(self,token,condition,statement):

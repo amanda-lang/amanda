@@ -35,6 +35,7 @@ RETORNA : retorna
 CONVERTE : converte
 SE : se
 SENAO : senao
+SENAOSE : senaose
 ENTAO : entao
 ENQUANTO : enquanto
 PARA : para

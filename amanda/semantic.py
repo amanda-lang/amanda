@@ -476,11 +476,21 @@ class Analyzer(ast.Visitor):
         if not self.types_match(func_type,expr.eval_type):
             self.error(f"expressão de retorno inválida. O tipo do valor de retorno é incompatível com o tipo de retorno da função")
 
+
+    def visit_senaose(self, node):
+        self.visit(node.condition)
+        if node.condition.eval_type.otype != OType.TBOOL:
+            self.error(f"a condição da instrução 'senaose' deve ser um valor lógico")
+        self.visit(node.then_branch)
+
     def visit_se(self,node):
         self.visit(node.condition)
         if node.condition.eval_type.otype != OType.TBOOL:
             self.error(f"a condição da instrução 'se' deve ser um valor lógico")
         self.visit(node.then_branch)
+        elsif_branches = node.elsif_branches
+        for branch in elsif_branches:
+            self.visit(branch)
         if node.else_branch:
             self.visit(node.else_branch)
 
