@@ -59,7 +59,6 @@ class Generator:
         # to add custom statement to the beginning of
         # a block
         self.depth += 1
-        assert isinstance(node, ast.Program)
         indent_level = self.INDENT * self.depth
         self.scope_symtab = node.symbols
         # Newline for header
