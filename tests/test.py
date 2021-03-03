@@ -24,6 +24,7 @@ DIRS = [
     join(STATEMENT, "mostra"),
     join(STATEMENT, "para"),
     join(STATEMENT, "retorna"),
+    join(STATEMENT, "escolha"),
     join(STATEMENT, "se"),
     join(TEST_DIR, "operator"),
     join(TEST_DIR, "call"),
