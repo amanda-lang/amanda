@@ -55,6 +55,7 @@ class TokenType(Enum):
     RETORNA = "RETORNA"
     SE = "SE"
     SENAO = "SENAO"
+    SENAOSE = "SENAOSE"
     ENTAO = "ENTAO"
     ENQUANTO = "ENQUANTO"
     PARA = "PARA"
