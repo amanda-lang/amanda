@@ -106,7 +106,7 @@ class LexerTestCase(unittest.TestCase):
 
     def test_identifier(self):
         self.buffer.write(
-            "_test1 test test2 __test3 nulo var mostra verdadeiro falso retorna se senao senaose enquanto entao inc para faca de fim func classe eu super vazio converte "
+            "_test1 test test2 __test3 nulo var mostra verdadeiro falso retorna se senao senaose enquanto entao inc para faca de fim func classe eu super vazio converte escolha caso"
         )
         self.buffer.seek(0)
         lexer = Lexer(self.buffer)
@@ -190,6 +190,13 @@ class LexerTestCase(unittest.TestCase):
         token = lexer.get_token()
         self.assertEqual(token.token, TokenType.CONVERTE, msg="CONVERTE Test Failed")
         self.assertEqual(token.lexeme, "converte", msg="CONVERTE value test Failed")
+        token = lexer.get_token()
+        self.assertEqual(token.token, TokenType.ESCOLHA, msg="ESCOLHA Test Failed")
+        self.assertEqual(token.lexeme, "escolha", msg="ESCOLHA value test Failed")
+        token = lexer.get_token()
+        self.assertEqual(token.token, TokenType.CASO, msg="CASO Test Failed")
+        self.assertEqual(token.lexeme, "caso", msg="CASO value test Failed")
+
 
     def test_delimeters(self):
         self.buffer.write(". , ; ) ( { } [ ] : ..")
