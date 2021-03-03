@@ -59,7 +59,6 @@ class Generator:
         # to add custom statement to the beginning of
         # a block
         self.depth += 1
-        assert isinstance(node, ast.Program)
         indent_level = self.INDENT * self.depth
         self.scope_symtab = node.symbols
         # Newline for header
@@ -310,6 +309,30 @@ class Generator:
         condition = self.gen(node.condition)
         body = self.compile_branch(node.statement)
         return f"while {condition}:\n{body}"
+
+    def gen_escolha(self, node):
+        switch = StringIO()
+        expr = self.gen(node.expression)
+        cases = node.cases
+        default = node.default_case
+        indent = self.INDENT * self.depth
+        # No need to generate code
+        if not len(cases) and not default:
+            return ""
+        for c, case in enumerate(cases):
+            value = self.gen(case.expression)
+            block = self.compile_block(case.block, [])
+            if c == 0:
+                switch.write(f"if {expr} == {value}:\n{block}")
+            else:
+                switch.write(f"{indent}elif {expr} == {value}:\n{block}")
+        if default:
+            block = self.compile_block(default, [])
+            if not len(cases):
+                switch.write(f"if True:\n{block}")
+            else:
+                switch.write(f"{indent}else:\n{block}")
+        return self.build_str(switch)
 
     def gen_para(self, node):
         scope = node.statement.symbols

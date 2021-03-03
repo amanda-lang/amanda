@@ -277,6 +277,7 @@ class Parser:
             not self.match(TT.FIM)
             and not self.match(TT.SENAO)
             and not self.match(TT.SENAOSE)
+            and not self.match(TT.CASO)
             and not self.match(Lexer.EOF)
         ):
             if self.match(TT.NEWLINE):
@@ -402,6 +403,8 @@ class Parser:
             return self.se_statement()
         elif self.match(TT.PARA):
             return self.para_stmt()
+        elif self.match(TT.ESCOLHA):
+            return self.escolha_stmt()
         else:
             return self.decl_stmt()
 
@@ -464,6 +467,28 @@ class Parser:
             TT.FIM, "esperava-se o símbolo fim para terminar a directiva 'para'"
         )
         return ast.Para(token, expression, block)
+
+    def escolha_stmt(self):
+        token = self.consume(TT.ESCOLHA)
+        expression = self.equality()
+        self.consume(TT.COLON)
+        cases = []
+        default_case = None
+        self.skip_newlines()
+        # Parse cases
+        while self.match(TT.CASO):
+            block_token = self.consume(TT.CASO)
+            case_expr = self.equality()
+            self.consume(TT.COLON)
+            block = self.block()
+            cases.append(ast.CaseBlock(block_token, case_expr, block))
+        # Default case
+        if self.match(TT.SENAO):
+            self.consume(TT.SENAO)
+            self.consume(TT.COLON)
+            default_case = self.block()
+        self.consume(TT.FIM)
+        return ast.Escolha(token, expression, cases, default_case)
 
     def for_expression(self):
         name = self.consume(TT.IDENTIFIER)
