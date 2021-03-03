@@ -39,13 +39,20 @@ formal_parameter_section
 
 
 stmt
-  :
-  | mostra_stmt
+  : mostra_stmt
+  | escolha_stmt
   | retorna_stmt
   | se_stmt
   | enquanto_stmt
   | para_stmt
   | decl_stmt
+  ;
+
+escolha_stmt
+  : ESCOLHA equality NEWLINE 
+    (caso equality NEWLINE body)* 
+    (senao equality NEWLINE body)?
+    FIM 
   ;
 
 retorna_stmt
