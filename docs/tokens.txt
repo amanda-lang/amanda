@@ -32,6 +32,7 @@ MOSTRA : mostra
 VERDADEIRO : verdadeiro
 FALSO : falso
 RETORNA : retorna
+CASO: caso
 CONVERTE : converte
 SE : se
 SENAO : senao

@@ -50,7 +50,7 @@ stmt
 
 escolha_stmt
   : ESCOLHA equality NEWLINE 
-    (caso equality NEWLINE body)* 
+    (CASO equality NEWLINE body)* 
     (senao equality NEWLINE body)?
     FIM 
   ;
