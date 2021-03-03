@@ -297,12 +297,24 @@ class Generator:
             return f"float({expression})"
         else:
             return expression
+
+    def gen_senaose(self, node):
+        senaose_stmt = StringIO()
+        condition = self.gen(node.condition)
+        then_branch = self.compile_branch(node.then_branch)
+        indent_level = self.INDENT * self.depth
+        senaose_stmt.write(f"{indent_level}elif {condition}:\n{then_branch}")
+        return self.build_str(senaose_stmt)
     
     def gen_se(self,node):
         if_stmt = StringIO()
         condition = self.gen(node.condition)
         then_branch = self.compile_branch(node.then_branch)
+        elsif_branches = "".join([
+            self.gen(branch) for branch in node.elsif_branches
+        ])
         if_stmt.write(f"if {condition}:\n{then_branch}")
+        if_stmt.write(f"{elsif_branches}")
         if node.else_branch:
             indent_level = self.INDENT * self.depth
             else_branch = self.compile_branch(node.else_branch) 
