@@ -469,6 +469,25 @@ class ParserTestCase(unittest.TestCase):
                 uno 
                 0+2 
             fim
+
+
+            escolha num_int:
+                caso 1: 
+                    mostra 1
+
+
+
+                caso 2:
+                    mostra 2
+                caso 3: 
+                    mostra 3
+
+                caso 4: 
+                    mostra 4
+
+                senao:
+                    mostra "erro"
+            fim
             """,
         ]
         for phrase in phrases:

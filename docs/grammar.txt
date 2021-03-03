@@ -49,9 +49,9 @@ stmt
   ;
 
 escolha_stmt
-  : ESCOLHA equality NEWLINE 
-    (CASO equality NEWLINE body)* 
-    (senao equality NEWLINE body)?
+  : ESCOLHA equality COLON 
+    (CASO equality COLON body)* 
+    (senao equality COLON body)?
     FIM 
   ;
 
@@ -186,7 +186,6 @@ add_operator
   | MINUS
   | OR
   ;
-
 
 LINE_COMMENT:
   : '#'; 
