@@ -3,7 +3,7 @@ import time
 from io import StringIO
 import os
 import sys
-from os.path import abspath
+from os.path import abspath, relpath
 from amanda.amarun import run
 from amanda.error import handle_exception, throw_error
 from amanda.bltins import bltin_objs
@@ -41,7 +41,7 @@ def main(*args):
             f"The file '{abspath(args.file)}' was not found on this system"
         )
 
-    run(src, gen_out=args.generate, outname=args.outname)
+    run(relpath(args.file), src, gen_out=args.generate, outname=args.outname)
 
 
 if __name__ == "__main__":

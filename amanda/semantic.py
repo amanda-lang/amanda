@@ -16,7 +16,7 @@ class Analyzer(ast.Visitor):
     ID_IN_USE = "O identificador '{name}' já foi declarado neste escopo"
     INVALID_REF = "o identificador '{name}' não é uma referência válida"
 
-    def __init__(self):
+    def __init__(self, module):
         # Just to have quick access to things like types and e.t.c
         self.global_scope = symbols.Scope()
         self.scope_depth = 0
@@ -27,7 +27,7 @@ class Analyzer(ast.Visitor):
         # includes modules
         self.includes = {}
         # Module currently being analyzed executing module
-        self.c_module = None
+        self.c_module = module
         self.init_builtins()
 
     def init_builtins(self):
@@ -146,7 +146,7 @@ class Analyzer(ast.Visitor):
         fpath = node.module.lexeme.replace("'", "").replace('"', "")
         # Check if path refers to a valid file
         head, tail = path.split(fpath)
-        err_msg = f"Erro ao incluir módulo. O caminho '{fpath}' não é um ficheiro válido"
+        err_msg = f"Erro ao importar módulo. O caminho '{fpath}' não é um ficheiro válido"
         if not tail:
             self.error(err_msg)
         # If file doesn't have .ama extensions,
@@ -167,7 +167,7 @@ class Analyzer(ast.Visitor):
         # A cycle occurs when a previously seen module
         # is seen again, but it is not loaded yet
         if existing_mod and not existing_mod.loaded:
-            self.error(f"Erro ao incluir módulo. inclusão cíclica detectada.")
+            self.error(f"Erro ao importar módulo. inclusão cíclica detectada")
 
         module = symbols.Module(mod_path)
         prev_module = self.c_module
@@ -175,7 +175,17 @@ class Analyzer(ast.Visitor):
         self.includes[mod_path] = module
 
         # TODO: Handle errors while loading another module
-        module.ast = self.visit_program(parse(module.fpath))
+        try:
+            module.ast = self.visit_program(parse(module.fpath))
+        except AmandaError as e:
+            tok = node.token
+            raise AmandaError.raw_error(
+                f"Erro ao importar o módulo '{fpath}'.",
+                line=tok.line,
+                col=tok.col,
+                file=prev_module.fpath,
+                cause=e,
+            )
 
         module.loaded = True
         self.c_module = prev_module

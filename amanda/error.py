@@ -1,4 +1,5 @@
 import sys
+from os import path
 
 
 class AmandaError(Exception):
@@ -6,6 +7,8 @@ class AmandaError(Exception):
         self.message = message
         self.line = line
         self.col = col
+        self.file = None
+        self.cause = None
 
     @classmethod
     def syntax_error(cls, message, line, col):
@@ -18,6 +21,15 @@ class AmandaError(Exception):
         instance = cls(message, line)
         instance.message = f"\nErro na linha {line}: {message}.\n"
         return instance
+
+    @classmethod
+    def raw_error(cls, message, *, line, col, file, cause):
+        err = cls(message, line)
+        err.col = col
+        err.file = file
+        err.cause = cause
+        err.message = f"\n{path.abspath(file)}:{line}:{col}: ERRO: {message}\n"
+        return err
 
     def __str__(self):
         return self.message
@@ -63,6 +75,9 @@ def fmt_error(context, error):
     5| var cao : Animal func
                         ^^^^
     """
+    message = str(error)
+    if not context:
+        return f"{error}"
     err_marker = "^"
     message = str(error)
     fmt_message = "\n".join([message, "-" * len(message)])
@@ -92,8 +107,14 @@ def throw_error(error, source):
     5| var cao : Animal func
        ^^^^^^^^^^^^^^^^^^^^^
     """
-    context = get_context(error, source)
+    context = [] if error.file else get_context(error, source)
     sys.stderr.write(fmt_error(context, error))
+    err = error.cause
+    while err:
+        sys.stderr.write("\nO erro acima foi causado por: \n")
+        context = []
+        sys.stderr.write(fmt_error(context, err))
+        err = err.cause
     source.close()
     sys.exit()
 
