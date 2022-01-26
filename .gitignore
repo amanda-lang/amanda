@@ -9,3 +9,4 @@ dist/
 *.spec
 .venv
 *.log
+feat_tests/
