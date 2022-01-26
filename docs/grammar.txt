@@ -2,8 +2,8 @@ program
  : (import_stmt)* ( declaration | NEWLINE )* EOF
  ;
 
-import_stmt
- : IMPORTA STRING (COMO IDENTIFIER)? end_stmt
+inclua_stmt
+ : INCLUA STRING (COMO IDENTIFIER)? end_stmt
  ;
 
 declaration
