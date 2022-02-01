@@ -1,3 +1,4 @@
+from __future__ import annotations
 import sys
 from os import path
 from typing import Any, Literal, Optional, ClassVar, cast
@@ -45,16 +46,16 @@ def fmt_error(context: str, error: AmandaError) -> str:
     err_loc = f"linha {error.line}"
     # Show column in case of syntax errors
     if error.err_type == AmandaError.SYNTAX_ERR:
-        err_loc += f":coluna {error.col}"
+        err_loc += f": coluna {error.col}"
 
     err_header = f"""Ficheiro "{filepath}", {err_loc}"""
     err_msg = (
         f"Erro sintático: {error.message}"
         if error.err_type == AmandaError.SYNTAX_ERR
-        else "Erro: {error.message}"
+        else f"Erro: {error.message}"
     )
 
-    return f"\n{err_header}\n{err_msg}\n    {context}\n"
+    return f"\n{err_header}\n    {context}\n{err_msg}\n"
 
 
 def throw_error(err: AmandaError) -> None:
@@ -65,7 +66,7 @@ def throw_error(err: AmandaError) -> None:
     with open(filename, "r", encoding="utf8") as f:
         for lineno, line in enumerate(f):
             if lineno == err.line - 1:
-                context = line
+                context = line.strip()
                 break
     # Line should always be valid because it came from file
     assert context is not None, "Context should always be a line from the file"

@@ -1,0 +1,5 @@
+inclua "./feat_tests/bar"
+inclua "./feat_tests/baz"
+
+baz()
+bar()

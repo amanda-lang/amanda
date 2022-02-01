@@ -3,7 +3,7 @@ import time
 from io import StringIO
 import os
 import sys
-from os.path import abspath
+from os import path
 from amanda.amarun import run
 from amanda.error import handle_exception, throw_error
 from amanda.bltins import bltin_objs
@@ -33,13 +33,11 @@ def main(*args):
         args = parser.parse_args(args)
     else:
         args = parser.parse_args()
-    try:
-        with open(abspath(args.file), encoding="utf-8") as src_file:
-            src = StringIO(src_file.read())
-    except FileNotFoundError:
-        sys.exit(f"The file '{abspath(args.file)}' was not found on this system")
-
-    run(src, gen_out=args.generate, outname=args.outname)
+    if not path.isfile(args.file):
+        sys.exit(
+            f"The file '{path.abspath(args.file)}' was not found on this system"
+        )
+    run(args.file, gen_out=args.generate, outname=args.outname)
 
 
 if __name__ == "__main__":
