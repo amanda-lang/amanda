@@ -1,6 +1,5 @@
 #Fibonacci
 
-
 func fibo(n : int) : int
 
     se n < 2 entao

@@ -43,4 +43,4 @@ hi def link celHip         Type
 hi def link celDesc        PreProc
 hi def link AmaNumber      Constant
 hi def link AmaString      String
-hi def link AmaTypes       Types
+hi def link AmaTypes       Type
