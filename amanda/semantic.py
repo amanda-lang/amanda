@@ -140,6 +140,8 @@ class Analyzer(ast.Visitor):
         for child in node.children:
             self.visit(child)
         node.symbols = self.global_scope
+        node.includes = self.includes
+        node.module = self.c_module
         return node
 
     def visit_inclua(self, node):
@@ -187,6 +189,7 @@ class Analyzer(ast.Visitor):
                 cause=e,
             )
 
+        node.ast = module.ast
         module.loaded = True
         self.c_module = prev_module
 

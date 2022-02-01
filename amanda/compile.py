@@ -1,6 +1,7 @@
 import sys
 import pdb
 from io import StringIO
+from os import path
 import amanda.symbols as symbols
 from amanda.type import Type, OType
 import amanda.ast as ast
@@ -18,10 +19,15 @@ class Generator:
         self.class_depth = 0
         self.program_symtab = None
         self.scope_symtab = None
+        self.c_module = None
         self.line_info = {}  # Maps py_fileno to ama_fileno
 
     def generate_code(self, program):
         """ Method that begins compilation of amanda source."""
+        assert program.module is not None, "program.module must not be None"
+        assert (
+            program.includes is not None
+        ), "The includes of a program must not be None."
         self.program_symtab = self.scope_symtab = program.symbols
         py_code = self.gen(program)
         return (py_code, self.line_info)
@@ -41,7 +47,16 @@ class Generator:
             return gen_method(node, args)
         return gen_method(node)
 
+    def gen_inclua(self, node):
+        module = node.ast
+        generator = Generator()
+        mod_src, _ = generator.generate_code(module)
+        self.py_lineno += generator.py_lineno
+        return mod_src
+        # raise NotImplementedError("Cannot generate node for inclua statments")
+
     def gen_program(self, node):
+        self.c_module = node.module
         return self.compile_block(node, [])
 
     def update_line_info(self):

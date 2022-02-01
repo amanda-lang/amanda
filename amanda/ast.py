@@ -14,6 +14,8 @@ class Program(ASTNode):
     def __init__(self):
         self.children = []
         self.symbols = None
+        self.includes = None
+        self.module = None
 
     def add_child(self, node):
         self.children.append(node)
