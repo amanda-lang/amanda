@@ -9,19 +9,21 @@ endif
 
 
 "Amanda keywords
-syn  keyword AmaKeywords var mostra verdadeiro falson retorna
+syn  keyword AmaKeywords mostra retorna
 syn  keyword AmaKeywords verdadeiro falso retorna converte
 syn  keyword AmaKeywords se senao entao enquanto
 syn  keyword AmaKeywords para faca de  func
-syn  keyword AmaKeywords fim classe nulo
+syn  keyword AmaKeywords fim classe 
 syn  keyword AmaKeywords inclua como super
 
 "Amanda Literals
 syn match AmaNumber '\d\+'
+syn match AmaNumber '\d\+\.\d*'
 syn match AmaNumber '[-+]\d\+'
 syn match AmaNumber '[-+]\d\+\.\d*'
 syn match AmaString '".*"'
 syn match AmaString "'.*'"
+syn keyword AmaBuiltins verdadeiro falso nulo
 
 
 "Comment
@@ -39,8 +41,7 @@ let b:current_syntax = "ama"
 
 hi def link AmaComment     Comment
 hi def link AmaKeywords    Keyword
-hi def link celHip         Type
-hi def link celDesc        PreProc
-hi def link AmaNumber      Constant
-hi def link AmaString      String
 hi def link AmaTypes       Type
+hi def link AmaString      String
+hi def link AmaNumber      Constant
+hi def link AmaBuiltins    Constant
