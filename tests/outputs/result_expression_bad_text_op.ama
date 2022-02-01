@@ -1,1 +1,1 @@
-Erro na linha 1: os tipos 'texto' e 'texto' não suportam operações com o operador '-'.
+Erro: os tipos 'texto' e 'texto' não suportam operações com o operador '-'.

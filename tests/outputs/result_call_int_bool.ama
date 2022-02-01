@@ -1,1 +1,1 @@
-Erro na linha 7: argumento inválido. Esperava-se um argumento do tipo 'int' mas recebeu o tipo 'bool'.
+Erro: argumento inválido. Esperava-se um argumento do tipo 'int' mas recebeu o tipo 'bool'.

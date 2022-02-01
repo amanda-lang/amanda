@@ -15,7 +15,8 @@ class Lexer:
     INVALID_SYMBOL = "O símbolo '{symbol}' não foi reconhecido"
     INVALID_STRING = "A sequência de caracteres não foi delimitada"
 
-    def __init__(self, src):
+    def __init__(self, filename, src):
+        self.filename = filename
         self.line = 1
         self.pos = 1
         self.current_token = None
@@ -44,7 +45,9 @@ class Lexer:
 
     def error(self, code, **kwargs):
         message = code.format(**kwargs)
-        raise AmandaError.syntax_error(message, self.line, self.pos)
+        raise AmandaError.syntax_error(
+            self.filename, message, self.line, self.pos
+        )
 
     def newline(self):
         pos = self.pos
@@ -247,7 +250,7 @@ class Parser:
     ILLEGAL_ASSIGN = "alvo inválido para atribuição"
 
     def __init__(self, filename, io_object):
-        self.lexer = Lexer(io_object)
+        self.lexer = Lexer(filename, io_object)
         self.delimited = False
         self.filename = filename
         self.lookahead = self.lexer.get_token()

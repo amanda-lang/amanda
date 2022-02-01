@@ -50,9 +50,9 @@ def fmt_error(context: str, error: AmandaError) -> str:
 
     err_header = f"""Ficheiro "{filepath}", {err_loc}"""
     err_msg = (
-        f"Erro sintático: {error.message}"
+        f"Erro sintático: {error.message}."
         if error.err_type == AmandaError.SYNTAX_ERR
-        else f"Erro: {error.message}"
+        else f"Erro: {error.message}."
     )
 
     return f"\n{err_header}\n    {context}\n{err_msg}\n"

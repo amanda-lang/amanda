@@ -1,1 +1,1 @@
-Erro na linha 2: os tipos 'real' e 'bool' não suportam operações com o operador '+'.
+Erro: os tipos 'real' e 'bool' não suportam operações com o operador '+'.

@@ -25,4 +25,4 @@ def run(filename, *, gen_out=False, outname="output.py"):
         ama_error = handle_exception(e, outname, line_info)
         if not ama_error:
             raise e
-        throw_error(ama_error, src)
+        throw_error(ama_error)
