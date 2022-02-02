@@ -16,17 +16,24 @@ INVALID_CONVERSION = (
 )
 
 
-def add_bltin_func(name, obj, return_type, *params):
-    """Helper that creates a function_symbol and adds it
-    to the dict of bltin symbols"""
-    return_type = return_type if return_type else Type(OType.TVAZIO)
-    formal_params = {}
-    for pname, ptype in params:
-        formal_params[pname] = symbols.VariableSymbol(pname, ptype)
-    bltin_symbols[name] = symbols.FunctionSymbol(
-        name, return_type, formal_params
-    )
-    bltin_objs[name] = obj
+def ama_builtin(*params, returns=None):
+    """Decorator that adds a function as an ama_builtin"""
+
+    def decorator(func):
+        """Helper that creates a function_symbol and adds it
+        to the dict of bltin symbols"""
+        name = func.__name__
+        return_type = returns if returns else Type(OType.TVAZIO)
+        formal_params = {}
+        for pname, ptype in params:
+            formal_params[pname] = symbols.VariableSymbol(pname, ptype)
+        bltin_symbols[name] = symbols.FunctionSymbol(
+            name, return_type, formal_params
+        )
+        bltin_objs[name] = func
+        return func
+
+    return decorator
 
 
 def print_wrapper(obj, **kwargs):
@@ -39,12 +46,14 @@ def print_wrapper(obj, **kwargs):
 
 
 # Input functions
+@ama_builtin(("mensagem", Type(OType.TTEXTO)), returns=Type(OType.TTEXTO))
 def leia(prompt):
     """Calls the python input method using a prompt
     given by the amanda caller"""
     return input(prompt)
 
 
+@ama_builtin(("mensagem", Type(OType.TTEXTO)), returns=Type(OType.TINT))
 def leia_int(prompt):
     """Same as 'leia' but converts the result into
     an int"""
@@ -54,6 +63,7 @@ def leia_int(prompt):
         raise AmandaError(INVALID_CONVERSION, -1)
 
 
+@ama_builtin(("mensagem", Type(OType.TTEXTO)), returns=Type(OType.TREAL))
 def leia_real(prompt):
     """Same as 'leia' but converts the result into
     a float"""
@@ -80,6 +90,7 @@ def converte(value, type_class):
         raise AmandaError(INVALID_CONVERSION, -1)
 
 
+@ama_builtin()
 def lista(subtype, size):
     # Returns a list of the desired size
     if size < 0:
@@ -91,15 +102,18 @@ def lista(subtype, size):
     return Lista(subtype, [default for i in range(size)])
 
 
+@ama_builtin()
 def matriz(subtype, rows, cols):
     # Returns a list of the desired size
     return Lista(subtype, [lista(subtype, cols) for i in range(rows)])
 
 
+@ama_builtin()
 def anexe(list_obj, value):
     list_obj.elements.append(value)
 
 
+@ama_builtin(("valor", Type(OType.TINDEF)), returns=Type(OType.TTEXTO))
 def tipo(indef_obj):
     """Returns the type of a
     value. Useful for 'unwrapping'
@@ -116,6 +130,7 @@ def tipo(indef_obj):
     return types.get(type(value))
 
 
+@ama_builtin(("objecto", Type(OType.TINDEF)), returns=Type(OType.TINT))
 def tamanho(indef_obj):
     value = indef_obj.value  # unwrap value
     if type(value) == Lista:
@@ -137,27 +152,3 @@ bltin_objs["indef"] = Indef
 bltin_objs["Lista"] = Lista
 bltin_objs["nulo"] = Nulo()
 bltin_objs["_BaseClass_"] = BaseClass
-
-add_bltin_func(
-    "leia", leia, Type(OType.TTEXTO), ("mensagem", Type(OType.TTEXTO))
-)
-
-add_bltin_func(
-    "leia_int", leia_int, Type(OType.TINT), ("mensagem", Type(OType.TTEXTO))
-)
-
-add_bltin_func(
-    "leia_real", leia_real, Type(OType.TREAL), ("mensagem", Type(OType.TTEXTO))
-)
-
-add_bltin_func("tipo", tipo, Type(OType.TTEXTO), ("valor", Type(OType.TINDEF)))
-
-add_bltin_func(
-    "tamanho", tamanho, Type(OType.TINT), ("objecto", Type(OType.TINDEF))
-)
-
-add_bltin_func("lista", lista, None)
-
-add_bltin_func("matriz", matriz, None)
-
-add_bltin_func("anexe", anexe, None)
