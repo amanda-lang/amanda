@@ -1,4 +1,7 @@
+from __future__ import annotations
 from enum import Enum
+from dataclasses import dataclass
+from typing import Dict
 
 
 class TokenType(Enum):
@@ -75,14 +78,14 @@ class TokenType(Enum):
     CLASSE = "CLASSE"
 
 
+@dataclass
 class Token:
-    def __init__(self, token, lexeme, line=0, col=0):
-        self.token = token
-        self.lexeme = lexeme
-        self.line = line
-        self.col = col
+    token: TokenType
+    lexeme: str
+    line: int = 0
+    col: int = 0
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "<Type: %s, Lexeme: %s Line:%s>" % (
             self.token.value,
             self.lexeme,
@@ -90,7 +93,7 @@ class Token:
         )
 
 
-def build_reserved_keywords():
+def build_reserved_keywords() -> Dict[str, Token]:
     """Build a dictionary of reserved keywords."""
     tt_list = list(TokenType)
     start_index = tt_list.index(TokenType.MOSTRA)
