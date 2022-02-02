@@ -117,7 +117,13 @@ class Mostra(Statement):
 
 class Se(ASTNode):
     def __init__(
-        self, token, condition, then_branch, *, elsif_branches=None, else_branch=None
+        self,
+        token,
+        condition,
+        then_branch,
+        *,
+        elsif_branches=None,
+        else_branch=None,
     ):
         super().__init__(token)
         self.condition = condition

@@ -15,7 +15,8 @@ class Lexer:
     INVALID_SYMBOL = "O símbolo '{symbol}' não foi reconhecido"
     INVALID_STRING = "A sequência de caracteres não foi delimitada"
 
-    def __init__(self, src):
+    def __init__(self, filename, src):
+        self.filename = filename
         self.line = 1
         self.pos = 1
         self.current_token = None
@@ -44,7 +45,9 @@ class Lexer:
 
     def error(self, code, **kwargs):
         message = code.format(**kwargs)
-        raise AmandaError.syntax_error(message, self.line, self.pos)
+        raise AmandaError.syntax_error(
+            self.filename, message, self.line, self.pos
+        )
 
     def newline(self):
         pos = self.pos
@@ -98,9 +101,13 @@ class Lexer:
         if self.current_char == "<":
             return self.get_op_token(self.current_char, TT.LESS, TT.LESSEQ)
         elif self.current_char == ">":
-            return self.get_op_token(self.current_char, TT.GREATER, TT.GREATEREQ)
+            return self.get_op_token(
+                self.current_char, TT.GREATER, TT.GREATEREQ
+            )
         elif self.current_char == "=":
-            return self.get_op_token(self.current_char, TT.EQUAL, TT.DOUBLEEQUAL)
+            return self.get_op_token(
+                self.current_char, TT.EQUAL, TT.DOUBLEEQUAL
+            )
         elif self.current_char == "!":
             if self.lookahead() == "=":
                 self.advance()
@@ -126,7 +133,9 @@ class Lexer:
                 TT.REAL, float(result), self.line, self.pos - (len(result) + 1)
             )
 
-        return Token(TT.INTEGER, int(result), self.line, self.pos - (len(result) + 1))
+        return Token(
+            TT.INTEGER, int(result), self.line, self.pos - (len(result) + 1)
+        )
 
     def string(self):
         result = ""
@@ -138,7 +147,9 @@ class Lexer:
             result += self.current_char
             self.advance()
         self.advance()
-        return Token(TT.STRING, f"{symbol}{result}{symbol}", self.line, self.pos)
+        return Token(
+            TT.STRING, f"{symbol}{result}{symbol}", self.line, self.pos
+        )
 
     def identifier(self):
         result = ""
@@ -150,7 +161,9 @@ class Lexer:
             token.line = self.line
             token.col = self.pos - (len(result) + 1)
             return token
-        return Token(TT.IDENTIFIER, result, self.line, self.pos - (len(result) + 1))
+        return Token(
+            TT.IDENTIFIER, result, self.line, self.pos - (len(result) + 1)
+        )
 
     def delimeters(self):
         char = self.current_char
@@ -208,7 +221,18 @@ class Lexer:
             return self.string()
         if self.current_char.isalpha() or self.current_char == "_":
             return self.identifier()
-        if self.current_char in ("(", ")", ".", ";", ",", "{", "}", "[", "]", ":"):
+        if self.current_char in (
+            "(",
+            ")",
+            ".",
+            ";",
+            ",",
+            "{",
+            "}",
+            "[",
+            "]",
+            ":",
+        ):
             return self.delimeters()
         if self.current_char == Lexer.EOF:
             return Token(Lexer.EOF, "")
@@ -217,15 +241,18 @@ class Lexer:
 
 class Parser:
     # Errors messages
-    MISSING_TERM = "as instruções devem ser delimitadas por ';' ou por uma nova linha"
+    MISSING_TERM = (
+        "as instruções devem ser delimitadas por ';' ou por uma nova linha"
+    )
     ILLEGAL_EXPRESSION = "início inválido de expressão"
     EXPECTED_ID = "era esperado um identificador depois do símbolo '{symbol}'"
     EXPECTED_TYPE = "era esperado um tipo depois do símbolo '{symbol}'"
     ILLEGAL_ASSIGN = "alvo inválido para atribuição"
 
-    def __init__(self, io_object):
-        self.lexer = Lexer(io_object)
+    def __init__(self, filename, io_object):
+        self.lexer = Lexer(filename, io_object)
         self.delimited = False
+        self.filename = filename
         self.lookahead = self.lexer.get_token()
 
     def consume(self, expected, error=None, skip_newlines=False):
@@ -246,7 +273,9 @@ class Parser:
         err_line = self.lookahead.line
         if line:
             err_line = line
-        raise AmandaError.syntax_error(message, err_line, self.lookahead.col)
+        raise AmandaError.syntax_error(
+            self.filename, message, err_line, self.lookahead.col
+        )
 
     def skip_newlines(self):
         while self.match(TT.NEWLINE):
@@ -326,7 +355,9 @@ class Parser:
 
     def function_decl(self):
         self.consume(TT.FUNC)
-        name = self.consume(TT.IDENTIFIER, self.EXPECTED_ID.format(symbol="func"))
+        name = self.consume(
+            TT.IDENTIFIER, self.EXPECTED_ID.format(symbol="func")
+        )
         self.consume(TT.LPAR)
         params = self.formal_params()
         self.consume(
@@ -341,7 +372,8 @@ class Parser:
                 func_type = self.type()
         block = self.block()
         self.consume(
-            TT.FIM, "O corpo de um função deve ser terminado com a directiva 'fim'"
+            TT.FIM,
+            "O corpo de um função deve ser terminado com a directiva 'fim'",
         )
         return ast.FunctionDecl(
             name=name, block=block, func_type=func_type, params=params
@@ -364,13 +396,18 @@ class Parser:
             else:
                 member = self.declaration()
                 member_type = type(member)
-                if member_type != ast.FunctionDecl and member_type != ast.VarDecl:
+                if (
+                    member_type != ast.FunctionDecl
+                    and member_type != ast.VarDecl
+                ):
                     self.error(
-                        "directiva inválida para o corpo de uma classe", member.lineno
+                        "directiva inválida para o corpo de uma classe",
+                        member.lineno,
                     )
                 if member_type == ast.VarDecl and member.assign is not None:
                     self.error(
-                        "Não pode inicializar os campos de um classe", member.lineno
+                        "Não pode inicializar os campos de um classe",
+                        member.lineno,
                     )
                 body.add_child(member)
         return body
@@ -432,7 +469,9 @@ class Parser:
         if self.match(TT.SENAO):
             self.consume(TT.SENAO)
             else_branch = self.block()
-        self.consume(TT.FIM, "esperava-se a símbolo fim para terminar a directiva 'se'")
+        self.consume(
+            TT.FIM, "esperava-se a símbolo fim para terminar a directiva 'se'"
+        )
         return ast.Se(
             token,
             condition,
@@ -454,7 +493,8 @@ class Parser:
         self.consume(TT.FACA)
         block = self.block()
         self.consume(
-            TT.FIM, "esperava-se o símbolo fim para terminar a directiva 'enquanto'"
+            TT.FIM,
+            "esperava-se o símbolo fim para terminar a directiva 'enquanto'",
         )
         return ast.Enquanto(token, condition, block)
 
@@ -520,7 +560,9 @@ class Parser:
         assign = None
         if self.match(TT.EQUAL):
             assign = ast.Assign(
-                self.consume(TT.EQUAL), left=ast.Variable(name), right=self.equality()
+                self.consume(TT.EQUAL),
+                left=ast.Variable(name),
+                right=self.equality(),
             )
         return assign
 
@@ -535,13 +577,17 @@ class Parser:
         names.append(name)
         while self.match(TT.COMMA):
             self.consume(TT.COMMA)
-            name = self.consume(TT.IDENTIFIER, self.EXPECTED_ID.format(symbol=","))
+            name = self.consume(
+                TT.IDENTIFIER, self.EXPECTED_ID.format(symbol=",")
+            )
             names.append(name)
         token = self.consume(TT.COLON)
         var_type = self.type()
         decls = []
         for var_name in names:
-            decl = ast.VarDecl(token, name=var_name, var_type=var_type, assign=None)
+            decl = ast.VarDecl(
+                token, name=var_name, var_type=var_type, assign=None
+            )
             decls.append(decl)
         return decls
 
@@ -562,8 +608,12 @@ class Parser:
             if not expr.is_assignable():
                 self.error(self.ILLEGAL_ASSIGN)
             # Create separate tokens
-            token = Token(None, None, line=self.lookahead.line, col=self.lookahead.col)
-            eq = Token(TT.EQUAL, "=", line=self.lookahead.line, col=self.lookahead.col)
+            token = Token(
+                None, None, line=self.lookahead.line, col=self.lookahead.col
+            )
+            eq = Token(
+                TT.EQUAL, "=", line=self.lookahead.line, col=self.lookahead.col
+            )
             token.token, token.lexeme = self.compound_operator()
             self.consume(current)
             if isinstance(expr, ast.Get):
@@ -618,7 +668,12 @@ class Parser:
 
     def comparison(self):
         node = self.addition()
-        while self.lookahead.token in (TT.GREATER, TT.GREATEREQ, TT.LESS, TT.LESSEQ):
+        while self.lookahead.token in (
+            TT.GREATER,
+            TT.GREATEREQ,
+            TT.LESS,
+            TT.LESSEQ,
+        ):
             op = self.comp_operator()
             node = ast.BinOp(op, left=node, right=self.addition())
         return node
@@ -662,7 +717,8 @@ class Parser:
                 args = []
                 args = self.args()
                 token = self.consume(
-                    TT.RPAR, "os argumentos da função devem ser delimitados por ')'"
+                    TT.RPAR,
+                    "os argumentos da função devem ser delimitados por ')'",
                 )
                 expr = ast.Call(callee=expr, paren=token, fargs=args)
             elif self.match(TT.LBRACKET):
@@ -709,7 +765,9 @@ class Parser:
                     elements.append(self.equality())
                     self.skip_newlines()
             self.consume(TT.RBRACKET, skip_newlines=True)
-            expr = ast.ListLiteral(token, list_type=list_type, elements=elements)
+            expr = ast.ListLiteral(
+                token, list_type=list_type, elements=elements
+            )
         elif self.match(TT.LPAR):
             self.consume(TT.LPAR)
             expr = self.equality()
@@ -720,7 +778,9 @@ class Parser:
         elif self.match(TT.CONVERTE):
             expr = self.converte_expression()
         else:
-            self.error(f"início inválido de expressão: '{self.lookahead.lexeme}'")
+            self.error(
+                f"início inválido de expressão: '{self.lookahead.lexeme}'"
+            )
         return expr
 
     def converte_expression(self):
@@ -762,3 +822,9 @@ class Parser:
             return self.consume(TT.PLUS)
         elif self.match(TT.MINUS):
             return self.consume(TT.MINUS)
+
+
+def parse(filename):
+    with open(filename, encoding="utf-8") as src_file:
+        src = StringIO(src_file.read())
+    return Parser(filename, src).parse()

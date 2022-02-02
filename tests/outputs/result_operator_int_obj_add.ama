@@ -1,1 +1,1 @@
-Erro na linha 3: os tipos 'int' e 'texto' não suportam operações com o operador '+'.
+Erro: os tipos 'int' e 'texto' não suportam operações com o operador '+'.

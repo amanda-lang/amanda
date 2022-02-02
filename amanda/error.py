@@ -1,111 +1,93 @@
+from __future__ import annotations
 import sys
+from os import path
+from typing import Any, Literal, Optional, ClassVar, cast
+from dataclasses import dataclass
 
 
+@dataclass
 class AmandaError(Exception):
-    def __init__(self, message, line, col=0):
-        self.message = message
-        self.line = line
-        self.col = col
+    # error types
+    SYNTAX_ERR: ClassVar[Literal[0]] = 0
+    COMMON_ERR: ClassVar[Literal[1]] = 1
+    RUNTIME_ERR: ClassVar[Literal[2]] = 2
+
+    err_type: Literal[0, 1, 2]
+    fpath: str
+    message: str
+    line: int
+    col: int = -1
 
     @classmethod
-    def syntax_error(cls, message, line, col):
-        instance = cls(message, line)
-        instance.message = f"\nErro sintático na linha {line}: {message}.\n"
-        return instance
+    def syntax_error(
+        cls, fpath: str, message: str, line: int, col: int
+    ) -> AmandaError:
+        return cls(cls.SYNTAX_ERR, fpath, message, line, col)
 
     @classmethod
-    def common_error(cls, message, line):
-        instance = cls(message, line)
-        instance.message = f"\nErro na linha {line}: {message}.\n"
-        return instance
+    def common_error(cls, fpath: str, message: str, line: int) -> AmandaError:
+        return cls(cls.COMMON_ERR, fpath, message, line)
 
-    def __str__(self):
+    @classmethod
+    def runtime_err(cls, message: str) -> AmandaError:
+        return cls(cls.RUNTIME_ERR, "", message, -1)
+
+    def __str__(self) -> str:
         return self.message
 
 
-def get_context(error, source):
-    """
-    Gets the context of an error. the context
-    is just just an array with a certain number of lines
-    from the source file.
-    """
-    context = []
-    source.seek(0)
-    # number of lines to use as context
-    n_lines = 2
-    # range to get
-    lower_bound = error.line - n_lines
-    upper_bound = error.line
-
-    for count, line in enumerate(source):
-        # get lines that are within context range
-        if count + 1 >= lower_bound:
-            fmt_line = "| ".join([str(count + 1), line.strip()])
-            context.append(fmt_line)
-            if count + 1 == upper_bound:
-                source.close()
-                break
-    return context
-
-
-def fmt_error(context, error):
+def fmt_error(context: str, error: AmandaError) -> str:
     """
     Formats the error message using the error
     object and the context.
 
     Ex:
 
-    Erro sintático na linha 5: alguma mensagem aqui
-    ------------------------------------------------
-
-    3| var char : texto
-    4| var lobo : Animal
-    5| var cao : Animal func
-                        ^^^^
+    Ficheiro './exemplo.py', linha 5
+    Erro sintático: alguma mensagem aqui
+        var cao : Animal func
     """
-    err_marker = "^"
-    message = str(error)
-    fmt_message = "\n".join([message, "-" * len(message)])
-    fmt_context = "\n".join(context)
-    # Doing this weird stuff to get the indicator '^' under the loc
-    err_line = context[len(context) - 1].split("|")
-    code_len = len(err_line[1].strip())
-    padding = len(err_line[0]) + 2
-    # find the size and create the error indicator
-    indicator = err_marker * code_len
-    indicator = indicator.rjust(padding + code_len)
-    return f"{fmt_message}\n{fmt_context}\n{indicator}\n"
+    filepath = path.relpath(error.fpath)
+    err_loc = f"linha {error.line}"
+    # Show column in case of syntax errors
+    if error.err_type == AmandaError.SYNTAX_ERR:
+        err_loc += f": coluna {error.col}"
+
+    err_header = f"""Ficheiro "{filepath}", {err_loc}"""
+    err_msg = (
+        f"Erro sintático: {error.message}."
+        if error.err_type == AmandaError.SYNTAX_ERR
+        else f"Erro: {error.message}."
+    )
+
+    return f"\n{err_header}\n    {context}\n{err_msg}\n"
 
 
-def throw_error(error, source):
-    """
-    Method that deals with errors thrown at different stages of the program.
+def throw_error(err: AmandaError) -> None:
+    # Attempt to get error line from file
+    filename = path.abspath(err.fpath)
+    assert path.isfile(filename), "Invalid filename supplied to error"
+    context = None
+    with open(filename, "r", encoding="utf8") as f:
+        for lineno, line in enumerate(f):
+            if lineno == err.line - 1:
+                context = line.strip()
+                break
+    # Line should always be valid because it came from file
+    assert context is not None, "Context should always be a line from the file"
 
-    param: source - io object where the program is being read from
-    Ex:
-
-    Erro sintático na linha 5: alguma mensagem aqui
-    ------------------------------------------------
-
-    3| var char : texto
-    4| var lobo : Animal
-    5| var cao : Animal func
-       ^^^^^^^^^^^^^^^^^^^^^
-    """
-    context = get_context(error, source)
-    sys.stderr.write(fmt_error(context, error))
-    source.close()
+    sys.stderr.write(fmt_error(context, err))
     sys.exit()
 
 
-def get_info_from_tb(exception, filename):
+def get_info_from_tb(exception: Exception, filename: str) -> Any:
     """Get info from traceback object based
     on the kind of error it is"""
-    tb = exception.__traceback__
+    tb: Any = exception.__traceback__
     # Return line number of traceback object
     # that is in compiled file
     while True:
-        next_tb = tb.tb_next
+        next_tb: Any = tb.tb_next
         if not next_tb or (
             tb.tb_frame.f_code.co_filename == filename
             and next_tb.tb_frame.f_code.co_filename != filename
@@ -115,18 +97,19 @@ def get_info_from_tb(exception, filename):
     return tb.tb_lineno
 
 
-def handle_exception(exception, filename, src_map):
+def handle_exception(
+    exception: Exception, outfile: str, srcfile: str, src_map: Any
+) -> Optional[Exception]:
     """Method that gets info about exceptions that
     happens during execution of compiled source and
     uses info to raise an amanda exception"""
     # Get to the first tb object of the trace
-    py_lineno = get_info_from_tb(exception, filename)
+    py_lineno = get_info_from_tb(exception, outfile)
     ama_lineno = src_map[py_lineno]
-    assert ama_lineno is not None
     if type(exception) == ZeroDivisionError:
         return AmandaError.common_error(
-            "não pode dividir um número por zero", ama_lineno
+            srcfile, "não pode dividir um número por zero", ama_lineno
         )
     elif type(exception) == AmandaError:
-        return AmandaError.common_error(exception.message, ama_lineno)
+        return AmandaError.common_error(srcfile, exception.message, ama_lineno)
     return None

@@ -36,7 +36,9 @@ class FunctionSymbol(Symbol):
 
     def __str__(self):
         params = ",".join(self.params)
-        return f"<{self.__class__.__name__}: ({self.name},{self.type}) ({params})>"
+        return (
+            f"<{self.__class__.__name__}: ({self.name},{self.type}) ({params})>"
+        )
 
     def is_callable(self):
         return True
@@ -69,6 +71,8 @@ class Scope:
         return len(self.symbols)
 
     def __str__(self):
-        symbols = [f"{symbol}:{sym_obj}" for symbol, sym_obj in self.symbols.items()]
+        symbols = [
+            f"{symbol}:{sym_obj}" for symbol, sym_obj in self.symbols.items()
+        ]
         table = "\n".join(symbols)
         return f"SCOPE:\n______\n{table}\n<EXITING>\n\n"

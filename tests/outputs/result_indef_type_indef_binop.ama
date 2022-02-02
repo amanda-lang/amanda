@@ -1,1 +1,1 @@
-Erro na linha 3: os tipos 'real' e 'indef' não suportam operações com o operador '+'.
+Erro: os tipos 'real' e 'indef' não suportam operações com o operador '+'.

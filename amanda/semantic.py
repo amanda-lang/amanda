@@ -14,7 +14,8 @@ class Analyzer(ast.Visitor):
     ID_IN_USE = "O identificador '{name}' já foi declarado neste escopo"
     INVALID_REF = "o identificador '{name}' não é uma referência válida"
 
-    def __init__(self):
+    def __init__(self, filename):
+        self.filename = filename
         # Just to have quick access to things like types and e.t.c
         self.global_scope = symbols.Scope()
         self.scope_depth = 0
@@ -57,7 +58,9 @@ class Analyzer(ast.Visitor):
         """Method checks for return within
         'se' statements"""
         # If there is no else branch return None immediately
-        return False if not node.else_branch else self.has_return(node.else_branch)
+        return (
+            False if not node.else_branch else self.has_return(node.else_branch)
+        )
 
     def has_return_enquanto(self, node):
         return self.has_return(node.statement)
@@ -78,7 +81,9 @@ class Analyzer(ast.Visitor):
 
     def error(self, code, **kwargs):
         message = code.format(**kwargs)
-        raise AmandaError.common_error(message, self.current_node.token.line)
+        raise AmandaError.common_error(
+            self.filename, message, self.current_node.token.line
+        )
 
     def is_valid_name(self, name):
         """Checks whether name is a python keyword, reserved var or
@@ -208,7 +213,9 @@ class Analyzer(ast.Visitor):
         # Make a constructor out of the class instance variables
         # By copying the current members dict
         class_attrs = copy.copy(klass.members)
-        klass.constructor = symbols.FunctionSymbol(klass.name, klass, class_attrs)
+        klass.constructor = symbols.FunctionSymbol(
+            klass.name, klass, class_attrs
+        )
 
         for declaration in declarations:
             if type(declaration) == ast.FunctionDecl:
@@ -224,7 +231,9 @@ class Analyzer(ast.Visitor):
 
     def visit_eu(self, node):
         if not self.current_class or not self.current_function:
-            self.error("a palavra reservada 'eu' só pode ser usada dentro de um método")
+            self.error(
+                "a palavra reservada 'eu' só pode ser usada dentro de um método"
+            )
         node.eval_type = self.current_class
         return symbols.VariableSymbol("eu", self.current_class)
 
@@ -371,7 +380,9 @@ class Analyzer(ast.Visitor):
         # Evaluate type of binary
         # arithmetic operation
         operator = node.token
-        result = self.get_binop_result(lhs.eval_type, operator.token, rhs.eval_type)
+        result = self.get_binop_result(
+            lhs.eval_type, operator.token, rhs.eval_type
+        )
         if not result:
             self.current_node = node
             self.error(
@@ -388,7 +399,14 @@ class Analyzer(ast.Visitor):
         if not lhs_type.is_operable() or not rhs_type.is_operable():
             return None
 
-        if op in (TT.PLUS, TT.MINUS, TT.STAR, TT.SLASH, TT.DOUBLESLASH, TT.MODULO):
+        if op in (
+            TT.PLUS,
+            TT.MINUS,
+            TT.STAR,
+            TT.SLASH,
+            TT.DOUBLESLASH,
+            TT.MODULO,
+        ):
             if lhs_type.is_numeric() and rhs_type.is_numeric():
                 return (
                     scope.resolve("int")
@@ -398,7 +416,10 @@ class Analyzer(ast.Visitor):
                     else scope.resolve("real")
                 )
 
-            elif lhs_type.otype == OType.TTEXTO and rhs_type.otype == OType.TTEXTO:
+            elif (
+                lhs_type.otype == OType.TTEXTO
+                and rhs_type.otype == OType.TTEXTO
+            ):
                 # For strings only plus operator works
                 return scope.resolve("texto") if op == TT.PLUS else None
 
@@ -428,9 +449,7 @@ class Analyzer(ast.Visitor):
         operator = node.token.token
         lexeme = node.token.lexeme
         op_type = node.operand.eval_type
-        bad_uop = (
-            f"o operador unário {lexeme} não pode ser usado com o tipo '{op_type}' "
-        )
+        bad_uop = f"o operador unário {lexeme} não pode ser usado com o tipo '{op_type}' "
         if operator in (TT.PLUS, TT.MINUS):
             if op_type.otype != OType.TINT and op_type.otype != OType.TREAL:
                 self.current_node = node
@@ -467,11 +486,15 @@ class Analyzer(ast.Visitor):
     def visit_retorna(self, node):
         if not self.current_function:
             self.current_node = node
-            self.error(f"A directiva 'retorna' só pode ser usada dentro de uma função")
+            self.error(
+                f"A directiva 'retorna' só pode ser usada dentro de uma função"
+            )
         func_type = self.current_function.type
         # TODO: Allow empty return from void functions
         if self.current_function.type.otype == OType.TVAZIO:
-            self.error("Não pode usar a directiva 'retorna' em uma função vazia")
+            self.error(
+                "Não pode usar a directiva 'retorna' em uma função vazia"
+            )
 
         expr = node.exp
         self.visit(expr)
@@ -484,7 +507,9 @@ class Analyzer(ast.Visitor):
     def visit_senaose(self, node):
         self.visit(node.condition)
         if node.condition.eval_type.otype != OType.TBOOL:
-            self.error(f"a condição da instrução 'senaose' deve ser um valor lógico")
+            self.error(
+                f"a condição da instrução 'senaose' deve ser um valor lógico"
+            )
         self.visit(node.then_branch)
 
     def visit_se(self, node):
@@ -522,7 +547,9 @@ class Analyzer(ast.Visitor):
         self.visit(node.condition)
         if node.condition.eval_type.otype != OType.TBOOL:
             self.current_node = node
-            self.error(f"a condição da instrução 'enquanto' deve ser um valor lógico")
+            self.error(
+                f"a condição da instrução 'enquanto' deve ser um valor lógico"
+            )
         self.visit(node.statement)
 
     def visit_para(self, node):
@@ -558,7 +585,9 @@ class Analyzer(ast.Visitor):
             sym = self.current_scope.resolve(name)
             if not sym:
                 # TODO: Use the default error message for this
-                self.error(f"o identificador '{name}' não foi definido neste escopo")
+                self.error(
+                    f"o identificador '{name}' não foi definido neste escopo"
+                )
         elif calle_type == ast.Get:
             sym = self.visit(callee)
         else:
@@ -606,7 +635,9 @@ class Analyzer(ast.Visitor):
             m_type = node.fargs[0]
             if type(m_type) != ast.Variable:
                 self.error("O argumento 1 da função 'matriz' deve ser um tipo")
-            node.eval_type = self.get_type(ast.Type(m_type.token, dim=2, is_list=True))
+            node.eval_type = self.get_type(
+                ast.Type(m_type.token, dim=2, is_list=True)
+            )
             args = node.fargs[1:]
             for i, arg in enumerate(args):
                 self.visit(arg)
@@ -625,8 +656,12 @@ class Analyzer(ast.Visitor):
             if type(list_node.eval_type) != Lista:
                 self.error("O argumento 1 da função 'anexe' deve ser uma lista")
 
-            value.prom_type = value.eval_type.promote_to(list_node.eval_type.subtype)
-            if not self.types_match(list_node.eval_type.subtype, value.eval_type):
+            value.prom_type = value.eval_type.promote_to(
+                list_node.eval_type.subtype
+            )
+            if not self.types_match(
+                list_node.eval_type.subtype, value.eval_type
+            ):
                 self.error(
                     f"incompatibilidade de tipos entre a lista e o valor a anexar: '{list_node.eval_type.subtype}' != '{value.eval_type}'"
                 )

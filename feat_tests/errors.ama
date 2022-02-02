@@ -1,0 +1,14 @@
+func baz()
+    0/0
+fim
+
+func foo()
+    baz()
+fim
+
+func bar()
+    foo()
+fim
+
+
+bar()

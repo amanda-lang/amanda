@@ -97,9 +97,7 @@ def load_test_cases(suite):
 
 
 def fmt_error(output):
-    regex = re.compile(r"-{3,}")
-    sep = regex.findall(output)[0]
-    return output.split(sep)[0].strip()
+    return output.strip().split("\n")[-1].strip()
 
 
 def run_case(filename):
@@ -134,7 +132,9 @@ def run_suite(test_cases):
             assert output == expected
             add_success()
         except AssertionError as e:
-            exception = Exception(f"\nFailed assertion:\n{output} != {expected}")
+            exception = Exception(
+                f"\nFailed assertion:\n{output} != {expected}"
+            )
             add_failure(test_case, exception)
         except Exception as e:
             add_failure(test_case, e)
@@ -146,6 +146,9 @@ if __name__ == "__main__":
     # Run "unit" tests
     subprocess.call([sys.executable, "-m", "unittest", "discover"])
     # Run end_to_end tests
+    # suite = DIRS[22]
+    # test_cases = load_test_cases(suite)
+    # run_suite(test_cases)
     for suite in DIRS:
         test_cases = load_test_cases(suite)
         run_suite(test_cases)
