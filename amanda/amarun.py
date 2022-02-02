@@ -22,7 +22,7 @@ def run(filename, *, gen_out=False, outname="output.py"):
         # Run compiled python code
         exec(pycode_obj, bltin_objs)
     except Exception as e:
-        ama_error = handle_exception(e, outname, line_info)
+        ama_error = handle_exception(e, outname, filename, line_info)
         if not ama_error:
             raise e
         throw_error(ama_error)

@@ -23,6 +23,7 @@ class Indef:
         return string
 
 
+# TODO: Allow negative indices
 class Lista:
     def __init__(self, subtype, elements=[]):
         self.elements = elements
@@ -36,7 +37,7 @@ class Lista:
         try:
             return self.elements[key]
         except IndexError:
-            raise AmandaError("índice de lista inválido", -1)
+            raise AmandaError.runtime_err("índice de lista inválido")
 
     def __setitem__(self, key, value):
         try:
@@ -44,7 +45,7 @@ class Lista:
                 raise IndexError
             self.elements[key] = value
         except IndexError:
-            raise AmandaError("índice de lista inválido", -1)
+            raise AmandaError.runtime_err("índice de lista inválido")
 
 
 class BaseClass:
@@ -63,10 +64,10 @@ class BaseClass:
 
 class Nulo:
     def __getattr__(self, attr):
-        raise AmandaError("Não pode aceder uma referência nula", -1)
+        raise AmandaError.runtime_err("Não pode aceder uma referência nula")
 
     def __setattr__(self, attr, value):
-        raise AmandaError("Não pode aceder uma referência nula", -1)
+        raise AmandaError.runtime_err("Não pode aceder uma referência nula")
 
     def __str__(self):
         return "nulo"

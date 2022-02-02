@@ -1,7 +1,7 @@
 from amanda.objects import Indef, Lista, BaseClass, Nulo
 import amanda.symbols as symbols
 from amanda.type import OType, Type
-from amanda.error import AmandaError, throw_error
+from amanda.error import AmandaError
 
 # Symbols for builtin functions
 # used during sem analysis
@@ -60,7 +60,7 @@ def leia_int(prompt):
     try:
         return int(input(prompt))
     except ValueError:
-        raise AmandaError(INVALID_CONVERSION, -1)
+        raise AmandaError.runtime_err(INVALID_CONVERSION)
 
 
 @ama_builtin(("mensagem", Type(OType.TTEXTO)), returns=Type(OType.TREAL))
@@ -70,7 +70,7 @@ def leia_real(prompt):
     try:
         return float(input(prompt))
     except ValueError:
-        raise AmandaError(INVALID_CONVERSION, -1)
+        raise AmandaError.runtime_err(INVALID_CONVERSION)
 
 
 def converte(value, type_class):
@@ -78,24 +78,24 @@ def converte(value, type_class):
         value = value.value
     if type(type_class) == Lista:
         if type(value) != Lista or value.subtype != type_class.subtype:
-            raise AmandaError(INVALID_CONVERSION, -1)
+            raise AmandaError.runtime_err(INVALID_CONVERSION)
         return value
     try:
         if type_class == int and type(value) == bool:
             raise ValueError
         return type_class(value)
     except ValueError as e:
-        raise AmandaError(INVALID_CONVERSION, -1)
+        raise AmandaError.runtime_err(INVALID_CONVERSION)
     except TypeError as e:
-        raise AmandaError(INVALID_CONVERSION, -1)
+        raise AmandaError.runtime_err(INVALID_CONVERSION)
 
 
 @ama_builtin()
 def lista(subtype, size):
     # Returns a list of the desired size
     if size < 0:
-        raise AmandaError(
-            "O tamanho de uma lista não pode ser um inteiro negativo", -1
+        raise AmandaError.runtime_err(
+            "O tamanho de uma lista não pode ser um inteiro negativo"
         )
     inits = {int: 0, float: 0.0, str: "", bool: False}
     default = inits.get(subtype)

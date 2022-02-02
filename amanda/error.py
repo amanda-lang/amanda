@@ -9,9 +9,10 @@ from dataclasses import dataclass
 class AmandaError(Exception):
     # error types
     SYNTAX_ERR: ClassVar[Literal[0]] = 0
-    OTHER_ERR: ClassVar[Literal[1]] = 1
+    COMMON_ERR: ClassVar[Literal[1]] = 1
+    RUNTIME_ERR: ClassVar[Literal[2]] = 2
 
-    err_type: Literal[0, 1]
+    err_type: Literal[0, 1, 2]
     fpath: str
     message: str
     line: int
@@ -25,7 +26,11 @@ class AmandaError(Exception):
 
     @classmethod
     def common_error(cls, fpath: str, message: str, line: int) -> AmandaError:
-        return cls(cls.OTHER_ERR, fpath, message, line)
+        return cls(cls.COMMON_ERR, fpath, message, line)
+
+    @classmethod
+    def runtime_err(cls, message: str) -> AmandaError:
+        return cls(cls.RUNTIME_ERR, "", message, -1)
 
     def __str__(self) -> str:
         return self.message
@@ -93,19 +98,18 @@ def get_info_from_tb(exception: Exception, filename: str) -> Any:
 
 
 def handle_exception(
-    exception: Exception, filename: str, src_map: Any
+    exception: Exception, outfile: str, srcfile: str, src_map: Any
 ) -> Optional[Exception]:
     """Method that gets info about exceptions that
     happens during execution of compiled source and
     uses info to raise an amanda exception"""
     # Get to the first tb object of the trace
-    py_lineno = get_info_from_tb(exception, filename)
+    py_lineno = get_info_from_tb(exception, outfile)
     ama_lineno = src_map[py_lineno]
-    assert ama_lineno is not None
     if type(exception) == ZeroDivisionError:
         return AmandaError.common_error(
-            filename, "não pode dividir um número por zero", ama_lineno
+            srcfile, "não pode dividir um número por zero", ama_lineno
         )
     elif type(exception) == AmandaError:
-        return AmandaError.common_error(filename, exception.message, ama_lineno)
+        return AmandaError.common_error(srcfile, exception.message, ama_lineno)
     return None
