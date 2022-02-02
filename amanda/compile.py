@@ -91,7 +91,12 @@ class Generator:
             value = self.gen(assign.right)
         else:
             # Check for initializer
-            init_values = {"int": 0, "real": 0.0, "bool": "falso", "texto": '''""'''}
+            init_values = {
+                "int": 0,
+                "real": 0.0,
+                "bool": "falso",
+                "texto": '''""''',
+            }
             value = init_values.get(str(node.var_type))
         return f"{symbol.out_id} = {value}"
 
@@ -178,7 +183,9 @@ class Generator:
         return f"nonlocal {names}"
 
     def gen_listliteral(self, node):
-        elements = ",".join([str(self.gen(element)) for element in node.elements])
+        elements = ",".join(
+            [str(self.gen(element)) for element in node.elements]
+        )
         list_type = node.eval_type.get_type()
         return f"Lista({list_type},[{elements}])"
 
@@ -285,7 +292,9 @@ class Generator:
         if_stmt = StringIO()
         condition = self.gen(node.condition)
         then_branch = self.compile_branch(node.then_branch)
-        elsif_branches = "".join([self.gen(branch) for branch in node.elsif_branches])
+        elsif_branches = "".join(
+            [self.gen(branch) for branch in node.elsif_branches]
+        )
         if_stmt.write(f"if {condition}:\n{then_branch}")
         if_stmt.write(f"{elsif_branches}")
         if node.else_branch:

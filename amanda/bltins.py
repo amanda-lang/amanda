@@ -11,7 +11,9 @@ bltin_symbols = {}
 bltin_objs = {}
 
 # Runtime errors
-INVALID_CONVERSION = "impossível realizar a conversão entre os tipos especificados"
+INVALID_CONVERSION = (
+    "impossível realizar a conversão entre os tipos especificados"
+)
 
 
 def add_bltin_func(name, obj, return_type, *params):
@@ -21,7 +23,9 @@ def add_bltin_func(name, obj, return_type, *params):
     formal_params = {}
     for pname, ptype in params:
         formal_params[pname] = symbols.VariableSymbol(pname, ptype)
-    bltin_symbols[name] = symbols.FunctionSymbol(name, return_type, formal_params)
+    bltin_symbols[name] = symbols.FunctionSymbol(
+        name, return_type, formal_params
+    )
     bltin_objs[name] = obj
 
 
@@ -79,7 +83,9 @@ def converte(value, type_class):
 def lista(subtype, size):
     # Returns a list of the desired size
     if size < 0:
-        raise AmandaError("O tamanho de uma lista não pode ser um inteiro negativo", -1)
+        raise AmandaError(
+            "O tamanho de uma lista não pode ser um inteiro negativo", -1
+        )
     inits = {int: 0, float: 0.0, str: "", bool: False}
     default = inits.get(subtype)
     return Lista(subtype, [default for i in range(size)])
@@ -132,9 +138,13 @@ bltin_objs["Lista"] = Lista
 bltin_objs["nulo"] = Nulo()
 bltin_objs["_BaseClass_"] = BaseClass
 
-add_bltin_func("leia", leia, Type(OType.TTEXTO), ("mensagem", Type(OType.TTEXTO)))
+add_bltin_func(
+    "leia", leia, Type(OType.TTEXTO), ("mensagem", Type(OType.TTEXTO))
+)
 
-add_bltin_func("leia_int", leia_int, Type(OType.TINT), ("mensagem", Type(OType.TTEXTO)))
+add_bltin_func(
+    "leia_int", leia_int, Type(OType.TINT), ("mensagem", Type(OType.TTEXTO))
+)
 
 add_bltin_func(
     "leia_real", leia_real, Type(OType.TREAL), ("mensagem", Type(OType.TTEXTO))
@@ -142,7 +152,9 @@ add_bltin_func(
 
 add_bltin_func("tipo", tipo, Type(OType.TTEXTO), ("valor", Type(OType.TINDEF)))
 
-add_bltin_func("tamanho", tamanho, Type(OType.TINT), ("objecto", Type(OType.TINDEF)))
+add_bltin_func(
+    "tamanho", tamanho, Type(OType.TINT), ("objecto", Type(OType.TINDEF))
+)
 
 add_bltin_func("lista", lista, None)
 
