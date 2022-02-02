@@ -1,6 +1,0 @@
-func foo()
-    mostra "i have been imported!!"
-fim
-
-
-
