@@ -1,12 +1,12 @@
-func escrevaln(arg : indef)
+func escrevaln1(arg : indef)
     str : texto = converte(arg,texto)
     mostra str
 fim
 
 
 
-escrevaln(10)
-escrevaln("eu")
-escrevaln(verdadeiro)
-escrevaln(3.14)
-escrevaln(falso)
+escrevaln1(10)
+escrevaln1("eu")
+escrevaln1(verdadeiro)
+escrevaln1(3.14)
+escrevaln1(falso)

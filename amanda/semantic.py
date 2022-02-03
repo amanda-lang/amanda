@@ -602,7 +602,7 @@ class Analyzer(ast.Visitor):
             self.validate_call(sym.constructor, node.fargs)
             node.eval_type = sym
         else:
-            # Special builtin function
+            # Special intrinsic function
             builtin_ops = ("lista", "anexe", "matriz")
             # TODO: Add special nodes for these guys
             if sym.name in builtin_ops:
@@ -612,7 +612,7 @@ class Analyzer(ast.Visitor):
             node.eval_type = sym.type
         return sym
 
-    # Handles calls to special builtin operation
+    # Handles calls to special intrinsic operation
     def builtin_call(self, name, node):
         if name == "lista":
             self.check_arity(node.fargs, name, 2)
