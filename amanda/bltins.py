@@ -36,15 +36,6 @@ def ama_builtin(*params, returns=None):
     return decorator
 
 
-def print_wrapper(obj, **kwargs):
-    if str(obj) == "True":
-        print("verdadeiro", **kwargs)
-    elif str(obj) == "False":
-        print("falso", **kwargs)
-    else:
-        print(obj, **kwargs)
-
-
 # Input functions
 @ama_builtin(("mensagem", Type(OType.TTEXTO)), returns=Type(OType.TTEXTO))
 def leia(prompt):
@@ -113,10 +104,11 @@ def anexe(list_obj, value):
     list_obj.elements.append(value)
 
 
+# TODO: Test this for user defined types
 @ama_builtin(("valor", Type(OType.TINDEF)), returns=Type(OType.TTEXTO))
 def tipo(indef_obj):
     """Returns the type of a
-    value. Useful for 'unwrapping'
+    value as a string. Useful for 'unwrapping'
     indef type values"""
     value = indef_obj.value  # unwrap value
     if type(value) == Lista:
@@ -139,6 +131,27 @@ def tamanho(indef_obj):
         return len(value)
     else:
         return -1
+
+
+def print_wrapper(obj, **kwargs):
+    if str(obj) == "True":
+        print("verdadeiro", **kwargs)
+    elif str(obj) == "False":
+        print("falso", **kwargs)
+    else:
+        print(obj, **kwargs)
+
+
+@ama_builtin(("objecto", Type(OType.TINDEF)), returns=None)
+def escreva(indef_obj):
+    obj = str(indef_obj.value)
+    print_wrapper(obj, end="")
+
+
+@ama_builtin(("objecto", Type(OType.TINDEF)), returns=None)
+def escrevaln(indef_obj):
+    obj = str(indef_obj.value)
+    print_wrapper(obj)
 
 
 # Aliases for objects
