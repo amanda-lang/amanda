@@ -1,0 +1,13 @@
+i : indef = 8
+t : indef = "texto"
+b : indef = verdadeiro
+r : indef = 8.4
+
+
+mostra i
+mostra t
+mostra b
+mostra r
+
+
+#[output]:int -> 8 texto -> 'texto' bool -> verdadeiro real -> 8.4

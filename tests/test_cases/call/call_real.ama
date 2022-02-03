@@ -1,0 +1,3 @@
+3.14() #expect error
+
+#[output]:Erro: o símbolo '3.14' não é invocável.

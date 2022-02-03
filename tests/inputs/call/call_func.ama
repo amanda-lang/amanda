@@ -1,7 +1,0 @@
-func main(): int
-    retorna 0
-fim
-
-
-
-main()() #expect error

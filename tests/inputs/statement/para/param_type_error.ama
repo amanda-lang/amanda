@@ -1,5 +1,0 @@
-# object param
-
-para i de "string"..2.0 inc verdadeiro faca #expect error
-  mostra i;
-fim

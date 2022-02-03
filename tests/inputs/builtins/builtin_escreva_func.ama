@@ -1,9 +1,0 @@
-escrevaln("a")
-escrevaln(1)
-escrevaln(2.21)
-escrevaln(verdadeiro)
-
-escreva("a")
-escreva(1)
-escreva(2.21)
-escreva(verdadeiro)

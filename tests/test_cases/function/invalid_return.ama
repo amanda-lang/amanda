@@ -1,0 +1,8 @@
+#Invalid function return
+
+
+func main():int
+    retorna 3.14 #expect error
+fim
+
+#[output]:Erro: expressão de retorno inválida. O tipo do valor de retorno é incompatível com o tipo de retorno da função.

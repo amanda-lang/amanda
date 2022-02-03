@@ -1,5 +1,0 @@
-#function with non existent type
-
-func add(): Carro #expect carro
-    retorna Carro()
-fim

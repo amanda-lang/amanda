@@ -1,0 +1,3 @@
+mostra nulo < nulo
+
+#[output]:Erro: os tipos 'nulo' e 'nulo' não suportam operações com o operador '<'.

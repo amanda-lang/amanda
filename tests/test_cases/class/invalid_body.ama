@@ -1,0 +1,15 @@
+
+# Class with constructor
+
+classe A
+    
+     field : int 
+
+    field = 2+2 # expect error
+
+fim
+
+
+
+
+#[output]:Erro sintático: directiva inválida para o corpo de uma classe.

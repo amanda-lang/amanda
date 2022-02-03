@@ -1,0 +1,23 @@
+
+global_var : int
+
+func test_enquanto(): int
+    
+    enquanto 1==1 faca
+        retorna 1
+    fim
+fim
+
+mostra test_enquanto() # expect 1
+
+
+func test_para(): int
+    
+    para i de 0..9 faca
+        retorna i
+    fim
+fim
+
+mostra test_para() # expect 0
+
+#[output]:1 0

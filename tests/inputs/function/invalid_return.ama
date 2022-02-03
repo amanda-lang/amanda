@@ -1,6 +1,0 @@
-#Invalid function return
-
-
-func main():int
-    retorna 3.14 #expect error
-fim

@@ -1,0 +1,34 @@
+#Test of enquanto loop
+
+i:int
+
+enquanto i != 5 faca
+  i += 1;
+fim
+
+mostra i; # expect 5
+
+# with block
+i = 0;
+
+enquanto (i != 10) faca
+  i += 1;
+fim
+
+mostra i; # expect 10
+
+
+logico:bool
+
+i = 0
+enquanto nao logico faca
+    se i == 20 entao
+        logico = verdadeiro
+    senao
+        i += 1
+    fim
+fim
+
+mostra i; # expect 20
+
+#[output]:5 10 20

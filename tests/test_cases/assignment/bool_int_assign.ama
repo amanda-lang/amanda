@@ -1,0 +1,5 @@
+# Incompatible types
+
+logico : bool = 5 #expect error
+
+#[output]:Erro: atribuição inválida. incompatibilidade entre os operandos da atribuição: 'bool' e 'int'.

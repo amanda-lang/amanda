@@ -1,0 +1,9 @@
+
+classe A
+    head : int
+fim
+
+a : A = nulo
+a.head = 1
+
+#[output]:Erro: Não pode aceder uma referência nula.

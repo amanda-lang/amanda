@@ -1,4 +1,0 @@
-
-l0 : real
-l1 : real = l0 = 0.3 # expect error
-

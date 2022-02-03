@@ -1,5 +1,0 @@
-#retorna from para
-
-para i de 0..9 faca
-    retorna "8" #expect error
-fim

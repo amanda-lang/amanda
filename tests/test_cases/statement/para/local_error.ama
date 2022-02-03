@@ -1,0 +1,11 @@
+
+para i de 0..2 faca
+
+     v : int
+
+fim
+
+
+mostra v # expect error
+
+#[output]:Erro: o identificador 'v' não foi declarado.

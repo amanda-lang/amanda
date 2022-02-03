@@ -1,4 +1,0 @@
-# returning in global scope
-
-
-retorna 6; # except ERROR

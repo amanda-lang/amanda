@@ -1,0 +1,3 @@
+verdadeiro() # expect error
+
+#[output]:Erro: o símbolo 'verdadeiro' não é invocável.

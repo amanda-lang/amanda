@@ -1,6 +1,0 @@
-
-# Condition must be boolean or promotable to boolean
-
-enquanto "String" faca  # expect Error
-
-fim

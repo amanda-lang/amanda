@@ -1,0 +1,13 @@
+
+se falso entao
+     a : int = 6
+     i : int
+senao
+     a : int = 6
+     i : int
+    mostra a/i
+fim
+
+
+
+#[output]:Erro: não pode dividir um número por zero.

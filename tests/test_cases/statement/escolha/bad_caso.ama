@@ -1,0 +1,18 @@
+
+
+dia : texto = "nome"
+
+escolha dia:
+    caso "segunda": 
+        mostra 1
+    caso "terça": 
+        mostra 2
+    caso "quarta": 
+        mostra 3
+    caso 4: 
+        mostra 4
+    senao:
+        mostra "erro"
+fim
+
+#[output]:Erro: O tipo do valor do caso (int) deve ser igual ao tipo do valor que está a ser avaliado (texto).

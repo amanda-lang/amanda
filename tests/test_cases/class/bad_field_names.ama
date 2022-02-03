@@ -1,0 +1,24 @@
+
+
+
+
+classe BadClass
+    
+    while : int
+    if : real
+    for : texto
+
+    func try()
+        mostra "eu sou o try"
+    fim
+
+fim
+
+
+bc : BadClass = BadClass(0,0,"sou o for")
+mostra bc.while
+mostra bc.if
+mostra bc.for
+bc.try()
+
+#[output]:0 0.0 sou o for eu sou o try

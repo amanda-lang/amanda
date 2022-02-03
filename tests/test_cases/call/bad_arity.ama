@@ -1,0 +1,7 @@
+func add(a:int,b:int):int
+    retorna a+b
+fim
+
+add(1,2,3) # expect error
+
+#[output]:Erro: número incorrecto de argumentos para a função add. Esperava 2 argumento(s), porém recebeu 3.

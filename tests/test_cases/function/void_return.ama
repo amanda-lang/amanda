@@ -1,0 +1,9 @@
+func escreva_num(a:int)
+    mostra a
+    retorna a # expect error
+fim
+
+
+
+
+#[output]:Erro: Não pode usar a directiva 'retorna' em uma função vazia.

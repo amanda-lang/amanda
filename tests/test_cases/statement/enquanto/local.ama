@@ -1,0 +1,12 @@
+i : int
+
+
+enquanto i != 4 faca
+
+    mostra i
+    i += 1
+     i : int
+
+fim
+
+#[output]:0 1 2 3

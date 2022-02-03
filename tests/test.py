@@ -8,11 +8,9 @@ import subprocess
 from contextlib import redirect_stdout, redirect_stderr
 from amanda.__main__ import main as ama_main
 
-TEST_DIR = os.path.abspath("./tests/inputs")
+TEST_DIR = os.path.abspath("./tests/test_cases/")
 STATEMENT = join(TEST_DIR, "statement")
 EXCLUDED = "result.txt"
-RESULTS_FILE = "result.txt"
-RESULTS_DIR = join("./tests/outputs/")
 
 # test paths
 DIRS = [
@@ -79,17 +77,25 @@ def print_results():
         sys.exit("Some tests failed")
 
 
+# TODO: Find better way to do this
+def get_case_output(case):
+    output = None
+    with open(case, "r", encoding="utf8") as test:
+        for line in test:
+            if "#[output]" in line:
+                output = line.split(":", maxsplit=1)[1].strip()
+                break
+    assert (
+        output is not None
+    ), f"Test must have line comment that indicates it's output. File: {case}"
+    return output
+
+
 def load_test_cases(suite):
     for root, dirs, files in os.walk(suite):
-        dirname = os.path.basename(
-            root
-        )  # adds tuple containing test case file path and result file path of test case
-        # to the list of test cases of this suite
+        dirname = os.path.basename(root)
         test_cases = [
-            (
-                join(root, filename),
-                join(RESULTS_DIR, "_".join(["result", dirname, filename])),
-            )
+            (join(root, filename), get_case_output(join(root, filename)))
             for filename in files
             if filename not in EXCLUDED
         ]
@@ -124,11 +130,9 @@ def run_case(filename):
 
 
 def run_suite(test_cases):
-    for test_case, result_file in test_cases:
-        results = open(result_file, "r", encoding="utf-8")
+    for test_case, expected in test_cases:
         try:
             output = run_case(test_case).strip()
-            expected = results.readline().strip()
             assert output == expected
             add_success()
         except AssertionError as e:
@@ -138,7 +142,6 @@ def run_suite(test_cases):
             add_failure(test_case, exception)
         except Exception as e:
             add_failure(test_case, e)
-        results.close()
 
 
 if __name__ == "__main__":

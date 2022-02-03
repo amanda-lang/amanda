@@ -1,0 +1,12 @@
+a : int = 6
+i : int
+
+
+func test()
+    mostra a/i #expect error
+fim
+
+
+test()
+
+#[output]:Erro: não pode dividir um número por zero.

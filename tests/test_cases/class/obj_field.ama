@@ -1,0 +1,25 @@
+
+# Classes with obj fields
+
+
+classe A
+    
+     field : texto 
+
+fim
+
+
+
+classe B
+    
+    obj : A
+
+fim
+
+
+
+a : A = A("Working")
+b : B = B(a)
+mostra b.obj.field #expect Working
+
+#[output]:Working

@@ -1,0 +1,8 @@
+# Condition must be boolean or promotable to boolean
+
+
+enquanto 3.14 faca  # expect Error
+
+fim
+
+#[output]:Erro: a condição da instrução 'enquanto' deve ser um valor lógico.

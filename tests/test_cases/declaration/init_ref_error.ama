@@ -1,0 +1,5 @@
+# Referencing to the same variable during decl + init
+
+a:int = a; #expect ERROR
+
+#[output]:Erro: Erro ao inicializar variável. Não pode referenciar uma variável durante a sua declaração.

@@ -1,0 +1,15 @@
+func escreva3l(arg : indef)
+    mostra arg
+fim
+
+escreva3l(180 - 8) #expect int -> 172
+
+
+func retorna_indef():indef
+    retorna 3.14
+fim
+
+
+mostra retorna_indef() # expect real -> 3.14
+
+#[output]:int -> 172 real -> 3.14

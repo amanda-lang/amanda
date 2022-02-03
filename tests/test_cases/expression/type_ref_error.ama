@@ -1,0 +1,7 @@
+# Referencing type error
+
+
+a:int
+mostra a + int
+
+#[output]:Erro: o identificador 'int' não é uma referência válida.

@@ -1,0 +1,9 @@
+
+
+func add(a:real,b:int):real
+    retorna a+b
+fim
+
+add(verdadeiro,2) # expect error
+
+#[output]:Erro: argumento inválido. Esperava-se um argumento do tipo 'real' mas recebeu o tipo 'bool'.

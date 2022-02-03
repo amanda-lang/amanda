@@ -1,0 +1,4 @@
+teste : texto
+mostra teste # expect 
+
+#[output]:

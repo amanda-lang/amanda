@@ -1,0 +1,5 @@
+a : int
+
+mostra converte(a,a)
+
+#[output]:Erro: o tipo 'a' não foi declarado.

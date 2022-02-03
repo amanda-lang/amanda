@@ -1,4 +1,0 @@
-# Redeclaration in the same scope
-
-a:int 
-a:texto # expect error
