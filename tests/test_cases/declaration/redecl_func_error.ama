@@ -1,0 +1,10 @@
+# Redeclaring array type
+
+
+a:int;
+
+func a():int # expect error
+ retorna 0
+fim
+
+#[output]:Erro: O identificador 'a' já foi declarado neste escopo.

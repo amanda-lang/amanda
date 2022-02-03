@@ -1,0 +1,12 @@
+# Testing out relational operators
+
+mostra 2 > 1 #expect verdadeiro
+mostra 2 < 1 #expect falso
+mostra 2 >= 1 #expect verdadeiro
+mostra 2 <= 1.2 #expect falso
+mostra 2 != 1 #expect verdadeiro
+mostra 2 == 1 #expect falso
+mostra 2 == 2 # expect verdadeiro
+mostra 2 == 2.0 # expect verdadeiro
+
+#[output]:verdadeiro falso verdadeiro falso verdadeiro falso verdadeiro verdadeiro

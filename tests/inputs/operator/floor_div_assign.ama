@@ -1,4 +1,0 @@
-a : int = 5
-b : int = 2
-c : int = 5//2
-mostra c

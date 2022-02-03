@@ -1,9 +1,0 @@
-
-a : int = 6
-i : int
-
-se verdadeiro entao
-    mostra a/i
-fim
-
-

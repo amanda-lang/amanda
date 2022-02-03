@@ -1,0 +1,21 @@
+
+classe Acumulador
+    
+     contador : int 
+    func incrementa(diff : int):int
+        contador += diff
+        retorna contador
+    fim
+
+    func get_contador():int
+        retorna contador
+    fim
+
+fim
+
+
+
+acum : Acumulador = Acumulador(4)
+acum.cmp() #expect error
+
+#[output]:Erro: O objecto do tipo 'Acumulador' não possui o atributo cmp.

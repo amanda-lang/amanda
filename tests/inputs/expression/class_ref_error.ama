@@ -1,4 +1,0 @@
-# Reference class name without calling
-
-
-mostra 1 + texto; # expect error

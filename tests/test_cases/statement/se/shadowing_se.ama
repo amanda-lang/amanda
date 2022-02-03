@@ -1,0 +1,20 @@
+
+x : int
+
+se verdadeiro entao
+     x : int
+     x2 : int
+     x3 : int
+     x4 : int
+     x5 : int
+     x6 : int
+    x = 4
+    mostra x # expect 4
+fim
+
+mostra x # expect 0
+
+
+
+
+#[output]:4 0

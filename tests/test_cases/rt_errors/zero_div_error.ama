@@ -1,0 +1,10 @@
+
+a : int = 6
+i : int
+
+mostra a/i #expect error
+
+
+
+
+#[output]:Erro: não pode dividir um número por zero.

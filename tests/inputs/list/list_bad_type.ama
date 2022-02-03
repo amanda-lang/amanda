@@ -1,2 +1,0 @@
-list : []int = [int: 1, "ainn"]
-list : []int = [int: 1, 2.4]

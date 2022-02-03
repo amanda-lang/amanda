@@ -1,3 +1,0 @@
-# Wrong assignment target
-
-25+26 = 5; $ expect error

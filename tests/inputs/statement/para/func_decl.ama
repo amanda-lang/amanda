@@ -1,8 +1,0 @@
-# declaration in block
-
-para c de 0..5 faca
-    func retorna_1():int
-        retorna 1
-    fim
-    mostra retorna_1() # expect 1 1 1 1 1
-fim

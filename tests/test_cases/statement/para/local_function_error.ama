@@ -1,0 +1,12 @@
+
+func test_para()
+    para o de 0..2 faca
+        func empty() fim
+    fim
+    empty() # expect error
+
+fim
+
+test_para()
+
+#[output]:Erro: o identificador 'empty' não foi definido neste escopo.

@@ -1,2 +1,0 @@
-num : int = 1
-num() #expect error

@@ -1,8 +1,0 @@
-# Local redeclaration
-
-
-func test_decl():int
-     a : int
-     a : bool
-    retorna a
-fim

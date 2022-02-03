@@ -1,7 +1,0 @@
-classe A
-    head : int
-fim
-
-
-a : A = nulo
-mostra a.head

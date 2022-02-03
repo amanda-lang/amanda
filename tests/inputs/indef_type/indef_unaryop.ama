@@ -1,3 +1,0 @@
-
-conta : indef = 2 * 2.0 + (8 - 3.14)
-mostra -conta #expect error

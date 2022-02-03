@@ -1,0 +1,7 @@
+# Condition must be boolean or evaluate to boolean
+
+se 3.14 entao  # expect Error
+    mostra 1
+fim
+
+#[output]:Erro: a condição da instrução 'se' deve ser um valor lógico.

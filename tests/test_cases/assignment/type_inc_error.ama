@@ -1,0 +1,5 @@
+# type incompatibility error
+
+a : int = "string"; # expect ERROR
+
+#[output]:Erro: atribuição inválida. incompatibilidade entre os operandos da atribuição: 'int' e 'texto'.

@@ -1,0 +1,7 @@
+# object param
+
+para i de "string"..2.0 inc verdadeiro faca #expect error
+  mostra i;
+fim
+
+#[output]:Erro: os parâmetros de uma série devem ser do tipo 'int'.

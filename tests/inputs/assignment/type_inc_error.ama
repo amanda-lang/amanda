@@ -1,3 +1,0 @@
-# type incompatibility error
-
-a : int = "string"; # expect ERROR

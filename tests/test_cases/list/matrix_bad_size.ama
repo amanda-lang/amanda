@@ -1,0 +1,4 @@
+matrix : [][]int = matriz(int, "3", 3)
+mostra matrix
+
+#[output]:Erro: O argumento 2 da função matriz deve ser um inteiro.

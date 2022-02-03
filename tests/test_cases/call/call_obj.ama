@@ -1,0 +1,3 @@
+"String object"() # expect error
+
+#[output]:Erro: o símbolo '"String object"' não é invocável.

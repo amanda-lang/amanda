@@ -1,3 +1,0 @@
-
-mostra verdadeiro == verdadeiro #expect verdadeiro
-mostra verdadeiro != falso # expect verdadeiro

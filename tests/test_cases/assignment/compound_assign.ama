@@ -1,0 +1,23 @@
+#Testing compound assignment
+
+
+a : int = 1;
+
+a += 1;
+mostra a; # expect 2
+
+a -= 1;
+mostra a; # expect 1
+
+
+b : int = 2;
+
+a *= b;
+mostra a;  # expect 2
+
+
+a = a//b;
+mostra a; # expect 1
+
+
+#[output]:2 1 2 1

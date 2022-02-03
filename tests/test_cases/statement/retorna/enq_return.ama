@@ -1,0 +1,8 @@
+# Return from enquanto
+
+
+enquanto verdadeiro faca
+    retorna 1 # expect error
+fim
+
+#[output]:Erro: A directiva 'retorna' só pode ser usada dentro de uma função.

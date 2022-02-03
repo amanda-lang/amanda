@@ -1,0 +1,14 @@
+# shadowing is allowed
+
+
+a : int = 2
+
+func change_global():int
+    a += 1
+    retorna a
+fim
+
+change_global()
+mostra a # expect 3 
+
+#[output]:3

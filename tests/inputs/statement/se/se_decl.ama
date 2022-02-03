@@ -1,6 +1,0 @@
-# declaration in simple se error
-
-se verdadeiro entao
-   i : int; 
-  mostra i; # expect 0
-fim

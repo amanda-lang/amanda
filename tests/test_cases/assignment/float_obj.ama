@@ -1,0 +1,7 @@
+# Incompatible types
+
+
+teste : texto = "texto"
+temp : real = teste #expect error
+
+#[output]:Erro: atribuição inválida. incompatibilidade entre os operandos da atribuição: 'real' e 'texto'.

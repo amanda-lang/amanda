@@ -1,0 +1,4 @@
+num : int = 1
+num() #expect error
+
+#[output]:Erro: identificador 'num' não é invocável.

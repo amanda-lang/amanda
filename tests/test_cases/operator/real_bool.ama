@@ -1,0 +1,4 @@
+
+2.1 < verdadeiro #expect error
+
+#[output]:Erro: os tipos 'real' e 'bool' não suportam operações com o operador '<'.

@@ -1,0 +1,11 @@
+# declaration in senao
+
+
+se (falso) entao
+  mostra "lol"; 
+senao
+   i : int = 4
+  mostra i #expect 4
+fim
+
+#[output]:4

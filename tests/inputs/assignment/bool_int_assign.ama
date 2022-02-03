@@ -1,3 +1,0 @@
-# Incompatible types
-
-logico : bool = 5 #expect error

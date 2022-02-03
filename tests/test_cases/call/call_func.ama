@@ -1,0 +1,9 @@
+func main(): int
+    retorna 0
+fim
+
+
+
+main()() #expect error
+
+#[output]:Erro: Não pode invocar o resultado de uma invocação.

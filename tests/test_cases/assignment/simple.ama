@@ -1,0 +1,17 @@
+# Testing simple assignments
+
+
+a : int = 2;
+
+mostra a; #expect 2
+
+c : real= 1.0;
+mostra c; # expect 1.0
+
+d : bool = 1 > 2;
+mostra d; # expect falso
+
+b : texto = "a";
+mostra b; # expect a
+
+#[output]:2 1.0 falso a

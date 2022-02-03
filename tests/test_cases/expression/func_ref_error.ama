@@ -1,0 +1,12 @@
+# Referencing function without calling
+
+
+a:int;
+
+func main(): int
+  retorna 0;
+fim
+
+mostra a+main; #expect error
+
+#[output]:Erro: o identificador 'main' não é uma referência válida.

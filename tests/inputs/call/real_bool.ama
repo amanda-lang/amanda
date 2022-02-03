@@ -1,7 +1,0 @@
-
-
-func add(a:real,b:int):real
-    retorna a+b
-fim
-
-add(verdadeiro,2) # expect error

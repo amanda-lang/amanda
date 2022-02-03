@@ -1,7 +1,0 @@
-classe A
-fim
-
-a : A = nulo
-mostra a
-mostra a == nulo
-mostra nulo == nulo

@@ -1,0 +1,11 @@
+a : int = 6
+i : int
+
+enquanto verdadeiro faca
+    mostra a/i #expect error
+fim
+
+
+
+
+#[output]:Erro: não pode dividir um número por zero.
