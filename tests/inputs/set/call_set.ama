@@ -12,3 +12,5 @@ a:A = A("str")
 
 
 a.some() = 5 #expect error
+
+#[output]:Erro sintático: alvo inválido para atribuição.

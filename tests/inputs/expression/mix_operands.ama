@@ -9,3 +9,5 @@ fim
 
 mostra - ((7+3) - (2 * (duplica(a) + a))) # expect 122
 
+
+#[output]:110

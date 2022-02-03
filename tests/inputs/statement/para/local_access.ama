@@ -13,3 +13,5 @@ fim
 
 
 test_para() # expect 0 1
+
+#[output]:0 1

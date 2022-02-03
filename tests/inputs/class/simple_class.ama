@@ -22,3 +22,5 @@ fim
 acum : Acumulador = Acumulador(4)
 acum.incrementa(4)
 mostra acum.get_contador() #expect 8
+
+#[output]:8

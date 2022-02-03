@@ -2,3 +2,5 @@
 a : int = 5
 b : int = 2
 c : int = 5/2 # expect error
+
+#[output]:Erro: atribuição inválida. incompatibilidade entre os operandos da atribuição: 'int' e 'real'.

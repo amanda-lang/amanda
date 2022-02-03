@@ -1,1 +1,3 @@
 mostra converte("p",int) # expect error
+
+#[output]:Erro: impossível realizar a conversão entre os tipos especificados.

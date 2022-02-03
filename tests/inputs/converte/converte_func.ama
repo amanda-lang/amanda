@@ -4,3 +4,5 @@ func bad_converte()
 fim
 
 bad_converte()
+
+#[output]:Erro: impossível realizar a conversão entre os tipos especificados.

@@ -5,3 +5,5 @@ a : A = nulo
 mostra a
 mostra a == nulo
 mostra nulo == nulo
+
+#[output]:nulo verdadeiro verdadeiro

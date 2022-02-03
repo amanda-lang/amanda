@@ -15,3 +15,5 @@ fim
 str : String = String("str")
 
 mostra 3 + str.cmp() - (-str.cmp()) # expect 9
+
+#[output]:9

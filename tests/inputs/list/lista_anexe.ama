@@ -17,3 +17,5 @@ mostra tamanho(lista2) # expect 3
 anexe(lista2,255)
 mostra tamanho(lista2) # expect 4
 mostra lista2[3] # expect 255
+
+#[output]:3 1 2 3 3 4 255

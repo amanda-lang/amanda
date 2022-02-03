@@ -1,2 +1,4 @@
 
 verdadeiro + verdadeiro #expect error
+
+#[output]:Erro: os tipos 'bool' e 'bool' não suportam operações com o operador '+'.

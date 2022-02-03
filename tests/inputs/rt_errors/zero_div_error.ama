@@ -6,3 +6,5 @@ mostra a/i #expect error
 
 
 
+
+#[output]:Erro: não pode dividir um número por zero.

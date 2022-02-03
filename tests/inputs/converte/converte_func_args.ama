@@ -10,3 +10,5 @@ escrevaln1("eu")
 escrevaln1(verdadeiro)
 escrevaln1(3.14)
 escrevaln1(falso)
+
+#[output]:10 eu verdadeiro 3.14 falso

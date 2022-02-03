@@ -29,3 +29,5 @@ anexe(matrix[0] , 3)
 anexe(matrix[0] , 4)
 
 mostra matrix_madness[0][0][0]
+
+#[output]:1

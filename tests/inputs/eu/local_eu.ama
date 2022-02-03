@@ -2,3 +2,5 @@ func add():int
     eu #expect error
     retorna 0
 fim
+
+#[output]:Erro: a palavra reservada 'eu' só pode ser usada dentro de um método.

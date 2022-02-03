@@ -6,3 +6,5 @@ func test_decl():int
      a : bool
     retorna a
 fim
+
+#[output]:Erro: O identificador 'a' já foi declarado neste escopo.

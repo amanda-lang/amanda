@@ -11,3 +11,5 @@ fim
 
 
 mostra retorna_indef() # expect real -> 3.14
+
+#[output]:int -> 172 real -> 3.14

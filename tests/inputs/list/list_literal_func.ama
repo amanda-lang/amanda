@@ -12,3 +12,5 @@ func duplica(list : []int): []int
 fim
 
 mostra duplica(list)
+
+#[output]:[2, 4, 6, 8]

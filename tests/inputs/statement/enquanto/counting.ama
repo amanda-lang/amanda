@@ -30,3 +30,5 @@ enquanto nao logico faca
 fim
 
 mostra i; # expect 20
+
+#[output]:5 10 20

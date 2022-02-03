@@ -1,1 +1,3 @@
 verdadeiro[0]
+
+#[output]:Erro: O valor do tipo 'bool' não é indexável.

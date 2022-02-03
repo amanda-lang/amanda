@@ -10,3 +10,5 @@ fim
 
 change_global()
 mostra a # expect 3 
+
+#[output]:3

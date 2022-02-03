@@ -48,3 +48,5 @@ func factorial(n:int): int
 fim
 
 mostra factorial(5); # expect 120
+
+#[output]:3 150.0 4 120

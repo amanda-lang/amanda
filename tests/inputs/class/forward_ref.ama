@@ -16,3 +16,5 @@ fim
 a : A = A(5)
 a.constructor(3)
 mostra a.field # expect 3
+
+#[output]:3

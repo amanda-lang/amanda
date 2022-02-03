@@ -4,3 +4,5 @@
 se verdadeiro entao
     retorna 1 # Expect error
 fim
+
+#[output]:Erro: A directiva 'retorna' só pode ser usada dentro de uma função.

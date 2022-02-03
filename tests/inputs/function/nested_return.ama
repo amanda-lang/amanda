@@ -19,3 +19,5 @@ func test_para(): int
 fim
 
 mostra test_para() # expect 0
+
+#[output]:1 0

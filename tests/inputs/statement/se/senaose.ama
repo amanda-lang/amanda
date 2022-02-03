@@ -13,3 +13,5 @@ senaose num > 3 entao
 senaose num < 3 entao
     mostra "menor"
 fim
+
+#[output]:menor

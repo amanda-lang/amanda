@@ -2,3 +2,5 @@
 
 a:int 
 a:texto # expect error
+
+#[output]:Erro: O identificador 'a' já foi declarado neste escopo.

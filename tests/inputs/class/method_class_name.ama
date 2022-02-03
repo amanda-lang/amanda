@@ -13,3 +13,5 @@ fim
 
 a : A = A()
 mostra a.A() #expect 0 
+
+#[output]:0

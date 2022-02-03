@@ -2,3 +2,5 @@
 
 func main():int #expect error
 fim
+
+#[output]:Erro: a função 'main' não possui a instrução 'retorna'.

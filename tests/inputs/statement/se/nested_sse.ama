@@ -7,3 +7,5 @@ se num > 3 entao
         mostra "igual à 4"
     fim
 fim
+
+#[output]:igual à 4

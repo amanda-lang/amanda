@@ -6,3 +6,5 @@ para c de 0..5 faca
     fim
     mostra retorna_1() # expect 1 1 1 1 1
 fim
+
+#[output]:1 1 1 1 1

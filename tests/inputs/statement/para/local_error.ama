@@ -7,3 +7,5 @@ fim
 
 
 mostra v # expect error
+
+#[output]:Erro: o identificador 'v' não foi declarado.

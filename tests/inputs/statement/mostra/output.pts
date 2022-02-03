@@ -12,3 +12,5 @@ mostra 2.45 + 1.0; # expect 3.45
 mostra verdadeiro; # expect verdadeiro
 
 mostra falso; # expect falso
+
+#[output]:3 hello world 3.45 verdadeiro falso

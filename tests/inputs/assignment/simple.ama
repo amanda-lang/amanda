@@ -13,3 +13,5 @@ mostra d; # expect falso
 
 b : texto = "a";
 mostra b; # expect a
+
+#[output]:2 1.0 falso a

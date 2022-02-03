@@ -36,3 +36,5 @@ func crazy()
 
 fim
 crazy()
+
+#[output]:5 4 4 3 3 2

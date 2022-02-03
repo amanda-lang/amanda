@@ -5,3 +5,5 @@ fim
 
 
 main()() #expect error
+
+#[output]:Erro: Não pode invocar o resultado de uma invocação.

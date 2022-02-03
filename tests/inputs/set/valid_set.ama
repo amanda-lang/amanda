@@ -20,3 +20,5 @@ mostra acum.contador # expect 6
 
 acum.contador = 3 
 mostra acum.contador # expect 3
+
+#[output]:6 3

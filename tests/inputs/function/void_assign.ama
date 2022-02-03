@@ -6,3 +6,5 @@ fim
 
 
 num : int = escreva_num(5) # expect error
+
+#[output]:Erro: atribuição inválida. incompatibilidade entre os operandos da atribuição: 'int' e 'vazio'.

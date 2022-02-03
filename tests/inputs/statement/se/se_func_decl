@@ -24,3 +24,5 @@ senao
     fim
     mostra sub(i,4) # expect -3
 fim
+
+#[output]:4 -3

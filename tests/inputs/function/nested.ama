@@ -20,3 +20,5 @@ fim
 
 
 mostra crazy_product(2,2)
+
+#[output]:3 2 4

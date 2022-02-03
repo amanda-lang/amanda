@@ -47,3 +47,5 @@ para c de ini..end inc passo faca
 fim
 
 mostra i; # expect 4
+
+#[output]:5 10 5 10 4

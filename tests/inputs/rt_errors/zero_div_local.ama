@@ -8,3 +8,5 @@ fim
 
 
 
+
+#[output]:1 2 3 6 Erro: não pode dividir um número por zero.

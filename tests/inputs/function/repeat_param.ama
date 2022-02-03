@@ -4,3 +4,5 @@
 func add(a:int,a:float):int
     retorna 0
 fim
+
+#[output]:Erro: o parâmetro 'a' já foi especificado nesta função.

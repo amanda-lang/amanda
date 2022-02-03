@@ -2,3 +2,5 @@
 
 
 mostra 1 + texto; # expect error
+
+#[output]:Erro: o identificador 'texto' não é uma referência válida.

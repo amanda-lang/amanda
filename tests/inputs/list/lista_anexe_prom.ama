@@ -11,3 +11,5 @@ mostra tamanho(lista1) # expect 3
 para i de 0..tamanho(lista1) faca
     mostra lista1[i]
 fim # expect 1,2,3
+
+#[output]:3 1.0 2.0 3.0

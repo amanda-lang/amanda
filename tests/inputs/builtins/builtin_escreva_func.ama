@@ -7,3 +7,5 @@ escreva("a")
 escreva(1)
 escreva(2.21)
 escreva(verdadeiro)
+
+#[output]:a 1 2.21 verdadeiro a12.21verdadeiro

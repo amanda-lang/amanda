@@ -2,3 +2,5 @@
 
 
 retorna 6; # except ERROR
+
+#[output]:Erro: A directiva 'retorna' só pode ser usada dentro de uma função.

@@ -8,3 +8,5 @@ fim
 
 
 test()
+
+#[output]:Erro: não pode dividir um número por zero.

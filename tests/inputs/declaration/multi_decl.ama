@@ -4,3 +4,5 @@ mostra l1 # expect 0.0
 mostra l2 # expect 0.0
 mostra l3 # expect 0.0
 
+
+#[output]:0.0 0.0 0.0

@@ -1,3 +1,5 @@
 # Declaring with non existing type
 
 a:Tempo; #error
+
+#[output]:Erro: o tipo 'Tempo' não foi declarado.

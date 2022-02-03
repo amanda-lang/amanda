@@ -10,3 +10,5 @@ fim
 a:A = A("str")
 
 a.nome = a.some #expect error
+
+#[output]:Erro: o identificador 'some' não é uma referência válida.

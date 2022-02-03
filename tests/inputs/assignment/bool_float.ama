@@ -1,3 +1,5 @@
 #Incompatible types
 
 pi : real = verdadeiro
+
+#[output]:Erro: atribuição inválida. incompatibilidade entre os operandos da atribuição: 'real' e 'bool'.

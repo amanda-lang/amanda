@@ -9,3 +9,5 @@ mostra t
 mostra b
 mostra r
 
+
+#[output]:int -> 8 texto -> 'texto' bool -> verdadeiro real -> 8.4

@@ -9,3 +9,5 @@ func outer_func():int
   fim
   retorna a
 fim
+
+#[output]:Erro: a função 'inner_func' não possui a instrução 'retorna'.

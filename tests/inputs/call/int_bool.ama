@@ -5,3 +5,5 @@ func add(a:int,b:int):int
 fim
 
 add(verdadeiro,2) # expect error
+
+#[output]:Erro: argumento inválido. Esperava-se um argumento do tipo 'int' mas recebeu o tipo 'bool'.

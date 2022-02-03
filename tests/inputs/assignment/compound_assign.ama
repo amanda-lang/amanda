@@ -19,3 +19,5 @@ mostra a;  # expect 2
 a = a//b;
 mostra a; # expect 1
 
+
+#[output]:2 1 2 1

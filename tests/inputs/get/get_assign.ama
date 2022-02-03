@@ -20,3 +20,5 @@ fim
 
 acum : Acumulador = Acumulador(4)
 num : int = acum.get_contador #expect error
+
+#[output]:Erro: o identificador 'get_contador' não é uma referência válida.

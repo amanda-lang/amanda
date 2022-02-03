@@ -66,3 +66,5 @@ yield:bool
 mostra yield
 _buffer_ : int
 mostra _buffer_
+
+#[output]:0 falso 0.0 0 falso 0.0 0.0 0.0 0.0 0 0.0 falso falso 0 0 falso 0 falso 0 falso 0.0 falso 0.0 0 0.0 0.0 0 falso 0 falso 0.0 0.0 falso 0

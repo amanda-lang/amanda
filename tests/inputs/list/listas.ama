@@ -20,3 +20,5 @@ para i de 0..4 faca
     mostra minha_lista[i]
 fim
 
+
+#[output]:-3 88 65 11

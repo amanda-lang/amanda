@@ -1,2 +1,4 @@
 
 1.method() #expect error
+
+#[output]:Erro: Tipos primitivos não possuem atributos.

@@ -12,3 +12,5 @@ fim
 
 
 test_para()
+
+#[output]:Erro: o identificador 'v' não foi declarado.

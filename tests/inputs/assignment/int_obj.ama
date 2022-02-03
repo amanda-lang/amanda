@@ -3,3 +3,5 @@
 
 teste : texto = "texto"
 temp : int = teste #expect error
+
+#[output]:Erro: atribuição inválida. incompatibilidade entre os operandos da atribuição: 'int' e 'texto'.

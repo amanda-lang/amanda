@@ -17,3 +17,5 @@ fim
 
 acum : Acumulador = Acumulador(4)
 acum.cmp() #expect error
+
+#[output]:Erro: O objecto do tipo 'Acumulador' não possui o atributo cmp.

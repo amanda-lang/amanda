@@ -8,3 +8,5 @@ func main(): int
 fim
 
 mostra a+main; #expect error
+
+#[output]:Erro: o identificador 'main' não é uma referência válida.

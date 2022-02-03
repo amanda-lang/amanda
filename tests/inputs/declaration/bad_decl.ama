@@ -2,3 +2,5 @@
 l0 : real
 l1 : real = l0 = 0.3 # expect error
 
+
+#[output]:Erro sintático: as instruções devem ser delimitadas por ';' ou por uma nova linha.

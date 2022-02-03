@@ -24,3 +24,5 @@ mostra 2.0 % 2.4 # expect 2.0 % 2.4
 mostra -5 # expect -5
 
 mostra -5.1 # expect -5.1
+
+#[output]:3 2 8 2 0 3.1 -1.1 4.83 1.1428571428571428 2.0 -5 -5.1

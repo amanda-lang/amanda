@@ -7,3 +7,5 @@ senao
    i : int = 4
   mostra i #expect 4
 fim
+
+#[output]:4

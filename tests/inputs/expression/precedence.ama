@@ -2,3 +2,5 @@
 
 mostra 1 + 2 * 3; # expect 7
 mostra (1 + 2) * 3; # expect 9
+
+#[output]:7 9

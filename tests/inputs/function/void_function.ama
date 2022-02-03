@@ -9,3 +9,5 @@ escreva_num(3) #expect 3
 escreva_num(4+5) # expect 9
 escreva_num(6*2) # expect 12
 
+
+#[output]:2 3 9 12

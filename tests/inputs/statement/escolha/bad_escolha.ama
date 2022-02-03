@@ -13,3 +13,5 @@ escolha num_int:
     senao:
         mostra "erro"
 fim
+
+#[output]:Erro: A directiva escolha só pode ser usada para avaliar números inteiros e strings.

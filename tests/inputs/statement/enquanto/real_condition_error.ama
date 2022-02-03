@@ -4,3 +4,5 @@
 enquanto 3.14 faca  # expect Error
 
 fim
+
+#[output]:Erro: a condição da instrução 'enquanto' deve ser um valor lógico.

@@ -15,3 +15,5 @@ mostra x # expect 0
 
 
 
+
+#[output]:0

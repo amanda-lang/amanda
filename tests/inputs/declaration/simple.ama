@@ -13,3 +13,5 @@ mostra pi; # expect 0.0
 
 logico : bool
 mostra logico; #expect falso
+
+#[output]:0 2 0.0 falso

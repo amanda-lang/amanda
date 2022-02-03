@@ -13,3 +13,5 @@ fim
 main()
 mostra i; #expect 2
 
+
+#[output]:2 4 2

@@ -8,3 +8,5 @@ enquanto i != 4 faca
      i : int
 
 fim
+
+#[output]:0 1 2 3

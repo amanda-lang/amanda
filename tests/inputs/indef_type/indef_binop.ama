@@ -1,3 +1,5 @@
 
 conta : indef = 2 * 2.0 + (8 - 3.14)
 conta = - 3.16 + conta #expect error
+
+#[output]:Erro: os tipos 'real' e 'indef' não suportam operações com o operador '+'.

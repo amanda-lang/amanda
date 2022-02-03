@@ -5,3 +5,5 @@ fim
 
 a : A = nulo
 mostra a.head
+
+#[output]:Erro: Não pode aceder uma referência nula.

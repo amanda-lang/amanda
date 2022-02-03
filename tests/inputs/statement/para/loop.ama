@@ -3,3 +3,5 @@ para i de 0..5 faca
     mostra i
 
 fim
+
+#[output]:0 1 2 3 4

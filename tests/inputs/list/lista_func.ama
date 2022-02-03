@@ -31,3 +31,5 @@ l1[2] = 5
 l1 = doubler(l1)
 
 fmt_lista(l1,",")
+
+#[output]:4,6,10

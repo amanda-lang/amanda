@@ -8,3 +8,5 @@ mostra teste # expect testeteste
 
 mostra teste == teste # expect verdadeiro
 mostra teste != teste # expect falso
+
+#[output]:texto textotexto verdadeiro falso

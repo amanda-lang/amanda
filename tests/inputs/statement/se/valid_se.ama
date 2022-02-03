@@ -82,3 +82,5 @@ fim
 se (verdadeiro) entao 
 senao
 fim
+
+#[output]:2 not larger dez não oito não nove dez não dez
