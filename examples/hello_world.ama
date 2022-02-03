@@ -1,4 +1,4 @@
 # Olá mundo
 
 
-mostra "Hello world"
+escreva("Hello world")
