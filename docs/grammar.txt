@@ -1,5 +1,9 @@
 program
- : ( declaration | NEWLINE )* EOF
+ : (usa_stmt)* ( declaration | NEWLINE )* EOF
+ ;
+
+usa_stmt
+ : USA STRING (COMO IDENTIFIER)? end_stmt
  ;
 
 declaration

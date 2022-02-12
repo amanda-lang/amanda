@@ -68,6 +68,7 @@ class TokenType(Enum):
     CONVERTE = "CONVERTE"
     FACA = "FACA"
     DE = "DE"
+    USA = "USA"
     EU = "EU"
     SUPER = "SUPER"
     INC = "INC"
