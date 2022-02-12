@@ -289,6 +289,13 @@ class Parser:
 
     def program(self):
         program = ast.Program()
+        imports = []
+        self.skip_newlines()
+        while self.match(TT.USA):
+            imports.append(self.usa_stmt())
+            self.skip_newlines()
+
+        self.append_child(program, imports)
         while not self.match(Lexer.EOF):
             if self.match(TT.NEWLINE):
                 self.consume(TT.NEWLINE)
@@ -296,6 +303,16 @@ class Parser:
                 child = self.declaration()
                 self.append_child(program, child)
         return program
+
+    def usa_stmt(self):
+        token = self.consume(TT.USA)
+        module = self.consume(TT.STRING)
+        alias = None
+        if self.match(TT.COMO):
+            self.consume(TT.COMO)
+            alias = self.consume(TT.IDENTIFIER)
+        self.end_stmt()
+        return ast.Usa(token, module=module, alias=alias)
 
     def block(self):
         block = ast.Block()

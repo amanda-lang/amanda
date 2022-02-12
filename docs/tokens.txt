@@ -51,6 +51,7 @@ VAZIO : vazio
 NULO : nulo
 EU : eu
 USA : usa
+COMO: como
 SUPER : super
 
 *OPERANDS*

@@ -10,6 +10,13 @@ class ASTNode:
         return False
 
 
+class Usa(ASTNode):
+    def __init__(self, token, *, module="", alias=None):
+        super().__init__(token)
+        self.module = module
+        self.alias = alias
+
+
 class Program(ASTNode):
     def __init__(self):
         self.children = []

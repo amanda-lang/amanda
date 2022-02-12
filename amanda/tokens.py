@@ -69,6 +69,7 @@ class TokenType(Enum):
     FACA = "FACA"
     DE = "DE"
     USA = "USA"
+    COMO = "como"
     EU = "EU"
     SUPER = "SUPER"
     INC = "INC"

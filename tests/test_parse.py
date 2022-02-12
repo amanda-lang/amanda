@@ -146,7 +146,7 @@ class LexerTestCase(unittest.TestCase):
 
     def test_identifier(self):
         self.buffer.write(
-            "_test1 test test2 __test3 nulo var mostra verdadeiro falso retorna se senao senaose enquanto entao inc para faca de fim func classe eu usa super vazio converte escolha caso"
+            "_test1 test test2 __test3 nulo var mostra verdadeiro falso retorna se senao senaose enquanto entao inc para faca de fim func classe eu usa super vazio converte escolha caso como"
         )
         self.buffer.seek(0)
 
@@ -273,6 +273,9 @@ class LexerTestCase(unittest.TestCase):
         token = self.lexer.get_token()
         self.assertEqual(token.token, TokenType.CASO, msg="CASO Test Failed")
         self.assertEqual(token.lexeme, "caso", msg="CASO value test Failed")
+        token = self.lexer.get_token()
+        self.assertEqual(token.token, TokenType.COMO, msg="COMO Test Failed")
+        self.assertEqual(token.lexeme, "como", msg="COMO value test Failed")
 
     def test_delimeters(self):
         self.buffer.write(". , ; ) ( { } [ ] : ..")
@@ -446,6 +449,19 @@ class ParserTestCase(unittest.TestCase):
             "(array[i] - array[i-u])*array[m]",
             "lista(int,3)",
             "lista(int,3 + a);lista(nulo,3)",
+        ]
+        for phrase in phrases:
+            print(phrase, file=self.buffer)
+        # self.buffer.writelines(phrases)
+        self.buffer.seek(0)
+        self.parser.parse()
+
+    def test_usa(self):
+        phrases = [
+            "\n\nusa 'calc'",
+            "\nusa 'calc'",
+            "usa 'calc' como calculo\n\n",
+            'usa "calc.ama" como calculo\n',
         ]
         for phrase in phrases:
             print(phrase, file=self.buffer)
