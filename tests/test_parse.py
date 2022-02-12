@@ -146,7 +146,7 @@ class LexerTestCase(unittest.TestCase):
 
     def test_identifier(self):
         self.buffer.write(
-            "_test1 test test2 __test3 nulo var mostra verdadeiro falso retorna se senao senaose enquanto entao inc para faca de fim func classe eu super vazio converte escolha caso"
+            "_test1 test test2 __test3 nulo var mostra verdadeiro falso retorna se senao senaose enquanto entao inc para faca de fim func classe eu usa super vazio converte escolha caso"
         )
         self.buffer.seek(0)
 
@@ -247,6 +247,9 @@ class LexerTestCase(unittest.TestCase):
         token = self.lexer.get_token()
         self.assertEqual(token.token, TokenType.EU, msg="EU Test Failed")
         self.assertEqual(token.lexeme, "eu", msg="EU value test Failed")
+        token = self.lexer.get_token()
+        self.assertEqual(token.token, TokenType.USA, msg="USA Test Failed")
+        self.assertEqual(token.lexeme, "usa", msg="USA value test Failed")
         token = self.lexer.get_token()
         self.assertEqual(token.token, TokenType.SUPER, msg="SUPER Test Failed")
         self.assertEqual(token.lexeme, "super", msg="SUPER value test Failed")
