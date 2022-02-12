@@ -1,0 +1,6 @@
+usa "./tests/test_data/bar"
+usa "./tests/test_data/baz" 
+
+baz()
+bar()
+#[output]:baz bar

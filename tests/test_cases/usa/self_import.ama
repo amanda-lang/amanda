@@ -1,0 +1,2 @@
+usa "./tests/test_cases/usa/self_import.ama"
+#[output]:Erro: Erro ao importar módulo. inclusão cíclica detectada.

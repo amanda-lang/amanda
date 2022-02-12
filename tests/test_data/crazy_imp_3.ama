@@ -1,0 +1,5 @@
+usa "./tests/test_cases/usa/crazy_imp"
+
+func bar() fim
+
+main()

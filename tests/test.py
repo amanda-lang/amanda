@@ -38,6 +38,7 @@ DIRS = [
     join(TEST_DIR, "set"),
     join(TEST_DIR, "eu"),
     join(TEST_DIR, "nulo"),
+    join(TEST_DIR, "usa"),
 ]
 
 passed = 0

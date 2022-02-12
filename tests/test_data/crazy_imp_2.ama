@@ -1,0 +1,3 @@
+usa "./tests/test_data/crazy_imp_3"
+
+func foo() fim

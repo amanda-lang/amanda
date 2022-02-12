@@ -1,0 +1,4 @@
+usa "./tests/test_data/crazy_imp_2"
+
+foo()
+#[output]:Erro: Erro ao importar módulo. inclusão cíclica detectada.
