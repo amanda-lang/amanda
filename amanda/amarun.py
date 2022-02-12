@@ -1,4 +1,5 @@
 import sys
+from amanda.symbols import Module
 from amanda.error import AmandaError, handle_exception, throw_error
 from amanda.bltins import bltin_objs
 from amanda.parse import parse
@@ -9,7 +10,9 @@ from amanda.semantic import Analyzer
 def run(filename, *, gen_out=False, outname="output.py"):
     try:
         program = parse(filename)
-        valid_program = Analyzer(filename).visit_program(program)
+        valid_program = Analyzer(filename, Module(filename)).visit_program(
+            program
+        )
     except AmandaError as e:
         throw_error(e)
     generator = Generator()

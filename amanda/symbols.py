@@ -1,4 +1,13 @@
+from amanda.ast import Program
 from amanda.tokens import TokenType as TT
+from dataclasses import dataclass
+
+
+@dataclass
+class Module:
+    fpath: str
+    ast: Program = None
+    loaded: bool = False
 
 
 class Symbol:

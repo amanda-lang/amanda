@@ -1,5 +1,7 @@
 import copy
 import keyword
+from os import path
+from amanda.parse import parse
 from amanda.tokens import TokenType as TT
 import amanda.ast as ast
 import amanda.symbols as symbols
@@ -14,15 +16,19 @@ class Analyzer(ast.Visitor):
     ID_IN_USE = "O identificador '{name}' já foi declarado neste escopo"
     INVALID_REF = "o identificador '{name}' não é uma referência válida"
 
-    def __init__(self, filename):
+    def __init__(self, filename, module):
+        # Relative path to the file being run
         self.filename = filename
         # Just to have quick access to things like types and e.t.c
         self.global_scope = symbols.Scope()
         self.scope_depth = 0
-        self.current_scope = self.global_scope
-        self.current_node = None
-        self.current_class = None
-        self.current_function = None
+        self.ctx_scope = self.global_scope
+        self.ctx_node = None
+        self.ctx_class = None
+        self.ctx_func = None
+        self.imports = {}
+        # Module currently being executed
+        self.ctx_module = module
         self.init_builtins()
 
     def init_builtins(self):
@@ -44,7 +50,7 @@ class Analyzer(ast.Visitor):
         node_class = type(node).__name__.lower()
         method_name = f"has_return_{node_class}"
         visitor_method = getattr(self, method_name, self.general_check)
-        self.current_node = node
+        self.ctx_node = node
         return visitor_method(node)
 
     def has_return_block(self, node):
@@ -82,7 +88,7 @@ class Analyzer(ast.Visitor):
     def error(self, code, **kwargs):
         message = code.format(**kwargs)
         raise AmandaError.common_error(
-            self.filename, message, self.current_node.token.line
+            self.ctx_module.fpath, message, self.ctx_node.token.line
         )
 
     def is_valid_name(self, name):
@@ -107,9 +113,9 @@ class Analyzer(ast.Visitor):
 
     def get_type(self, type_node):
         if not type_node:
-            return self.current_scope.resolve("vazio")
+            return self.ctx_scope.resolve("vazio")
         type_name = type_node.type_name.lexeme
-        type_symbol = self.current_scope.resolve(type_name)
+        type_symbol = self.ctx_scope.resolve(type_name)
         if not type_symbol or not type_symbol.is_type():
             self.error(f"o tipo '{type_name}' não foi declarado")
 
@@ -128,7 +134,7 @@ class Analyzer(ast.Visitor):
         node_class = type(node).__name__.lower()
         method_name = f"visit_{node_class}"
         visitor_method = getattr(self, method_name, self.general_visit)
-        self.current_node = node
+        self.ctx_node = node
         if node_class == "block":
             return visitor_method(node, args)
         return visitor_method(node)
@@ -139,13 +145,50 @@ class Analyzer(ast.Visitor):
         node.symbols = self.global_scope
         return node
 
+    def visit_usa(self, node):
+        fpath = node.module.lexeme.replace("'", "").replace('"', "")
+        # Check if path refers to a valid file
+        head, tail = path.split(fpath)
+        err_msg = f"Erro ao importar módulo. O caminho '{fpath}' não é um ficheiro válido"
+        if not tail:
+            self.error(err_msg)
+        # If file doesn't have .ama extensions, add it
+        if tail.split(".")[-1] != "ama":
+            tail = tail + ".ama"
+        fpath = path.join(head, tail)
+        if not path.isfile(fpath):
+            self.error(err_msg)
+
+        mod_path = path.abspath(fpath)
+        existing_mod = self.imports.get(mod_path)
+        # Module has already been loaded
+        if existing_mod and existing_mod.loaded:
+            return
+        # Check for a cycle
+        # A cycle occurs when a previously seen module
+        # is seen again, but it is not loaded yet
+        if existing_mod and not existing_mod.loaded:
+            self.error(f"Erro ao importar módulo. inclusão cíclica detectada")
+
+        module = symbols.Module(mod_path)
+        prev_module = self.ctx_module
+        self.ctx_module = module
+        self.imports[mod_path] = module
+
+        # TODO: Handle errors while loading another module
+        module.ast = self.visit_program(parse(module.fpath))
+
+        node.ast = module.ast
+        module.loaded = True
+        self.ctx_module = prev_module
+
     def visit_vardecl(self, node):
         name = node.name.lexeme
-        if self.current_scope.get(name):
+        if self.ctx_scope.get(name):
             self.error(self.ID_IN_USE, name=name)
         var_type = self.get_type(node.var_type)
         symbol = symbols.VariableSymbol(name, var_type)
-        self.define_symbol(symbol, self.scope_depth, self.current_scope)
+        self.define_symbol(symbol, self.scope_depth, self.ctx_scope)
         node.var_type = var_type
         assign = node.assign
         if assign is not None:
@@ -158,7 +201,7 @@ class Analyzer(ast.Visitor):
     def visit_functiondecl(self, node):
         # Check if id is already in use
         name = node.name.lexeme
-        if self.current_scope.get(name):
+        if self.ctx_scope.get(name):
             self.error(self.ID_IN_USE, name=name)
 
         function_type = self.get_type(node.func_type)
@@ -166,19 +209,19 @@ class Analyzer(ast.Visitor):
         # Check if non void function has return
         has_return = self.has_return(node.block)
         if not has_return and function_type.otype != OType.TVAZIO:
-            self.current_node = node
+            self.ctx_node = node
             self.error(f"a função '{name}' não possui a instrução 'retorna'")
         symbol = symbols.FunctionSymbol(name, function_type)
-        self.define_symbol(symbol, self.scope_depth, self.current_scope)
+        self.define_symbol(symbol, self.scope_depth, self.ctx_scope)
         scope, symbol.params = self.define_func_scope(name, node.params)
-        prev_function = self.current_function
-        self.current_function = symbol
+        prev_function = self.ctx_func
+        self.ctx_func = symbol
         self.visit(node.block, scope)
-        self.current_function = prev_function
+        self.ctx_func = prev_function
 
     def define_func_scope(self, name, params):
         params_dict = {}
-        klass = self.current_class
+        klass = self.ctx_class
         for param in params:
             param_name = param.name.lexeme
             if params_dict.get(param_name):
@@ -187,21 +230,21 @@ class Analyzer(ast.Visitor):
                 )
             param_symbol = self.visit(param)
             params_dict[param_name] = param_symbol
-        scope = symbols.Scope(self.current_scope)
+        scope = symbols.Scope(self.ctx_scope)
         for param_name, param in params_dict.items():
             self.define_symbol(param, self.scope_depth + 1, scope)
         return (scope, params_dict)
 
     def visit_classdecl(self, node):
         name = node.name.lexeme
-        if self.current_scope.get(name):
+        if self.ctx_scope.get(name):
             self.error(self.ID_IN_USE, name=name)
         klass = Klass(name, None)
-        self.define_symbol(klass, self.scope_depth, self.current_scope)
-        self.current_scope = symbols.Scope(self.current_scope)
-        prev_class = self.current_class
-        self.current_class = klass
-        klass.members = self.current_scope.symbols
+        self.define_symbol(klass, self.scope_depth, self.ctx_scope)
+        self.ctx_scope = symbols.Scope(self.ctx_scope)
+        prev_class = self.ctx_class
+        self.ctx_class = klass
+        klass.members = self.ctx_scope.symbols
         # Will resolve class in two loops:
         # 1. Get all instance variables
         # 2. Get analyze all functions declarations
@@ -225,27 +268,27 @@ class Analyzer(ast.Visitor):
         for symbol in klass.members.values():
             symbol.is_property = True
 
-        node.body.symbols = self.current_scope
-        self.current_scope = self.current_scope.enclosing_scope
-        self.current_class = prev_class
+        node.body.symbols = self.ctx_scope
+        self.ctx_scope = self.ctx_scope.enclosing_scope
+        self.ctx_class = prev_class
 
     def visit_eu(self, node):
-        if not self.current_class or not self.current_function:
+        if not self.ctx_class or not self.ctx_func:
             self.error(
                 "a palavra reservada 'eu' só pode ser usada dentro de um método"
             )
-        node.eval_type = self.current_class
-        return symbols.VariableSymbol("eu", self.current_class)
+        node.eval_type = self.ctx_class
+        return symbols.VariableSymbol("eu", self.ctx_class)
 
     def visit_block(self, node, scope=None):
         self.scope_depth += 1
         if not scope:
-            scope = symbols.Scope(self.current_scope)
-        self.current_scope = scope
+            scope = symbols.Scope(self.ctx_scope)
+        self.ctx_scope = scope
         for child in node.children:
             self.visit(child)
         node.symbols = scope
-        self.current_scope = self.current_scope.enclosing_scope
+        self.ctx_scope = self.ctx_scope.enclosing_scope
         self.scope_depth -= 1
 
     def visit_param(self, node):
@@ -256,7 +299,7 @@ class Analyzer(ast.Visitor):
     # TODO: Rename this to literal
     def visit_constant(self, node):
         constant = node.token.token
-        scope = self.current_scope
+        scope = self.ctx_scope
         if constant == TT.INTEGER:
             node.eval_type = scope.resolve("int")
         elif constant == TT.REAL:
@@ -286,7 +329,7 @@ class Analyzer(ast.Visitor):
     # TODO: Rename this to 'name' or 'identifier'
     def visit_variable(self, node):
         name = node.token.lexeme
-        sym = self.current_scope.resolve(name)
+        sym = self.ctx_scope.resolve(name)
         if not sym:
             self.error(f"o identificador '{name}' não foi declarado")
         elif not sym.can_evaluate():
@@ -333,7 +376,7 @@ class Analyzer(ast.Visitor):
         self.validate_get(expr, es)
         expr.prom_type = expr.eval_type.promote_to(target.eval_type)
         if target.eval_type != expr.eval_type and not expr.prom_type:
-            self.current_node = node
+            self.ctx_node = node
             self.error(
                 f"atribuição inválida. incompatibilidade entre os operandos da atribuição: '{target.eval_type.name}' e '{expr.eval_type.name}'"
             )
@@ -384,7 +427,7 @@ class Analyzer(ast.Visitor):
             lhs.eval_type, operator.token, rhs.eval_type
         )
         if not result:
-            self.current_node = node
+            self.ctx_node = node
             self.error(
                 f"os tipos '{lhs.eval_type}' e '{rhs.eval_type}' não suportam operações com o operador '{operator.lexeme}'"
             )
@@ -395,7 +438,7 @@ class Analyzer(ast.Visitor):
     def get_binop_result(self, lhs_type, op, rhs_type):
         # Get result type of a binary operation based on
         # on operator and operand type
-        scope = self.current_scope
+        scope = self.ctx_scope
         if not lhs_type.is_operable() or not rhs_type.is_operable():
             return None
 
@@ -452,7 +495,7 @@ class Analyzer(ast.Visitor):
         bad_uop = f"o operador unário {lexeme} não pode ser usado com o tipo '{op_type}' "
         if operator in (TT.PLUS, TT.MINUS):
             if op_type.otype != OType.TINT and op_type.otype != OType.TREAL:
-                self.current_node = node
+                self.ctx_node = node
                 self.error(bad_uop)
         elif operator == TT.NAO:
             if op_type.otype != OType.TBOOL:
@@ -473,7 +516,7 @@ class Analyzer(ast.Visitor):
         # Set promotion type for right side
         rhs.prom_type = rhs.eval_type.promote_to(lhs.eval_type)
         if not self.types_match(lhs.eval_type, rhs.eval_type):
-            self.current_node = node
+            self.ctx_node = node
             self.error(
                 f"atribuição inválida. incompatibilidade entre os operandos da atribuição: '{lhs.eval_type}' e '{rhs.eval_type}'"
             )
@@ -484,14 +527,14 @@ class Analyzer(ast.Visitor):
         self.validate_get(node.exp, sym)
 
     def visit_retorna(self, node):
-        if not self.current_function:
-            self.current_node = node
+        if not self.ctx_func:
+            self.ctx_node = node
             self.error(
                 f"A directiva 'retorna' só pode ser usada dentro de uma função"
             )
-        func_type = self.current_function.type
+        func_type = self.ctx_func.type
         # TODO: Allow empty return from void functions
-        if self.current_function.type.otype == OType.TVAZIO:
+        if self.ctx_func.type.otype == OType.TVAZIO:
             self.error(
                 "Não pode usar a directiva 'retorna' em uma função vazia"
             )
@@ -546,7 +589,7 @@ class Analyzer(ast.Visitor):
     def visit_enquanto(self, node):
         self.visit(node.condition)
         if node.condition.eval_type.otype != OType.TBOOL:
-            self.current_node = node
+            self.ctx_node = node
             self.error(
                 f"a condição da instrução 'enquanto' deve ser um valor lógico"
             )
@@ -556,8 +599,8 @@ class Analyzer(ast.Visitor):
         self.visit(node.expression)
         # Define control variable for loop
         name = node.expression.name.lexeme
-        sym = symbols.VariableSymbol(name, self.current_scope.resolve("int"))
-        scope = symbols.Scope(self.current_scope)
+        sym = symbols.VariableSymbol(name, self.ctx_scope.resolve("int"))
+        scope = symbols.Scope(self.ctx_scope)
         self.define_symbol(sym, self.scope_depth + 1, scope)
         self.visit(node.statement, scope)
 
@@ -582,7 +625,7 @@ class Analyzer(ast.Visitor):
         calle_type = type(callee)
         if calle_type == ast.Variable:
             name = callee.token.lexeme
-            sym = self.current_scope.resolve(name)
+            sym = self.ctx_scope.resolve(name)
             if not sym:
                 # TODO: Use the default error message for this
                 self.error(
@@ -665,7 +708,7 @@ class Analyzer(ast.Visitor):
                 self.error(
                     f"incompatibilidade de tipos entre a lista e o valor a anexar: '{list_node.eval_type.subtype}' != '{value.eval_type}'"
                 )
-            node.eval_type = self.current_scope.resolve("vazio")
+            node.eval_type = self.ctx_scope.resolve("vazio")
 
     def check_arity(self, fargs, name, param_len):
         arg_len = len(fargs)
