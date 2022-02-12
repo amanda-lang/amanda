@@ -18,6 +18,7 @@ class Generator:
         self.class_depth = 0
         self.program_symtab = None
         self.scope_symtab = None
+        self.ctx_module = None
         self.line_info = {}  # Maps py_fileno to ama_fileno
 
     def generate_code(self, program):
@@ -43,6 +44,13 @@ class Generator:
 
     def gen_program(self, node):
         return self.compile_block(node, [])
+
+    def gen_usa(self, node):
+        module = node.ast
+        generator = Generator()
+        mod_src, _ = generator.generate_code(module)
+        self.py_lineno += generator.py_lineno
+        return mod_src
 
     def update_line_info(self):
         self.line_info[self.py_lineno] = self.ama_lineno
