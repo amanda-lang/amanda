@@ -23,6 +23,12 @@ def main(*args):
         default="output.py",
     )
     parser.add_argument(
+        "-c",
+        "--compile",
+        help="Compile program into bytecode vm assembly",
+        action="store_true",
+    )
+    parser.add_argument(
         "-r",
         "--report",
         help="Activates report mode and sends event messages to specified port on the local machine.",
@@ -37,7 +43,7 @@ def main(*args):
         sys.exit(
             f"The file '{path.abspath(args.file)}' was not found on this system"
         )
-    run(args.file, gen_out=args.generate, outname=args.outname)
+    run(args.file, args.compile, gen_out=args.generate, outname=args.outname)
 
 
 if __name__ == "__main__":
