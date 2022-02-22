@@ -10,3 +10,6 @@ dist/
 .venv
 *.log
 feat_tests/
+run.sh
+/*.amasm
+/vm/target
