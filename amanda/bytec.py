@@ -5,12 +5,20 @@ from enum import Enum, auto
 import amanda.symbols as symbols
 from amanda.type import Type, OType
 import amanda.ast as ast
+from amanda.tokens import TokenType as TT
 from amanda.error import AmandaError, throw_error
 
 
 class OpCode(Enum):
     MOSTRA = 0x00
-    LOAD_CONST = 0x01
+    LOAD_CONST = auto()
+    OP_ADD = auto()
+    OP_MINUS = auto()
+    OP_MUL = auto()
+    OP_DIV = auto()
+    OP_FLOORDIV = auto()
+    OP_MODULO = auto()
+    OP_INVERT = auto()
 
     def __str__(self):
         return str(self.value)
@@ -35,7 +43,7 @@ class ByteGen:
         self.ama_lineno = 1  # tracks lineno in input amanda src
         self.program_symtab = None
         self.scope_symtab = None
-        self.const_table = []
+        self.const_table = dict()
         self.constants = 0
         self.ops = StringIO()
 
@@ -44,6 +52,12 @@ class ByteGen:
         self.program_symtab = self.scope_symtab = program.symbols
         py_code = self.gen(program)
         return py_code
+
+    def write_op(self, op, arg=None):
+        if arg is not None:
+            self.ops.write(f"{op} {arg}\n")
+        else:
+            self.ops.write(f"{op}\n")
 
     def bad_gen(self, node):
         raise NotImplementedError(
@@ -73,7 +87,7 @@ class ByteGen:
         # Output constants
         data = StringIO()
         data.write(".data\n")
-        for idx, const in enumerate(self.const_table):
+        for const in self.const_table:
             data.write(f"{const}\n")
         data.write(".ops\n")
         return self.build_str(data) + self.build_str(self.ops)
@@ -96,12 +110,42 @@ class ByteGen:
 
     def gen_constant(self, node):
         literal = str(node.token.lexeme)
-        idx = self.constants
-        self.const_table.append(literal)
-        self.constants += 1
-        self.ops.write(f"{OpCode.LOAD_CONST} {idx}\n")
+        if literal in self.const_table:
+            idx = self.const_table[literal]
+        else:
+            idx = self.constants
+            self.const_table[literal] = idx
+            self.constants += 1
+        self.write_op(OpCode.LOAD_CONST, idx)
         self.update_line_info()
+
+    def gen_unaryop(self, node):
+        self.gen(node.operand)
+        operator = node.token.token
+        if operator == TT.MINUS:
+            self.write_op(OpCode.OP_INVERT)
+        else:
+            raise NotImplementedError("OP has no yet been implemented")
+
+    def gen_binop(self, node):
+        self.gen(node.left)
+        self.gen(node.right)
+        operator = node.token.token
+        if operator == TT.PLUS:
+            self.write_op(OpCode.OP_ADD)
+        elif operator == TT.MINUS:
+            self.write_op(OpCode.OP_MINUS)
+        elif operator == TT.STAR:
+            self.write_op(OpCode.OP_MUL)
+        elif operator == TT.SLASH:
+            self.write_op(OpCode.OP_DIV)
+        elif operator == TT.DOUBLESLASH:
+            self.write_op(OpCode.OP_FLOORDIV)
+        elif operator == TT.MODULO:
+            self.write_op(OpCode.OP_MODULO)
+        else:
+            raise NotImplementedError("OP has no yet been implemented")
 
     def gen_mostra(self, node):
         self.gen(node.exp)
-        self.ops.write(f"{OpCode.MOSTRA}\n")
+        self.write_op(OpCode.MOSTRA)

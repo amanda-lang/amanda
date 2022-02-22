@@ -1,38 +1,117 @@
 use std::convert::From;
 use std::fmt;
 use std::fmt::{Display, Formatter};
+use std::ops::Add;
 use std::{env, fs, path::Path};
 
 #[repr(u8)]
+#[derive(Debug)]
 enum OpCode {
-    MOSTRA,
-    PUSHCONST,
-    HALT = 255,
+    Mostra,
+    PushConst,
+    OpAdd,
+    OpMinus,
+    OpMul,
+    OpDiv,
+    OpFloorDiv,
+    OpModulo,
+    OpInvert,
+    Halt = 255,
 }
 
 //TODO: Find better way to do this
-impl From<u8> for OpCode {
-    fn from(number: u8) -> Self {
+impl From<&u8> for OpCode {
+    fn from(number: &u8) -> Self {
         match number {
-            0x00 => OpCode::MOSTRA,
-            0x01 => OpCode::PUSHCONST,
-            0xFF => OpCode::HALT,
+            0x00 => OpCode::Mostra,
+            0x01 => OpCode::PushConst,
+            0x02 => OpCode::OpAdd,
+            0x03 => OpCode::OpMinus,
+            0x04 => OpCode::OpMul,
+            0x05 => OpCode::OpDiv,
+            0x06 => OpCode::OpFloorDiv,
+            0x07 => OpCode::OpModulo,
+            0x08 => OpCode::OpInvert,
+            0xFF => OpCode::Halt,
             _ => unimplemented!(),
         }
     }
 }
 
 #[derive(Debug)]
-enum Op {
-    MOSTRA,
-    PUSHCONST(u16),
-}
-
-#[derive(Debug)]
 enum Const {
     Str(String),
-    Int(i128),
+    Int(i64),
     F64(f64),
+}
+
+impl Const {
+    fn is_float(&self) -> bool {
+        if let Const::F64(_) = self {
+            true
+        } else {
+            false
+        }
+    }
+
+    fn take_float(&self) -> f64 {
+        match self {
+            Const::F64(float) => *float,
+            Const::Int(int) => *int as f64,
+            _ => unimplemented!(),
+        }
+    }
+
+    fn take_int(&self) -> i64 {
+        match self {
+            Const::Int(int) => *int,
+            Const::F64(float) => *float as i64,
+            _ => unimplemented!(),
+        }
+    }
+
+    fn is_int(&self) -> bool {
+        if let Const::Int(_) = self {
+            true
+        } else {
+            false
+        }
+    }
+
+    fn binop(left: Self, op: OpCode, right: Self) -> Self {
+        let res_type = if left.is_float() || right.is_float() {
+            Const::F64(0.0)
+        } else if left.is_int() && right.is_int() {
+            Const::Int(0)
+        } else {
+            unimplemented!("Error is not implemented")
+        };
+        match op {
+            OpCode::OpAdd => match res_type {
+                Const::F64(_) => Const::F64(left.take_float() + right.take_float()),
+                Const::Int(_) => Const::Int(left.take_int() + right.take_int()),
+                _ => unimplemented!("Operand type not supported"),
+            },
+            OpCode::OpMinus => match res_type {
+                Const::F64(_) => Const::F64(left.take_float() - right.take_float()),
+                Const::Int(_) => Const::Int(left.take_int() - right.take_int()),
+                _ => unimplemented!("Operand type not supported"),
+            },
+            OpCode::OpMul => match res_type {
+                Const::F64(_) => Const::F64(left.take_float() * right.take_float()),
+                Const::Int(_) => Const::Int(left.take_int() * right.take_int()),
+                _ => unimplemented!("Operand type not supported"),
+            },
+            OpCode::OpModulo => match res_type {
+                Const::F64(_) => Const::F64(left.take_float() % right.take_float()),
+                Const::Int(_) => Const::Int(left.take_int() % right.take_int()),
+                _ => unimplemented!("Operand type not supported"),
+            },
+            OpCode::OpDiv => Const::F64(left.take_float() / right.take_float()),
+            OpCode::OpFloorDiv => Const::Int(left.take_int() / right.take_int()),
+            _ => unimplemented!(),
+        }
+    }
 }
 
 impl Clone for Const {
@@ -50,7 +129,12 @@ impl Display for Const {
         match self {
             Const::Str(string) => write!(f, "{}", string),
             Const::Int(integer) => write!(f, "{}", integer),
-            Const::F64(float) => write!(f, "{}", float),
+            Const::F64(float) => {
+                if float.fract() == 0.0 {
+                    return write!(f, "{}.0", float);
+                }
+                write!(f, "{}", float)
+            }
         }
     }
 }
@@ -58,14 +142,14 @@ impl Display for Const {
 #[derive(Debug)]
 struct Program {
     constants: Vec<Const>,
-    ops: Vec<Op>,
+    ops: Vec<u8>,
 }
 
 fn parse_asm(src: String) -> Program {
     let lines: Vec<&str> = src.split("\n").collect();
     //If data section is present, load constants
     let mut constants = Vec::new();
-    let mut ops = Vec::new();
+    let mut ops: Vec<u8> = Vec::new();
     let mut idx = 0;
     if lines[idx].trim() == ".data" {
         idx = 1;
@@ -74,7 +158,7 @@ fn parse_asm(src: String) -> Program {
                 break;
             }
             let constant: &str = line.trim();
-            let maybe_int = constant.parse::<i128>();
+            let maybe_int = constant.parse::<i64>();
             let maybe_float = constant.parse::<f64>();
             if maybe_int.is_ok() {
                 constants.push(Const::Int(maybe_int.unwrap()))
@@ -94,20 +178,33 @@ fn parse_asm(src: String) -> Program {
                 break;
             }
             let instr: Vec<&str> = line.split(" ").collect();
-            let op: Op = match &instr[0].trim().parse::<u8>() {
-                Ok(op) => match op {
-                    0x00 => Op::MOSTRA,
-                    0x01 => {
+            match &instr[0].trim().parse::<u8>() {
+                Ok(op) => match OpCode::from(op) {
+                    OpCode::Mostra
+                    | OpCode::OpAdd
+                    | OpCode::OpMinus
+                    | OpCode::OpMul
+                    | OpCode::OpDiv
+                    | OpCode::OpFloorDiv
+                    | OpCode::OpModulo
+                    | OpCode::OpInvert => ops.push(*op as u8),
+                    OpCode::PushConst => {
                         let idx = instr[1].parse::<u16>().unwrap();
-                        Op::PUSHCONST(idx)
+                        ops.push(OpCode::PushConst as u8);
+                        //Split index into high and low
+                        let high: u8 = ((idx & 0xFF00) >> 8) as u8;
+                        let low: u8 = (idx & 0x00FF) as u8;
+                        ops.push(high);
+                        ops.push(low);
                     }
                     _ => unimplemented!("Op not implemented"),
                 },
                 _ => panic!("Invalid syntax in amasm file"),
             };
-            ops.push(op);
         }
     }
+    //Add halt opcode
+    ops.push(OpCode::Halt as u8);
     Program { constants, ops }
 }
 
@@ -120,35 +217,14 @@ struct AmaVM {
 }
 
 impl AmaVM {
-    pub fn new() -> Self {
+    pub fn from_program(program: Program) -> Self {
         AmaVM {
-            program: Vec::new(),
-            constants: Vec::new(),
+            program: program.ops,
+            constants: program.constants,
             pc: 0,
             stack: Vec::new(),
             sp: -1,
         }
-    }
-
-    pub fn init_vm(&mut self, program: Program) {
-        self.constants = program.constants;
-        self.sp = (self.constants.len() - 1) as isize;
-        for op in &program.ops {
-            match op {
-                Op::MOSTRA => {
-                    self.program.push(OpCode::MOSTRA as u8);
-                }
-                Op::PUSHCONST(idx) => {
-                    self.program.push(OpCode::PUSHCONST as u8);
-                    //Split index into high and low
-                    let high: u8 = ((idx & 0xFF00) >> 8) as u8;
-                    let low: u8 = (idx & 0x00FF) as u8;
-                    self.program.push(high);
-                    self.program.push(low);
-                }
-            }
-        }
-        self.program.push(OpCode::HALT as u8);
     }
 
     fn op_push(&mut self, value: Const) {
@@ -169,13 +245,32 @@ impl AmaVM {
     pub fn run(&mut self) {
         loop {
             let op = self.program[self.pc];
-            match OpCode::from(op) {
-                OpCode::PUSHCONST => {
+            match OpCode::from(&op) {
+                OpCode::PushConst => {
                     let idx = ((self.get_byte() as u16) << 8) | self.get_byte() as u16;
                     self.op_push(Const::clone(&self.constants[idx as usize]));
                 }
-                OpCode::MOSTRA => println!("{}", self.op_pop()),
-                OpCode::HALT => break,
+                OpCode::Mostra => println!("{}", self.op_pop()),
+                //Binary Operations
+                OpCode::OpAdd
+                | OpCode::OpMinus
+                | OpCode::OpMul
+                | OpCode::OpDiv
+                | OpCode::OpFloorDiv
+                | OpCode::OpModulo => {
+                    let right = self.op_pop();
+                    let left = self.op_pop();
+                    self.op_push(Const::binop(left, OpCode::from(&op), right))
+                }
+                OpCode::OpInvert => {
+                    let operand = self.op_pop();
+                    match operand {
+                        Const::Int(num) => self.op_push(Const::Int(-num)),
+                        Const::F64(num) => self.op_push(Const::F64(-num)),
+                        _ => panic!("Fatal error!"),
+                    };
+                }
+                OpCode::Halt => break,
                 _ => unimplemented!(),
             }
             self.pc += 1;
@@ -192,8 +287,6 @@ fn main() {
     }
     let file = Path::new(&args[1]);
     let src = String::from_utf8(fs::read(file).unwrap()).unwrap();
-    let program = parse_asm(src);
-    let mut vm = AmaVM::new();
-    vm.init_vm(program);
+    let mut vm = AmaVM::from_program(parse_asm(src));
     vm.run();
 }
