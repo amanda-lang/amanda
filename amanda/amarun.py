@@ -1,4 +1,6 @@
 import sys
+import os
+import subprocess
 from amanda.symbols import Module
 from amanda.error import AmandaError, handle_exception, throw_error
 from amanda.bltins import bltin_objs
@@ -13,7 +15,11 @@ def write_file(name, code):
         output.write(code)
 
 
-def run(filename, gen_asm, *, gen_out=False, outname="output.py"):
+def run_py(args):
+    _run_py(args.file, gen_out=args.generate, outname=args.outname)
+
+
+def run_frontend(filename):
     try:
         program = parse(filename)
         valid_program = Analyzer(filename, Module(filename)).visit_program(
@@ -21,10 +27,11 @@ def run(filename, gen_asm, *, gen_out=False, outname="output.py"):
         )
     except AmandaError as e:
         throw_error(e)
-    if gen_asm:
-        code = ByteGen().compile(valid_program)
-        write_file(f"out.amasm", code)
-        return
+    return valid_program
+
+
+def _run_py(filename, *, gen_out=False, outname="output.py"):
+    valid_program = run_frontend(filename)
     generator = Generator()
     code, line_info = generator.generate_code(valid_program)
     if gen_out:
@@ -38,3 +45,20 @@ def run(filename, gen_asm, *, gen_out=False, outname="output.py"):
         if not ama_error:
             raise e
         throw_error(ama_error)
+
+
+def run_rs(args):
+    asm_code = ByteGen().compile(run_frontend(args.file))
+    OUT_FILE = "out.amasm"
+    write_file(OUT_FILE, asm_code)
+
+    return_code = subprocess.call(
+        ["cargo", "build", "--bins", "--manifest-path", "vm/Cargo.toml"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    if return_code != 0:
+        sys.exit(1)
+
+    # TODO: This is kinda of sus. Find a better way to do this
+    subprocess.call(["vm/target/debug/vm", OUT_FILE])

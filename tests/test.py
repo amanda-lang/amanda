@@ -112,7 +112,7 @@ def run_case(filename):
     stderr = StringIO()
     try:
         with redirect_stdout(stdout), redirect_stderr(stderr):
-            ama_main(filename)
+            ama_main("py", filename)
     except SystemExit as e:
         # Print stdout + stderr in case some code ran
         # before error was thrown
