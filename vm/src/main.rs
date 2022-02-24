@@ -1,11 +1,11 @@
+use std::collections::HashMap;
 use std::convert::From;
 use std::fmt;
 use std::fmt::{Display, Formatter};
-use std::ops::Add;
 use std::{env, fs, path::Path};
 
 #[repr(u8)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum OpCode {
     Mostra,
     PushConst,
@@ -16,24 +16,31 @@ enum OpCode {
     OpFloorDiv,
     OpModulo,
     OpInvert,
+    DefGlobal,
+    GetGlobal,
     Halt = 255,
 }
 
 //TODO: Find better way to do this
 impl From<&u8> for OpCode {
     fn from(number: &u8) -> Self {
-        match number {
-            0x00 => OpCode::Mostra,
-            0x01 => OpCode::PushConst,
-            0x02 => OpCode::OpAdd,
-            0x03 => OpCode::OpMinus,
-            0x04 => OpCode::OpMul,
-            0x05 => OpCode::OpDiv,
-            0x06 => OpCode::OpFloorDiv,
-            0x07 => OpCode::OpModulo,
-            0x08 => OpCode::OpInvert,
-            0xFF => OpCode::Halt,
-            _ => unimplemented!(),
+        let ops = [
+            OpCode::Mostra,
+            OpCode::PushConst,
+            OpCode::OpAdd,
+            OpCode::OpMinus,
+            OpCode::OpMul,
+            OpCode::OpDiv,
+            OpCode::OpFloorDiv,
+            OpCode::OpModulo,
+            OpCode::OpInvert,
+            OpCode::DefGlobal,
+            OpCode::GetGlobal,
+        ];
+        if *number == 0xff {
+            OpCode::Halt
+        } else {
+            ops[*number as usize].clone()
         }
     }
 }
@@ -58,7 +65,7 @@ impl Const {
         match self {
             Const::F64(float) => *float,
             Const::Int(int) => *int as f64,
-            _ => unimplemented!(),
+            _ => panic!("Value is not a float"),
         }
     }
 
@@ -66,7 +73,15 @@ impl Const {
         match self {
             Const::Int(int) => *int,
             Const::F64(float) => *float as i64,
-            _ => unimplemented!(),
+            _ => panic!("Value is not an int"),
+        }
+    }
+
+    fn take_str(&self) -> &str {
+        if let Const::Str(string) = self {
+            string
+        } else {
+            panic!("Value is not an str")
         }
     }
 
@@ -145,6 +160,15 @@ struct Program {
     ops: Vec<u8>,
 }
 
+type ConstIndex = u16;
+
+fn push_u16_arg(vec: &mut Vec<u8>, arg: u16) {
+    let high: u8 = ((arg & 0xFF00) >> 8) as u8;
+    let low: u8 = (arg & 0x00FF) as u8;
+    vec.push(high);
+    vec.push(low);
+}
+
 fn parse_asm(src: String) -> Program {
     let lines: Vec<&str> = src.split("\n").collect();
     //If data section is present, load constants
@@ -165,8 +189,12 @@ fn parse_asm(src: String) -> Program {
             } else if maybe_float.is_ok() {
                 constants.push(Const::F64(maybe_float.unwrap()))
             } else {
-                let string = String::from(constant.replace("\"", "").replace("\'", ""));
-                constants.push(Const::Str(string))
+                let slice: &str = if &constant[..1] == "\"" || &constant[..1] == "\'" {
+                    &constant[1..constant.len() - 1]
+                } else {
+                    constant
+                };
+                constants.push(Const::Str(String::from(slice)))
             }
             idx += 1;
         }
@@ -189,15 +217,35 @@ fn parse_asm(src: String) -> Program {
                     | OpCode::OpModulo
                     | OpCode::OpInvert => ops.push(*op as u8),
                     OpCode::PushConst => {
-                        let idx = instr[1].parse::<u16>().unwrap();
+                        let idx = instr[1].parse::<ConstIndex>().unwrap();
                         ops.push(OpCode::PushConst as u8);
-                        //Split index into high and low
-                        let high: u8 = ((idx & 0xFF00) >> 8) as u8;
-                        let low: u8 = (idx & 0x00FF) as u8;
-                        ops.push(high);
-                        ops.push(low);
+                        //Store const index
+                        push_u16_arg(&mut ops, idx);
                     }
-                    _ => unimplemented!("Op not implemented"),
+                    OpCode::DefGlobal => {
+                        /* Defines a new global variable
+                         * takes two args, the index to the name of the var on the
+                         * constant table
+                         * and the type of the var so that appropriate value may be chosen
+                         * as an initializer
+                         */
+                        ops.push(*op as u8);
+                        let id_idx = instr[1].parse::<u8>().unwrap();
+                        let init_type = instr[2].parse::<u8>().unwrap();
+                        ops.push(id_idx);
+                        ops.push(init_type);
+                    }
+                    OpCode::GetGlobal => {
+                        /* Pushes the value of a global variable onto the stack.
+                         * The only arg is the index to the name of the var.
+                         */
+                        ops.push(*op as u8);
+                        let id_idx = instr[1].parse::<ConstIndex>().unwrap();
+                        push_u16_arg(&mut ops, id_idx);
+                    }
+                    _ => unimplemented!(
+                        "Cannot not parse this OpCode, maybe it hasn't been implemented yet"
+                    ),
                 },
                 _ => panic!("Invalid syntax in amasm file"),
             };
@@ -208,22 +256,24 @@ fn parse_asm(src: String) -> Program {
     Program { constants, ops }
 }
 
-struct AmaVM {
+struct AmaVM<'a> {
     program: Vec<u8>,
-    constants: Vec<Const>,
+    constants: &'a Vec<Const>,
     pc: usize,
     stack: Vec<Const>,
     sp: isize,
+    globals: HashMap<&'a str, Const>,
 }
 
-impl AmaVM {
-    pub fn from_program(program: Program) -> Self {
+impl<'a> AmaVM<'a> {
+    pub fn from_program(program: &'a mut Program) -> Self {
         AmaVM {
-            program: program.ops,
-            constants: program.constants,
+            program: program.ops.clone(),
+            constants: &program.constants,
             pc: 0,
             stack: Vec::new(),
             sp: -1,
+            globals: HashMap::new(),
         }
     }
 
@@ -242,12 +292,16 @@ impl AmaVM {
         self.program[self.pc]
     }
 
+    fn get_u16_arg(&mut self) -> u16 {
+        ((self.get_byte() as u16) << 8) | self.get_byte() as u16
+    }
+
     pub fn run(&mut self) {
         loop {
             let op = self.program[self.pc];
             match OpCode::from(&op) {
                 OpCode::PushConst => {
-                    let idx = ((self.get_byte() as u16) << 8) | self.get_byte() as u16;
+                    let idx = self.get_u16_arg();
                     self.op_push(Const::clone(&self.constants[idx as usize]));
                 }
                 OpCode::Mostra => println!("{}", self.op_pop()),
@@ -270,8 +324,28 @@ impl AmaVM {
                         _ => panic!("Fatal error!"),
                     };
                 }
+                OpCode::DefGlobal => {
+                    let id_idx = self.get_byte() as usize;
+                    let init_type = self.get_byte();
+                    let initializer = match init_type {
+                        0 => Const::Int(0),
+                        1 => Const::F64(0.0),
+                        3 => Const::Str(String::from("")),
+                        _ => unimplemented!("Unknown type initializer"),
+                    };
+                    let id = self.constants[id_idx].take_str();
+                    self.globals.insert(id, initializer);
+                }
+                OpCode::GetGlobal => {
+                    let id_idx = self.get_u16_arg() as usize;
+                    let id = self.constants[id_idx].take_str();
+                    //#TODO: Do not use clone
+                    self.op_push(self.globals.get(id).unwrap().clone());
+                }
                 OpCode::Halt => break,
-                _ => unimplemented!(),
+                _ => unimplemented!(
+                    "Cannot not execute this OpCode, maybe it hasn't been implemented yet"
+                ),
             }
             self.pc += 1;
         }
@@ -281,12 +355,13 @@ impl AmaVM {
 fn main() {
     let args: Vec<String> = env::args().collect();
 
-    if args.len() < 1 {
+    if args.len() < 2 {
         eprintln!("Por favor especifique o ficheiro a ser executado");
         return;
     }
     let file = Path::new(&args[1]);
     let src = String::from_utf8(fs::read(file).unwrap()).unwrap();
-    let mut vm = AmaVM::from_program(parse_asm(src));
+    let mut program = parse_asm(src);
+    let mut vm = AmaVM::from_program(&mut program);
     vm.run();
 }

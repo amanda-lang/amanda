@@ -19,6 +19,8 @@ class OpCode(Enum):
     OP_FLOORDIV = auto()
     OP_MODULO = auto()
     OP_INVERT = auto()
+    DEF_GLOBAL = auto()
+    GET_GLOBAL = auto()
 
     def __str__(self):
         return str(self.value)
@@ -53,9 +55,10 @@ class ByteGen:
         py_code = self.gen(program)
         return py_code
 
-    def write_op(self, op, arg=None):
-        if arg is not None:
-            self.ops.write(f"{op} {arg}\n")
+    def write_op(self, op, *args):
+        if len(args):
+            op_args = " ".join([str(s) for s in args])
+            self.ops.write(f"{op} {op_args}\n")
         else:
             self.ops.write(f"{op}\n")
 
@@ -83,7 +86,7 @@ class ByteGen:
         return gen_method(node)
 
     def gen_program(self, node):
-        ops = self.compile_block(node)
+        self.compile_block(node)
         # Output constants
         data = StringIO()
         data.write(".data\n")
@@ -101,23 +104,59 @@ class ByteGen:
         self.scope_symtab = node.symbols
         # Newline for header
         self.update_line_info()
-        block = StringIO()
         for child in node.children:
             self.gen(child)
         self.depth -= 1
         self.scope_symtab = self.scope_symtab.enclosing_scope
-        return self.build_str(block)
+
+    def define_constant(self, constant):
+        if constant in self.const_table:
+            idx = self.const_table[constant]
+        else:
+            idx = self.constants
+            self.const_table[constant] = idx
+            self.constants += 1
+        return idx
 
     def gen_constant(self, node):
         literal = str(node.token.lexeme)
-        if literal in self.const_table:
-            idx = self.const_table[literal]
-        else:
-            idx = self.constants
-            self.const_table[literal] = idx
-            self.constants += 1
+        idx = self.define_constant(literal)
         self.write_op(OpCode.LOAD_CONST, idx)
         self.update_line_info()
+
+    def gen_variable(self, node):
+        name = node.token.lexeme
+        symbol = node.var_symbol
+        # TODO: Make sure that every identifier goes through
+        # 'visit_variable' so that symbol attribute can be set
+        if symbol is None:
+            symbol = self.scope_symtab.resolve(name)
+        expr = symbol.out_id
+        # TODO: Handle prom_type later
+        prom_type = node.prom_type
+        self.write_op(OpCode.GET_GLOBAL, self.const_table[expr])
+
+    def gen_vardecl(self, node):
+        assign = node.assign
+        idt = node.name.lexeme
+        symbol = self.scope_symtab.resolve(idt)
+        if assign:
+            value = self.gen(assign.right)
+        # Code that indicates the type of  global
+        # to be initialized
+        init_values = {
+            "int": 0,
+            "real": 1,
+            "bool": 2,
+            "texto": 3,
+        }
+        # DEF_GLOBAL takes two args, the index to the name of the var,  table
+        # and the type of the var so that appropriate value may be chosen
+        # as an initializer
+        id_idx = self.define_constant(symbol.out_id)
+        self.write_op(
+            OpCode.DEF_GLOBAL, id_idx, init_values[str(node.var_type)]
+        )
 
     def gen_unaryop(self, node):
         self.gen(node.operand)
