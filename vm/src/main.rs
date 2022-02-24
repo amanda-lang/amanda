@@ -8,7 +8,7 @@ use std::{env, fs, path::Path};
 #[derive(Debug, Clone)]
 enum OpCode {
     Mostra,
-    PushConst,
+    LoadConst,
     OpAdd,
     OpMinus,
     OpMul,
@@ -18,6 +18,7 @@ enum OpCode {
     OpInvert,
     DefGlobal,
     GetGlobal,
+    SetGlobal,
     Halt = 255,
 }
 
@@ -26,7 +27,7 @@ impl From<&u8> for OpCode {
     fn from(number: &u8) -> Self {
         let ops = [
             OpCode::Mostra,
-            OpCode::PushConst,
+            OpCode::LoadConst,
             OpCode::OpAdd,
             OpCode::OpMinus,
             OpCode::OpMul,
@@ -36,6 +37,7 @@ impl From<&u8> for OpCode {
             OpCode::OpInvert,
             OpCode::DefGlobal,
             OpCode::GetGlobal,
+            OpCode::SetGlobal,
         ];
         if *number == 0xff {
             OpCode::Halt
@@ -50,6 +52,7 @@ enum Const {
     Str(String),
     Int(i64),
     F64(f64),
+    Bool(bool),
 }
 
 impl Const {
@@ -135,6 +138,7 @@ impl Clone for Const {
             Const::Str(string) => Const::Str(String::clone(string)),
             Const::Int(int) => Const::Int(*int),
             Const::F64(float) => Const::F64(*float),
+            Const::Bool(val) => Const::Bool(*val),
         }
     }
 }
@@ -149,6 +153,10 @@ impl Display for Const {
                     return write!(f, "{}.0", float);
                 }
                 write!(f, "{}", float)
+            }
+            Const::Bool(val) => {
+                let val_str = if *val { "verdadeiro" } else { "falso" };
+                write!(f, "{}", val_str)
             }
         }
     }
@@ -171,10 +179,10 @@ fn push_u16_arg(vec: &mut Vec<u8>, arg: u16) {
 
 fn parse_asm(src: String) -> Program {
     let lines: Vec<&str> = src.split("\n").collect();
-    //If data section is present, load constants
     let mut constants = Vec::new();
     let mut ops: Vec<u8> = Vec::new();
     let mut idx = 0;
+    //If data section is present, load constants
     if lines[idx].trim() == ".data" {
         idx = 1;
         for line in &lines[idx..] {
@@ -182,6 +190,12 @@ fn parse_asm(src: String) -> Program {
                 break;
             }
             let constant: &str = line.trim();
+            if constant == "verdadeiro" || constant == "falso" {
+                let bool_val = if constant == "falso" { false } else { true };
+                constants.push(Const::Bool(bool_val));
+                idx += 1;
+                continue;
+            }
             let maybe_int = constant.parse::<i64>();
             let maybe_float = constant.parse::<f64>();
             if maybe_int.is_ok() {
@@ -216,9 +230,9 @@ fn parse_asm(src: String) -> Program {
                     | OpCode::OpFloorDiv
                     | OpCode::OpModulo
                     | OpCode::OpInvert => ops.push(*op as u8),
-                    OpCode::PushConst => {
+                    OpCode::LoadConst => {
                         let idx = instr[1].parse::<ConstIndex>().unwrap();
-                        ops.push(OpCode::PushConst as u8);
+                        ops.push(OpCode::LoadConst as u8);
                         //Store const index
                         push_u16_arg(&mut ops, idx);
                     }
@@ -235,7 +249,7 @@ fn parse_asm(src: String) -> Program {
                         ops.push(id_idx);
                         ops.push(init_type);
                     }
-                    OpCode::GetGlobal => {
+                    OpCode::SetGlobal | OpCode::GetGlobal => {
                         /* Pushes the value of a global variable onto the stack.
                          * The only arg is the index to the name of the var.
                          */
@@ -300,7 +314,7 @@ impl<'a> AmaVM<'a> {
         loop {
             let op = self.program[self.pc];
             match OpCode::from(&op) {
-                OpCode::PushConst => {
+                OpCode::LoadConst => {
                     let idx = self.get_u16_arg();
                     self.op_push(Const::clone(&self.constants[idx as usize]));
                 }
@@ -330,6 +344,7 @@ impl<'a> AmaVM<'a> {
                     let initializer = match init_type {
                         0 => Const::Int(0),
                         1 => Const::F64(0.0),
+                        2 => Const::Bool(false),
                         3 => Const::Str(String::from("")),
                         _ => unimplemented!("Unknown type initializer"),
                     };
@@ -341,6 +356,12 @@ impl<'a> AmaVM<'a> {
                     let id = self.constants[id_idx].take_str();
                     //#TODO: Do not use clone
                     self.op_push(self.globals.get(id).unwrap().clone());
+                }
+                OpCode::SetGlobal => {
+                    let id_idx = self.get_u16_arg() as usize;
+                    let id = self.constants[id_idx].take_str();
+                    let value = self.op_pop();
+                    self.globals.insert(id, value);
                 }
                 OpCode::Halt => break,
                 _ => unimplemented!(

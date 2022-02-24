@@ -21,6 +21,7 @@ class OpCode(Enum):
     OP_INVERT = auto()
     DEF_GLOBAL = auto()
     GET_GLOBAL = auto()
+    SET_GLOBAL = auto()
 
     def __str__(self):
         return str(self.value)
@@ -52,6 +53,10 @@ class ByteGen:
     def compile(self, program):
         """ Method that begins compilation of amanda source."""
         self.program_symtab = self.scope_symtab = program.symbols
+        # Define builtin constants
+        self.get_const_index("verdadeiro")
+        self.get_const_index("falso")
+
         py_code = self.gen(program)
         return py_code
 
@@ -109,7 +114,7 @@ class ByteGen:
         self.depth -= 1
         self.scope_symtab = self.scope_symtab.enclosing_scope
 
-    def define_constant(self, constant):
+    def get_const_index(self, constant):
         if constant in self.const_table:
             idx = self.const_table[constant]
         else:
@@ -120,7 +125,7 @@ class ByteGen:
 
     def gen_constant(self, node):
         literal = str(node.token.lexeme)
-        idx = self.define_constant(literal)
+        idx = self.get_const_index(literal)
         self.write_op(OpCode.LOAD_CONST, idx)
         self.update_line_info()
 
@@ -140,8 +145,6 @@ class ByteGen:
         assign = node.assign
         idt = node.name.lexeme
         symbol = self.scope_symtab.resolve(idt)
-        if assign:
-            value = self.gen(assign.right)
         # Code that indicates the type of  global
         # to be initialized
         init_values = {
@@ -153,10 +156,23 @@ class ByteGen:
         # DEF_GLOBAL takes two args, the index to the name of the var,  table
         # and the type of the var so that appropriate value may be chosen
         # as an initializer
-        id_idx = self.define_constant(symbol.out_id)
+        id_idx = self.get_const_index(symbol.out_id)
         self.write_op(
             OpCode.DEF_GLOBAL, id_idx, init_values[str(node.var_type)]
         )
+        # TODO: Optimize this
+        if assign:
+            self.gen(assign)
+
+    def gen_assign(self, node):
+        # Push value onto the stack
+        self.gen(node.right)
+        var = node.left
+        assert isinstance(var, ast.Variable)
+        var_idx = self.get_const_index(var.token.lexeme)
+        # SET_GLOBAL takes one args, the index to the name of the var,  table
+        # And sets it to the value at the top of the constant table
+        self.write_op(OpCode.SET_GLOBAL, var_idx)
 
     def gen_unaryop(self, node):
         self.gen(node.operand)
