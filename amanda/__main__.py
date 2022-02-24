@@ -31,12 +31,6 @@ def main(*args):
         help="Name of the output file, Requires the -g option to take effect. Defaults to output.py.",
         default="output.py",
     )
-    py_cmds.add_argument(
-        "-r",
-        "--report",
-        help="Activates report mode and sends event messages to specified port on the local machine.",
-        type=int,
-    )
     py_cmds.set_defaults(exec_cmd=run_py)
 
     rs_cmds = subparsers.add_parser(
