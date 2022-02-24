@@ -4,36 +4,47 @@ from io import StringIO
 import os
 import sys
 from os import path
-from amanda.amarun import run
+from amanda.amarun import run_py, run_rs
 from amanda.error import handle_exception, throw_error
 from amanda.bltins import bltin_objs
 
 
 def main(*args):
     parser = argparse.ArgumentParser()
-    parser.add_argument("file", help="source file to be executed")
-    parser.add_argument(
+    subparsers = parser.add_subparsers(
+        help="subcommands for running code with the vm"
+    )
+
+    py_cmds = subparsers.add_parser(
+        "py", description="Run using the python transpiler backend"
+    )
+
+    py_cmds.add_argument("file", help="source file to be executed")
+
+    py_cmds.add_argument(
         "-g", "--generate", help="Generate an output file", action="store_true"
     )
-    parser.add_argument(
+    py_cmds.add_argument(
         "-o",
         "--outname",
         type=str,
         help="Name of the output file, Requires the -g option to take effect. Defaults to output.py.",
         default="output.py",
     )
-    parser.add_argument(
-        "-c",
-        "--compile",
-        help="Compile program into bytecode vm assembly",
-        action="store_true",
-    )
-    parser.add_argument(
+    py_cmds.add_argument(
         "-r",
         "--report",
         help="Activates report mode and sends event messages to specified port on the local machine.",
         type=int,
     )
+    py_cmds.set_defaults(exec_cmd=run_py)
+
+    rs_cmds = subparsers.add_parser(
+        "rs", description="Run using the rust vm backend"
+    )
+
+    rs_cmds.add_argument("file", help="source file to be executed")
+    rs_cmds.set_defaults(exec_cmd=run_rs)
 
     if len(args):
         args = parser.parse_args(args)
@@ -43,7 +54,7 @@ def main(*args):
         sys.exit(
             f"The file '{path.abspath(args.file)}' was not found on this system"
         )
-    run(args.file, args.compile, gen_out=args.generate, outname=args.outname)
+    args.exec_cmd(args)
 
 
 if __name__ == "__main__":
