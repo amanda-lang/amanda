@@ -1,6 +1,7 @@
 import sys
 import os
 import subprocess
+from contextlib import redirect_stdout, redirect_stderr
 from amanda.symbols import Module
 from amanda.error import AmandaError, handle_exception, throw_error
 from amanda.bltins import bltin_objs
@@ -58,6 +59,7 @@ def run_rs(args):
         stderr=subprocess.DEVNULL,
     )
     if return_code != 0:
+        subprocess.call(["cargo", "check", "--manifest-path", "vm/Cargo.toml"])
         sys.exit(1)
 
     # TODO: This is kinda of sus. Find a better way to do this
