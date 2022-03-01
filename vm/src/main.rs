@@ -16,6 +16,9 @@ enum OpCode {
     OpFloorDiv,
     OpModulo,
     OpInvert,
+    OpAnd,
+    OpOr,
+    OpNot,
     DefGlobal,
     GetGlobal,
     SetGlobal,
@@ -37,6 +40,9 @@ impl From<&u8> for OpCode {
             OpCode::OpFloorDiv,
             OpCode::OpModulo,
             OpCode::OpInvert,
+            OpCode::OpAnd,
+            OpCode::OpOr,
+            OpCode::OpNot,
             OpCode::DefGlobal,
             OpCode::GetGlobal,
             OpCode::SetGlobal,
@@ -92,6 +98,22 @@ impl Const {
         }
     }
 
+    fn take_bool(&self) -> bool {
+        if let Const::Bool(val) = self {
+            *val
+        } else {
+            panic!("Value is not a bool")
+        }
+    }
+
+    fn is_bool(&self) -> bool {
+        if let Const::Bool(_) = self {
+            true
+        } else {
+            false
+        }
+    }
+
     fn is_int(&self) -> bool {
         if let Const::Int(_) = self {
             true
@@ -105,6 +127,8 @@ impl Const {
             Const::F64(0.0)
         } else if left.is_int() && right.is_int() {
             Const::Int(0)
+        } else if left.is_bool() && right.is_bool() {
+            Const::Bool(false)
         } else {
             unimplemented!("Error is not implemented")
         };
@@ -131,6 +155,8 @@ impl Const {
             },
             OpCode::OpDiv => Const::F64(left.take_float() / right.take_float()),
             OpCode::OpFloorDiv => Const::Int(left.take_int() / right.take_int()),
+            OpCode::OpAnd => Const::Bool(left.take_bool() && right.take_bool()),
+            OpCode::OpOr => Const::Bool(left.take_bool() || right.take_bool()),
             _ => unimplemented!(),
         }
     }
@@ -233,7 +259,10 @@ fn parse_asm(src: String) -> Program {
                     | OpCode::OpDiv
                     | OpCode::OpFloorDiv
                     | OpCode::OpModulo
-                    | OpCode::OpInvert => ops.push(*op as u8),
+                    | OpCode::OpInvert
+                    | OpCode::OpAnd
+                    | OpCode::OpOr
+                    | OpCode::OpNot => ops.push(*op as u8),
                     OpCode::LoadConst => {
                         let idx = instr[1].parse::<ConstIndex>().unwrap();
                         ops.push(OpCode::LoadConst as u8);
@@ -329,18 +358,29 @@ impl<'a> AmaVM<'a> {
                 | OpCode::OpMul
                 | OpCode::OpDiv
                 | OpCode::OpFloorDiv
-                | OpCode::OpModulo => {
+                | OpCode::OpModulo
+                | OpCode::OpAnd
+                | OpCode::OpOr => {
                     let right = self.op_pop();
                     let left = self.op_pop();
                     self.op_push(Const::binop(left, OpCode::from(&op), right))
                 }
-                OpCode::OpInvert => {
+                OpCode::OpInvert | OpCode::OpNot => {
                     let operand = self.op_pop();
-                    match operand {
-                        Const::Int(num) => self.op_push(Const::Int(-num)),
-                        Const::F64(num) => self.op_push(Const::F64(-num)),
-                        _ => panic!("Fatal error!"),
-                    };
+                    let op = OpCode::from(&op);
+                    if let OpCode::OpInvert = op {
+                        match operand {
+                            Const::Int(num) => self.op_push(Const::Int(-num)),
+                            Const::F64(num) => self.op_push(Const::F64(-num)),
+                            _ => panic!("Fatal error!"),
+                        };
+                    } else {
+                        if let Const::Bool(val) = operand {
+                            self.op_push(Const::Bool(!val));
+                        } else {
+                            panic!("Value should always be a bool");
+                        }
+                    }
                 }
                 OpCode::DefGlobal => {
                     let id_idx = self.get_u16_arg() as usize;

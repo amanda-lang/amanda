@@ -22,6 +22,9 @@ class OpCode(Enum):
     OP_FLOORDIV = auto()
     OP_MODULO = auto()
     OP_INVERT = auto()
+    OP_AND = auto()
+    OP_OR = auto()
+    OP_NOT = auto()
     DEF_GLOBAL = auto()
     GET_GLOBAL = auto()
     SET_GLOBAL = auto()
@@ -220,8 +223,12 @@ class ByteGen:
         operator = node.token.token
         if operator == TT.MINUS:
             self.write_op(OpCode.OP_INVERT)
+        elif operator == TT.NAO:
+            self.write_op(OpCode.OP_NOT)
         else:
-            raise NotImplementedError("OP has no yet been implemented")
+            raise NotImplementedError(
+                f"OP {node.token.token} has not yet been implemented"
+            )
 
     def gen_binop(self, node):
         self.gen(node.left)
@@ -239,8 +246,14 @@ class ByteGen:
             self.write_op(OpCode.OP_FLOORDIV)
         elif operator == TT.MODULO:
             self.write_op(OpCode.OP_MODULO)
+        elif operator == TT.E:
+            self.write_op(OpCode.OP_AND)
+        elif operator == TT.OU:
+            self.write_op(OpCode.OP_OR)
         else:
-            raise NotImplementedError("OP has no yet been implemented")
+            raise NotImplementedError(
+                f"OP {node.token.token} has not yet been implemented"
+            )
 
     def gen_se(self, node):
         else_branch = node.else_branch
