@@ -19,6 +19,12 @@ enum OpCode {
     OpAnd,
     OpOr,
     OpNot,
+    OpEq,
+    OpNotEq,
+    OpGreater,
+    OpGreaterEq,
+    OpLess,
+    OpLessEq,
     DefGlobal,
     GetGlobal,
     SetGlobal,
@@ -43,6 +49,12 @@ impl From<&u8> for OpCode {
             OpCode::OpAnd,
             OpCode::OpOr,
             OpCode::OpNot,
+            OpCode::OpEq,
+            OpCode::OpNotEq,
+            OpCode::OpGreater,
+            OpCode::OpGreaterEq,
+            OpCode::OpLess,
+            OpCode::OpLessEq,
             OpCode::DefGlobal,
             OpCode::GetGlobal,
             OpCode::SetGlobal,
@@ -55,6 +67,37 @@ impl From<&u8> for OpCode {
             ops[*number as usize].clone()
         }
     }
+}
+
+macro_rules! arith_ops {
+    ($res_type: ident, $left: ident, $op: tt, $right: ident) => {
+        match $res_type {
+            Const::F64(_) => Const::F64($left.take_float() $op $right.take_float()),
+            Const::Int(_) => Const::Int($left.take_int() $op $right.take_int()),
+            _ => unimplemented!("Operand type not supported"),
+        };
+    };
+}
+
+macro_rules! comp_ops {
+    ($res_type: ident, $left: ident, $op: tt, $right: ident) => {
+        match $res_type {
+            Const::F64(_) => Const::Bool($left.take_float() $op $right.take_float()),
+            Const::Int(_) => Const::Bool($left.take_int() $op $right.take_int()),
+            _ => unimplemented!("Operand type not supported"),
+        };
+    };
+}
+
+macro_rules! eq_ops {
+    ($res_type: ident, $left: ident, $op: tt, $right: ident) => {
+        match $res_type {
+            Const::Int(_) => Const::Bool($left.take_int() $op $right.take_int()),
+            Const::F64(_) => Const::Bool($left.take_float() $op $right.take_float()),
+            Const::Bool(_) => Const::Bool($left.take_bool() $op $right.take_bool()),
+            Const::Str(_) => Const::Bool($left.take_str() $op $right.take_str()),
+        };
+    };
 }
 
 #[derive(Debug)]
@@ -106,6 +149,14 @@ impl Const {
         }
     }
 
+    fn is_str(&self) -> bool {
+        if let Const::Str(_) = self {
+            true
+        } else {
+            false
+        }
+    }
+
     fn is_bool(&self) -> bool {
         if let Const::Bool(_) = self {
             true
@@ -129,35 +180,27 @@ impl Const {
             Const::Int(0)
         } else if left.is_bool() && right.is_bool() {
             Const::Bool(false)
+        } else if left.is_str() && right.is_str() {
+            Const::Str(String::from(""))
         } else {
             unimplemented!("Error is not implemented")
         };
         match op {
-            OpCode::OpAdd => match res_type {
-                Const::F64(_) => Const::F64(left.take_float() + right.take_float()),
-                Const::Int(_) => Const::Int(left.take_int() + right.take_int()),
-                _ => unimplemented!("Operand type not supported"),
-            },
-            OpCode::OpMinus => match res_type {
-                Const::F64(_) => Const::F64(left.take_float() - right.take_float()),
-                Const::Int(_) => Const::Int(left.take_int() - right.take_int()),
-                _ => unimplemented!("Operand type not supported"),
-            },
-            OpCode::OpMul => match res_type {
-                Const::F64(_) => Const::F64(left.take_float() * right.take_float()),
-                Const::Int(_) => Const::Int(left.take_int() * right.take_int()),
-                _ => unimplemented!("Operand type not supported"),
-            },
-            OpCode::OpModulo => match res_type {
-                Const::F64(_) => Const::F64(left.take_float() % right.take_float()),
-                Const::Int(_) => Const::Int(left.take_int() % right.take_int()),
-                _ => unimplemented!("Operand type not supported"),
-            },
+            OpCode::OpAdd => arith_ops!(res_type, left, +, right),
+            OpCode::OpMinus => arith_ops!(res_type, left, -, right),
+            OpCode::OpMul => arith_ops!(res_type, left, *, right),
+            OpCode::OpModulo => arith_ops!(res_type, left, %, right),
             OpCode::OpDiv => Const::F64(left.take_float() / right.take_float()),
             OpCode::OpFloorDiv => Const::Int(left.take_int() / right.take_int()),
             OpCode::OpAnd => Const::Bool(left.take_bool() && right.take_bool()),
             OpCode::OpOr => Const::Bool(left.take_bool() || right.take_bool()),
-            _ => unimplemented!(),
+            OpCode::OpEq => eq_ops!(res_type, left, ==, right),
+            OpCode::OpNotEq => eq_ops!(res_type, left, !=,  right),
+            OpCode::OpGreater => comp_ops!(res_type, left, >, right),
+            OpCode::OpGreaterEq => comp_ops!(res_type, left, >=, right),
+            OpCode::OpLess => comp_ops!(res_type, left, <, right),
+            OpCode::OpLessEq => comp_ops!(res_type, left, <=, right),
+            _ => unimplemented!("Op {:?} has not yet been implemented", op),
         }
     }
 }
@@ -262,7 +305,13 @@ fn parse_asm(src: String) -> Program {
                     | OpCode::OpInvert
                     | OpCode::OpAnd
                     | OpCode::OpOr
-                    | OpCode::OpNot => ops.push(*op as u8),
+                    | OpCode::OpNot
+                    | OpCode::OpEq
+                    | OpCode::OpNotEq
+                    | OpCode::OpGreater
+                    | OpCode::OpGreaterEq
+                    | OpCode::OpLess
+                    | OpCode::OpLessEq => ops.push(*op as u8),
                     OpCode::LoadConst => {
                         let idx = instr[1].parse::<ConstIndex>().unwrap();
                         ops.push(OpCode::LoadConst as u8);
@@ -360,7 +409,13 @@ impl<'a> AmaVM<'a> {
                 | OpCode::OpFloorDiv
                 | OpCode::OpModulo
                 | OpCode::OpAnd
-                | OpCode::OpOr => {
+                | OpCode::OpOr
+                | OpCode::OpEq
+                | OpCode::OpNotEq
+                | OpCode::OpGreater
+                | OpCode::OpGreaterEq
+                | OpCode::OpLess
+                | OpCode::OpLessEq => {
                     let right = self.op_pop();
                     let left = self.op_pop();
                     self.op_push(Const::binop(left, OpCode::from(&op), right))

@@ -25,6 +25,12 @@ class OpCode(Enum):
     OP_AND = auto()
     OP_OR = auto()
     OP_NOT = auto()
+    OP_EQ = auto()
+    OP_NOTEQ = auto()
+    OP_GREATER = auto()
+    OP_GREATEREQ = auto()
+    OP_LESS = auto()
+    OP_LESSEQ = auto()
     DEF_GLOBAL = auto()
     GET_GLOBAL = auto()
     SET_GLOBAL = auto()
@@ -250,6 +256,18 @@ class ByteGen:
             self.write_op(OpCode.OP_AND)
         elif operator == TT.OU:
             self.write_op(OpCode.OP_OR)
+        elif operator == TT.DOUBLEEQUAL:
+            self.write_op(OpCode.OP_EQ)
+        elif operator == TT.NOTEQUAL:
+            self.write_op(OpCode.OP_NOTEQ)
+        elif operator == TT.GREATER:
+            self.write_op(OpCode.OP_GREATER)
+        elif operator == TT.GREATEREQ:
+            self.write_op(OpCode.OP_GREATEREQ)
+        elif operator == TT.LESS:
+            self.write_op(OpCode.OP_LESS)
+        elif operator == TT.LESSEQ:
+            self.write_op(OpCode.OP_LESSEQ)
         else:
             raise NotImplementedError(
                 f"OP {node.token.token} has not yet been implemented"
