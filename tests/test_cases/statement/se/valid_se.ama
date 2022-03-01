@@ -16,7 +16,7 @@ se (num > 3) entao
    i:int = num;
   mostra num;
 senao
-   res:texto = "not larger";
+  res:texto = "not larger";
   mostra res; # expect not larger
 fim
 
