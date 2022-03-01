@@ -186,7 +186,7 @@ class ByteGen:
         # 'visit_variable' so that symbol attribute can be set
         if symbol is None:
             symbol = self.scope_symtab.resolve(name)
-        expr = symbol.out_id
+        expr = name
         # TODO: Handle prom_type later
         prom_type = node.prom_type
         self.write_op(OpCode.GET_GLOBAL, self.const_table[expr])
@@ -206,7 +206,7 @@ class ByteGen:
         # DEF_GLOBAL takes two args, the index to the name of the var,  table
         # and the type of the var so that appropriate value may be chosen
         # as an initializer
-        id_idx = self.get_const_index(symbol.out_id)
+        id_idx = self.get_const_index(idt)
         self.write_op(
             OpCode.DEF_GLOBAL, id_idx, init_values[str(node.var_type)]
         )
