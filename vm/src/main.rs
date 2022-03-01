@@ -19,6 +19,8 @@ enum OpCode {
     DefGlobal,
     GetGlobal,
     SetGlobal,
+    Jump,
+    JumpIfFalse,
     Halt = 255,
 }
 
@@ -38,6 +40,8 @@ impl From<&u8> for OpCode {
             OpCode::DefGlobal,
             OpCode::GetGlobal,
             OpCode::SetGlobal,
+            OpCode::Jump,
+            OpCode::JumpIfFalse,
         ];
         if *number == 0xff {
             OpCode::Halt
@@ -244,18 +248,18 @@ fn parse_asm(src: String) -> Program {
                          * as an initializer
                          */
                         ops.push(*op as u8);
-                        let id_idx = instr[1].parse::<u8>().unwrap();
+                        let id_idx = instr[1].parse::<ConstIndex>().unwrap();
                         let init_type = instr[2].parse::<u8>().unwrap();
-                        ops.push(id_idx);
+                        push_u16_arg(&mut ops, id_idx);
                         ops.push(init_type);
                     }
-                    OpCode::SetGlobal | OpCode::GetGlobal => {
+                    OpCode::SetGlobal | OpCode::GetGlobal | OpCode::JumpIfFalse | OpCode::Jump => {
                         /* Pushes the value of a global variable onto the stack.
                          * The only arg is the index to the name of the var.
                          */
                         ops.push(*op as u8);
-                        let id_idx = instr[1].parse::<ConstIndex>().unwrap();
-                        push_u16_arg(&mut ops, id_idx);
+                        let arg = instr[1].parse::<ConstIndex>().unwrap();
+                        push_u16_arg(&mut ops, arg);
                     }
                     _ => unimplemented!(
                         "Cannot not parse this OpCode, maybe it hasn't been implemented yet"
@@ -339,7 +343,7 @@ impl<'a> AmaVM<'a> {
                     };
                 }
                 OpCode::DefGlobal => {
-                    let id_idx = self.get_byte() as usize;
+                    let id_idx = self.get_u16_arg() as usize;
                     let init_type = self.get_byte();
                     let initializer = match init_type {
                         0 => Const::Int(0),
@@ -362,6 +366,23 @@ impl<'a> AmaVM<'a> {
                     let id = self.constants[id_idx].take_str();
                     let value = self.op_pop();
                     self.globals.insert(id, value);
+                }
+                OpCode::Jump => {
+                    let addr = self.get_u16_arg() as usize;
+                    self.pc = addr;
+                    continue;
+                }
+                OpCode::JumpIfFalse => {
+                    /*
+                     * Jumps if the top of the stack is false
+                     * Pops the stack
+                     * */
+                    let addr = self.get_u16_arg() as usize;
+                    let value = self.op_pop();
+                    if let Const::Bool(false) = value {
+                        self.pc = addr;
+                        continue;
+                    }
                 }
                 OpCode::Halt => break,
                 _ => unimplemented!(

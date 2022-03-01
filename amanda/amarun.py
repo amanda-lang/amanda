@@ -53,6 +53,7 @@ def run_rs(args):
     OUT_FILE = "out.amasm"
     write_file(OUT_FILE, asm_code)
 
+    os.environ["RUST_BACKTRACE"] = "1"
     return_code = subprocess.call(
         ["cargo", "build", "--bins", "--manifest-path", "vm/Cargo.toml"],
         stdout=subprocess.DEVNULL,

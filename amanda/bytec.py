@@ -9,6 +9,9 @@ from amanda.tokens import TokenType as TT
 from amanda.error import AmandaError, throw_error
 
 
+OP_SIZE = 8
+
+
 class OpCode(Enum):
     MOSTRA = 0x00
     LOAD_CONST = auto()
@@ -22,8 +25,26 @@ class OpCode(Enum):
     DEF_GLOBAL = auto()
     GET_GLOBAL = auto()
     SET_GLOBAL = auto()
+    JUMP = auto()
+    JUMP_IF_FALSE = auto()
 
-    def __str__(self):
+    def op_size(self) -> int:
+        # Return number of bytes (including args) that each op
+        # uses
+        if self in (
+            OpCode.LOAD_CONST,
+            OpCode.GET_GLOBAL,
+            OpCode.SET_GLOBAL,
+            OpCode.JUMP,
+            OpCode.JUMP_IF_FALSE,
+        ):
+            return OP_SIZE * 3
+        elif self == OpCode.DEF_GLOBAL:
+            return OP_SIZE * 4
+        else:
+            return OP_SIZE
+
+    def __str__(self) -> str:
         return str(self.value)
 
 
@@ -48,7 +69,9 @@ class ByteGen:
         self.scope_symtab = None
         self.const_table = dict()
         self.constants = 0
-        self.ops = StringIO()
+        self.labels = {}
+        self.ops = []
+        self.ip = 0  # Amount of instructions written
 
     def compile(self, program):
         """ Method that begins compilation of amanda source."""
@@ -60,12 +83,28 @@ class ByteGen:
         py_code = self.gen(program)
         return py_code
 
-    def write_op(self, op, *args):
+    def new_label(self) -> str:
+        idx = len(self.labels)
+        self.labels[idx] = -1  # Placeholder value
+        return idx
+
+    def mark_label_loc(self, label) -> str:
+        self.labels[label] = self.ip
+
+    def decode_op(self, op) -> str:
+        op, args = op
+        if op in (OpCode.JUMP_IF_FALSE, OpCode.JUMP):
+            # get jump address
+            args = [self.labels[args[0]]]
         if len(args):
             op_args = " ".join([str(s) for s in args])
-            self.ops.write(f"{op} {op_args}\n")
+            return f"{op} {op_args}\n"
         else:
-            self.ops.write(f"{op}\n")
+            return f"{op}\n"
+
+    def write_op(self, op, *args):
+        self.ip += op.op_size() // OP_SIZE
+        self.ops.append((op, args))
 
     def bad_gen(self, node):
         raise NotImplementedError(
@@ -93,12 +132,14 @@ class ByteGen:
     def gen_program(self, node):
         self.compile_block(node)
         # Output constants
-        data = StringIO()
-        data.write(".data\n")
+        program = StringIO()
+        program.write(".data\n")
         for const in self.const_table:
-            data.write(f"{const}\n")
-        data.write(".ops\n")
-        return self.build_str(data) + self.build_str(self.ops)
+            program.write(f"{const}\n")
+        program.write(".ops\n")
+        for op in self.ops:
+            program.write(self.decode_op(op))
+        return self.build_str(program)
 
     def compile_block(self, node):
         # stmts param is a list of stmts
@@ -200,6 +241,29 @@ class ByteGen:
             self.write_op(OpCode.OP_MODULO)
         else:
             raise NotImplementedError("OP has no yet been implemented")
+
+    def gen_se(self, node):
+        else_branch = node.else_branch
+
+        self.gen(node.condition)
+        after_if = self.new_label()
+        after_then = self.new_label()
+        if not else_branch:
+            self.write_op(OpCode.JUMP_IF_FALSE, after_if)
+        else:
+            self.write_op(OpCode.JUMP_IF_FALSE, after_then)
+
+        self.compile_block(node.then_branch)
+        if else_branch:
+            # then branch can't fall into else branch
+            self.write_op(OpCode.JUMP, after_if)
+            self.mark_label_loc(after_then)
+            self.compile_block(else_branch)
+
+        if node.elsif_branches:
+            raise NotImplementedError("Cannot yet gen else of elsif branches")
+
+        self.mark_label_loc(after_if)
 
     def gen_mostra(self, node):
         self.gen(node.exp)
