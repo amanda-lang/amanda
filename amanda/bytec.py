@@ -98,22 +98,45 @@ class ByteGen:
         return idx
 
     def mark_label_loc(self, label) -> str:
+        if self.ip > (2 ** 16) - 1:
+            raise Exception(
+                f"Address of jump ({self.ip}) is too large to be supported by the vm"
+            )
         self.labels[label] = self.ip
 
-    def decode_op(self, op) -> str:
-        op, args = op
+    def decode_op_args(self, op, args) -> str:
         if op in (OpCode.JUMP_IF_FALSE, OpCode.JUMP):
             # get jump address
             args = [self.labels[args[0]]]
         if len(args):
             op_args = " ".join([str(s) for s in args])
-            return f"{op} {op_args}\n"
+            return f"{op_args}"
         else:
-            return f"{op}\n"
+            return f""
+
+    def decode_op(self, op) -> str:
+        op, args = op
+        op_args = self.decode_op_args(op, args)
+        return f"{op} {op_args}".strip() + "\n"
 
     def write_op(self, op, *args):
         self.ip += op.op_size() // OP_SIZE
         self.ops.append((op, args))
+
+    def make_debug_asm(self) -> str:
+        debug_out = StringIO()
+        debug_out.write(".data\n")
+        for const, i in self.const_table.items():
+            debug_out.write(f"{i}: {const}\n")
+        debug_out.write(".ops\n")
+
+        i = 0
+        for op, args in self.ops:
+            op_args = self.decode_op_args(op, args)
+            debug_out.write(f"{i}: {op.name} {op_args}".strip() + "\n")
+            i += op.op_size() // OP_SIZE
+
+        return self.build_str(debug_out)
 
     def bad_gen(self, node):
         raise NotImplementedError(
@@ -171,6 +194,10 @@ class ByteGen:
             idx = self.constants
             self.const_table[constant] = idx
             self.constants += 1
+        if idx > (2 ** 16) - 1:
+            raise Exception(
+                f"Too many constants found in program ({self.ip}). VM cannot handle them"
+            )
         return idx
 
     def gen_constant(self, node):
@@ -275,24 +302,27 @@ class ByteGen:
 
     def gen_se(self, node):
         else_branch = node.else_branch
+        elsif_branches = node.elsif_branches
 
-        self.gen(node.condition)
         after_if = self.new_label()
         after_then = self.new_label()
-        if not else_branch:
-            self.write_op(OpCode.JUMP_IF_FALSE, after_if)
-        else:
-            self.write_op(OpCode.JUMP_IF_FALSE, after_then)
 
+        self.gen(node.condition)
+        self.write_op(OpCode.JUMP_IF_FALSE, after_then)
         self.compile_block(node.then_branch)
-        if else_branch:
-            # then branch can't fall into else branch
-            self.write_op(OpCode.JUMP, after_if)
-            self.mark_label_loc(after_then)
-            self.compile_block(else_branch)
+        self.write_op(OpCode.JUMP, after_if)
+        self.mark_label_loc(after_then)
 
-        if node.elsif_branches:
-            raise NotImplementedError("Cannot yet gen else of elsif branches")
+        for branch in elsif_branches:
+            after_elsif = self.new_label()
+            self.gen(branch.condition)
+            self.write_op(OpCode.JUMP_IF_FALSE, after_elsif)
+            self.compile_block(branch.then_branch)
+            self.write_op(OpCode.JUMP, after_if)
+            self.mark_label_loc(after_elsif)
+
+        if else_branch:
+            self.compile_block(else_branch)
 
         self.mark_label_loc(after_if)
 

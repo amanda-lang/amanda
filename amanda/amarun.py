@@ -49,9 +49,13 @@ def _run_py(filename, *, gen_out=False, outname="output.py"):
 
 
 def run_rs(args):
-    asm_code = ByteGen().compile(run_frontend(args.file))
+    compiler = ByteGen()
+    asm_code = compiler.compile(run_frontend(args.file))
     OUT_FILE = "out.amasm"
     write_file(OUT_FILE, asm_code)
+
+    if args.debug:
+        write_file("debug.amasm", compiler.make_debug_asm())
 
     os.environ["RUST_BACKTRACE"] = "1"
     return_code = subprocess.call(

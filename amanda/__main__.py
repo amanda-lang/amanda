@@ -37,6 +37,9 @@ def main(*args):
         "rs", description="Run using the rust vm backend"
     )
 
+    rs_cmds.add_argument(
+        "-d", "--debug", help="Generate a debug amasm file", action="store_true"
+    )
     rs_cmds.add_argument("file", help="source file to be executed")
     rs_cmds.set_defaults(exec_cmd=run_rs)
 
