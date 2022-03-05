@@ -13,8 +13,11 @@ OP_SIZE = 8
 
 
 class OpCode(Enum):
+    # Prints TOS
     MOSTRA = 0x00
+    # Loads the constant at index specified by arg. Constant becomes TOS.
     LOAD_CONST = auto()
+    # All OP instructions use 1 or 2 on the stack add pop them
     OP_ADD = auto()
     OP_MINUS = auto()
     OP_MUL = auto()
@@ -31,10 +34,19 @@ class OpCode(Enum):
     OP_GREATEREQ = auto()
     OP_LESS = auto()
     OP_LESSEQ = auto()
+    # DEF_GLOBAL takes two args, the index to the name of the var,  table
+    # and the type of the var so that appropriate value may be chosen
+    # as an initializer
     DEF_GLOBAL = auto()
+    # Gets a global variable. The arg is the index to the name of the var on the
+    # constant table. Pushes value to the top of the stack
     GET_GLOBAL = auto()
+    # Sets global variable. The arg is the index to the name of the var on the
+    # constant table. Pops TOS and sets it as the value of the local
     SET_GLOBAL = auto()
+    # Sets the pc to the arg.
     JUMP = auto()
+    # If TOS == false, sets pc to the args. Pops TOS
     JUMP_IF_FALSE = auto()
 
     def op_size(self) -> int:

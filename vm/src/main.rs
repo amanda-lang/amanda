@@ -332,9 +332,6 @@ fn parse_asm(src: String) -> Program {
                         ops.push(init_type);
                     }
                     OpCode::SetGlobal | OpCode::GetGlobal | OpCode::JumpIfFalse | OpCode::Jump => {
-                        /* Pushes the value of a global variable onto the stack.
-                         * The only arg is the index to the name of the var.
-                         */
                         ops.push(*op as u8);
                         let arg = instr[1].parse::<ConstIndex>().unwrap();
                         push_u16_arg(&mut ops, arg);
