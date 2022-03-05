@@ -30,6 +30,10 @@ enum OpCode {
     SetGlobal,
     Jump,
     JumpIfFalse,
+    SetupBlock,
+    ExitBlock,
+    GetLocal,
+    SetLocal,
     Halt = 255,
 }
 
@@ -60,6 +64,10 @@ impl From<&u8> for OpCode {
             OpCode::SetGlobal,
             OpCode::Jump,
             OpCode::JumpIfFalse,
+            OpCode::SetupBlock,
+            OpCode::ExitBlock,
+            OpCode::GetLocal,
+            OpCode::SetLocal,
         ];
         if *number == 0xff {
             OpCode::Halt
@@ -96,6 +104,7 @@ macro_rules! eq_ops {
             Const::F64(_) => Const::Bool($left.take_float() $op $right.take_float()),
             Const::Bool(_) => Const::Bool($left.take_bool() $op $right.take_bool()),
             Const::Str(_) => Const::Bool($left.take_str() $op $right.take_str()),
+            _ => unimplemented!("Operand type not supported"),
         };
     };
 }
@@ -106,6 +115,7 @@ enum Const {
     Int(i64),
     F64(f64),
     Bool(bool),
+    None,
 }
 
 impl Const {
@@ -212,6 +222,7 @@ impl Clone for Const {
             Const::Int(int) => Const::Int(*int),
             Const::F64(float) => Const::F64(*float),
             Const::Bool(val) => Const::Bool(*val),
+            Const::None => Const::None,
         }
     }
 }
@@ -231,6 +242,7 @@ impl Display for Const {
                 let val_str = if *val { "verdadeiro" } else { "falso" };
                 write!(f, "{}", val_str)
             }
+            Const::None => panic!("None value should not be printed"),
         }
     }
 }
@@ -311,13 +323,8 @@ fn parse_asm(src: String) -> Program {
                     | OpCode::OpGreater
                     | OpCode::OpGreaterEq
                     | OpCode::OpLess
-                    | OpCode::OpLessEq => ops.push(*op as u8),
-                    OpCode::LoadConst => {
-                        let idx = instr[1].parse::<ConstIndex>().unwrap();
-                        ops.push(OpCode::LoadConst as u8);
-                        //Store const index
-                        push_u16_arg(&mut ops, idx);
-                    }
+                    | OpCode::OpLessEq
+                    | OpCode::ExitBlock => ops.push(*op as u8),
                     OpCode::DefGlobal => {
                         /* Defines a new global variable
                          * takes two args, the index to the name of the var on the
@@ -331,13 +338,22 @@ fn parse_asm(src: String) -> Program {
                         push_u16_arg(&mut ops, id_idx);
                         ops.push(init_type);
                     }
-                    OpCode::SetGlobal | OpCode::GetGlobal | OpCode::JumpIfFalse | OpCode::Jump => {
+                    //TODO: Make jump instructions use 64 bit args
+                    OpCode::LoadConst
+                    | OpCode::SetupBlock
+                    | OpCode::SetGlobal
+                    | OpCode::GetGlobal
+                    | OpCode::SetLocal
+                    | OpCode::GetLocal
+                    | OpCode::JumpIfFalse
+                    | OpCode::Jump => {
                         ops.push(*op as u8);
                         let arg = instr[1].parse::<ConstIndex>().unwrap();
                         push_u16_arg(&mut ops, arg);
                     }
                     _ => unimplemented!(
-                        "Cannot not parse this OpCode, maybe it hasn't been implemented yet"
+                        "Cannot not parse OpCode {:?}, maybe it hasn't been implemented yet",
+                        op
                     ),
                 },
                 _ => panic!("Invalid syntax in amasm file"),
@@ -355,6 +371,7 @@ struct AmaVM<'a> {
     pc: usize,
     stack: Vec<Const>,
     sp: isize,
+    bp: isize,
     globals: HashMap<&'a str, Const>,
 }
 
@@ -366,18 +383,33 @@ impl<'a> AmaVM<'a> {
             pc: 0,
             stack: Vec::new(),
             sp: -1,
+            bp: -1,
             globals: HashMap::new(),
         }
     }
 
     fn op_push(&mut self, value: Const) {
         self.sp += 1;
-        self.stack.push(value);
+        let stack_size = self.stack.len() as isize;
+        if self.sp == stack_size {
+            self.stack.push(value);
+        } else if self.sp < stack_size {
+            self.stack[self.sp as usize] = value;
+        }
     }
 
     fn op_pop(&mut self) -> Const {
-        self.sp -= 1;
-        self.stack.pop().unwrap()
+        let stack_size = (self.stack.len() - 1) as isize;
+        if self.sp == stack_size {
+            self.sp -= 1;
+            self.stack.pop().unwrap()
+        } else if self.sp < stack_size {
+            let idx = self.sp;
+            self.sp -= 1;
+            self.stack[idx as usize].clone()
+        } else {
+            panic!("Undefined VM State. sp larger than stack!");
+        }
     }
 
     fn get_byte(&mut self) -> u8 {
@@ -476,13 +508,42 @@ impl<'a> AmaVM<'a> {
                         continue;
                     }
                 }
+                OpCode::SetupBlock => {
+                    let num_locals = self.get_u16_arg();
+                    self.stack.reserve(num_locals as usize);
+                    self.bp = self.sp + 1;
+                    for _ in 0..num_locals {
+                        self.op_push(Const::None);
+                    }
+                }
+                OpCode::ExitBlock => {
+                    self.sp = self.bp - 1;
+                    self.bp = -1;
+                }
+                OpCode::GetLocal => {
+                    let idx = self.get_u16_arg() as usize + self.bp as usize;
+                    //#TODO: Do not use clone
+                    self.op_push(self.stack[idx].clone());
+                }
+                OpCode::SetLocal => {
+                    let idx = self.bp as usize + self.get_u16_arg() as usize;
+                    self.stack[idx] = self.op_pop();
+                }
                 OpCode::Halt => break,
                 _ => unimplemented!(
-                    "Cannot not execute this OpCode, maybe it hasn't been implemented yet"
+                    "Cannot not execute OpCode {:?}, maybe it hasn't been implemented yet",
+                    op
                 ),
             }
             self.pc += 1;
         }
+    }
+
+    fn print_debug_info(&self) {
+        println!("[IP]: {}", self.pc);
+        println!("[SP]: {}", self.sp);
+        println!("[BP]: {}", self.bp);
+        println!("[STACK]: {:?}", self.stack);
     }
 }
 

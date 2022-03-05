@@ -48,12 +48,24 @@ class OpCode(Enum):
     JUMP = auto()
     # If TOS == false, sets pc to the args. Pops TOS
     JUMP_IF_FALSE = auto()
+    # Prepares the execution of a local scope. the arg represents the number of locals
+    # in the scope
+    SETUP_BLOCK = auto()
+    # Cleanups after execution of a local scope. Sets sp to bp - 1;
+    EXIT_BLOCK = auto()
+    # Gets the value of a non-global variable. The arg is the slot on the stack where the var was stored
+    GET_LOCAL = auto()
+    # Sets the value of a non-global variable. The arg is the slot on the stack where the var should be stored
+    SET_LOCAL = auto()
 
     def op_size(self) -> int:
         # Return number of bytes (including args) that each op
         # uses
         if self in (
             OpCode.LOAD_CONST,
+            OpCode.SETUP_BLOCK,
+            OpCode.SET_LOCAL,
+            OpCode.GET_LOCAL,
             OpCode.GET_GLOBAL,
             OpCode.SET_GLOBAL,
             OpCode.JUMP,
@@ -88,6 +100,7 @@ class ByteGen:
         self.ama_lineno = 1  # tracks lineno in input amanda src
         self.program_symtab = None
         self.scope_symtab = None
+        self.scope_locals = None
         self.const_table = dict()
         self.constants = 0
         self.labels = {}
@@ -110,6 +123,7 @@ class ByteGen:
         return idx
 
     def mark_label_loc(self, label) -> str:
+        # TODO: Make jump instructions use 64 bit args
         if self.ip > (2 ** 16) - 1:
             raise Exception(
                 f"Address of jump ({self.ip}) is too large to be supported by the vm"
@@ -192,10 +206,18 @@ class ByteGen:
         # a block
         self.depth += 1
         self.scope_symtab = node.symbols
+        if self.depth == 1:
+            self.scope_locals = self.scope_symtab.locals  # store unique locals
+            num_locals = len(self.scope_locals)
+            assert (
+                num_locals < 2 ** 16
+            ), "Too many local variables declared in scope"
+            self.write_op(OpCode.SETUP_BLOCK, num_locals)
         # Newline for header
-        self.update_line_info()
         for child in node.children:
             self.gen(child)
+        if self.depth == 1:
+            self.write_op(OpCode.EXIT_BLOCK)
         self.depth -= 1
         self.scope_symtab = self.scope_symtab.enclosing_scope
 
@@ -206,10 +228,9 @@ class ByteGen:
             idx = self.constants
             self.const_table[constant] = idx
             self.constants += 1
-        if idx > (2 ** 16) - 1:
-            raise Exception(
-                f"Too many constants found in program ({self.ip}). VM cannot handle them"
-            )
+        assert (
+            idx < 2 ** 16
+        ), f"Too many constants found in program. VM cannot handle them"
         return idx
 
     def gen_constant(self, node):
@@ -225,10 +246,13 @@ class ByteGen:
         # 'visit_variable' so that symbol attribute can be set
         if symbol is None:
             symbol = self.scope_symtab.resolve(name)
-        expr = name
         # TODO: Handle prom_type later
         prom_type = node.prom_type
-        self.write_op(OpCode.GET_GLOBAL, self.const_table[expr])
+        var_scope = self.scope_symtab.resolve_scope(name, self.depth)
+        if symbol.is_global:
+            self.write_op(OpCode.GET_GLOBAL, self.const_table[name])
+        else:
+            self.write_op(OpCode.GET_LOCAL, self.scope_locals[symbol.out_id])
 
     def gen_vardecl(self, node):
         assign = node.assign
@@ -236,36 +260,44 @@ class ByteGen:
         symbol = self.scope_symtab.resolve(idt)
         # Code that indicates the type of  global
         # to be initialized
+        # Find a better way to do this
         init_values = {
             "int": 0,
             "real": 1,
             "bool": 2,
             "texto": 3,
         }
-        if self.depth > 0:
-            raise NotImplementedError("Haven't implemented local variables yet")
-        # DEF_GLOBAL takes two args, the index to the name of the var,  table
-        # and the type of the var so that appropriate value may be chosen
-        # as an initializer
-        id_idx = self.get_const_index(idt)
-        self.write_op(
-            OpCode.DEF_GLOBAL, id_idx, init_values[str(node.var_type)]
-        )
-        # TODO: Optimize this
+        # Def global vars
+        if self.depth == 0:
+            id_idx = self.get_const_index(idt)
+            self.write_op(
+                OpCode.DEF_GLOBAL, id_idx, init_values[str(node.var_type)]
+            )
+            # TODO: Optimize this
+            if assign:
+                self.gen(assign)
+            return
+        # Def local var
         if assign:
-            self.gen(assign)
+            self.gen_assign(assign)
+        else:
+            node_type = init_values[str(node.var_type)]
+            initializer = {0: 0, 1: 0.0, 2: "falso", 3: "''"}[node_type]
+            init_idx = self.get_const_index(initializer)
+            self.write_op(OpCode.LOAD_CONST, init_idx)
+            self.write_op(OpCode.SET_LOCAL, self.scope_locals[symbol.out_id])
 
     def gen_assign(self, node):
-        if self.depth > 0:
-            raise NotImplementedError("Haven't implemented local variables yet")
-        # Push value onto the stack
         self.gen(node.right)
         var = node.left
         assert isinstance(var, ast.Variable)
-        var_idx = self.get_const_index(var.token.lexeme)
-        # SET_GLOBAL takes one args, the index to the name of the var,  table
-        # And sets it to the value at the top of the constant table
-        self.write_op(OpCode.SET_GLOBAL, var_idx)
+        var_sym = var.var_symbol
+        name = var.token.lexeme
+        if var_sym.is_global:
+            var_idx = self.get_const_index(name)
+            self.write_op(OpCode.SET_GLOBAL, var_idx)
+        else:
+            self.write_op(OpCode.SET_LOCAL, self.scope_locals[var_sym.out_id])
 
     def gen_unaryop(self, node):
         self.gen(node.operand)

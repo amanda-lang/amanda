@@ -22,6 +22,7 @@ class Analyzer(ast.Visitor):
         # Just to have quick access to things like types and e.t.c
         self.global_scope = symbols.Scope()
         self.scope_depth = 0
+        self.ctx_base_scope = None
         self.ctx_scope = self.global_scope
         self.ctx_node = None
         self.ctx_class = None
@@ -197,6 +198,11 @@ class Analyzer(ast.Visitor):
                     f"Erro ao inicializar variável. Não pode referenciar uma variável durante a sua declaração"
                 )
             self.visit(assign)
+        if self.scope_depth == 0:
+            symbol.is_global = True
+        # To base scope local
+        if self.ctx_base_scope:
+            self.ctx_base_scope.add_local(symbol.out_id)
 
     def visit_functiondecl(self, node):
         # Check if id is already in use
@@ -284,6 +290,10 @@ class Analyzer(ast.Visitor):
         self.scope_depth += 1
         if not scope:
             scope = symbols.Scope(self.ctx_scope)
+        # Set base scope
+        if self.scope_depth == 1:
+            scope.locals = {}
+            self.ctx_base_scope = scope
         self.ctx_scope = scope
         for child in node.children:
             self.visit(child)

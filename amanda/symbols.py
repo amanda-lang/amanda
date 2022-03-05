@@ -33,6 +33,7 @@ class Symbol:
 class VariableSymbol(Symbol):
     def __init__(self, name, var_type):
         super().__init__(name, var_type)
+        self.is_global = False
 
     def can_evaluate(self):
         return True
@@ -60,6 +61,9 @@ class Scope:
     def __init__(self, enclosing_scope=None):
         self.symbols = {}
         self.enclosing_scope = enclosing_scope
+        # Field is set only on the first scope of a scope
+        # Nesting
+        self.locals = None
 
     def resolve(self, name):
         symbol = self.get(name)
@@ -69,6 +73,25 @@ class Scope:
             else:
                 return None
         return symbol
+
+    def resolve_scope(self, name, depth):
+        symbol = self.get(name)
+        if not symbol:
+            scope = self.enclosing_scope
+            while scope is not None:
+                symbol = self.enclosing_scope.get(name)
+                if symbol:
+                    break
+                depth -= 1
+                scope = scope.enclosing_scope
+            return -1
+        return depth
+
+    def add_local(self, name):
+        if name in self.locals:
+            return
+        idx = len(self.locals)
+        self.locals[name] = idx
 
     def get(self, name):
         return self.symbols.get(name)
