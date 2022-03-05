@@ -8,7 +8,7 @@ from amanda.bltins import bltin_objs
 from amanda.parse import parse
 from amanda.compile import Generator
 from amanda.semantic import Analyzer
-from amanda.bytec import ByteGen
+from amanda.codegen import ByteGen
 
 
 def write_file(name, code):

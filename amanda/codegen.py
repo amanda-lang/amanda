@@ -230,6 +230,8 @@ class ByteGen:
             "bool": 2,
             "texto": 3,
         }
+        if self.depth > 0:
+            raise NotImplementedError("Haven't implemented local variables yet")
         # DEF_GLOBAL takes two args, the index to the name of the var,  table
         # and the type of the var so that appropriate value may be chosen
         # as an initializer
@@ -242,6 +244,8 @@ class ByteGen:
             self.gen(assign)
 
     def gen_assign(self, node):
+        if self.depth > 0:
+            raise NotImplementedError("Haven't implemented local variables yet")
         # Push value onto the stack
         self.gen(node.right)
         var = node.left
