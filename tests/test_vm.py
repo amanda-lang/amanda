@@ -14,6 +14,7 @@ EXCLUDED = []
 
 # test paths
 DIRS = [
+    join(TEST_DIR, "assignment"),
     join(STATEMENT, "mostra"),
     join(TEST_DIR, "operator"),
     join(STATEMENT, "se"),

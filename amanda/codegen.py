@@ -240,6 +240,12 @@ class ByteGen:
         self.write_op(OpCode.LOAD_CONST, idx)
         self.update_line_info()
 
+    def load_variable(self, name, symbol):
+        if symbol.is_global:
+            self.write_op(OpCode.GET_GLOBAL, self.const_table[name])
+        else:
+            self.write_op(OpCode.GET_LOCAL, self.scope_locals[symbol.out_id])
+
     def gen_variable(self, node):
         name = node.token.lexeme
         symbol = node.var_symbol
@@ -250,10 +256,7 @@ class ByteGen:
         # TODO: Handle prom_type later
         prom_type = node.prom_type
         var_scope = self.scope_symtab.resolve_scope(name, self.depth)
-        if symbol.is_global:
-            self.write_op(OpCode.GET_GLOBAL, self.const_table[name])
-        else:
-            self.write_op(OpCode.GET_LOCAL, self.scope_locals[symbol.out_id])
+        self.load_variable(name, symbol)
 
     def gen_vardecl(self, node):
         assign = node.assign
@@ -289,7 +292,13 @@ class ByteGen:
             self.write_op(OpCode.SET_LOCAL, self.scope_locals[symbol.out_id])
 
     def gen_assign(self, node):
-        self.gen(node.right)
+        expr = node.right
+        self.gen(expr)
+        # Deal with consecutive assignments
+        if isinstance(expr, ast.Assign):
+            var_sym = expr.left.var_symbol
+            name = expr.left.token.lexeme
+            self.load_variable(name, var_sym)
         var = node.left
         assert isinstance(var, ast.Variable)
         var_sym = var.var_symbol
