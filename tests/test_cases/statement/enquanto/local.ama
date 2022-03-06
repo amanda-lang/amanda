@@ -5,7 +5,7 @@ enquanto i != 4 faca
 
     mostra i
     i += 1
-     i : int
+    i : int
 
 fim
 

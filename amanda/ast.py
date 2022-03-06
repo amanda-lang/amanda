@@ -150,6 +150,7 @@ class Enquanto(ASTNode):
     def __init__(self, token, condition, statement):
         super().__init__(token)
         self.condition = condition
+        # TODO: Rename this field to 'block'
         self.statement = statement
 
 

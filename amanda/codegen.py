@@ -113,16 +113,15 @@ class ByteGen:
         # Define builtin constants
         self.get_const_index("verdadeiro")
         self.get_const_index("falso")
-
         py_code = self.gen(program)
         return py_code
 
     def new_label(self) -> str:
         idx = len(self.labels)
-        self.labels[idx] = -1  # Placeholder value
+        self.labels[idx] = self.ip  # Placeholder value
         return idx
 
-    def mark_label_loc(self, label) -> str:
+    def patch_label_loc(self, label) -> str:
         # TODO: Make jump instructions use 64 bit args
         if self.ip > (2 ** 16) - 1:
             raise Exception(
@@ -189,6 +188,7 @@ class ByteGen:
 
     def gen_program(self, node):
         self.compile_block(node)
+        assert self.depth == -1, "A block was not exited in some function!"
         # Output constants
         program = StringIO()
         program.write(".data\n")
@@ -199,11 +199,7 @@ class ByteGen:
             program.write(self.decode_op(op))
         return self.build_str(program)
 
-    def compile_block(self, node):
-        # stmts param is a list of stmts
-        # node defined here because caller may want
-        # to add custom statement to the beginning of
-        # a block
+    def enter_block(self, node):
         self.depth += 1
         self.scope_symtab = node.symbols
         if self.depth == 1:
@@ -213,13 +209,18 @@ class ByteGen:
                 num_locals < 2 ** 16
             ), "Too many local variables declared in scope"
             self.write_op(OpCode.SETUP_BLOCK, num_locals)
-        # Newline for header
-        for child in node.children:
-            self.gen(child)
+
+    def exit_block(self):
         if self.depth == 1:
             self.write_op(OpCode.EXIT_BLOCK)
         self.depth -= 1
         self.scope_symtab = self.scope_symtab.enclosing_scope
+
+    def compile_block(self, node):
+        self.enter_block(node)
+        for child in node.children:
+            self.gen(child)
+        self.exit_block()
 
     def get_const_index(self, constant):
         if constant in self.const_table:
@@ -359,7 +360,7 @@ class ByteGen:
         self.write_op(OpCode.JUMP_IF_FALSE, after_then)
         self.compile_block(node.then_branch)
         self.write_op(OpCode.JUMP, after_if)
-        self.mark_label_loc(after_then)
+        self.patch_label_loc(after_then)
 
         for branch in elsif_branches:
             after_elsif = self.new_label()
@@ -367,12 +368,29 @@ class ByteGen:
             self.write_op(OpCode.JUMP_IF_FALSE, after_elsif)
             self.compile_block(branch.then_branch)
             self.write_op(OpCode.JUMP, after_if)
-            self.mark_label_loc(after_elsif)
+            self.patch_label_loc(after_elsif)
 
         if else_branch:
             self.compile_block(else_branch)
 
-        self.mark_label_loc(after_if)
+        self.patch_label_loc(after_if)
+
+    def gen_enquanto(self, node):
+        after_loop = self.new_label()
+        loop = self.new_label()
+        block = node.statement
+        self.enter_block(block)
+        # BEGIN LOOP
+        self.patch_label_loc(loop)
+        self.gen(node.condition)
+        self.write_op(OpCode.JUMP_IF_FALSE, after_loop)
+        # Block
+        for child in block.children:
+            self.gen(child)
+        self.write_op(OpCode.JUMP, loop)
+        # END LOOP
+        self.patch_label_loc(after_loop)
+        self.exit_block()
 
     def gen_mostra(self, node):
         self.gen(node.exp)
