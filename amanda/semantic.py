@@ -2,7 +2,7 @@ import copy
 import keyword
 from os import path
 from amanda.parse import parse
-from amanda.tokens import TokenType as TT
+from amanda.tokens import TokenType as TT, Token
 import amanda.ast as ast
 import amanda.symbols as symbols
 from amanda.type import OType, Type, Lista, Klass
@@ -140,9 +140,70 @@ class Analyzer(ast.Visitor):
             return visitor_method(node, args)
         return visitor_method(node)
 
+    def visit_or_transform(self, node):
+        nodeT = type(node)
+        self.visit(node)
+        # TODO: Actually implement a jump table for escolha
+        if nodeT == ast.Escolha:
+            token = node.token
+            new_token = lambda tt, lexeme: Token(
+                tt, lexeme, token.line, token.col
+            )
+            equality_op = lambda left, right: ast.BinOp(
+                new_token(TT.DOUBLEEQUAL, "=="), left=left, right=right
+            )
+            # check node
+            # transform node into ifs
+            expr = node.expression
+            # let
+            se_node = ast.Se(
+                token, None, None, elsif_branches=[], else_branch=None
+            )
+            if not node.cases and not node.default_case:
+                return None
+            elif not node.cases and node.default_case:
+                se_node.condition = ast.Constant(
+                    new_token(TT.VERDADEIRO, "verdadeiro")
+                )
+                se_node.then_branch = node.default_case
+                return se_node
+            else:
+                first_case = node.cases[0]
+                del node.cases[0]
+                se_node.condition = equality_op(
+                    left=first_case.expression,
+                    right=node.expression,
+                )
+                se_node.then_branch = first_case.block
+                se_node.else_branch = node.default_case
+                for case in node.cases:
+                    se_node.elsif_branches.append(
+                        ast.SenaoSe(
+                            token,
+                            equality_op(
+                                left=case.expression, right=node.expression
+                            ),
+                            case.block,
+                        )
+                    )
+                return se_node
+        else:
+            return node
+
+    def visit_children(self, children):
+        none_count = 0
+        for i, child in enumerate(children):
+            node = self.visit_or_transform(child)
+            if node == None:
+                none_count += 1
+            children[i] = node
+
+        # TODO: Find a better way to manipulate child list
+        for i in range(none_count):
+            children.remove(None)
+
     def visit_program(self, node):
-        for child in node.children:
-            self.visit(child)
+        self.visit_children(node.children)
         node.symbols = self.global_scope
         return node
 
@@ -292,11 +353,9 @@ class Analyzer(ast.Visitor):
             scope = symbols.Scope(self.ctx_scope)
         # Set base scope
         if self.scope_depth == 1:
-            scope.locals = {}
             self.ctx_base_scope = scope
         self.ctx_scope = scope
-        for child in node.children:
-            self.visit(child)
+        self.visit_children(node.children)
         node.symbols = scope
         self.ctx_scope = self.ctx_scope.enclosing_scope
         self.scope_depth -= 1
@@ -605,6 +664,7 @@ class Analyzer(ast.Visitor):
             )
         self.visit(node.statement)
 
+    # TODO: Figure out what to do with this guy
     def visit_para(self, node):
         self.visit(node.expression)
         # Define control variable for loop
@@ -612,6 +672,7 @@ class Analyzer(ast.Visitor):
         sym = symbols.VariableSymbol(name, self.ctx_scope.resolve("int"))
         scope = symbols.Scope(self.ctx_scope)
         self.define_symbol(sym, self.scope_depth + 1, scope)
+        scope.add_local(sym.out_id)
         self.visit(node.statement, scope)
 
     def visit_paraexpr(self, node):
@@ -621,7 +682,18 @@ class Analyzer(ast.Visitor):
     def visit_rangeexpr(self, node):
         self.visit(node.start)
         self.visit(node.end)
-        if node.inc:
+        if node.inc is not None:
+            self.visit(node.inc)
+        else:
+            # If node has no inc, inc defaults to 1
+            node.inc = ast.Constant(
+                Token(
+                    TT.INTEGER,
+                    lexeme="1",
+                    line=node.token.line,
+                    col=node.token.col,
+                )
+            )
             self.visit(node.inc)
         for node in (node.start, node.end, node.inc):
             # Skip inc node in case it's empty lool

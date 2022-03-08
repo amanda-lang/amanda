@@ -20,7 +20,7 @@ DIRS = [
     join(TEST_DIR, "function"),
     join(STATEMENT, "enquanto"),
     join(STATEMENT, "mostra"),
-    join(STATEMENT, "para"),
+    # join(STATEMENT, "para"),
     join(STATEMENT, "retorna"),
     join(STATEMENT, "escolha"),
     join(STATEMENT, "se"),

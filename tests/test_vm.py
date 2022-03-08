@@ -19,6 +19,7 @@ DIRS = [
     join(TEST_DIR, "operator"),
     join(STATEMENT, "se"),
     join(STATEMENT, "enquanto"),
+    join(STATEMENT, "escolha"),
 ]
 
 passed = 0

@@ -63,7 +63,7 @@ class Scope:
         self.enclosing_scope = enclosing_scope
         # Field is set only on the first scope of a scope
         # Nesting
-        self.locals = None
+        self.locals = {}
 
     def resolve(self, name):
         symbol = self.get(name)

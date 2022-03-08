@@ -240,7 +240,8 @@ class ByteGen:
         self.write_op(OpCode.LOAD_CONST, idx)
         self.update_line_info()
 
-    def load_variable(self, name, symbol):
+    def load_variable(self, symbol):
+        name = symbol.name
         if symbol.is_global:
             self.write_op(OpCode.GET_GLOBAL, self.const_table[name])
         else:
@@ -256,7 +257,7 @@ class ByteGen:
         # TODO: Handle prom_type later
         prom_type = node.prom_type
         var_scope = self.scope_symtab.resolve_scope(name, self.depth)
-        self.load_variable(name, symbol)
+        self.load_variable(symbol)
 
     def gen_vardecl(self, node):
         assign = node.assign
@@ -291,6 +292,14 @@ class ByteGen:
             self.write_op(OpCode.LOAD_CONST, init_idx)
             self.write_op(OpCode.SET_LOCAL, self.scope_locals[symbol.out_id])
 
+    def set_variable(self, symbol):
+        name = symbol.name
+        if symbol.is_global:
+            var_idx = self.get_const_index(name)
+            self.write_op(OpCode.SET_GLOBAL, var_idx)
+        else:
+            self.write_op(OpCode.SET_LOCAL, self.scope_locals[symbol.out_id])
+
     def gen_assign(self, node):
         expr = node.right
         self.gen(expr)
@@ -298,16 +307,12 @@ class ByteGen:
         if isinstance(expr, ast.Assign):
             var_sym = expr.left.var_symbol
             name = expr.left.token.lexeme
-            self.load_variable(name, var_sym)
+            self.load_variable(var_sym)
         var = node.left
         assert isinstance(var, ast.Variable)
         var_sym = var.var_symbol
         name = var.token.lexeme
-        if var_sym.is_global:
-            var_idx = self.get_const_index(name)
-            self.write_op(OpCode.SET_GLOBAL, var_idx)
-        else:
-            self.write_op(OpCode.SET_LOCAL, self.scope_locals[var_sym.out_id])
+        self.set_variable(var_sym)
 
     def gen_unaryop(self, node):
         self.gen(node.operand)
@@ -400,6 +405,44 @@ class ByteGen:
         # END LOOP
         self.patch_label_loc(after_loop)
         self.exit_block()
+
+    # NOTE: this statement is very unstable and will be changed
+    # NOTE: This is a loop that can only count
+    def gen_para(self, node):
+        para_expr = node.expression
+        range_expr = para_expr.range_expr
+        scope = node.statement.symbols
+        control_var = scope.resolve(para_expr.name.lexeme)
+        # BEGIN LOOP
+        after_loop = self.new_label()
+        loop = self.new_label()
+        block = node.statement
+        self.enter_block(block)
+
+        # initializer
+        self.gen(range_expr.start)
+        self.set_variable(control_var)
+        self.patch_label_loc(loop)
+
+        # Condition: while control_var < end
+        self.load_variable(control_var)
+        self.gen(range_expr.end)
+        self.write_op(OpCode.OP_LESS)
+        self.write_op(OpCode.JUMP_IF_FALSE, after_loop)
+        # Body
+        for child in block.children:
+            self.gen(child)
+        # update: control_var += inc
+        self.gen(range_expr.inc)
+        self.load_variable(control_var)
+        self.write_op(OpCode.OP_ADD)
+        self.set_variable(control_var)
+        self.write_op(OpCode.JUMP, loop)
+
+        # END LOOP
+        self.patch_label_loc(after_loop)
+        self.exit_block()
+        # raise NotImplementedError()
 
     def gen_mostra(self, node):
         self.gen(node.exp)
