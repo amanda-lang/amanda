@@ -13,4 +13,4 @@ fim
 
 mostra duplica(list)
 
-#[output]:[2, 4, 6, 8]
+#[output]:Erro: Funções locais não têm acesso ao escopo envolvente.

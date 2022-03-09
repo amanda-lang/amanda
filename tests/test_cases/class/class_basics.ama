@@ -40,4 +40,4 @@ mostra p1.y
 
 mostra p.e_igual(p1)
 
-#[output]:verdadeiro 4.4 1.0 3.4 falso 0.0 0.0 verdadeiro
+#[output]:Erro: Funções locais não têm acesso ao escopo envolvente.

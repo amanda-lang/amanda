@@ -37,4 +37,4 @@ func crazy()
 fim
 crazy()
 
-#[output]:5 4 4 3 3 2
+#[output]:Erro: Funções locais não têm acesso ao escopo envolvente.

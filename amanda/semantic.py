@@ -403,6 +403,13 @@ class Analyzer(ast.Visitor):
             self.error(f"o identificador '{name}' não foi declarado")
         elif not sym.can_evaluate():
             self.error(self.INVALID_REF, name=name)
+        # Inner function does not have access to the enclosing scope
+        # so it cannot access nonlocal variables
+        if self.scope_depth >= 2 and self.ctx_func:
+            if not sym.is_global and not self.ctx_scope.get(sym.name):
+                self.error(
+                    f"Funções locais não têm acesso ao escopo envolvente"
+                )
         node.eval_type = sym.type
         node.var_symbol = sym
         assert node.var_symbol
