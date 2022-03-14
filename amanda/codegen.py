@@ -129,6 +129,41 @@ class ByteGen:
             )
         self.labels[label] = self.ip
 
+    def write_op(self, op, *args):
+        self.ip += op.op_size() // OP_SIZE
+        self.ops.append((op, args))
+
+    def format_u16_arg(self, arg):
+        high = (arg & 0xFF00) >> 8
+        low = arg & 0x00FF
+        return high, low
+
+    def write_op_bytes(self, op) -> str:
+        op, args = op
+        if op in (OpCode.JUMP_IF_FALSE, OpCode.JUMP):
+            args = [self.labels[args[0]]]
+        if op in (
+            OpCode.LOAD_CONST,
+            OpCode.SETUP_BLOCK,
+            OpCode.SET_LOCAL,
+            OpCode.GET_LOCAL,
+            OpCode.GET_GLOBAL,
+            OpCode.SET_GLOBAL,
+            OpCode.JUMP,
+            OpCode.JUMP_IF_FALSE,
+        ):
+            high, low = self.format_u16_arg(args[0])
+            return f"{op} {high} {low}"
+        elif op == OpCode.DEF_GLOBAL:
+            high, low = self.format_u16_arg(args[0])
+            return f"{op} {high} {low} {args[1]}"
+        elif op.op_size() == OP_SIZE:
+            return f"{op}"
+        else:
+            raise NotImplementedError(
+                f"Encoding of op {op} has not yet been implemented"
+            )
+
     def decode_op_args(self, op, args) -> str:
         if op in (OpCode.JUMP_IF_FALSE, OpCode.JUMP):
             # get jump address
@@ -138,15 +173,6 @@ class ByteGen:
             return f"{op_args}"
         else:
             return f""
-
-    def decode_op(self, op) -> str:
-        op, args = op
-        op_args = self.decode_op_args(op, args)
-        return f"{op} {op_args}".strip() + "\n"
-
-    def write_op(self, op, *args):
-        self.ip += op.op_size() // OP_SIZE
-        self.ops.append((op, args))
 
     def make_debug_asm(self) -> str:
         debug_out = StringIO()
@@ -188,15 +214,12 @@ class ByteGen:
 
     def gen_program(self, node):
         self.compile_block(node)
-        assert self.depth == -1, "A block was not exited in some function!"
+        assert self.depth == -1, "A block was not exited in some local scope!"
         # Output constants
         program = StringIO()
-        program.write(".data\n")
-        for const in self.const_table:
-            program.write(f"{const}\n")
-        program.write(".ops\n")
-        for op in self.ops:
-            program.write(self.decode_op(op))
+        program.write("<_CONST_>".join([str(s) for s in self.const_table]))
+        program.write("<_SECT_BREAK_>")
+        program.write(" ".join([self.write_op_bytes(op) for op in self.ops]))
         return self.build_str(program)
 
     def enter_block(self, node):

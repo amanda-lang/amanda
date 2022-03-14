@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::convert::From;
 use std::fmt;
 use std::fmt::{Display, Formatter};
+use std::str::FromStr;
 use std::{env, fs, path::Path};
 
 #[repr(u8)]
@@ -83,7 +84,7 @@ macro_rules! arith_ops {
             Const::F64(_) => Const::F64($left.take_float() $op $right.take_float()),
             Const::Int(_) => Const::Int($left.take_int() $op $right.take_int()),
             _ => unimplemented!("Operand type not supported"),
-        };
+        }
     };
 }
 
@@ -93,7 +94,7 @@ macro_rules! comp_ops {
             Const::F64(_) => Const::Bool($left.take_float() $op $right.take_float()),
             Const::Int(_) => Const::Bool($left.take_int() $op $right.take_int()),
             _ => unimplemented!("Operand type not supported"),
-        };
+        }
     };
 }
 
@@ -105,7 +106,7 @@ macro_rules! eq_ops {
             Const::Bool(_) => Const::Bool($left.take_bool() $op $right.take_bool()),
             Const::Str(_) => Const::Bool($left.take_str() $op $right.take_str()),
             _ => unimplemented!("Operand type not supported"),
-        };
+        }
     };
 }
 
@@ -227,6 +228,31 @@ impl Clone for Const {
     }
 }
 
+impl FromStr for Const {
+    type Err = ();
+
+    fn from_str(constant: &str) -> Result<Const, ()> {
+        if constant == "verdadeiro" || constant == "falso" {
+            let bool_val = if constant == "falso" { false } else { true };
+            return Ok(Const::Bool(bool_val));
+        }
+        let maybe_int = constant.parse::<i64>();
+        let maybe_float = constant.parse::<f64>();
+        if maybe_int.is_ok() {
+            return Ok(Const::Int(maybe_int.unwrap()));
+        } else if maybe_float.is_ok() {
+            return Ok(Const::F64(maybe_float.unwrap()));
+        } else {
+            let slice: &str = if &constant[..1] == "\"" || &constant[..1] == "\'" {
+                &constant[1..constant.len() - 1]
+            } else {
+                constant
+            };
+            return Ok(Const::Str(String::from(slice)));
+        }
+    }
+}
+
 impl Display for Const {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
@@ -253,114 +279,18 @@ struct Program {
     ops: Vec<u8>,
 }
 
-type ConstIndex = u16;
-
-fn push_u16_arg(vec: &mut Vec<u8>, arg: u16) {
-    let high: u8 = ((arg & 0xFF00) >> 8) as u8;
-    let low: u8 = (arg & 0x00FF) as u8;
-    vec.push(high);
-    vec.push(low);
-}
-
 fn parse_asm(src: String) -> Program {
-    let lines: Vec<&str> = src.split("\n").collect();
-    let mut constants = Vec::new();
-    let mut ops: Vec<u8> = Vec::new();
-    let mut idx = 0;
-    //If data section is present, load constants
-    if lines[idx].trim() == ".data" {
-        idx = 1;
-        for line in &lines[idx..] {
-            if line.trim() == ".ops" {
-                break;
-            }
-            let constant: &str = line.trim();
-            if constant == "verdadeiro" || constant == "falso" {
-                let bool_val = if constant == "falso" { false } else { true };
-                constants.push(Const::Bool(bool_val));
-                idx += 1;
-                continue;
-            }
-            let maybe_int = constant.parse::<i64>();
-            let maybe_float = constant.parse::<f64>();
-            if maybe_int.is_ok() {
-                constants.push(Const::Int(maybe_int.unwrap()))
-            } else if maybe_float.is_ok() {
-                constants.push(Const::F64(maybe_float.unwrap()))
-            } else {
-                let slice: &str = if &constant[..1] == "\"" || &constant[..1] == "\'" {
-                    &constant[1..constant.len() - 1]
-                } else {
-                    constant
-                };
-                constants.push(Const::Str(String::from(slice)))
-            }
-            idx += 1;
-        }
-    }
-    if lines[idx].trim() == ".ops" {
-        idx += 1;
-        for line in &lines[idx..] {
-            if line as &str == "" {
-                break;
-            }
-            let instr: Vec<&str> = line.split(" ").collect();
-            match &instr[0].trim().parse::<u8>() {
-                Ok(op) => match OpCode::from(op) {
-                    OpCode::Mostra
-                    | OpCode::OpAdd
-                    | OpCode::OpMinus
-                    | OpCode::OpMul
-                    | OpCode::OpDiv
-                    | OpCode::OpFloorDiv
-                    | OpCode::OpModulo
-                    | OpCode::OpInvert
-                    | OpCode::OpAnd
-                    | OpCode::OpOr
-                    | OpCode::OpNot
-                    | OpCode::OpEq
-                    | OpCode::OpNotEq
-                    | OpCode::OpGreater
-                    | OpCode::OpGreaterEq
-                    | OpCode::OpLess
-                    | OpCode::OpLessEq
-                    | OpCode::ExitBlock => ops.push(*op as u8),
-                    OpCode::DefGlobal => {
-                        /* Defines a new global variable
-                         * takes two args, the index to the name of the var on the
-                         * constant table
-                         * and the type of the var so that appropriate value may be chosen
-                         * as an initializer
-                         */
-                        ops.push(*op as u8);
-                        let id_idx = instr[1].parse::<ConstIndex>().unwrap();
-                        let init_type = instr[2].parse::<u8>().unwrap();
-                        push_u16_arg(&mut ops, id_idx);
-                        ops.push(init_type);
-                    }
-                    //TODO: Make jump instructions use 64 bit args
-                    OpCode::LoadConst
-                    | OpCode::SetupBlock
-                    | OpCode::SetGlobal
-                    | OpCode::GetGlobal
-                    | OpCode::SetLocal
-                    | OpCode::GetLocal
-                    | OpCode::JumpIfFalse
-                    | OpCode::Jump => {
-                        ops.push(*op as u8);
-                        let arg = instr[1].parse::<ConstIndex>().unwrap();
-                        push_u16_arg(&mut ops, arg);
-                    }
-                    _ => unimplemented!(
-                        "Cannot not parse OpCode {:?}, maybe it hasn't been implemented yet",
-                        op
-                    ),
-                },
-                _ => panic!("Invalid syntax in amasm file"),
-            };
-        }
-    }
-    //Add halt opcode
+    let sections: Vec<&str> = src.split("<_SECT_BREAK_>").collect();
+    assert!(sections.len() == 2, "Unknown amasm file format!");
+    let constants = sections[0]
+        .split("<_CONST_>")
+        .map(|constant| constant.parse::<Const>().unwrap())
+        .collect();
+    let mut ops: Vec<u8> = sections[sections.len() - 1]
+        .split(" ")
+        .map(|op| op.parse::<u8>().unwrap())
+        .collect();
+
     ops.push(OpCode::Halt as u8);
     Program { constants, ops }
 }
