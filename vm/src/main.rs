@@ -299,10 +299,14 @@ fn parse_asm(src: String) -> Program {
         .split("<_CONST_>")
         .map(|constant| constant.parse::<AmaData>().unwrap())
         .collect();
-    let mut ops: Vec<u8> = sections[sections.len() - 1]
-        .split(" ")
-        .map(|op| op.parse::<u8>().unwrap())
-        .collect();
+    let mut ops: Vec<u8> = if !sections[1].is_empty() {
+        sections[1]
+            .split(" ")
+            .map(|op| op.parse::<u8>().unwrap())
+            .collect()
+    } else {
+        Vec::with_capacity(1)
+    };
 
     ops.push(OpCode::Halt as u8);
     Program {

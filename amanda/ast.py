@@ -1,10 +1,15 @@
 # TODO: Rename fields of some classes
-
-
 class ASTNode:
     def __init__(self, token=None):
+        self.parent = None
         self.token = token
         self.lineno = token.line
+
+    def tag_children(self):
+        for attr in self.__dict__:
+            node = getattr(self, attr, None)
+            if isinstance(node, ASTNode):
+                node.parent = self
 
     def is_assignable(self):
         return False
@@ -15,6 +20,7 @@ class Usa(ASTNode):
         super().__init__(token)
         self.module = module
         self.alias = alias
+        self.tag_children()
 
 
 class Program(ASTNode):
@@ -61,6 +67,7 @@ class Converte(Expr):
         super().__init__(token)
         self.expression = expression
         self.new_type = new_type
+        self.tag_children()
 
 
 class Lista(Expr):
@@ -68,6 +75,7 @@ class Lista(Expr):
         super().__init__(token)
         self.array_type = array_type
         self.expression = expression
+        self.tag_children()
 
 
 class Eu(Expr):
@@ -85,12 +93,14 @@ class BinOp(Expr):
         super().__init__(token)
         self.right = right
         self.left = left
+        self.tag_children()
 
 
 class UnaryOp(Expr):
     def __init__(self, token, operand=None):
         super().__init__(token)
         self.operand = operand
+        self.tag_children()
 
 
 class VarDecl(ASTNode):
@@ -99,6 +109,7 @@ class VarDecl(ASTNode):
         self.var_type = var_type
         self.assign = assign
         self.name = name
+        self.tag_children()
 
 
 class Assign(Expr):
@@ -106,12 +117,14 @@ class Assign(Expr):
         super().__init__(token)
         self.left = left
         self.right = right
+        self.tag_children()
 
 
 class Statement(ASTNode):
     def __init__(self, token, exp=None):
         super().__init__(token)
         self.exp = exp
+        self.tag_children()
 
 
 class Retorna(Statement):
@@ -137,6 +150,7 @@ class Se(ASTNode):
         self.then_branch = then_branch
         self.elsif_branches = elsif_branches
         self.else_branch = else_branch
+        self.tag_children()
 
 
 class SenaoSe(ASTNode):
@@ -144,6 +158,7 @@ class SenaoSe(ASTNode):
         super().__init__(token)
         self.condition = condition
         self.then_branch = then_branch
+        self.tag_children()
 
 
 class Enquanto(ASTNode):
@@ -152,6 +167,7 @@ class Enquanto(ASTNode):
         self.condition = condition
         # TODO: Rename this field to 'block'
         self.statement = statement
+        self.tag_children()
 
 
 class CaseBlock(ASTNode):
@@ -159,6 +175,7 @@ class CaseBlock(ASTNode):
         super().__init__(token)
         self.expression = expression
         self.block = block
+        self.tag_children()
 
 
 class Escolha(ASTNode):
@@ -167,6 +184,7 @@ class Escolha(ASTNode):
         self.expression = expression
         self.cases = cases
         self.default_case = default_case
+        self.tag_children()
 
 
 class Para(ASTNode):
@@ -174,6 +192,7 @@ class Para(ASTNode):
         super().__init__(token)
         self.expression = expression
         self.statement = statement
+        self.tag_children()
 
 
 class ParaExpr(ASTNode):
@@ -181,6 +200,7 @@ class ParaExpr(ASTNode):
         super().__init__(name)
         self.name = name
         self.range_expr = range_expr
+        self.tag_children()
 
 
 class RangeExpr(ASTNode):
@@ -189,6 +209,7 @@ class RangeExpr(ASTNode):
         self.start = start
         self.end = end
         self.inc = inc
+        self.tag_children()
 
 
 class Call(Expr):
@@ -196,6 +217,7 @@ class Call(Expr):
         super().__init__(paren)
         self.callee = callee
         self.fargs = fargs
+        self.tag_children()
 
 
 class ListLiteral(Expr):
@@ -203,6 +225,7 @@ class ListLiteral(Expr):
         super().__init__(token)
         self.list_type = list_type
         self.elements = elements
+        self.tag_children()
 
 
 class Get(Expr):
@@ -210,6 +233,7 @@ class Get(Expr):
         super().__init__(member)
         self.target = target
         self.member = member
+        self.tag_children()
 
     def is_assignable(self):
         return True
@@ -220,6 +244,7 @@ class Index(Expr):
         super().__init__(token)
         self.target = target
         self.index = index
+        self.tag_children()
 
     def is_assignable(self):
         return True
@@ -230,6 +255,7 @@ class Set(Expr):
         super().__init__(expr.token)
         self.target = target
         self.expr = expr
+        self.tag_children()
 
 
 class FunctionDecl(ASTNode):
@@ -239,6 +265,7 @@ class FunctionDecl(ASTNode):
         self.params = params
         self.func_type = func_type
         self.block = block
+        self.tag_children()
 
 
 class ClassDecl(ASTNode):
@@ -247,6 +274,7 @@ class ClassDecl(ASTNode):
         self.name = name
         self.superclass = superclass
         self.body = body
+        self.tag_children()
 
 
 class ClassBody(Block):
@@ -264,6 +292,7 @@ class Param(ASTNode):
         super().__init__(name)
         self.param_type = param_type
         self.name = name
+        self.tag_children()
 
 
 class Type(ASTNode):
@@ -272,6 +301,7 @@ class Type(ASTNode):
         self.type_name = type_name
         self.is_list = is_list
         self.dim = dim  # For lists only
+        self.tag_children()
 
 
 # Base class for visitor objects

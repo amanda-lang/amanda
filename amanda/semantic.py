@@ -22,8 +22,8 @@ class Analyzer(ast.Visitor):
         # Just to have quick access to things like types and e.t.c
         self.global_scope = symbols.Scope()
         self.scope_depth = 0
-        self.ctx_base_scope = None
         self.ctx_scope = self.global_scope
+        self.ctx_base_scope = None
         self.ctx_node = None
         self.ctx_class = None
         self.ctx_func = None
@@ -187,6 +187,11 @@ class Analyzer(ast.Visitor):
                         )
                     )
                 return se_node
+        # Ignore all unused expressions
+        elif nodeT not in (ast.Assign, ast.Call, ast.Set) and isinstance(
+            node, ast.Expr
+        ):
+            return None
         else:
             return node
 
