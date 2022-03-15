@@ -1,7 +1,9 @@
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::convert::From;
 use std::fmt;
 use std::fmt::{Display, Formatter};
+use std::rc::Rc;
 use std::str::FromStr;
 use std::{env, fs, path::Path};
 
@@ -9,7 +11,7 @@ use std::{env, fs, path::Path};
 #[derive(Debug, Clone)]
 enum OpCode {
     Mostra,
-    LoadConst,
+    LoadAmaData,
     OpAdd,
     OpMinus,
     OpMul,
@@ -43,7 +45,7 @@ impl From<&u8> for OpCode {
     fn from(number: &u8) -> Self {
         let ops = [
             OpCode::Mostra,
-            OpCode::LoadConst,
+            OpCode::LoadAmaData,
             OpCode::OpAdd,
             OpCode::OpMinus,
             OpCode::OpMul,
@@ -81,8 +83,8 @@ impl From<&u8> for OpCode {
 macro_rules! arith_ops {
     ($res_type: ident, $left: ident, $op: tt, $right: ident) => {
         match $res_type {
-            Const::F64(_) => Const::F64($left.take_float() $op $right.take_float()),
-            Const::Int(_) => Const::Int($left.take_int() $op $right.take_int()),
+            AmaData::F64(_) => AmaData::F64($left.take_float() $op $right.take_float()),
+            AmaData::Int(_) => AmaData::Int($left.take_int() $op $right.take_int()),
             _ => unimplemented!("Operand type not supported"),
         }
     };
@@ -91,8 +93,8 @@ macro_rules! arith_ops {
 macro_rules! comp_ops {
     ($res_type: ident, $left: ident, $op: tt, $right: ident) => {
         match $res_type {
-            Const::F64(_) => Const::Bool($left.take_float() $op $right.take_float()),
-            Const::Int(_) => Const::Bool($left.take_int() $op $right.take_int()),
+            AmaData::F64(_) => AmaData::Bool($left.take_float() $op $right.take_float()),
+            AmaData::Int(_) => AmaData::Bool($left.take_int() $op $right.take_int()),
             _ => unimplemented!("Operand type not supported"),
         }
     };
@@ -101,27 +103,35 @@ macro_rules! comp_ops {
 macro_rules! eq_ops {
     ($res_type: ident, $left: ident, $op: tt, $right: ident) => {
         match $res_type {
-            Const::Int(_) => Const::Bool($left.take_int() $op $right.take_int()),
-            Const::F64(_) => Const::Bool($left.take_float() $op $right.take_float()),
-            Const::Bool(_) => Const::Bool($left.take_bool() $op $right.take_bool()),
-            Const::Str(_) => Const::Bool($left.take_str() $op $right.take_str()),
+            AmaData::Int(_) => AmaData::Bool($left.take_int() $op $right.take_int()),
+            AmaData::F64(_) => AmaData::Bool($left.take_float() $op $right.take_float()),
+            AmaData::Bool(_) => AmaData::Bool($left.take_bool() $op $right.take_bool()),
+            AmaData::Str(_) => AmaData::Bool($left.take_str() $op $right.take_str()),
             _ => unimplemented!("Operand type not supported"),
         }
     };
 }
 
+#[derive(Debug, Clone, Copy)]
+struct AmaFunc {
+    name_idx: usize,
+    start_ip: usize,
+    ip: usize,
+}
+
 #[derive(Debug)]
-enum Const {
+enum AmaData {
     Str(String),
     Int(i64),
     F64(f64),
     Bool(bool),
+    Func(AmaFunc),
     None,
 }
 
-impl Const {
+impl AmaData {
     fn is_float(&self) -> bool {
-        if let Const::F64(_) = self {
+        if let AmaData::F64(_) = self {
             true
         } else {
             false
@@ -130,22 +140,22 @@ impl Const {
 
     fn take_float(&self) -> f64 {
         match self {
-            Const::F64(float) => *float,
-            Const::Int(int) => *int as f64,
+            AmaData::F64(float) => *float,
+            AmaData::Int(int) => *int as f64,
             _ => panic!("Value is not a float"),
         }
     }
 
     fn take_int(&self) -> i64 {
         match self {
-            Const::Int(int) => *int,
-            Const::F64(float) => *float as i64,
+            AmaData::Int(int) => *int,
+            AmaData::F64(float) => *float as i64,
             _ => panic!("Value is not an int"),
         }
     }
 
     fn take_str(&self) -> &str {
-        if let Const::Str(string) = self {
+        if let AmaData::Str(string) = self {
             string
         } else {
             panic!("Value is not an str")
@@ -153,7 +163,7 @@ impl Const {
     }
 
     fn take_bool(&self) -> bool {
-        if let Const::Bool(val) = self {
+        if let AmaData::Bool(val) = self {
             *val
         } else {
             panic!("Value is not a bool")
@@ -161,7 +171,7 @@ impl Const {
     }
 
     fn is_str(&self) -> bool {
-        if let Const::Str(_) = self {
+        if let AmaData::Str(_) = self {
             true
         } else {
             false
@@ -169,7 +179,7 @@ impl Const {
     }
 
     fn is_bool(&self) -> bool {
-        if let Const::Bool(_) = self {
+        if let AmaData::Bool(_) = self {
             true
         } else {
             false
@@ -177,7 +187,7 @@ impl Const {
     }
 
     fn is_int(&self) -> bool {
-        if let Const::Int(_) = self {
+        if let AmaData::Int(_) = self {
             true
         } else {
             false
@@ -186,13 +196,13 @@ impl Const {
 
     fn binop(left: Self, op: OpCode, right: Self) -> Self {
         let res_type = if left.is_float() || right.is_float() {
-            Const::F64(0.0)
+            AmaData::F64(0.0)
         } else if left.is_int() && right.is_int() {
-            Const::Int(0)
+            AmaData::Int(0)
         } else if left.is_bool() && right.is_bool() {
-            Const::Bool(false)
+            AmaData::Bool(false)
         } else if left.is_str() && right.is_str() {
-            Const::Str(String::from(""))
+            AmaData::Str(String::from(""))
         } else {
             unimplemented!("Error is not implemented")
         };
@@ -201,10 +211,10 @@ impl Const {
             OpCode::OpMinus => arith_ops!(res_type, left, -, right),
             OpCode::OpMul => arith_ops!(res_type, left, *, right),
             OpCode::OpModulo => arith_ops!(res_type, left, %, right),
-            OpCode::OpDiv => Const::F64(left.take_float() / right.take_float()),
-            OpCode::OpFloorDiv => Const::Int(left.take_int() / right.take_int()),
-            OpCode::OpAnd => Const::Bool(left.take_bool() && right.take_bool()),
-            OpCode::OpOr => Const::Bool(left.take_bool() || right.take_bool()),
+            OpCode::OpDiv => AmaData::F64(left.take_float() / right.take_float()),
+            OpCode::OpFloorDiv => AmaData::Int(left.take_int() / right.take_int()),
+            OpCode::OpAnd => AmaData::Bool(left.take_bool() && right.take_bool()),
+            OpCode::OpOr => AmaData::Bool(left.take_bool() || right.take_bool()),
             OpCode::OpEq => eq_ops!(res_type, left, ==, right),
             OpCode::OpNotEq => eq_ops!(res_type, left, !=,  right),
             OpCode::OpGreater => comp_ops!(res_type, left, >, right),
@@ -216,67 +226,70 @@ impl Const {
     }
 }
 
-impl Clone for Const {
+impl Clone for AmaData {
     fn clone(&self) -> Self {
         match self {
-            Const::Str(string) => Const::Str(String::clone(string)),
-            Const::Int(int) => Const::Int(*int),
-            Const::F64(float) => Const::F64(*float),
-            Const::Bool(val) => Const::Bool(*val),
-            Const::None => Const::None,
+            AmaData::Str(string) => AmaData::Str(String::clone(string)),
+            AmaData::Int(int) => AmaData::Int(*int),
+            AmaData::F64(float) => AmaData::F64(*float),
+            AmaData::Bool(val) => AmaData::Bool(*val),
+            AmaData::None => AmaData::None,
+            AmaData::Func(function) => AmaData::Func(function.clone()),
         }
     }
 }
 
-impl FromStr for Const {
+impl FromStr for AmaData {
     type Err = ();
 
-    fn from_str(constant: &str) -> Result<Const, ()> {
+    fn from_str(constant: &str) -> Result<AmaData, ()> {
         if constant == "verdadeiro" || constant == "falso" {
             let bool_val = if constant == "falso" { false } else { true };
-            return Ok(Const::Bool(bool_val));
+            return Ok(AmaData::Bool(bool_val));
         }
         let maybe_int = constant.parse::<i64>();
         let maybe_float = constant.parse::<f64>();
         if maybe_int.is_ok() {
-            return Ok(Const::Int(maybe_int.unwrap()));
+            return Ok(AmaData::Int(maybe_int.unwrap()));
         } else if maybe_float.is_ok() {
-            return Ok(Const::F64(maybe_float.unwrap()));
+            return Ok(AmaData::F64(maybe_float.unwrap()));
         } else {
             let slice: &str = if &constant[..1] == "\"" || &constant[..1] == "\'" {
                 &constant[1..constant.len() - 1]
             } else {
                 constant
             };
-            return Ok(Const::Str(String::from(slice)));
+            return Ok(AmaData::Str(String::from(slice)));
         }
     }
 }
 
-impl Display for Const {
+impl Display for AmaData {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Const::Str(string) => write!(f, "{}", string),
-            Const::Int(integer) => write!(f, "{}", integer),
-            Const::F64(float) => {
+            AmaData::Str(string) => write!(f, "{}", string),
+            AmaData::Int(integer) => write!(f, "{}", integer),
+            AmaData::F64(float) => {
                 if float.fract() == 0.0 {
                     return write!(f, "{}.0", float);
                 }
                 write!(f, "{}", float)
             }
-            Const::Bool(val) => {
+            AmaData::Bool(val) => {
                 let val_str = if *val { "verdadeiro" } else { "falso" };
                 write!(f, "{}", val_str)
             }
-            Const::None => panic!("None value should not be printed"),
+            AmaData::None => panic!("None value should not be printed"),
+            _ => write!(f, "{:?}", self),
         }
     }
 }
 
 #[derive(Debug)]
 struct Program {
-    constants: Vec<Const>,
+    constants: Vec<AmaData>,
     ops: Vec<u8>,
+    main: AmaFunc,
 }
 
 fn parse_asm(src: String) -> Program {
@@ -284,7 +297,7 @@ fn parse_asm(src: String) -> Program {
     assert!(sections.len() == 2, "Unknown amasm file format!");
     let constants = sections[0]
         .split("<_CONST_>")
-        .map(|constant| constant.parse::<Const>().unwrap())
+        .map(|constant| constant.parse::<AmaData>().unwrap())
         .collect();
     let mut ops: Vec<u8> = sections[sections.len() - 1]
         .split(" ")
@@ -292,59 +305,112 @@ fn parse_asm(src: String) -> Program {
         .collect();
 
     ops.push(OpCode::Halt as u8);
-    Program { constants, ops }
+    Program {
+        constants,
+        ops,
+        main: AmaFunc {
+            name_idx: 0,
+            start_ip: 0,
+            ip: 0,
+        },
+    }
+}
+
+const RECURSION_LIMIT: usize = 1000;
+
+#[derive(Debug)]
+struct FrameStack {
+    stack: [Option<AmaFunc>; RECURSION_LIMIT],
+    sp: isize,
+}
+
+impl FrameStack {
+    pub fn new() -> Self {
+        FrameStack {
+            stack: [None; RECURSION_LIMIT],
+            sp: -1,
+        }
+    }
+
+    pub fn push(&mut self, frame: AmaFunc) -> Result<(), ()> {
+        self.sp += 1;
+        if self.sp as usize == RECURSION_LIMIT {
+            Err(())
+        } else {
+            self.stack[self.sp as usize] = Some(frame);
+            Ok(())
+        }
+    }
+
+    pub fn pop(&mut self) -> Result<AmaFunc, ()> {
+        if self.sp < -1 {
+            Err(())
+        } else {
+            let top = self.stack[self.sp as usize];
+            self.sp -= 1;
+            Ok(top.unwrap())
+        }
+    }
+
+    pub fn peek_mut(&mut self) -> Option<AmaFunc> {
+        self.stack[self.sp as usize]
+    }
 }
 
 struct AmaVM<'a> {
     program: Vec<u8>,
-    constants: &'a Vec<Const>,
-    pc: usize,
-    stack: Vec<Const>,
+    constants: &'a Vec<AmaData>,
+    values: Vec<AmaData>,
+    frames: FrameStack,
+    c_func: AmaFunc,
+    globals: HashMap<&'a str, AmaData>,
     sp: isize,
     bp: isize,
-    globals: HashMap<&'a str, Const>,
 }
 
 impl<'a> AmaVM<'a> {
-    pub fn from_program(program: &'a mut Program) -> Self {
-        AmaVM {
+    pub fn new(program: &'a mut Program) -> Self {
+        let mut vm = AmaVM {
             program: program.ops.clone(),
             constants: &program.constants,
-            pc: 0,
-            stack: Vec::new(),
+            values: Vec::new(),
+            frames: FrameStack::new(),
+            globals: HashMap::new(),
+            c_func: program.main,
             sp: -1,
             bp: -1,
-            globals: HashMap::new(),
-        }
+        };
+        vm.frames.push(program.main).unwrap();
+        vm
     }
 
-    fn op_push(&mut self, value: Const) {
+    fn op_push(&mut self, value: AmaData) {
         self.sp += 1;
-        let stack_size = self.stack.len() as isize;
-        if self.sp == stack_size {
-            self.stack.push(value);
-        } else if self.sp < stack_size {
-            self.stack[self.sp as usize] = value;
+        let values_size = self.values.len() as isize;
+        if self.sp == values_size {
+            self.values.push(value);
+        } else if self.sp < values_size {
+            self.values[self.sp as usize] = value;
         }
     }
 
-    fn op_pop(&mut self) -> Const {
-        let stack_size = (self.stack.len() - 1) as isize;
-        if self.sp == stack_size {
+    fn op_pop(&mut self) -> AmaData {
+        let values_size = (self.values.len() - 1) as isize;
+        if self.sp == values_size {
             self.sp -= 1;
-            self.stack.pop().unwrap()
-        } else if self.sp < stack_size {
+            self.values.pop().unwrap()
+        } else if self.sp < values_size {
             let idx = self.sp;
             self.sp -= 1;
-            self.stack[idx as usize].clone()
+            self.values[idx as usize].clone()
         } else {
-            panic!("Undefined VM State. sp larger than stack!");
+            panic!("Undefined VM State. sp larger than values!");
         }
     }
 
     fn get_byte(&mut self) -> u8 {
-        self.pc += 1;
-        self.program[self.pc]
+        self.c_func.ip += 1;
+        self.program[self.c_func.ip]
     }
 
     fn get_u16_arg(&mut self) -> u16 {
@@ -353,11 +419,11 @@ impl<'a> AmaVM<'a> {
 
     pub fn run(&mut self) {
         loop {
-            let op = self.program[self.pc];
+            let op = self.program[self.c_func.ip];
             match OpCode::from(&op) {
-                OpCode::LoadConst => {
+                OpCode::LoadAmaData => {
                     let idx = self.get_u16_arg();
-                    self.op_push(Const::clone(&self.constants[idx as usize]));
+                    self.op_push(AmaData::clone(&self.constants[idx as usize]));
                 }
                 OpCode::Mostra => println!("{}", self.op_pop()),
                 //Binary Operations
@@ -377,20 +443,20 @@ impl<'a> AmaVM<'a> {
                 | OpCode::OpLessEq => {
                     let right = self.op_pop();
                     let left = self.op_pop();
-                    self.op_push(Const::binop(left, OpCode::from(&op), right))
+                    self.op_push(AmaData::binop(left, OpCode::from(&op), right))
                 }
                 OpCode::OpInvert | OpCode::OpNot => {
                     let operand = self.op_pop();
                     let op = OpCode::from(&op);
                     if let OpCode::OpInvert = op {
                         match operand {
-                            Const::Int(num) => self.op_push(Const::Int(-num)),
-                            Const::F64(num) => self.op_push(Const::F64(-num)),
+                            AmaData::Int(num) => self.op_push(AmaData::Int(-num)),
+                            AmaData::F64(num) => self.op_push(AmaData::F64(-num)),
                             _ => panic!("Fatal error!"),
                         };
                     } else {
-                        if let Const::Bool(val) = operand {
-                            self.op_push(Const::Bool(!val));
+                        if let AmaData::Bool(val) = operand {
+                            self.op_push(AmaData::Bool(!val));
                         } else {
                             panic!("Value should always be a bool");
                         }
@@ -400,10 +466,10 @@ impl<'a> AmaVM<'a> {
                     let id_idx = self.get_u16_arg() as usize;
                     let init_type = self.get_byte();
                     let initializer = match init_type {
-                        0 => Const::Int(0),
-                        1 => Const::F64(0.0),
-                        2 => Const::Bool(false),
-                        3 => Const::Str(String::from("")),
+                        0 => AmaData::Int(0),
+                        1 => AmaData::F64(0.0),
+                        2 => AmaData::Bool(false),
+                        3 => AmaData::Str(String::from("")),
                         _ => unimplemented!("Unknown type initializer"),
                     };
                     let id = self.constants[id_idx].take_str();
@@ -423,27 +489,27 @@ impl<'a> AmaVM<'a> {
                 }
                 OpCode::Jump => {
                     let addr = self.get_u16_arg() as usize;
-                    self.pc = addr;
+                    self.c_func.ip = addr;
                     continue;
                 }
                 OpCode::JumpIfFalse => {
                     /*
-                     * Jumps if the top of the stack is false
-                     * Pops the stack
+                     * Jumps if the top of the values is false
+                     * Pops the values
                      * */
                     let addr = self.get_u16_arg() as usize;
                     let value = self.op_pop();
-                    if let Const::Bool(false) = value {
-                        self.pc = addr;
+                    if let AmaData::Bool(false) = value {
+                        self.c_func.ip = addr;
                         continue;
                     }
                 }
                 OpCode::SetupBlock => {
                     let num_locals = self.get_u16_arg();
-                    self.stack.reserve(num_locals as usize);
+                    self.values.reserve(num_locals as usize);
                     self.bp = self.sp + 1;
                     for _ in 0..num_locals {
-                        self.op_push(Const::None);
+                        self.op_push(AmaData::None);
                     }
                 }
                 OpCode::ExitBlock => {
@@ -453,11 +519,11 @@ impl<'a> AmaVM<'a> {
                 OpCode::GetLocal => {
                     let idx = self.get_u16_arg() as usize + self.bp as usize;
                     //#TODO: Do not use clone
-                    self.op_push(self.stack[idx].clone());
+                    self.op_push(self.values[idx].clone());
                 }
                 OpCode::SetLocal => {
                     let idx = self.bp as usize + self.get_u16_arg() as usize;
-                    self.stack[idx] = self.op_pop();
+                    self.values[idx] = self.op_pop();
                 }
                 OpCode::Halt => break,
                 _ => unimplemented!(
@@ -465,15 +531,16 @@ impl<'a> AmaVM<'a> {
                     op
                 ),
             }
-            self.pc += 1;
+            self.c_func.ip += 1;
         }
     }
 
     fn print_debug_info(&self) {
-        println!("[IP]: {}", self.pc);
+        println!("[IP]: {}", self.c_func.ip);
         println!("[SP]: {}", self.sp);
         println!("[BP]: {}", self.bp);
-        println!("[STACK]: {:?}", self.stack);
+        println!("[STACK]: {:?}", self.values);
+        println!("[CALL FRAMES]: {:?}", self.frames);
     }
 }
 
@@ -487,6 +554,11 @@ fn main() {
     let file = Path::new(&args[1]);
     let src = String::from_utf8(fs::read(file).unwrap()).unwrap();
     let mut program = parse_asm(src);
-    let mut vm = AmaVM::from_program(&mut program);
+    let mut vm = AmaVM::new(&mut program);
     vm.run();
+    debug_assert!(
+        vm.sp == -1,
+        "Stack was not cleaned up properly! \n{:?}",
+        vm.values
+    )
 }
