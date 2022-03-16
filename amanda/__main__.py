@@ -38,6 +38,13 @@ def main(*args):
     )
 
     rs_cmds.add_argument(
+        "-t",
+        "--test",
+        help="Used when running tests. captures output of executable",
+        action="store_true",
+    )
+
+    rs_cmds.add_argument(
         "-d", "--debug", help="Generate a debug amasm file", action="store_true"
     )
     rs_cmds.add_argument("file", help="source file to be executed")

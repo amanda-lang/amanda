@@ -290,6 +290,12 @@ class Analyzer(ast.Visitor):
         self.ctx_func = symbol
         self.visit(node.block, scope)
         self.ctx_func = prev_function
+        if self.scope_depth == 0:
+            symbol.is_global = True
+        # Add to base scope local
+        if self.ctx_base_scope:
+            self.ctx_base_scope.add_local(symbol.out_id)
+        symbol.scope = scope
 
     def define_func_scope(self, name, params):
         params_dict = {}
@@ -363,6 +369,9 @@ class Analyzer(ast.Visitor):
         self.visit_children(node.children)
         node.symbols = scope
         self.ctx_scope = self.ctx_scope.enclosing_scope
+        # Unset base scope
+        if self.scope_depth == 1:
+            self.ctx_base_scope = None
         self.scope_depth -= 1
 
     def visit_param(self, node):
@@ -747,6 +756,7 @@ class Analyzer(ast.Visitor):
                 return sym
             self.validate_call(sym, node.fargs)
             node.eval_type = sym.type
+        node.symbol = sym
         return sym
 
     # Handles calls to special intrinsic operation

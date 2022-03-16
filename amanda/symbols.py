@@ -16,6 +16,7 @@ class Symbol:
         self.out_id = name  # symbol id in compiled source program
         self.type = sym_type
         self.is_property = False  # Avoid this repitition
+        self.is_global = False
 
     def __str__(self):
         return f"<{self.__class__.__name__} ({self.name},{self.out_id},{self.type})>"
@@ -33,7 +34,6 @@ class Symbol:
 class VariableSymbol(Symbol):
     def __init__(self, name, var_type):
         super().__init__(name, var_type)
-        self.is_global = False
 
     def can_evaluate(self):
         return True
@@ -43,6 +43,7 @@ class FunctionSymbol(Symbol):
     def __init__(self, name, func_type, params={}):
         super().__init__(name, func_type)
         self.params = params  # dict of symbols
+        self.scope = None
 
     def __str__(self):
         params = ",".join(self.params)

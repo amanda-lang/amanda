@@ -68,10 +68,16 @@ def run_rs(args):
         sys.exit(1)
 
     # TODO: This is kinda of sus. Find a better way to do this
-    result = subprocess.run(
-        ["vm/target/debug/vm", OUT_FILE], capture_output=True, encoding="utf8"
-    )
-    if result.returncode == 0:
+    if args.test:
+        result = subprocess.run(
+            ["vm/target/debug/vm", OUT_FILE],
+            capture_output=True,
+            encoding="utf8",
+        )
         print(result.stdout, end="")
+        if result.returncode != 0:
+            subprocess.call(["vm/target/debug/vm", OUT_FILE])
     else:
-        subprocess.call(["vm/target/debug/vm", OUT_FILE])
+        retcode = subprocess.call(
+            ["vm/target/debug/vm", OUT_FILE],
+        )

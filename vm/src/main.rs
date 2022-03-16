@@ -1,14 +1,12 @@
-use std::borrow::Cow;
 use std::collections::HashMap;
 use std::convert::From;
 use std::fmt;
 use std::fmt::{Display, Formatter};
-use std::rc::Rc;
 use std::str::FromStr;
 use std::{env, fs, path::Path};
 
 #[repr(u8)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 enum OpCode {
     Mostra,
     LoadAmaData,
@@ -37,6 +35,9 @@ enum OpCode {
     ExitBlock,
     GetLocal,
     SetLocal,
+    MakeFunction,
+    CallFunction,
+    Return,
     Halt = 255,
 }
 
@@ -71,11 +72,14 @@ impl From<&u8> for OpCode {
             OpCode::ExitBlock,
             OpCode::GetLocal,
             OpCode::SetLocal,
+            OpCode::MakeFunction,
+            OpCode::CallFunction,
+            OpCode::Return,
         ];
         if *number == 0xff {
             OpCode::Halt
         } else {
-            ops[*number as usize].clone()
+            ops[*number as usize]
         }
     }
 }
@@ -113,23 +117,23 @@ macro_rules! eq_ops {
 }
 
 #[derive(Debug, Clone, Copy)]
-struct AmaFunc {
-    name_idx: usize,
+struct AmaFunc<'a> {
+    name: &'a str,
     start_ip: usize,
     ip: usize,
 }
 
 #[derive(Debug)]
-enum AmaData {
+enum AmaData<'a> {
     Str(String),
     Int(i64),
     F64(f64),
     Bool(bool),
-    Func(AmaFunc),
+    Func(AmaFunc<'a>),
     None,
 }
 
-impl AmaData {
+impl<'a> AmaData<'a> {
     fn is_float(&self) -> bool {
         if let AmaData::F64(_) = self {
             true
@@ -167,6 +171,14 @@ impl AmaData {
             *val
         } else {
             panic!("Value is not a bool")
+        }
+    }
+
+    fn take_func(self) -> AmaFunc<'a> {
+        if let AmaData::Func(func) = self {
+            func
+        } else {
+            panic!("Value is not a func")
         }
     }
 
@@ -226,7 +238,7 @@ impl AmaData {
     }
 }
 
-impl Clone for AmaData {
+impl Clone for AmaData<'_> {
     fn clone(&self) -> Self {
         match self {
             AmaData::Str(string) => AmaData::Str(String::clone(string)),
@@ -239,10 +251,10 @@ impl Clone for AmaData {
     }
 }
 
-impl FromStr for AmaData {
+impl<'a> FromStr for AmaData<'a> {
     type Err = ();
 
-    fn from_str(constant: &str) -> Result<AmaData, ()> {
+    fn from_str(constant: &str) -> Result<AmaData<'a>, ()> {
         if constant == "verdadeiro" || constant == "falso" {
             let bool_val = if constant == "falso" { false } else { true };
             return Ok(AmaData::Bool(bool_val));
@@ -264,7 +276,7 @@ impl FromStr for AmaData {
     }
 }
 
-impl Display for AmaData {
+impl Display for AmaData<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             AmaData::Str(string) => write!(f, "{}", string),
@@ -286,13 +298,13 @@ impl Display for AmaData {
 }
 
 #[derive(Debug)]
-struct Program {
-    constants: Vec<AmaData>,
+struct Program<'a> {
+    constants: Vec<AmaData<'a>>,
     ops: Vec<u8>,
-    main: AmaFunc,
+    main: AmaFunc<'a>,
 }
 
-fn parse_asm(src: String) -> Program {
+fn parse_asm(src: &str) -> Program {
     let sections: Vec<&str> = src.split("<_SECT_BREAK_>").collect();
     assert!(sections.len() == 2, "Unknown amasm file format!");
     let constants = sections[0]
@@ -313,7 +325,7 @@ fn parse_asm(src: String) -> Program {
         constants,
         ops,
         main: AmaFunc {
-            name_idx: 0,
+            name: "_inicio_",
             start_ip: 0,
             ip: 0,
         },
@@ -323,12 +335,12 @@ fn parse_asm(src: String) -> Program {
 const RECURSION_LIMIT: usize = 1000;
 
 #[derive(Debug)]
-struct FrameStack {
-    stack: [Option<AmaFunc>; RECURSION_LIMIT],
+struct FrameStack<'a> {
+    stack: [Option<AmaFunc<'a>>; RECURSION_LIMIT],
     sp: isize,
 }
 
-impl FrameStack {
+impl<'a> FrameStack<'a> {
     pub fn new() -> Self {
         FrameStack {
             stack: [None; RECURSION_LIMIT],
@@ -336,7 +348,7 @@ impl FrameStack {
         }
     }
 
-    pub fn push(&mut self, frame: AmaFunc) -> Result<(), ()> {
+    pub fn push(&mut self, frame: AmaFunc<'a>) -> Result<(), ()> {
         self.sp += 1;
         if self.sp as usize == RECURSION_LIMIT {
             Err(())
@@ -356,31 +368,35 @@ impl FrameStack {
         }
     }
 
-    pub fn peek_mut(&mut self) -> Option<AmaFunc> {
-        self.stack[self.sp as usize]
+    #[inline]
+    pub fn peek(&self) -> &AmaFunc<'a> {
+        self.stack[self.sp as usize].as_ref().unwrap()
+    }
+
+    #[inline]
+    pub fn peek_mut(&mut self) -> &mut AmaFunc<'a> {
+        self.stack[self.sp as usize].as_mut().unwrap()
     }
 }
 
 struct AmaVM<'a> {
     program: Vec<u8>,
-    constants: &'a Vec<AmaData>,
-    values: Vec<AmaData>,
-    frames: FrameStack,
-    c_func: AmaFunc,
-    globals: HashMap<&'a str, AmaData>,
+    constants: &'a Vec<AmaData<'a>>,
+    values: Vec<AmaData<'a>>,
+    frames: FrameStack<'a>,
+    globals: HashMap<&'a str, AmaData<'a>>,
     sp: isize,
     bp: isize,
 }
 
 impl<'a> AmaVM<'a> {
-    pub fn new(program: &'a mut Program) -> Self {
+    pub fn new(program: &'a mut Program<'a>) -> Self {
         let mut vm = AmaVM {
             program: program.ops.clone(),
             constants: &program.constants,
             values: Vec::new(),
             frames: FrameStack::new(),
             globals: HashMap::new(),
-            c_func: program.main,
             sp: -1,
             bp: -1,
         };
@@ -388,7 +404,12 @@ impl<'a> AmaVM<'a> {
         vm
     }
 
-    fn op_push(&mut self, value: AmaData) {
+    #[inline]
+    fn get_frame(&self) -> &AmaFunc<'a> {
+        self.frames.peek()
+    }
+
+    fn op_push(&mut self, value: AmaData<'a>) {
         self.sp += 1;
         let values_size = self.values.len() as isize;
         if self.sp == values_size {
@@ -398,7 +419,7 @@ impl<'a> AmaVM<'a> {
         }
     }
 
-    fn op_pop(&mut self) -> AmaData {
+    fn op_pop(&mut self) -> AmaData<'a> {
         let values_size = (self.values.len() - 1) as isize;
         if self.sp == values_size {
             self.sp -= 1;
@@ -413,8 +434,8 @@ impl<'a> AmaVM<'a> {
     }
 
     fn get_byte(&mut self) -> u8 {
-        self.c_func.ip += 1;
-        self.program[self.c_func.ip]
+        self.frames.peek_mut().ip += 1;
+        self.program[self.frames.peek().ip]
     }
 
     fn get_u16_arg(&mut self) -> u16 {
@@ -423,7 +444,7 @@ impl<'a> AmaVM<'a> {
 
     pub fn run(&mut self) {
         loop {
-            let op = self.program[self.c_func.ip];
+            let op = self.program[self.frames.peek().ip];
             match OpCode::from(&op) {
                 OpCode::LoadAmaData => {
                     let idx = self.get_u16_arg();
@@ -493,7 +514,7 @@ impl<'a> AmaVM<'a> {
                 }
                 OpCode::Jump => {
                     let addr = self.get_u16_arg() as usize;
-                    self.c_func.ip = addr;
+                    self.frames.peek_mut().ip = addr;
                     continue;
                 }
                 OpCode::JumpIfFalse => {
@@ -504,12 +525,16 @@ impl<'a> AmaVM<'a> {
                     let addr = self.get_u16_arg() as usize;
                     let value = self.op_pop();
                     if let AmaData::Bool(false) = value {
-                        self.c_func.ip = addr;
+                        self.frames.peek_mut().ip = addr;
                         continue;
                     }
                 }
                 OpCode::SetupBlock => {
                     let num_locals = self.get_u16_arg();
+                    if num_locals == 0 {
+                        self.frames.peek_mut().ip += 1;
+                        continue;
+                    }
                     self.values.reserve(num_locals as usize);
                     self.bp = self.sp + 1;
                     for _ in 0..num_locals {
@@ -517,6 +542,10 @@ impl<'a> AmaVM<'a> {
                     }
                 }
                 OpCode::ExitBlock => {
+                    if self.bp == -1 {
+                        self.frames.peek_mut().ip += 1;
+                        continue;
+                    }
                     self.sp = self.bp - 1;
                     self.bp = -1;
                 }
@@ -529,22 +558,45 @@ impl<'a> AmaVM<'a> {
                     let idx = self.bp as usize + self.get_u16_arg() as usize;
                     self.values[idx] = self.op_pop();
                 }
+                OpCode::MakeFunction => {
+                    let addr = self.op_pop().take_int() as usize;
+                    let name_idx = self.op_pop().take_int() as usize;
+                    let name = self.constants[name_idx].take_str();
+
+                    self.op_push(AmaData::Func(AmaFunc {
+                        name,
+                        start_ip: addr,
+                        ip: addr,
+                    }));
+                }
+                OpCode::CallFunction => {
+                    let func = self.op_pop().take_func();
+                    self.frames.peek_mut().ip += 1;
+                    self.frames.push(func).unwrap();
+                    //self.c_func = self.frames.peek_mut();
+                    continue;
+                }
+                OpCode::Return => {
+                    self.frames.pop().unwrap();
+                    continue;
+                }
                 OpCode::Halt => break,
                 _ => unimplemented!(
                     "Cannot not execute OpCode {:?}, maybe it hasn't been implemented yet",
                     op
                 ),
             }
-            self.c_func.ip += 1;
+            self.frames.peek_mut().ip += 1;
         }
     }
 
     fn print_debug_info(&self) {
-        println!("[IP]: {}", self.c_func.ip);
+        println!("[Function]: {}", self.frames.peek().name);
+        println!("[IP]: {}", self.frames.peek().ip);
         println!("[SP]: {}", self.sp);
         println!("[BP]: {}", self.bp);
         println!("[STACK]: {:?}", self.values);
-        println!("[CALL FRAMES]: {:?}", self.frames);
+        println!("--------------");
     }
 }
 
@@ -557,12 +609,12 @@ fn main() {
     }
     let file = Path::new(&args[1]);
     let src = String::from_utf8(fs::read(file).unwrap()).unwrap();
-    let mut program = parse_asm(src);
+    let mut program = parse_asm(&src);
     let mut vm = AmaVM::new(&mut program);
     vm.run();
     debug_assert!(
         vm.sp == -1,
         "Stack was not cleaned up properly! \n{:?}",
         vm.values
-    )
+    );
 }

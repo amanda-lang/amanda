@@ -57,6 +57,12 @@ class OpCode(Enum):
     GET_LOCAL = auto()
     # Sets the value of a non-global variable. The arg is the slot on the stack where the var should be stored
     SET_LOCAL = auto()
+    # Creates a new function. Expects the const table index of the name of the function (TOS1) and address of the first instruction to be on the stack (TOS)
+    MAKE_FUNCTION = auto()
+    # Calls a function. Expects function value to be TOS.
+    CALL_FUNCTION = auto()
+    # Returns  from the caller.
+    RETURN = auto()
 
     def op_size(self) -> int:
         # Return number of bytes (including args) that each op
@@ -430,7 +436,7 @@ class ByteGen:
         self.exit_block()
 
     # NOTE: this statement is very unstable and will be changed
-    # NOTE: This is a loop that can only count
+    # NOTE: This is a loop that can only count forward
     def gen_para(self, node):
         para_expr = node.expression
         range_expr = para_expr.range_expr
@@ -466,6 +472,38 @@ class ByteGen:
         self.patch_label_loc(after_loop)
         self.exit_block()
         # raise NotImplementedError()
+
+    def gen_functiondecl(self, node):
+        func_symbol = self.scope_symtab.resolve(node.name.lexeme)
+        name = func_symbol.out_id
+        name_idx = self.get_const_index(func_symbol.name)
+        func_end = self.new_label()
+        self.write_op(OpCode.JUMP, func_end)
+        func_start = self.new_label()
+        self.depth += 1
+        block = node.block
+        self.scope_symtab = block.symbols
+        for child in block.children:
+            self.gen(child)
+        self.write_op(OpCode.RETURN)
+        self.depth -= 1
+        self.patch_label_loc(func_end)
+        # Push args for function data
+        self.write_op(OpCode.LOAD_CONST, self.get_const_index(name_idx))
+        addr = self.get_const_index(self.labels[func_start])
+        self.write_op(OpCode.LOAD_CONST, addr)
+
+        self.write_op(OpCode.MAKE_FUNCTION)
+        self.set_variable(func_symbol)
+
+    def gen_call(self, node):
+        if len(node.fargs):
+            raise NotImplementedError("Cannot call function with args")
+        self.gen(node.callee)
+        func = node.symbol
+        self.write_op(OpCode.SETUP_BLOCK, len(func.scope.locals))
+        self.write_op(OpCode.CALL_FUNCTION)
+        self.write_op(OpCode.EXIT_BLOCK)
 
     def gen_mostra(self, node):
         self.gen(node.exp)
