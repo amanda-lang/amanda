@@ -470,7 +470,10 @@ class Parser:
 
     def retorna_statement(self):
         token = self.consume(TT.RETORNA)
-        exp = self.equality()
+        if self.match(TT.SEMI) or self.match(TT.NEWLINE):
+            exp = None
+        else:
+            exp = self.equality()
         self.end_stmt()
         return ast.Retorna(token, exp)
 

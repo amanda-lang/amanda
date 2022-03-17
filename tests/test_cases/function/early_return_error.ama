@@ -1,0 +1,8 @@
+func early_ret(): int
+    mostra "hello"
+    retorna
+    mostra "world"
+fim
+
+early_ret()
+#[output]: Erro: A instrução de retorno vazia só pode ser usada dentro de uma função vazia.

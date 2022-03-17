@@ -622,13 +622,17 @@ class Analyzer(ast.Visitor):
                 f"A directiva 'retorna' só pode ser usada dentro de uma função"
             )
         func_type = self.ctx_func.type
-        # TODO: Allow empty return from void functions
-        if self.ctx_func.type.otype == OType.TVAZIO:
+        expr = node.exp
+        if self.ctx_func.type.otype == OType.TVAZIO and expr != None:
+            self.error("Não pode retornar um valor de uma função vazia")
+        elif self.ctx_func.type.otype != OType.TVAZIO and expr is None:
             self.error(
-                "Não pode usar a directiva 'retorna' em uma função vazia"
+                "A instrução de retorno vazia só pode ser usada dentro de uma função vazia"
             )
 
-        expr = node.exp
+        # Empty return statement, can exit early
+        if not expr:
+            return
         self.visit(expr)
         expr.prom_type = expr.eval_type.promote_to(func_type)
         if not self.types_match(func_type, expr.eval_type):

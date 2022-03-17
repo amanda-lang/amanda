@@ -6,4 +6,4 @@ fim
 
 
 
-#[output]:Erro: Não pode usar a directiva 'retorna' em uma função vazia.
+#[output]:Erro: Não pode retornar um valor de uma função vazia.

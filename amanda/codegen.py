@@ -529,7 +529,10 @@ class ByteGen:
         self.write_op(OpCode.CALL_FUNCTION, len(node.fargs))
 
     def gen_retorna(self, node):
-        self.gen(node.exp)
+        if node.exp:
+            self.gen(node.exp)
+        else:
+            self.load_const("falso")
         self.write_op(OpCode.RETURN)
 
     def gen_mostra(self, node):
