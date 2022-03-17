@@ -372,7 +372,7 @@ class Analyzer(ast.Visitor):
 
     def visit_block(self, node, scope=None):
         self.scope_depth += 1
-        if not scope:
+        if scope is None:
             scope = symbols.Scope(self.ctx_scope)
         self.ctx_scope = scope
         self.visit_children(node.children)

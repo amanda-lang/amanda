@@ -57,7 +57,9 @@ class OpCode(Enum):
     GET_LOCAL = auto()
     # Sets the value of a non-global variable. The arg is the slot on the stack where the var should be stored
     SET_LOCAL = auto()
-    # Creates a new function. Expects the const table index of the name of the function (TOS1) and address of the first instruction to be on the stack (TOS)
+    # Creates a new function. Expects the const table index of the name of the function (TOS2),
+    # address of the first instruction to be on the stack (TOS)
+    # and the number of locals in the function
     MAKE_FUNCTION = auto()
     # Calls a function. The argument of the op is the number args. Expects function value to be TOS.
     CALL_FUNCTION = auto()
@@ -80,7 +82,7 @@ class OpCode(Enum):
             return OP_SIZE * 3
         elif self == OpCode.DEF_GLOBAL:
             return OP_SIZE * 4
-        elif self == OpCode.CALL_FUNCTION:
+        elif self in (OpCode.CALL_FUNCTION,):
             return OP_SIZE * 2
         else:
             return OP_SIZE
@@ -141,6 +143,9 @@ class ByteGen:
         self.ip += op.op_size() // OP_SIZE
         self.ops.append((op, args))
 
+    def load_const(self, const):
+        self.write_op(OpCode.LOAD_CONST, self.get_const_index(const))
+
     def format_u16_arg(self, arg):
         high = (arg & 0xFF00) >> 8
         low = arg & 0x00FF
@@ -166,7 +171,7 @@ class ByteGen:
             high, low = self.format_u16_arg(args[0])
             return f"{op} {high} {low} {args[1]}"
         elif op.op_size() == OP_SIZE * 2:
-            return f"{op} {args[1]}"
+            return f"{op} {args[0]}"
         elif op.op_size() == OP_SIZE:
             return f"{op}"
         else:
@@ -228,7 +233,6 @@ class ByteGen:
     def gen_program(self, node):
         self.compile_block(node)
         assert self.depth == -1, "A block was not exited in some local scope!"
-        print(self.func_locals)
         program = StringIO()
         # Main num_locals
         program.write(str(len(self.func_locals)))
@@ -248,9 +252,6 @@ class ByteGen:
         self.depth -= 1
         self.scope_symtab = self.scope_symtab.enclosing_scope
         num_locals = len(self.func_locals)
-        assert (
-            num_locals < 2 ** 16
-        ), "Too many local variables declared in scope"
 
     def compile_block(self, node):
         self.enter_block(node.symbols)
@@ -495,35 +496,37 @@ class ByteGen:
 
         prev_func_locals = self.func_locals
         self.func_locals = {}
+        for param in func_symbol.params.values():
+            local = param.out_id
+            idx = len(self.func_locals)
+            self.func_locals[local] = idx
+
         self.enter_block(block.symbols)
         for child in block.children:
             self.gen(child)
         # default return
-        self.write_op(OpCode.LOAD_CONST, self.get_const_index("falso"))
+        self.load_const("falso")
         self.write_op(OpCode.RETURN)
         self.exit_block()
+        num_locals = len(self.func_locals)
         self.func_locals = prev_func_locals
 
         self.patch_label_loc(func_end)
         # Push args for function data
-        self.write_op(OpCode.LOAD_CONST, self.get_const_index(name_idx))
-        addr = self.get_const_index(self.labels[func_start])
-        self.write_op(OpCode.LOAD_CONST, addr)
+        self.load_const(name_idx)
+        self.load_const(self.labels[func_start])
+        self.load_const(num_locals)
 
         self.write_op(OpCode.MAKE_FUNCTION)
         self.set_variable(func_symbol)
 
     def gen_call(self, node):
         func = node.symbol
-        self.enter_block(func.scope)
         # Push and store params
         for arg in node.fargs:
             self.gen(arg)
         self.gen(node.callee)
         self.write_op(OpCode.CALL_FUNCTION, len(node.fargs))
-        # Exit call context
-        self.depth -= 1
-        self.scope_symtab = self.scope_symtab.enclosing_scope
 
     def gen_retorna(self, node):
         self.gen(node.exp)

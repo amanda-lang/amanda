@@ -122,7 +122,7 @@ struct AmaFunc<'a> {
     start_ip: usize,
     ip: usize,
     bp: isize,
-    locals: u8,
+    locals: usize,
 }
 
 #[derive(Debug)]
@@ -309,7 +309,7 @@ struct Program<'a> {
 fn parse_asm(src: &str) -> Program {
     let sections: Vec<&str> = src.split("<_SECT_BREAK_>").collect();
     assert!(sections.len() == 3, "Unknown amasm file format!");
-    let main_locals = sections[0].parse::<u8>().unwrap();
+    let main_locals = sections[0].parse::<usize>().unwrap();
     let constants = sections[1]
         .split("<_CONST_>")
         .map(|constant| constant.parse::<AmaData>().unwrap())
@@ -404,7 +404,7 @@ impl<'a> AmaVM<'a> {
             sp: -1,
         };
         vm.frames.push(program.main).unwrap();
-        vm.sp = (vm.values.len() - 1) as isize;
+        vm.sp = vm.values.len() as isize - 1;
         vm.frames.peek_mut().bp = if vm.sp > -1 { 0 } else { -1 };
         vm
     }
@@ -447,8 +447,13 @@ impl<'a> AmaVM<'a> {
         ((self.get_byte() as u16) << 8) | self.get_byte() as u16
     }
 
+    fn reserve_stack_space(&mut self, size: usize) {
+        for _ in 0..size {
+            self.op_push(AmaData::None);
+        }
+    }
+
     pub fn run(&mut self) {
-        self.print_debug_info();
         loop {
             let op = self.program[self.frames.peek().ip];
             match OpCode::from(&op) {
@@ -545,7 +550,7 @@ impl<'a> AmaVM<'a> {
                     self.values[idx] = self.op_pop();
                 }
                 OpCode::MakeFunction => {
-                    let locals = self.op_pop().take_int() as u8;
+                    let locals = self.op_pop().take_int() as usize;
                     let addr = self.op_pop().take_int() as usize;
                     let name_idx = self.op_pop().take_int() as usize;
                     let name = self.constants[name_idx].take_str();
@@ -559,18 +564,27 @@ impl<'a> AmaVM<'a> {
                     }));
                 }
                 OpCode::CallFunction => {
-                    let args = self.get_byte();
+                    let args = self.get_byte() as isize;
                     let mut func = self.op_pop().take_func();
                     //Reserve space
+                    //TODO: Find out if this is the fatest way to do this
+                    if args > 0 {
+                        func.bp = self.sp - (args - 1);
+                        let extra = func.locals - args as usize;
+                        self.reserve_stack_space(extra);
+                    } else if func.locals > 0 {
+                        func.bp = self.sp + 1;
+                        self.reserve_stack_space(func.locals);
+                    }
                     //Set return addr in caller
                     self.frames.peek_mut().ip += 1;
                     self.frames.push(func).unwrap();
-
                     continue;
                 }
                 OpCode::Return => {
                     let val = self.op_pop();
-                    self.sp = self.frames.peek().bp - 1;
+                    let frame_bp = self.frames.peek().bp;
+                    self.sp = if frame_bp > -1 { frame_bp - 1 } else { self.sp };
                     self.frames.pop().unwrap();
                     self.op_push(val);
                     continue;
