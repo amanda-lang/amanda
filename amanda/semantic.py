@@ -311,6 +311,7 @@ class Analyzer(ast.Visitor):
         scope = symbols.Scope(self.ctx_scope)
         for param_name, param in params_dict.items():
             self.define_symbol(param, self.scope_depth + 1, scope)
+            scope.add_local(param.out_id)
         return (scope, params_dict)
 
     def visit_classdecl(self, node):
@@ -325,7 +326,7 @@ class Analyzer(ast.Visitor):
         klass.members = self.ctx_scope.symbols
         # Will resolve class in two loops:
         # 1. Get all instance variables
-        # 2. Get analyze all functions declarations
+        # 2. Analyze all functions declarations
         # This allows forward references inside a class
         declarations = node.body.children
         for declaration in declarations:

@@ -228,25 +228,26 @@ class ByteGen:
         program.write(" ".join([self.write_op_bytes(op) for op in self.ops]))
         return self.build_str(program)
 
-    def enter_block(self, node):
+    def enter_block(self, scope, emit_setup=True):
         self.depth += 1
-        self.scope_symtab = node.symbols
+        self.scope_symtab = scope
         if self.depth == 1:
             self.scope_locals = self.scope_symtab.locals  # store unique locals
             num_locals = len(self.scope_locals)
             assert (
                 num_locals < 2 ** 16
             ), "Too many local variables declared in scope"
-            self.write_op(OpCode.SETUP_BLOCK, num_locals)
+            if emit_setup:
+                self.write_op(OpCode.SETUP_BLOCK, num_locals)
 
-    def exit_block(self):
-        if self.depth == 1:
+    def exit_block(self, emit_exit=True):
+        if self.depth == 1 and emit_exit:
             self.write_op(OpCode.EXIT_BLOCK)
         self.depth -= 1
         self.scope_symtab = self.scope_symtab.enclosing_scope
 
     def compile_block(self, node):
-        self.enter_block(node)
+        self.enter_block(node.symbols)
         for child in node.children:
             self.gen(child)
         self.exit_block()
@@ -422,7 +423,7 @@ class ByteGen:
         after_loop = self.new_label()
         loop = self.new_label()
         block = node.statement
-        self.enter_block(block)
+        self.enter_block(block.symbols)
         # BEGIN LOOP
         self.patch_label_loc(loop)
         self.gen(node.condition)
@@ -446,7 +447,7 @@ class ByteGen:
         after_loop = self.new_label()
         loop = self.new_label()
         block = node.statement
-        self.enter_block(block)
+        self.enter_block(block.symbols)
 
         # initializer
         self.gen(range_expr.start)
@@ -480,13 +481,15 @@ class ByteGen:
         func_end = self.new_label()
         self.write_op(OpCode.JUMP, func_end)
         func_start = self.new_label()
-        self.depth += 1
+
         block = node.block
-        self.scope_symtab = block.symbols
+        self.enter_block(block.symbols, emit_setup=False)
         for child in block.children:
             self.gen(child)
+        # Cleanup local vars
+        self.exit_block()
         self.write_op(OpCode.RETURN)
-        self.depth -= 1
+
         self.patch_label_loc(func_end)
         # Push args for function data
         self.write_op(OpCode.LOAD_CONST, self.get_const_index(name_idx))
@@ -497,13 +500,18 @@ class ByteGen:
         self.set_variable(func_symbol)
 
     def gen_call(self, node):
-        if len(node.fargs):
-            raise NotImplementedError("Cannot call function with args")
-        self.gen(node.callee)
         func = node.symbol
-        self.write_op(OpCode.SETUP_BLOCK, len(func.scope.locals))
+        self.enter_block(func.scope)
+        # Push and store params
+        for arg in node.fargs:
+            self.gen(arg)
+        for param in reversed(func.params.values()):
+            self.set_variable(param)
+        self.gen(node.callee)
         self.write_op(OpCode.CALL_FUNCTION)
-        self.write_op(OpCode.EXIT_BLOCK)
+        # Exit call context
+        self.depth -= 1
+        self.scope_symtab = self.scope_symtab.enclosing_scope
 
     def gen_mostra(self, node):
         self.gen(node.exp)
