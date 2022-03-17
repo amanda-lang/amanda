@@ -59,7 +59,7 @@ class OpCode(Enum):
     SET_LOCAL = auto()
     # Creates a new function. Expects the const table index of the name of the function (TOS1) and address of the first instruction to be on the stack (TOS)
     MAKE_FUNCTION = auto()
-    # Calls a function. Expects function value to be TOS.
+    # Calls a function. The argument of the op is the number args. Expects function value to be TOS.
     CALL_FUNCTION = auto()
     # Returns  from the caller.
     RETURN = auto()
@@ -80,6 +80,8 @@ class OpCode(Enum):
             return OP_SIZE * 3
         elif self == OpCode.DEF_GLOBAL:
             return OP_SIZE * 4
+        elif self == OpCode.CALL_FUNCTION:
+            return OP_SIZE * 2
         else:
             return OP_SIZE
 
@@ -106,7 +108,7 @@ class ByteGen:
         self.ama_lineno = 1  # tracks lineno in input amanda src
         self.program_symtab = None
         self.scope_symtab = None
-        self.scope_locals = None
+        self.func_locals = {}
         self.const_table = dict()
         self.constants = 0
         self.labels = {}
@@ -163,6 +165,8 @@ class ByteGen:
         elif op == OpCode.DEF_GLOBAL:
             high, low = self.format_u16_arg(args[0])
             return f"{op} {high} {low} {args[1]}"
+        elif op.op_size() == OP_SIZE * 2:
+            return f"{op} {args[1]}"
         elif op.op_size() == OP_SIZE:
             return f"{op}"
         else:
@@ -182,6 +186,9 @@ class ByteGen:
 
     def make_debug_asm(self) -> str:
         debug_out = StringIO()
+        debug_out.write(f".entry_space: ")
+        debug_out.write(str(len(self.func_locals)))
+        debug_out.write("\n")
         debug_out.write(".data\n")
         for const, i in self.const_table.items():
             debug_out.write(f"{i}: {const}\n")
@@ -221,30 +228,29 @@ class ByteGen:
     def gen_program(self, node):
         self.compile_block(node)
         assert self.depth == -1, "A block was not exited in some local scope!"
-        # Output constants
+        print(self.func_locals)
         program = StringIO()
+        # Main num_locals
+        program.write(str(len(self.func_locals)))
+        program.write("<_SECT_BREAK_>")
+        # constants
         program.write("<_CONST_>".join([str(s) for s in self.const_table]))
         program.write("<_SECT_BREAK_>")
+        # Ops
         program.write(" ".join([self.write_op_bytes(op) for op in self.ops]))
         return self.build_str(program)
 
-    def enter_block(self, scope, emit_setup=True):
+    def enter_block(self, scope):
         self.depth += 1
         self.scope_symtab = scope
-        if self.depth == 1:
-            self.scope_locals = self.scope_symtab.locals  # store unique locals
-            num_locals = len(self.scope_locals)
-            assert (
-                num_locals < 2 ** 16
-            ), "Too many local variables declared in scope"
-            if emit_setup:
-                self.write_op(OpCode.SETUP_BLOCK, num_locals)
 
-    def exit_block(self, emit_exit=True):
-        if self.depth == 1 and emit_exit:
-            self.write_op(OpCode.EXIT_BLOCK)
+    def exit_block(self):
         self.depth -= 1
         self.scope_symtab = self.scope_symtab.enclosing_scope
+        num_locals = len(self.func_locals)
+        assert (
+            num_locals < 2 ** 16
+        ), "Too many local variables declared in scope"
 
     def compile_block(self, node):
         self.enter_block(node.symbols)
@@ -275,7 +281,7 @@ class ByteGen:
         if symbol.is_global:
             self.write_op(OpCode.GET_GLOBAL, self.const_table[name])
         else:
-            self.write_op(OpCode.GET_LOCAL, self.scope_locals[symbol.out_id])
+            self.write_op(OpCode.GET_LOCAL, self.func_locals[symbol.out_id])
 
     def gen_variable(self, node):
         name = node.token.lexeme
@@ -303,14 +309,14 @@ class ByteGen:
             "texto": 3,
         }
         # Def global vars
-        if self.depth == 0:
+        if symbol.is_global:
             id_idx = self.get_const_index(idt)
-            self.write_op(
-                OpCode.DEF_GLOBAL, id_idx, init_values[str(node.var_type)]
-            )
-            # TODO: Optimize this
             if assign:
                 self.gen(assign)
+            else:
+                self.write_op(
+                    OpCode.DEF_GLOBAL, id_idx, init_values[str(node.var_type)]
+                )
             return
         # Def local var
         if assign:
@@ -320,7 +326,7 @@ class ByteGen:
             initializer = {0: 0, 1: 0.0, 2: "falso", 3: "''"}[node_type]
             init_idx = self.get_const_index(initializer)
             self.write_op(OpCode.LOAD_CONST, init_idx)
-            self.write_op(OpCode.SET_LOCAL, self.scope_locals[symbol.out_id])
+            self.set_variable(symbol)
 
     def set_variable(self, symbol):
         name = symbol.name
@@ -328,7 +334,11 @@ class ByteGen:
             var_idx = self.get_const_index(name)
             self.write_op(OpCode.SET_GLOBAL, var_idx)
         else:
-            self.write_op(OpCode.SET_LOCAL, self.scope_locals[symbol.out_id])
+            local = symbol.out_id
+            if local not in self.func_locals:
+                idx = len(self.func_locals)
+                self.func_locals[local] = idx
+            self.write_op(OpCode.SET_LOCAL, self.func_locals[local])
 
     def gen_assign(self, node):
         expr = node.right
@@ -341,7 +351,6 @@ class ByteGen:
         var = node.left
         assert isinstance(var, ast.Variable)
         var_sym = var.var_symbol
-        name = var.token.lexeme
         self.set_variable(var_sym)
 
     def gen_unaryop(self, node):
@@ -483,12 +492,17 @@ class ByteGen:
         func_start = self.new_label()
 
         block = node.block
-        self.enter_block(block.symbols, emit_setup=False)
+
+        prev_func_locals = self.func_locals
+        self.func_locals = {}
+        self.enter_block(block.symbols)
         for child in block.children:
             self.gen(child)
-        # Cleanup local vars
-        self.exit_block()
+        # default return
+        self.write_op(OpCode.LOAD_CONST, self.get_const_index("falso"))
         self.write_op(OpCode.RETURN)
+        self.exit_block()
+        self.func_locals = prev_func_locals
 
         self.patch_label_loc(func_end)
         # Push args for function data
@@ -505,13 +519,15 @@ class ByteGen:
         # Push and store params
         for arg in node.fargs:
             self.gen(arg)
-        for param in reversed(func.params.values()):
-            self.set_variable(param)
         self.gen(node.callee)
-        self.write_op(OpCode.CALL_FUNCTION)
+        self.write_op(OpCode.CALL_FUNCTION, len(node.fargs))
         # Exit call context
         self.depth -= 1
         self.scope_symtab = self.scope_symtab.enclosing_scope
+
+    def gen_retorna(self, node):
+        self.gen(node.exp)
+        self.write_op(OpCode.RETURN)
 
     def gen_mostra(self, node):
         self.gen(node.exp)

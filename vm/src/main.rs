@@ -121,6 +121,8 @@ struct AmaFunc<'a> {
     name: &'a str,
     start_ip: usize,
     ip: usize,
+    bp: isize,
+    locals: u8,
 }
 
 #[derive(Debug)]
@@ -306,13 +308,14 @@ struct Program<'a> {
 
 fn parse_asm(src: &str) -> Program {
     let sections: Vec<&str> = src.split("<_SECT_BREAK_>").collect();
-    assert!(sections.len() == 2, "Unknown amasm file format!");
-    let constants = sections[0]
+    assert!(sections.len() == 3, "Unknown amasm file format!");
+    let main_locals = sections[0].parse::<u8>().unwrap();
+    let constants = sections[1]
         .split("<_CONST_>")
         .map(|constant| constant.parse::<AmaData>().unwrap())
         .collect();
-    let mut ops: Vec<u8> = if !sections[1].is_empty() {
-        sections[1]
+    let mut ops: Vec<u8> = if !sections[2].is_empty() {
+        sections[2]
             .split(" ")
             .map(|op| op.parse::<u8>().unwrap())
             .collect()
@@ -328,6 +331,8 @@ fn parse_asm(src: &str) -> Program {
             name: "_inicio_",
             start_ip: 0,
             ip: 0,
+            locals: main_locals,
+            bp: -1,
         },
     }
 }
@@ -386,7 +391,6 @@ struct AmaVM<'a> {
     frames: FrameStack<'a>,
     globals: HashMap<&'a str, AmaData<'a>>,
     sp: isize,
-    bp: isize,
 }
 
 impl<'a> AmaVM<'a> {
@@ -394,13 +398,14 @@ impl<'a> AmaVM<'a> {
         let mut vm = AmaVM {
             program: program.ops.clone(),
             constants: &program.constants,
-            values: Vec::new(),
+            values: vec![AmaData::None; program.main.locals.into()],
             frames: FrameStack::new(),
             globals: HashMap::new(),
             sp: -1,
-            bp: -1,
         };
         vm.frames.push(program.main).unwrap();
+        vm.sp = (vm.values.len() - 1) as isize;
+        vm.frames.peek_mut().bp = if vm.sp > -1 { 0 } else { -1 };
         vm
     }
 
@@ -443,6 +448,7 @@ impl<'a> AmaVM<'a> {
     }
 
     pub fn run(&mut self) {
+        self.print_debug_info();
         loop {
             let op = self.program[self.frames.peek().ip];
             match OpCode::from(&op) {
@@ -529,36 +535,17 @@ impl<'a> AmaVM<'a> {
                         continue;
                     }
                 }
-                OpCode::SetupBlock => {
-                    let num_locals = self.get_u16_arg();
-                    if num_locals == 0 {
-                        self.frames.peek_mut().ip += 1;
-                        continue;
-                    }
-                    self.values.reserve(num_locals as usize);
-                    self.bp = self.sp + 1;
-                    for _ in 0..num_locals {
-                        self.op_push(AmaData::None);
-                    }
-                }
-                OpCode::ExitBlock => {
-                    if self.bp == -1 {
-                        self.frames.peek_mut().ip += 1;
-                        continue;
-                    }
-                    self.sp = self.bp - 1;
-                    self.bp = -1;
-                }
                 OpCode::GetLocal => {
-                    let idx = self.get_u16_arg() as usize + self.bp as usize;
+                    let idx = self.get_u16_arg() as usize + self.frames.peek().bp as usize;
                     //#TODO: Do not use clone
                     self.op_push(self.values[idx].clone());
                 }
                 OpCode::SetLocal => {
-                    let idx = self.bp as usize + self.get_u16_arg() as usize;
+                    let idx = self.frames.peek().bp as usize + self.get_u16_arg() as usize;
                     self.values[idx] = self.op_pop();
                 }
                 OpCode::MakeFunction => {
+                    let locals = self.op_pop().take_int() as u8;
                     let addr = self.op_pop().take_int() as usize;
                     let name_idx = self.op_pop().take_int() as usize;
                     let name = self.constants[name_idx].take_str();
@@ -567,17 +554,25 @@ impl<'a> AmaVM<'a> {
                         name,
                         start_ip: addr,
                         ip: addr,
+                        bp: -1,
+                        locals,
                     }));
                 }
                 OpCode::CallFunction => {
-                    let func = self.op_pop().take_func();
+                    let args = self.get_byte();
+                    let mut func = self.op_pop().take_func();
+                    //Reserve space
+                    //Set return addr in caller
                     self.frames.peek_mut().ip += 1;
                     self.frames.push(func).unwrap();
-                    //self.c_func = self.frames.peek_mut();
+
                     continue;
                 }
                 OpCode::Return => {
+                    let val = self.op_pop();
+                    self.sp = self.frames.peek().bp - 1;
                     self.frames.pop().unwrap();
+                    self.op_push(val);
                     continue;
                 }
                 OpCode::Halt => break,
@@ -594,7 +589,7 @@ impl<'a> AmaVM<'a> {
         println!("[Function]: {}", self.frames.peek().name);
         println!("[IP]: {}", self.frames.peek().ip);
         println!("[SP]: {}", self.sp);
-        println!("[BP]: {}", self.bp);
+        println!("[BP]: {}", self.frames.peek().bp);
         println!("[STACK]: {:?}", self.values);
         println!("--------------");
     }
@@ -613,8 +608,8 @@ fn main() {
     let mut vm = AmaVM::new(&mut program);
     vm.run();
     debug_assert!(
-        vm.sp == -1,
-        "Stack was not cleaned up properly! \n{:?}",
+        vm.frames.peek().name == "_inicio_",
+        "Some function did not cleanely exit! \n{:?}",
         vm.values
     );
 }

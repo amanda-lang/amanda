@@ -23,7 +23,6 @@ class Analyzer(ast.Visitor):
         self.global_scope = symbols.Scope()
         self.scope_depth = 0
         self.ctx_scope = self.global_scope
-        self.ctx_base_scope = None
         self.ctx_node = None
         self.ctx_class = None
         self.ctx_func = None
@@ -207,7 +206,14 @@ class Analyzer(ast.Visitor):
         for i in range(none_count):
             children.remove(None)
 
+    # Since each function has it's own local scope,
+    # The top level global scope will have it's own locals
+    def set_base_local(self, scope):
+        pass
+
     def visit_program(self, node):
+        # Since each function has it's own local scope,
+        # The top level global scope will have it's own "locals"
         self.visit_children(node.children)
         node.symbols = self.global_scope
         return node
@@ -266,15 +272,20 @@ class Analyzer(ast.Visitor):
             self.visit(assign)
         if self.scope_depth == 0:
             symbol.is_global = True
-        # To base scope local
-        if self.ctx_base_scope:
-            self.ctx_base_scope.add_local(symbol.out_id)
 
     def visit_functiondecl(self, node):
+        # TODO: Will add closures to make up for lack of local functions
+        if self.scope_depth > 0:
+            self.error(f"As funções só podem ser declaradas no escopo global")
+
         # Check if id is already in use
         name = node.name.lexeme
         if self.ctx_scope.get(name):
             self.error(self.ID_IN_USE, name=name)
+
+        # Check that func is within max param number
+        if len(node.params) > (2 ** 8) - 1:
+            self.error(f"As funções só podem ter até 255 parâmetros")
 
         function_type = self.get_type(node.func_type)
 
@@ -284,17 +295,17 @@ class Analyzer(ast.Visitor):
             self.ctx_node = node
             self.error(f"a função '{name}' não possui a instrução 'retorna'")
         symbol = symbols.FunctionSymbol(name, function_type)
+        symbol.is_global = True
         self.define_symbol(symbol, self.scope_depth, self.ctx_scope)
         scope, symbol.params = self.define_func_scope(name, node.params)
+
         prev_function = self.ctx_func
         self.ctx_func = symbol
+
         self.visit(node.block, scope)
+
         self.ctx_func = prev_function
-        if self.scope_depth == 0:
-            symbol.is_global = True
-        # Add to base scope local
-        if self.ctx_base_scope:
-            self.ctx_base_scope.add_local(symbol.out_id)
+
         symbol.scope = scope
 
     def define_func_scope(self, name, params):
@@ -363,16 +374,10 @@ class Analyzer(ast.Visitor):
         self.scope_depth += 1
         if not scope:
             scope = symbols.Scope(self.ctx_scope)
-        # Set base scope
-        if self.scope_depth == 1:
-            self.ctx_base_scope = scope
         self.ctx_scope = scope
         self.visit_children(node.children)
         node.symbols = scope
         self.ctx_scope = self.ctx_scope.enclosing_scope
-        # Unset base scope
-        if self.scope_depth == 1:
-            self.ctx_base_scope = None
         self.scope_depth -= 1
 
     def visit_param(self, node):
@@ -418,13 +423,6 @@ class Analyzer(ast.Visitor):
             self.error(f"o identificador '{name}' não foi declarado")
         elif not sym.can_evaluate():
             self.error(self.INVALID_REF, name=name)
-        # Inner function does not have access to the enclosing scope
-        # so it cannot access nonlocal variables
-        if self.scope_depth >= 2 and self.ctx_func:
-            if not sym.is_global and not self.ctx_scope.get(sym.name):
-                self.error(
-                    f"Funções locais não têm acesso ao escopo envolvente"
-                )
         node.eval_type = sym.type
         node.var_symbol = sym
         assert node.var_symbol
@@ -694,7 +692,6 @@ class Analyzer(ast.Visitor):
         sym = symbols.VariableSymbol(name, self.ctx_scope.resolve("int"))
         scope = symbols.Scope(self.ctx_scope)
         self.define_symbol(sym, self.scope_depth + 1, scope)
-        scope.add_local(sym.out_id)
         self.visit(node.statement, scope)
 
     def visit_paraexpr(self, node):
