@@ -1,0 +1,18 @@
+# Este módulo contém as declarações da funções que já vêm com amanda
+
+
+# Funções de entrada functions
+func nativa leia(mensagem: texto): texto
+func nativa leia_int(mensagem: texto): int
+func nativa leia_real(mensagem: texto): real
+
+
+# Funções de saída
+func nativa escreva(item: indef)
+func nativa escrevaln(item: indef)
+
+# 'Metaprogramação'
+func nativa tipo(objecto: indef):texto
+
+
+

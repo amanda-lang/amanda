@@ -370,8 +370,7 @@ class Parser:
         else:
             self.error(self.MISSING_TERM)
 
-    def function_decl(self):
-        self.consume(TT.FUNC)
+    def function_header(self):
         name = self.consume(
             TT.IDENTIFIER, self.EXPECTED_ID.format(symbol="func")
         )
@@ -387,14 +386,28 @@ class Parser:
                 self.consume(TT.VAZIO)
             else:
                 func_type = self.type()
-        block = self.block()
+        return ast.FunctionDecl(
+            name=name, block=None, func_type=func_type, params=params
+        )
+
+    def native_func_decl(self):
+        self.consume(TT.NATIVA)
+        function = self.function_header()
+        function.is_native = True
+        self.end_stmt()
+        return function
+
+    def function_decl(self):
+        self.consume(TT.FUNC)
+        if self.match(TT.NATIVA):
+            return self.native_func_decl()
+        function = self.function_header()
+        function.block = self.block()
         self.consume(
             TT.FIM,
             "O corpo de um função deve ser terminado com a directiva 'fim'",
         )
-        return ast.FunctionDecl(
-            name=name, block=block, func_type=func_type, params=params
-        )
+        return function
 
     def class_decl(self):
         self.consume(TT.CLASSE)

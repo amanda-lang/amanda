@@ -77,6 +77,7 @@ class TokenType(Enum):
     FUNC = "FUNC"
     NULO = "NULO"
     VAZIO = "VAZIO"
+    NATIVA = "NATIVA"
     CLASSE = "CLASSE"
 
 

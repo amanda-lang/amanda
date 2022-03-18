@@ -53,6 +53,7 @@ EU : eu
 USA : usa
 COMO: como
 SUPER : super
+NATIVA: nativa
 
 *OPERANDS*
 INTEGER : [0-9]+ -> 122324242

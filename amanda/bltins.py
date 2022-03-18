@@ -2,7 +2,13 @@ from amanda.objects import Indef, Lista, BaseClass, Nulo
 import amanda.symbols as symbols
 from amanda.type import OType, Type
 from amanda.error import AmandaError
+import os
+import pathlib
 
+# Path to std lib
+STD_LIB = (
+    pathlib.Path(__file__).parent.parent.resolve().joinpath("std").resolve()
+)
 # Symbols for builtin functions
 # used during sem analysis
 bltin_symbols = {}

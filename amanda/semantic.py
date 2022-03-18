@@ -7,7 +7,7 @@ import amanda.ast as ast
 import amanda.symbols as symbols
 from amanda.type import OType, Type, Lista, Klass
 from amanda.error import AmandaError
-from amanda.bltins import bltin_symbols
+from amanda.bltins import bltin_symbols, STD_LIB
 
 
 class Analyzer(ast.Visitor):
@@ -29,9 +29,7 @@ class Analyzer(ast.Visitor):
         self.imports = {}
         # Module currently being executed
         self.ctx_module = module
-        self.init_builtins()
 
-    def init_builtins(self):
         # Initialize builtin types
         self.global_scope.define("int", Type(OType.TINT))
         self.global_scope.define("real", Type(OType.TREAL))
@@ -40,9 +38,16 @@ class Analyzer(ast.Visitor):
         self.global_scope.define("vazio", Type(OType.TVAZIO))
         self.global_scope.define("indef", Type(OType.TINDEF))
         self.global_scope.define("nulo", Type(OType.TNULO))
-        # load builtin symbols
-        for sname, symbol in bltin_symbols.items():
-            self.global_scope.define(sname, symbol)
+
+        # Load builtin module
+        module = symbols.Module(path.join(STD_LIB, "embutidos.ama"))
+        self.load_module(module)
+
+        # Load remaining builtins
+        for name, obj in bltin_symbols.items():
+            if name in self.global_scope.symbols:
+                continue
+            self.global_scope.define(name, obj)
 
     def has_return(self, node):
         """Method that checks if function non void
@@ -206,17 +211,33 @@ class Analyzer(ast.Visitor):
         for i in range(none_count):
             children.remove(None)
 
-    # Since each function has it's own local scope,
-    # The top level global scope will have it's own locals
-    def set_base_local(self, scope):
-        pass
-
     def visit_program(self, node):
         # Since each function has it's own local scope,
         # The top level global scope will have it's own "locals"
         self.visit_children(node.children)
         node.symbols = self.global_scope
         return node
+
+    def load_module(self, module):
+        existing_mod = self.imports.get(module.fpath)
+        # Module has already been loaded
+        if existing_mod and existing_mod.loaded:
+            return
+        # Check for a cycle
+        # A cycle occurs when a previously seen module
+        # is seen again, but it is not loaded yet
+        if existing_mod and not existing_mod.loaded:
+            self.error(f"Erro ao importar módulo. inclusão cíclica detectada")
+
+        prev_module = self.ctx_module
+        self.ctx_module = module
+        self.imports[module.fpath] = module
+
+        # TODO: Handle errors while loading another module
+        module.ast = self.visit_program(parse(module.fpath))
+
+        module.loaded = True
+        self.ctx_module = prev_module
 
     def visit_usa(self, node):
         fpath = node.module.lexeme.replace("'", "").replace('"', "")
@@ -233,27 +254,8 @@ class Analyzer(ast.Visitor):
             self.error(err_msg)
 
         mod_path = path.abspath(fpath)
-        existing_mod = self.imports.get(mod_path)
-        # Module has already been loaded
-        if existing_mod and existing_mod.loaded:
-            return
-        # Check for a cycle
-        # A cycle occurs when a previously seen module
-        # is seen again, but it is not loaded yet
-        if existing_mod and not existing_mod.loaded:
-            self.error(f"Erro ao importar módulo. inclusão cíclica detectada")
-
         module = symbols.Module(mod_path)
-        prev_module = self.ctx_module
-        self.ctx_module = module
-        self.imports[mod_path] = module
-
-        # TODO: Handle errors while loading another module
-        module.ast = self.visit_program(parse(module.fpath))
-
-        node.ast = module.ast
-        module.loaded = True
-        self.ctx_module = prev_module
+        self.load_module(module)
 
     def visit_vardecl(self, node):
         name = node.name.lexeme
@@ -290,14 +292,19 @@ class Analyzer(ast.Visitor):
         function_type = self.get_type(node.func_type)
 
         # Check if non void function has return
-        has_return = self.has_return(node.block)
-        if not has_return and function_type.otype != OType.TVAZIO:
-            self.ctx_node = node
-            self.error(f"a função '{name}' não possui a instrução 'retorna'")
         symbol = symbols.FunctionSymbol(name, function_type)
         symbol.is_global = True
         self.define_symbol(symbol, self.scope_depth, self.ctx_scope)
         scope, symbol.params = self.define_func_scope(name, node.params)
+
+        # There is no need to check the body of a native function
+        if node.is_native:
+            return
+
+        has_return = self.has_return(node.block)
+        if not has_return and function_type.otype != OType.TVAZIO:
+            self.ctx_node = node
+            self.error(f"a função '{name}' não possui a instrução 'retorna'")
 
         prev_function = self.ctx_func
         self.ctx_func = symbol

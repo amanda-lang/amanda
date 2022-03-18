@@ -265,6 +265,7 @@ class FunctionDecl(ASTNode):
         self.params = params
         self.func_type = func_type
         self.block = block
+        self.is_native = False
         self.tag_children()
 
 

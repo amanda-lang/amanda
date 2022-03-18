@@ -25,10 +25,16 @@ type
   : (LBRACKET RBRACKET)* IDENTIFIER 
   ;
 
+function_header
+  : IDENTIFIER LPAR formal_parameter_section? RPAR COL (type | VAZIO)
+  ;
+
+native_function_decl
+  : NATIVA header end_stmt
+  ;
+
 function_declaration
-  : FUNC IDENTIFIER LPAR formal_parameter_section? RPAR COL (type | VAZIO)
-  body
-  FIM
+  : FUNC (native_function_decl | function_header body FIM)
   ;
 
 
