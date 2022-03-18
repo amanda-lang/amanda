@@ -123,6 +123,13 @@ class ByteGen:
         # Define builtin constants
         self.get_const_index("verdadeiro")
         self.get_const_index("falso")
+        # Add builtin names to the constant table
+        for name, symbol in program.symbols.symbols.items():
+            if isinstance(symbol, symbols.VariableSymbol) or isinstance(
+                symbol, symbols.FunctionSymbol
+            ):
+                self.get_const_index(name)
+
         py_code = self.gen(program)
         return py_code
 
