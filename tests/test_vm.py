@@ -21,6 +21,11 @@ DIRS = [
     join(STATEMENT, "enquanto"),
     join(STATEMENT, "escolha"),
     join(TEST_DIR, "function"),
+    join(STATEMENT, "retorna"),
+    join(TEST_DIR, "comment"),
+    join(TEST_DIR, "call"),
+    join(TEST_DIR, "declaration"),
+    join(TEST_DIR, "expression"),
 ]
 
 passed = 0

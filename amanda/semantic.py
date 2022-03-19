@@ -555,13 +555,6 @@ class Analyzer(ast.Visitor):
                     else scope.resolve("real")
                 )
 
-            elif (
-                lhs_type.otype == OType.TTEXTO
-                and rhs_type.otype == OType.TTEXTO
-            ):
-                # For strings only plus operator works
-                return scope.resolve("texto") if op == TT.PLUS else None
-
         elif op in (TT.GREATER, TT.LESS, TT.GREATEREQ, TT.LESSEQ):
             if lhs_type.is_numeric() and rhs_type.is_numeric():
                 return scope.resolve("bool")
