@@ -36,9 +36,13 @@ macro_rules! eq_ops {
     };
 }
 
+//TODO: Find a 'safe' way to do this
+pub type FuncArgs<'a> = Option<*const AmaValue<'a>>;
+
+#[derive(Debug, Clone, Copy)]
 pub struct NativeFunc<'a> {
     pub name: &'a str,
-    pub func: fn(Option<&'a [AmaValue<'a>]>) -> AmaValue<'a>,
+    pub func: fn(FuncArgs<'a>) -> AmaValue<'a>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -57,6 +61,7 @@ pub enum AmaValue<'a> {
     F64(f64),
     Bool(bool),
     Func(AmaFunc<'a>),
+    NativeFn(NativeFunc<'a>),
     None,
 }
 
@@ -174,6 +179,7 @@ impl Clone for AmaValue<'_> {
             AmaValue::Bool(val) => AmaValue::Bool(*val),
             AmaValue::None => AmaValue::None,
             AmaValue::Func(function) => AmaValue::Func(function.clone()),
+            AmaValue::NativeFn(func) => AmaValue::NativeFn(*func),
         }
     }
 }

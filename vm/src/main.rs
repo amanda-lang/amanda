@@ -100,18 +100,19 @@ struct AmaVM<'a> {
 }
 
 impl<'a> AmaVM<'a> {
-    pub fn new(program: &'a mut Program<'a>) -> Self {
+    pub fn new(program: &'a Program<'a>) -> Self {
         let mut vm = AmaVM {
             program: program.ops.clone(),
             constants: &program.constants,
             values: vec![AmaValue::None; program.main.locals.into()],
             frames: FrameStack::new(),
-            globals: HashMap::new(),
+            globals: builtins::load_builtins(),
             sp: -1,
         };
         vm.frames.push(program.main).unwrap();
         vm.sp = vm.values.len() as isize - 1;
         vm.frames.peek_mut().bp = if vm.sp > -1 { 0 } else { -1 };
+
         vm
     }
 
@@ -266,21 +267,36 @@ impl<'a> AmaVM<'a> {
                 }
                 OpCode::CallFunction => {
                     let args = self.get_byte() as isize;
-                    let mut func = self.op_pop().take_func();
-                    //Reserve space
-                    //TODO: Find out if this is the fatest way to do this
-                    if args > 0 {
-                        func.bp = self.sp - (args - 1);
-                        let extra = func.locals - args as usize;
-                        self.reserve_stack_space(extra);
-                    } else if func.locals > 0 {
-                        func.bp = self.sp + 1;
-                        self.reserve_stack_space(func.locals);
+                    let fn_val = self.op_pop();
+                    match fn_val {
+                        AmaValue::Func(mut func) => {
+                            if args > 0 {
+                                func.bp = self.sp - (args - 1);
+                                let extra = func.locals - args as usize;
+                                self.reserve_stack_space(extra);
+                            } else if func.locals > 0 {
+                                func.bp = self.sp + 1;
+                                self.reserve_stack_space(func.locals);
+                            }
+                            //Set return addr in caller
+                            self.frames.peek_mut().ip += 1;
+                            self.frames.push(func).unwrap();
+                            continue;
+                        }
+                        AmaValue::NativeFn(native_fn) => {
+                            let mut fn_args = None;
+                            if args > 0 {
+                                let start = (self.sp - (args - 1)) as usize;
+                                //TODO: Stop this from allocating memory
+                                fn_args = Some(self.values[start..=self.sp as usize].as_ptr());
+                                self.sp = start as isize - 1;
+                            }
+                            self.op_push((native_fn.func)(fn_args));
+                            //Drop values
+                            self.values.drain(self.sp as usize + 1..);
+                        }
+                        _ => panic!("Expected function at the top of the stack!"),
                     }
-                    //Set return addr in caller
-                    self.frames.peek_mut().ip += 1;
-                    self.frames.push(func).unwrap();
-                    continue;
                 }
                 OpCode::Return => {
                     let val = self.op_pop();
