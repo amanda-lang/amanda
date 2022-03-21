@@ -48,11 +48,6 @@ class OpCode(Enum):
     JUMP = auto()
     # If TOS == false, sets pc to the args. Pops TOS
     JUMP_IF_FALSE = auto()
-    # Prepares the execution of a local scope. the arg represents the number of locals
-    # in the scope
-    SETUP_BLOCK = auto()
-    # Cleanups after execution of a local scope. Sets sp to bp - 1;
-    EXIT_BLOCK = auto()
     # Gets the value of a non-global variable. The arg is the slot on the stack where the var was stored
     GET_LOCAL = auto()
     # Sets the value of a non-global variable. The arg is the slot on the stack where the var should be stored
@@ -71,7 +66,6 @@ class OpCode(Enum):
         # uses
         if self in (
             OpCode.LOAD_CONST,
-            OpCode.SETUP_BLOCK,
             OpCode.SET_LOCAL,
             OpCode.GET_LOCAL,
             OpCode.GET_GLOBAL,
@@ -163,7 +157,6 @@ class ByteGen:
             args = [self.labels[args[0]]]
         if op in (
             OpCode.LOAD_CONST,
-            OpCode.SETUP_BLOCK,
             OpCode.SET_LOCAL,
             OpCode.GET_LOCAL,
             OpCode.GET_GLOBAL,
