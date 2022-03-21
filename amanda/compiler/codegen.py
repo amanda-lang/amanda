@@ -87,16 +87,7 @@ class OpCode(Enum):
 
 class ByteGen:
     """
-    Writes amanda bytecode to a file, to later be executed on
-    the vm.
-    The compiled files have the following structure:
-    //DATA SECTION - where constants are placed
-    //OPS SECTION - Where actual bytecode ops are
-    Example
-    .data:
-    0:'string'
-    .ops:
-    0 0
+    Converts an amanda AST into executable bytecode instructions.
     """
 
     def __init__(self):
@@ -105,11 +96,11 @@ class ByteGen:
         self.program_symtab = None
         self.scope_symtab = None
         self.func_locals = {}
-        self.const_table = dict()
+        self.const_table = {}
         self.constants = 0
         self.labels = {}
         self.ops = []
-        self.ip = 0  # Amount of instructions written
+        self.ip = 0  # Current bytecode offset
 
     def compile(self, program):
         """ Method that begins compilation of amanda source."""
@@ -123,8 +114,8 @@ class ByteGen:
             ):
                 self.get_const_index(name)
 
-        py_code = self.gen(program)
-        return py_code
+        code = self.gen(program)
+        return code
 
     def new_label(self) -> str:
         idx = len(self.labels)
@@ -139,12 +130,12 @@ class ByteGen:
             )
         self.labels[label] = self.ip
 
-    def write_op(self, op, *args):
+    def append_op(self, op, *args):
         self.ip += op.op_size() // OP_SIZE
         self.ops.append((op, args))
 
     def load_const(self, const):
-        self.write_op(OpCode.LOAD_CONST, self.get_const_index(const))
+        self.append_op(OpCode.LOAD_CONST, self.get_const_index(const))
 
     def format_u16_arg(self, arg):
         high = (arg & 0xFF00) >> 8
@@ -178,7 +169,7 @@ class ByteGen:
                 f"Encoding of op {op} has not yet been implemented"
             )
 
-    def decode_op_args(self, op, args) -> str:
+    def disassemble_op(self, op, args) -> str:
         if op in (OpCode.JUMP_IF_FALSE, OpCode.JUMP):
             # get jump address
             args = [self.labels[args[0]]]
@@ -200,7 +191,7 @@ class ByteGen:
 
         i = 0
         for op, args in self.ops:
-            op_args = self.decode_op_args(op, args)
+            op_args = self.disassemble_op(op, args)
             debug_out.write(f"{i}: {op.name} {op_args}".strip() + "\n")
             i += op.op_size() // OP_SIZE
 
@@ -273,15 +264,15 @@ class ByteGen:
     def gen_constant(self, node):
         literal = str(node.token.lexeme)
         idx = self.get_const_index(literal)
-        self.write_op(OpCode.LOAD_CONST, idx)
+        self.append_op(OpCode.LOAD_CONST, idx)
         self.update_line_info()
 
     def load_variable(self, symbol):
         name = symbol.name
         if symbol.is_global:
-            self.write_op(OpCode.GET_GLOBAL, self.const_table[name])
+            self.append_op(OpCode.GET_GLOBAL, self.const_table[name])
         else:
-            self.write_op(OpCode.GET_LOCAL, self.func_locals[symbol.out_id])
+            self.append_op(OpCode.GET_LOCAL, self.func_locals[symbol.out_id])
 
     def gen_variable(self, node):
         name = node.token.lexeme
@@ -314,7 +305,7 @@ class ByteGen:
             if assign:
                 self.gen(assign)
             else:
-                self.write_op(
+                self.append_op(
                     OpCode.DEF_GLOBAL, id_idx, init_values[str(node.var_type)]
                 )
             return
@@ -325,20 +316,20 @@ class ByteGen:
             node_type = init_values[str(node.var_type)]
             initializer = {0: 0, 1: 0.0, 2: "falso", 3: "''"}[node_type]
             init_idx = self.get_const_index(initializer)
-            self.write_op(OpCode.LOAD_CONST, init_idx)
+            self.append_op(OpCode.LOAD_CONST, init_idx)
             self.set_variable(symbol)
 
     def set_variable(self, symbol):
         name = symbol.name
         if symbol.is_global:
             var_idx = self.get_const_index(name)
-            self.write_op(OpCode.SET_GLOBAL, var_idx)
+            self.append_op(OpCode.SET_GLOBAL, var_idx)
         else:
             local = symbol.out_id
             if local not in self.func_locals:
                 idx = len(self.func_locals)
                 self.func_locals[local] = idx
-            self.write_op(OpCode.SET_LOCAL, self.func_locals[local])
+            self.append_op(OpCode.SET_LOCAL, self.func_locals[local])
 
     def gen_assign(self, node):
         expr = node.right
@@ -357,9 +348,9 @@ class ByteGen:
         self.gen(node.operand)
         operator = node.token.token
         if operator == TT.MINUS:
-            self.write_op(OpCode.OP_INVERT)
+            self.append_op(OpCode.OP_INVERT)
         elif operator == TT.NAO:
-            self.write_op(OpCode.OP_NOT)
+            self.append_op(OpCode.OP_NOT)
         else:
             raise NotImplementedError(
                 f"OP {node.token.token} has not yet been implemented"
@@ -370,33 +361,33 @@ class ByteGen:
         self.gen(node.right)
         operator = node.token.token
         if operator == TT.PLUS:
-            self.write_op(OpCode.OP_ADD)
+            self.append_op(OpCode.OP_ADD)
         elif operator == TT.MINUS:
-            self.write_op(OpCode.OP_MINUS)
+            self.append_op(OpCode.OP_MINUS)
         elif operator == TT.STAR:
-            self.write_op(OpCode.OP_MUL)
+            self.append_op(OpCode.OP_MUL)
         elif operator == TT.SLASH:
-            self.write_op(OpCode.OP_DIV)
+            self.append_op(OpCode.OP_DIV)
         elif operator == TT.DOUBLESLASH:
-            self.write_op(OpCode.OP_FLOORDIV)
+            self.append_op(OpCode.OP_FLOORDIV)
         elif operator == TT.MODULO:
-            self.write_op(OpCode.OP_MODULO)
+            self.append_op(OpCode.OP_MODULO)
         elif operator == TT.E:
-            self.write_op(OpCode.OP_AND)
+            self.append_op(OpCode.OP_AND)
         elif operator == TT.OU:
-            self.write_op(OpCode.OP_OR)
+            self.append_op(OpCode.OP_OR)
         elif operator == TT.DOUBLEEQUAL:
-            self.write_op(OpCode.OP_EQ)
+            self.append_op(OpCode.OP_EQ)
         elif operator == TT.NOTEQUAL:
-            self.write_op(OpCode.OP_NOTEQ)
+            self.append_op(OpCode.OP_NOTEQ)
         elif operator == TT.GREATER:
-            self.write_op(OpCode.OP_GREATER)
+            self.append_op(OpCode.OP_GREATER)
         elif operator == TT.GREATEREQ:
-            self.write_op(OpCode.OP_GREATEREQ)
+            self.append_op(OpCode.OP_GREATEREQ)
         elif operator == TT.LESS:
-            self.write_op(OpCode.OP_LESS)
+            self.append_op(OpCode.OP_LESS)
         elif operator == TT.LESSEQ:
-            self.write_op(OpCode.OP_LESSEQ)
+            self.append_op(OpCode.OP_LESSEQ)
         else:
             raise NotImplementedError(
                 f"OP {node.token.token} has not yet been implemented"
@@ -410,17 +401,17 @@ class ByteGen:
         after_then = self.new_label()
 
         self.gen(node.condition)
-        self.write_op(OpCode.JUMP_IF_FALSE, after_then)
+        self.append_op(OpCode.JUMP_IF_FALSE, after_then)
         self.compile_block(node.then_branch)
-        self.write_op(OpCode.JUMP, after_if)
+        self.append_op(OpCode.JUMP, after_if)
         self.patch_label_loc(after_then)
 
         for branch in elsif_branches:
             after_elsif = self.new_label()
             self.gen(branch.condition)
-            self.write_op(OpCode.JUMP_IF_FALSE, after_elsif)
+            self.append_op(OpCode.JUMP_IF_FALSE, after_elsif)
             self.compile_block(branch.then_branch)
-            self.write_op(OpCode.JUMP, after_if)
+            self.append_op(OpCode.JUMP, after_if)
             self.patch_label_loc(after_elsif)
 
         if else_branch:
@@ -436,11 +427,11 @@ class ByteGen:
         # BEGIN LOOP
         self.patch_label_loc(loop)
         self.gen(node.condition)
-        self.write_op(OpCode.JUMP_IF_FALSE, after_loop)
+        self.append_op(OpCode.JUMP_IF_FALSE, after_loop)
         # Block
         for child in block.children:
             self.gen(child)
-        self.write_op(OpCode.JUMP, loop)
+        self.append_op(OpCode.JUMP, loop)
         # END LOOP
         self.patch_label_loc(after_loop)
         self.exit_block()
@@ -466,17 +457,17 @@ class ByteGen:
         # Condition: while control_var < end
         self.load_variable(control_var)
         self.gen(range_expr.end)
-        self.write_op(OpCode.OP_LESS)
-        self.write_op(OpCode.JUMP_IF_FALSE, after_loop)
+        self.append_op(OpCode.OP_LESS)
+        self.append_op(OpCode.JUMP_IF_FALSE, after_loop)
         # Body
         for child in block.children:
             self.gen(child)
         # update: control_var += inc
         self.gen(range_expr.inc)
         self.load_variable(control_var)
-        self.write_op(OpCode.OP_ADD)
+        self.append_op(OpCode.OP_ADD)
         self.set_variable(control_var)
-        self.write_op(OpCode.JUMP, loop)
+        self.append_op(OpCode.JUMP, loop)
 
         # END LOOP
         self.patch_label_loc(after_loop)
@@ -488,7 +479,7 @@ class ByteGen:
         name = func_symbol.out_id
         name_idx = self.get_const_index(func_symbol.name)
         func_end = self.new_label()
-        self.write_op(OpCode.JUMP, func_end)
+        self.append_op(OpCode.JUMP, func_end)
         func_start = self.new_label()
 
         block = node.block
@@ -505,7 +496,7 @@ class ByteGen:
             self.gen(child)
         # default return
         self.load_const("falso")
-        self.write_op(OpCode.RETURN)
+        self.append_op(OpCode.RETURN)
         self.exit_block()
         num_locals = len(self.func_locals)
         self.func_locals = prev_func_locals
@@ -516,7 +507,7 @@ class ByteGen:
         self.load_const(self.labels[func_start])
         self.load_const(num_locals)
 
-        self.write_op(OpCode.MAKE_FUNCTION)
+        self.append_op(OpCode.MAKE_FUNCTION)
         self.set_variable(func_symbol)
 
     def gen_call(self, node):
@@ -525,15 +516,15 @@ class ByteGen:
         for arg in node.fargs:
             self.gen(arg)
         self.gen(node.callee)
-        self.write_op(OpCode.CALL_FUNCTION, len(node.fargs))
+        self.append_op(OpCode.CALL_FUNCTION, len(node.fargs))
 
     def gen_retorna(self, node):
         if node.exp:
             self.gen(node.exp)
         else:
             self.load_const("falso")
-        self.write_op(OpCode.RETURN)
+        self.append_op(OpCode.RETURN)
 
     def gen_mostra(self, node):
         self.gen(node.exp)
-        self.write_op(OpCode.MOSTRA)
+        self.append_op(OpCode.MOSTRA)
