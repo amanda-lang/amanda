@@ -1,14 +1,23 @@
+use crate::parse::Const;
 use crate::vm::OpCode;
+use std::borrow::Cow;
 use std::convert::From;
 use std::fmt;
 use std::fmt::{Display, Formatter};
-use std::str::FromStr;
+
+#[derive(Clone, Copy)]
+enum BinOpResult {
+    Int,
+    Double,
+    Bool,
+    Str,
+}
 
 macro_rules! arith_ops {
     ($res_type: ident, $left: ident, $op: tt, $right: ident) => {
         match $res_type {
-            AmaValue::F64(_) => AmaValue::F64($left.take_float() $op $right.take_float()),
-            AmaValue::Int(_) => AmaValue::Int($left.take_int() $op $right.take_int()),
+            BinOpResult::Double => AmaValue::F64($left.take_float() $op $right.take_float()),
+            BinOpResult::Int => AmaValue::Int($left.take_int() $op $right.take_int()),
             _ => unimplemented!("Operand type not supported"),
         }
     };
@@ -17,8 +26,8 @@ macro_rules! arith_ops {
 macro_rules! comp_ops {
     ($res_type: ident, $left: ident, $op: tt, $right: ident) => {
         match $res_type {
-            AmaValue::F64(_) => AmaValue::Bool($left.take_float() $op $right.take_float()),
-            AmaValue::Int(_) => AmaValue::Bool($left.take_int() $op $right.take_int()),
+            BinOpResult::Double => AmaValue::Bool($left.take_float() $op $right.take_float()),
+            BinOpResult::Int => AmaValue::Bool($left.take_int() $op $right.take_int()),
             _ => unimplemented!("Operand type not supported"),
         }
     };
@@ -27,11 +36,10 @@ macro_rules! comp_ops {
 macro_rules! eq_ops {
     ($res_type: ident, $left: ident, $op: tt, $right: ident) => {
         match $res_type {
-            AmaValue::Int(_) => AmaValue::Bool($left.take_int() $op $right.take_int()),
-            AmaValue::F64(_) => AmaValue::Bool($left.take_float() $op $right.take_float()),
-            AmaValue::Bool(_) => AmaValue::Bool($left.take_bool() $op $right.take_bool()),
-            AmaValue::Str(_) => AmaValue::Bool($left.take_str() $op $right.take_str()),
-            _ => unimplemented!("Operand type not supported"),
+            BinOpResult::Int => AmaValue::Bool($left.take_int() $op $right.take_int()),
+            BinOpResult::Double => AmaValue::Bool($left.take_float() $op $right.take_float()),
+            BinOpResult::Bool => AmaValue::Bool($left.take_bool() $op $right.take_bool()),
+            BinOpResult::Str => AmaValue::Bool($left.take_str() $op $right.take_str()),
         }
     };
 }
@@ -56,7 +64,7 @@ pub struct AmaFunc<'a> {
 
 #[derive(Debug)]
 pub enum AmaValue<'a> {
-    Str(String),
+    Str(Cow<'a, String>),
     Int(i64),
     F64(f64),
     Bool(bool),
@@ -140,13 +148,13 @@ impl<'a> AmaValue<'a> {
 
     pub fn binop(left: Self, op: OpCode, right: Self) -> Self {
         let res_type = if left.is_float() || right.is_float() {
-            AmaValue::F64(0.0)
+            BinOpResult::Double
         } else if left.is_int() && right.is_int() {
-            AmaValue::Int(0)
+            BinOpResult::Int
         } else if left.is_bool() && right.is_bool() {
-            AmaValue::Bool(false)
+            BinOpResult::Bool
         } else if left.is_str() && right.is_str() {
-            AmaValue::Str(String::from(""))
+            BinOpResult::Str
         } else {
             unimplemented!("Error is not implemented")
         };
@@ -170,41 +178,27 @@ impl<'a> AmaValue<'a> {
     }
 }
 
-impl Clone for AmaValue<'_> {
-    fn clone(&self) -> Self {
-        match self {
-            AmaValue::Str(string) => AmaValue::Str(String::clone(string)),
-            AmaValue::Int(int) => AmaValue::Int(*int),
-            AmaValue::F64(float) => AmaValue::F64(*float),
-            AmaValue::Bool(val) => AmaValue::Bool(*val),
-            AmaValue::None => AmaValue::None,
-            AmaValue::Func(function) => AmaValue::Func(function.clone()),
-            AmaValue::NativeFn(func) => AmaValue::NativeFn(*func),
+impl<'a> From<&'a Const> for AmaValue<'a> {
+    fn from(constant: &Const) -> AmaValue {
+        match constant {
+            Const::Str(string) => AmaValue::Str(Cow::Borrowed(string)),
+            Const::Int(int) => AmaValue::Int(*int),
+            Const::Double(real) => AmaValue::F64(*real),
+            Const::Bool(boolean) => AmaValue::Bool(*boolean),
         }
     }
 }
 
-impl<'a> FromStr for AmaValue<'a> {
-    type Err = ();
-
-    fn from_str(constant: &str) -> Result<AmaValue<'a>, ()> {
-        if constant == "verdadeiro" || constant == "falso" {
-            let bool_val = if constant == "falso" { false } else { true };
-            return Ok(AmaValue::Bool(bool_val));
-        }
-        let maybe_int = constant.parse::<i64>();
-        let maybe_float = constant.parse::<f64>();
-        if maybe_int.is_ok() {
-            return Ok(AmaValue::Int(maybe_int.unwrap()));
-        } else if maybe_float.is_ok() {
-            return Ok(AmaValue::F64(maybe_float.unwrap()));
-        } else {
-            let slice: &str = if &constant[..1] == "\"" || &constant[..1] == "\'" {
-                &constant[1..constant.len() - 1]
-            } else {
-                constant
-            };
-            return Ok(AmaValue::Str(String::from(slice)));
+impl Clone for AmaValue<'_> {
+    fn clone(&self) -> Self {
+        match self {
+            AmaValue::Str(string) => AmaValue::Str(Clone::clone(string)),
+            AmaValue::Int(int) => AmaValue::Int(*int),
+            AmaValue::F64(float) => AmaValue::F64(*float),
+            AmaValue::Bool(val) => AmaValue::Bool(*val),
+            AmaValue::None => AmaValue::None,
+            AmaValue::Func(function) => AmaValue::Func(*function),
+            AmaValue::NativeFn(func) => AmaValue::NativeFn(*func),
         }
     }
 }

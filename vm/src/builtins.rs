@@ -1,4 +1,5 @@
 use crate::ama_value::{AmaValue, FuncArgs, NativeFunc};
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::io;
 use std::io::Write;
@@ -49,7 +50,7 @@ fn leia<'a>(args: FuncArgs<'a>) -> AmaValue<'a> {
         "Removing wrong char"
     );
 
-    AmaValue::Str(input)
+    AmaValue::Str(Cow::Owned(input))
 }
 
 fn leia_int<'a>(args: FuncArgs<'a>) -> AmaValue<'a> {

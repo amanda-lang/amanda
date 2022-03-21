@@ -1,16 +1,12 @@
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::convert::From;
+use std::mem::size_of;
 use std::{env, fs, path::Path};
 use vm::ama_value::{AmaFunc, AmaValue};
 use vm::builtins;
+use vm::parse::{Const, Program};
 use vm::vm::OpCode;
-
-#[derive(Debug)]
-struct Program<'a> {
-    constants: Vec<AmaValue<'a>>,
-    ops: Vec<u8>,
-    main: AmaFunc<'a>,
-}
 
 fn parse_asm(src: &str) -> Program {
     let sections: Vec<&str> = src.split("<_SECT_BREAK_>").collect();
@@ -18,7 +14,7 @@ fn parse_asm(src: &str) -> Program {
     let main_locals = sections[0].parse::<usize>().unwrap();
     let constants = sections[1]
         .split("<_CONST_>")
-        .map(|constant| constant.parse::<AmaValue>().unwrap())
+        .map(|constant| constant.parse::<Const>().unwrap())
         .collect();
     let mut ops: Vec<u8> = if !sections[2].is_empty() {
         sections[2]
@@ -92,7 +88,7 @@ impl<'a> FrameStack<'a> {
 
 struct AmaVM<'a> {
     program: Vec<u8>,
-    constants: &'a Vec<AmaValue<'a>>,
+    constants: &'a Vec<Const>,
     values: Vec<AmaValue<'a>>,
     frames: FrameStack<'a>,
     globals: HashMap<&'a str, AmaValue<'a>>,
@@ -161,7 +157,7 @@ impl<'a> AmaVM<'a> {
             match OpCode::from(&op) {
                 OpCode::LoadConst => {
                     let idx = self.get_u16_arg();
-                    self.op_push(AmaValue::clone(&self.constants[idx as usize]));
+                    self.op_push(AmaValue::from(&self.constants[idx as usize]));
                 }
                 OpCode::Mostra => println!("{}", self.op_pop()),
                 //Binary Operations
@@ -207,21 +203,21 @@ impl<'a> AmaVM<'a> {
                         0 => AmaValue::Int(0),
                         1 => AmaValue::F64(0.0),
                         2 => AmaValue::Bool(false),
-                        3 => AmaValue::Str(String::from("")),
+                        3 => AmaValue::Str(Cow::Owned(String::from(""))),
                         _ => unimplemented!("Unknown type initializer"),
                     };
-                    let id = self.constants[id_idx].take_str();
+                    let id = self.constants[id_idx].get_str();
                     self.globals.insert(id, initializer);
                 }
                 OpCode::GetGlobal => {
                     let id_idx = self.get_u16_arg() as usize;
-                    let id = self.constants[id_idx].take_str();
+                    let id: &str = self.constants[id_idx].get_str();
                     //#TODO: Do not use clone
                     self.op_push(self.globals.get(id).unwrap().clone());
                 }
                 OpCode::SetGlobal => {
                     let id_idx = self.get_u16_arg() as usize;
-                    let id = self.constants[id_idx].take_str();
+                    let id = self.constants[id_idx].get_str();
                     let value = self.op_pop();
                     self.globals.insert(id, value);
                 }
@@ -255,7 +251,7 @@ impl<'a> AmaVM<'a> {
                     let locals = self.op_pop().take_int() as usize;
                     let addr = self.op_pop().take_int() as usize;
                     let name_idx = self.op_pop().take_int() as usize;
-                    let name = self.constants[name_idx].take_str();
+                    let name = self.constants[name_idx].get_str();
 
                     self.op_push(AmaValue::Func(AmaFunc {
                         name,
@@ -327,6 +323,8 @@ impl<'a> AmaVM<'a> {
 }
 
 fn main() {
+    //println!("Size of AmaValue {}", size_of::<AmaValue>());
+    //println!("Size of Constant {}", size_of::<Const>());
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 2 {
