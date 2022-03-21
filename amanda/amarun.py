@@ -2,13 +2,14 @@ import sys
 import os
 import subprocess
 from contextlib import redirect_stdout, redirect_stderr
-from amanda.symbols import Module
-from amanda.error import AmandaError, handle_exception, throw_error
-from amanda.bltins import bltin_objs
-from amanda.parse import parse
-from amanda.compile import Generator
-from amanda.semantic import Analyzer
-from amanda.codegen import ByteGen
+from amanda.compiler.symbols import Module
+from amanda.compiler.error import AmandaError, handle_exception, throw_error
+from amanda.compiler.bltins import bltin_objs
+from amanda.compiler.parse import parse
+from amanda.compiler.compile import Generator
+from amanda.compiler.semantic import Analyzer
+from amanda.compiler.codegen import ByteGen
+from amanda.config import VM_CONFIG_PATH, VM_BIN_PATH
 
 
 def write_file(name, code):
@@ -59,25 +60,25 @@ def run_rs(args):
 
     os.environ["RUST_BACKTRACE"] = "1"
     return_code = subprocess.call(
-        ["cargo", "build", "--bins", "--manifest-path", "vm/Cargo.toml"],
+        ["cargo", "build", "--bins", "--manifest-path", VM_CONFIG_PATH],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
     if return_code != 0:
-        subprocess.call(["cargo", "check", "--manifest-path", "vm/Cargo.toml"])
+        subprocess.call(["cargo", "check", "--manifest-path", VM_CONFIG_PATH])
         sys.exit(1)
 
     # TODO: This is kinda of sus. Find a better way to do this
     if args.test:
         result = subprocess.run(
-            ["vm/target/debug/vm", OUT_FILE],
+            [VM_BIN_PATH, OUT_FILE],
             capture_output=True,
             encoding="utf8",
         )
         print(result.stdout, end="")
         if result.returncode != 0:
-            subprocess.call(["vm/target/debug/vm", OUT_FILE])
+            subprocess.call([VM_BIN_PATH, OUT_FILE])
     else:
         retcode = subprocess.call(
-            ["vm/target/debug/vm", OUT_FILE],
+            [VM_BIN_PATH, OUT_FILE],
         )
