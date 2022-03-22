@@ -38,16 +38,31 @@ def dumps(data: Dict[str, Any]) -> bytes:
     e_list = BytesIO()
     for key, value in data.items():
         val_t = type(value)
-        if val_t == str:
+        if val_t == float:
+            dump_value(e_list, b"\x01", key.encode(), into_bson_f64(value))
+        elif val_t == str:
             str_bytes = value.encode()
             str_len = bson_int32_len(str_bytes)
             dump_value(
                 e_list, b"\x02", key.encode(), str_len, value.encode(), b"\x00"
             )
-        elif val_t == int:
-            dump_value(e_list, b"\x12", key.encode(), into_bson_int64(value))
-        elif val_t == float:
-            dump_value(e_list, b"\x01", key.encode(), into_bson_f64(value))
+        elif val_t == dict:
+            dump_value(
+                e_list,
+                b"\x03",
+                key.encode(),
+                dumps(value),
+            )
+        elif val_t == list:
+            arr_obj = {}
+            for i, val in enumerate(value):
+                arr_obj[str(i)] = val
+            dump_value(
+                e_list,
+                b"\x04",
+                key.encode(),
+                dumps(arr_obj),
+            )
         elif val_t == bytes:
             size = len(value)
             dump_value(
@@ -58,6 +73,8 @@ def dumps(data: Dict[str, Any]) -> bytes:
                 b"\x80",
                 value,
             )
+        elif val_t == int:
+            dump_value(e_list, b"\x12", key.encode(), into_bson_int64(value))
         else:
             raise NotImplementedError(f"Cannot serialize type: {str(val_t)}")
     doc_len = bson_int32_len(e_list.getvalue())

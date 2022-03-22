@@ -7,6 +7,7 @@ from amanda.compiler.type import Type, OType
 import amanda.compiler.ast as ast
 from amanda.compiler.tokens import TokenType as TT
 from amanda.compiler.error import AmandaError, throw_error
+from amanda.compiler import bindump
 
 
 OP_SIZE = 8
@@ -102,7 +103,7 @@ class ByteGen:
         self.ops = []
         self.ip = 0  # Current bytecode offset
 
-    def compile(self, program):
+    def compile(self, program) -> bytes:
         """ Method that begins compilation of amanda source."""
         self.program_symtab = self.scope_symtab = program.symbols
         # Define builtin constants
@@ -114,7 +115,22 @@ class ByteGen:
             ):
                 self.get_const_index(name)
 
-        code = self.gen(program)
+        self.compile_block(program)
+        assert self.depth == -1, "A block was not exited in some local scope!"
+
+        ops = BytesIO()
+        for op in self.ops:
+            ops.write(self.write_op_bytes(op))
+        code = ops.getvalue()
+        ops.close()
+
+        src_object = {
+            "entry_locals": len(self.func_locals),
+            "constants": [str(s) for s in self.const_table],
+            "ops": code,
+        }
+
+        return bindump.dumps(src_object)
         return code
 
     def new_label(self) -> str:
@@ -142,7 +158,7 @@ class ByteGen:
         low = arg & 0x00FF
         return high, low
 
-    def write_op_bytes(self, op) -> str:
+    def write_op_bytes(self, op) -> bytes:
         op, args = op
         if op in (OpCode.JUMP_IF_FALSE, OpCode.JUMP):
             args = [self.labels[args[0]]]
@@ -156,14 +172,14 @@ class ByteGen:
             OpCode.JUMP_IF_FALSE,
         ):
             high, low = self.format_u16_arg(args[0])
-            return f"{op} {high} {low}"
+            return bytes([op.value, high, low])
         elif op == OpCode.DEF_GLOBAL:
             high, low = self.format_u16_arg(args[0])
-            return f"{op} {high} {low} {args[1]}"
+            return bytes([op.value, high, low, args[1]])
         elif op.op_size() == OP_SIZE * 2:
-            return f"{op} {args[0]}"
+            return bytes([op.value, args[0]])
         elif op.op_size() == OP_SIZE:
-            return f"{op}"
+            return bytes(op.value)
         else:
             raise NotImplementedError(
                 f"Encoding of op {op} has not yet been implemented"
@@ -219,20 +235,6 @@ class ByteGen:
         if node_class == "block":
             return gen_method(node, args)
         return gen_method(node)
-
-    def gen_program(self, node):
-        self.compile_block(node)
-        assert self.depth == -1, "A block was not exited in some local scope!"
-        program = StringIO()
-        # Main num_locals
-        program.write(str(len(self.func_locals)))
-        program.write("<_SECT_BREAK_>")
-        # constants
-        program.write("<_CONST_>".join([str(s) for s in self.const_table]))
-        program.write("<_SECT_BREAK_>")
-        # Ops
-        program.write(" ".join([self.write_op_bytes(op) for op in self.ops]))
-        return self.build_str(program)
 
     def enter_block(self, scope):
         self.depth += 1

@@ -51,9 +51,10 @@ def _run_py(filename, *, gen_out=False, outname="output.py"):
 
 def run_rs(args):
     compiler = ByteGen()
-    asm_code = compiler.compile(run_frontend(args.file))
-    OUT_FILE = "out.amasm"
-    write_file(OUT_FILE, asm_code)
+    bin_obj = compiler.compile(run_frontend(args.file))
+    OUT_FILE = "out.amac"
+    with open(OUT_FILE, "wb") as out:
+        out.write(bin_obj)
 
     if args.debug:
         write_file("debug.amasm", compiler.make_debug_asm())
