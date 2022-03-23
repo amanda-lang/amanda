@@ -1,4 +1,7 @@
 use crate::ama_value::AmaFunc;
+use std::collections::HashMap;
+use std::io::Cursor;
+use std::io::Read;
 use std::str::FromStr;
 
 #[derive(Debug)]
@@ -49,5 +52,324 @@ impl<'a> FromStr for Const {
             };
             return Ok(Const::Str(String::from(slice)));
         }
+    }
+}
+
+#[derive(Debug, PartialEq)]
+enum BSONType {
+    String(String),
+    Int(i64),
+    Double(f64),
+    Array(Vec<BSONType>),
+    Bytes(Vec<u8>),
+    Doc(HashMap<String, BSONType>),
+}
+
+impl BSONType {
+    fn get_doc(&self) -> &HashMap<String, BSONType> {
+        if let Self::Doc(doc) = self {
+            doc
+        } else {
+            panic!("Value is not a doc")
+        }
+    }
+
+    fn get_vec(&self) -> &Vec<BSONType> {
+        if let Self::Array(arr) = self {
+            arr
+        } else {
+            panic!("Value is not a vec")
+        }
+    }
+
+    fn get_f64(&self) -> f64 {
+        if let Self::Double(float) = self {
+            *float
+        } else {
+            panic!("Value is not a float")
+        }
+    }
+
+    fn get_i64(&self) -> i64 {
+        if let Self::Int(int) = self {
+            *int
+        } else {
+            panic!("Value is not a float")
+        }
+    }
+
+    fn get_str(&self) -> &str {
+        if let Self::String(string) = self {
+            &string
+        } else {
+            panic!("Value is not a string")
+        }
+    }
+
+    fn get_bytes(&self) -> &Vec<u8> {
+        if let Self::Bytes(bytes) = self {
+            bytes
+        } else {
+            panic!("Value is not a string")
+        }
+    }
+}
+
+fn read_bson_key(raw_doc: &mut Cursor<&mut Vec<u8>>) -> String {
+    let mut key: String = String::new();
+    loop {
+        let mut buf: [u8; 1] = [0; 1];
+        raw_doc.read_exact(&mut buf).unwrap();
+        if buf[0] as char == '\0' {
+            break;
+        }
+        key.push(buf[0] as char);
+    }
+    key
+}
+
+fn unpack_bson_value(raw_doc: &mut Cursor<&mut Vec<u8>>, value_type: u8) -> BSONType {
+    match value_type {
+        //Doc field types
+        0x01 => {
+            let mut num = [0; 8];
+            raw_doc.read_exact(&mut num);
+            BSONType::Double(f64::from_le_bytes(num))
+        }
+        0x02 => {
+            let mut str_size = [0; 4];
+            raw_doc.read_exact(&mut str_size);
+            let str_size = i32::from_le_bytes(str_size);
+            let mut string = vec![0; str_size as usize];
+            raw_doc.read_exact(&mut string);
+            raw_doc.read_exact(&mut [0; 1]); // Read null byte at the end
+            BSONType::String(String::from_utf8(string).unwrap())
+        }
+        0x03 => {
+            //let mut doc_size = [0; 4];
+            //let doc_size = i32::from_le_bytes(doc_size);
+            raw_doc.read_exact(&mut [0; 4]);
+            let mut nested_doc = HashMap::new();
+            //vec![0; doc_size as usize + 1]; // Read null byte at the end
+            let mut buf = [0; 1];
+            loop {
+                raw_doc.read_exact(&mut buf);
+                if buf[0] as char == '\0' {
+                    break;
+                }
+                let key = read_bson_key(raw_doc);
+                let val = unpack_bson_value(raw_doc, buf[0]);
+                nested_doc.insert(key, val);
+            }
+
+            BSONType::Doc(nested_doc)
+        }
+        0x04 => {
+            raw_doc.read_exact(&mut [0; 4]);
+            let mut bson_array = Vec::new();
+            let mut buf = [0; 1];
+            loop {
+                raw_doc.read_exact(&mut buf);
+                if buf[0] as char == '\0' {
+                    break;
+                }
+                read_bson_key(raw_doc);
+                bson_array.push(unpack_bson_value(raw_doc, buf[0]));
+            }
+            BSONType::Array(bson_array)
+        }
+        0x05 => {
+            let mut bin_data = [0; 4];
+            raw_doc.read_exact(&mut bin_data);
+            let bin_len = i32::from_le_bytes(bin_data);
+            //Ignore subtype
+            raw_doc.read_exact(&mut [0; 1]);
+            let mut bin_data = vec![0; bin_len as usize];
+            raw_doc.read_exact(&mut bin_data);
+            BSONType::Bytes(bin_data)
+        }
+        0x12 => {
+            let mut int64 = [0; 8];
+            raw_doc.read_exact(&mut int64);
+            let int64 = i64::from_le_bytes(int64);
+            //Ignore subtype
+            BSONType::Int(int64)
+        }
+        _ => unimplemented!(
+            "BSON type has not been implemented. Type byte: {}",
+            value_type
+        ),
+    }
+}
+
+fn unpack_bson_doc(raw_doc: &mut Vec<u8>) -> HashMap<String, BSONType> {
+    let mut doc = HashMap::new();
+    let mut raw_doc = Cursor::new(raw_doc);
+    let mut buf: [u8; 1] = [0; 1];
+    while let Ok(()) = raw_doc.read_exact(&mut buf) {
+        let key = read_bson_key(&mut raw_doc);
+        let value = unpack_bson_value(&mut raw_doc, buf[0]);
+        doc.insert(key, value);
+        raw_doc.read_exact(&mut buf);
+    }
+    doc
+}
+
+/*
+pub fn load_bin(amac_bin: &Vec<u8>) -> Program {
+    //Skip size bytes
+    amac_bin.drain(0..4);
+    let program_doc = unpack_bson_doc(amac_bin);
+    Program {}
+}*/
+
+/*
+fn parse_asm(src: &str) -> Program {
+    let sections: Vec<&str> = src.split("<_SECT_BREAK_>").collect();
+    assert!(sections.len() == 3, "Unknown amasm file format!");
+    let main_locals = sections[0].parse::<usize>().unwrap();
+    let constants = sections[1]
+        .split("<_CONST_>")
+        .map(|constant| constant.parse::<Const>().unwrap())
+        .collect();
+    let mut ops: Vec<u8> = if !sections[2].is_empty() {
+        sections[2]
+            .split(" ")
+            .map(|op| op.parse::<u8>().unwrap())
+            .collect()
+    } else {
+        Vec::with_capacity(1)
+    };
+
+    ops.push(OpCode::Halt as u8);
+}*/
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    impl BSONType {
+        fn is_doc(&self) -> bool {
+            if let Self::Doc(_) = self {
+                true
+            } else {
+                false
+            }
+        }
+
+        fn is_vec(&self) -> bool {
+            if let Self::Array(_) = self {
+                true
+            } else {
+                false
+            }
+        }
+    }
+
+    #[test]
+    fn test_string_field() {
+        // { "name": "João Boris" }
+        let mut bytes = vec![
+            22, 0, 0, 0, 2, 110, 97, 109, 101, 0, 11, 0, 0, 0, 74, 111, 195, 163, 111, 32, 66, 111,
+            114, 105, 115, 0, 0,
+        ];
+        bytes.drain(0..4);
+
+        let doc = unpack_bson_doc(&mut bytes);
+        assert_eq!(doc.is_empty(), false);
+        assert_eq!(doc.contains_key("name"), true);
+        assert_eq!(doc.get("name").unwrap().get_str(), "João Boris");
+    }
+
+    #[test]
+    fn test_f64_field() {
+        // { "credit": 100.50 }
+        let mut bytes = vec![
+            16, 0, 0, 0, 1, 99, 114, 101, 100, 105, 116, 0, 0, 0, 0, 0, 0, 32, 89, 64, 0,
+        ];
+        bytes.drain(0..4);
+
+        let doc = unpack_bson_doc(&mut bytes);
+        assert_eq!(doc.is_empty(), false);
+        assert_eq!(doc.contains_key("credit"), true);
+        assert_eq!(doc.get("credit").unwrap().get_f64(), 100.50);
+    }
+
+    #[test]
+    fn test_i64_field() {
+        // { "age": 100 }
+        let mut bytes = vec![
+            13, 0, 0, 0, 18, 97, 103, 101, 0, 100, 0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        bytes.drain(0..4);
+
+        let doc = unpack_bson_doc(&mut bytes);
+        assert_eq!(doc.is_empty(), false);
+        println!("{:?}", doc);
+        assert_eq!(doc.contains_key("age"), true);
+        assert_eq!(doc.get("age").unwrap().get_i64(), 100);
+    }
+
+    #[test]
+    fn test_bytes_field() {
+        // { "bytes": [0, 1, 1, 2, 3 , 255] }
+        let mut bytes = vec![
+            18, 0, 0, 0, 5, 98, 121, 116, 101, 115, 0, 6, 0, 0, 0, 128, 0, 1, 1, 2, 3, 255, 0,
+        ];
+        bytes.drain(0..4);
+
+        let doc = unpack_bson_doc(&mut bytes);
+        assert_eq!(doc.is_empty(), false);
+        println!("{:?}", doc);
+        assert_eq!(doc.contains_key("bytes"), true);
+        assert_eq!(
+            doc.get("bytes").unwrap().get_bytes().clone(),
+            vec![0, 1, 1, 2, 3, 255]
+        );
+    }
+
+    #[test]
+    fn test_array_field() {
+        // { "names": ["João Boris", "Some other dude"] }
+        let mut bytes = vec![
+            54, 0, 0, 0, 4, 110, 97, 109, 101, 115, 0, 42, 0, 0, 0, 2, 48, 0, 11, 0, 0, 0, 74, 111,
+            195, 163, 111, 32, 66, 111, 114, 105, 115, 0, 2, 49, 0, 15, 0, 0, 0, 83, 111, 109, 101,
+            32, 111, 116, 104, 101, 114, 32, 100, 117, 100, 101, 0, 0, 0,
+        ];
+        bytes.drain(0..4);
+
+        let doc = unpack_bson_doc(&mut bytes);
+        assert_eq!(doc.is_empty(), false);
+        println!("{:?}", doc);
+        assert_eq!(doc.contains_key("names"), true);
+        assert_eq!(doc.get("names").unwrap().is_vec(), true);
+        let arr = doc.get("names").unwrap().get_vec();
+        let mut arr_iter = arr.iter();
+        assert_eq!(arr_iter.len(), 2);
+        assert_eq!(arr_iter.next().unwrap().get_str(), "João Boris");
+        assert_eq!(arr_iter.next().unwrap().get_str(), "Some other dude");
+    }
+
+    #[test]
+    fn test_doc_field() {
+        // { "user": {"name": "João Boris", "age": 28, "balance": 1000.52}  }
+        let mut bytes = vec![
+            63, 0, 0, 0, 3, 117, 115, 101, 114, 0, 52, 0, 0, 0, 2, 110, 97, 109, 101, 0, 11, 0, 0,
+            0, 74, 111, 195, 163, 111, 32, 66, 111, 114, 105, 115, 0, 18, 97, 103, 101, 0, 28, 0,
+            0, 0, 0, 0, 0, 0, 1, 98, 97, 108, 97, 110, 99, 101, 0, 92, 143, 194, 245, 40, 68, 143,
+            64, 0, 0,
+        ];
+        bytes.drain(0..4);
+
+        let doc = unpack_bson_doc(&mut bytes);
+        assert_eq!(doc.is_empty(), false);
+        println!("{:?}", doc);
+        assert_eq!(doc.contains_key("user"), true);
+        assert_eq!(doc.get("user").unwrap().is_doc(), true);
+
+        let nested_doc = doc.get("user").unwrap().get_doc();
+        assert_eq!(nested_doc.get("name").unwrap().get_str(), "João Boris");
+        assert_eq!(nested_doc.get("age").unwrap().get_i64(), 28);
+        assert_eq!(nested_doc.get("balance").unwrap().get_f64(), 1000.52);
     }
 }

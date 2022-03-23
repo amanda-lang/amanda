@@ -1,43 +1,12 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::convert::From;
-use std::mem::size_of;
 use std::{env, fs, path::Path};
 use vm::ama_value::{AmaFunc, AmaValue};
 use vm::builtins;
+use vm::parse;
 use vm::parse::{Const, Program};
 use vm::vm::OpCode;
-
-fn parse_asm(src: &str) -> Program {
-    let sections: Vec<&str> = src.split("<_SECT_BREAK_>").collect();
-    assert!(sections.len() == 3, "Unknown amasm file format!");
-    let main_locals = sections[0].parse::<usize>().unwrap();
-    let constants = sections[1]
-        .split("<_CONST_>")
-        .map(|constant| constant.parse::<Const>().unwrap())
-        .collect();
-    let mut ops: Vec<u8> = if !sections[2].is_empty() {
-        sections[2]
-            .split(" ")
-            .map(|op| op.parse::<u8>().unwrap())
-            .collect()
-    } else {
-        Vec::with_capacity(1)
-    };
-
-    ops.push(OpCode::Halt as u8);
-    Program {
-        constants,
-        ops,
-        main: AmaFunc {
-            name: "_inicio_",
-            start_ip: 0,
-            ip: 0,
-            locals: main_locals,
-            bp: -1,
-        },
-    }
-}
 
 const RECURSION_LIMIT: usize = 1000;
 
@@ -323,22 +292,22 @@ impl<'a> AmaVM<'a> {
 }
 
 fn main() {
-    //println!("Size of AmaValue {}", size_of::<AmaValue>());
-    //println!("Size of Constant {}", size_of::<Const>());
+    /*
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 2 {
-        eprintln!("Por favor especifique o ficheiro a ser executado");
+        eprintln!("Please specify a compiled bytecode file to run");
         return;
     }
+
     let file = Path::new(&args[1]);
-    let src = String::from_utf8(fs::read(file).unwrap()).unwrap();
-    let mut program = parse_asm(&src);
+    let bytes = fs::read(file).unwrap();
+    let mut program = parse::load_bin(&bytes);
     let mut vm = AmaVM::new(&mut program);
     vm.run();
     debug_assert!(
         vm.frames.peek().name == "_inicio_",
         "Some function did not cleanely exit! \n{:?}",
         vm.values
-    );
+    );*/
 }
