@@ -61,7 +61,7 @@ class OpCode(Enum):
     CALL_FUNCTION = auto()
     # Returns  from the caller.
     RETURN = auto()
-    # Stops  execution of the VM
+    # Stops execution of the VM. Must always be added to stop execution of the vm
     HALT = 0xFF
 
     def op_size(self) -> int:
@@ -106,7 +106,10 @@ class ByteGen:
         self.ip = 0  # Current bytecode offset
 
     def compile(self, program) -> bytes:
-        """ Method that begins compilation of amanda source."""
+        """Compiles an amanda ast into bytecode ops.
+        Returns a serialized object that contains the bytecode and
+        other info used at runtime.
+        """
         self.program_symtab = self.scope_symtab = program.symbols
         # Define builtin constants
         self.get_const_index("verdadeiro")
@@ -128,14 +131,13 @@ class ByteGen:
         code = ops.getvalue()
         ops.close()
 
-        src_object = {
+        program_obj = {
             "entry_locals": len(self.func_locals),
-            "constants": [s for s in self.const_table],
+            "constants": list(self.const_table.keys()),
             "ops": code,
         }
 
-        return bindump.dumps(src_object)
-        return code
+        return bindump.dumps(program_obj)
 
     def new_label(self) -> str:
         idx = len(self.labels)
