@@ -1,4 +1,4 @@
-use crate::parse::Const;
+use crate::binload::Const;
 use crate::vm::OpCode;
 use std::borrow::Cow;
 use std::convert::From;

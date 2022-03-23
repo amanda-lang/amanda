@@ -12,4 +12,5 @@ dist/
 feat_tests/
 run.sh
 /*.amasm
+/*.amac
 /amanda/vm/target
