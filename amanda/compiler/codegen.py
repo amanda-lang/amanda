@@ -117,7 +117,6 @@ class ByteGen:
 
         self.compile_block(program)
         assert self.depth == -1, "A block was not exited in some local scope!"
-
         ops = BytesIO()
         for op in self.ops:
             ops.write(self.write_op_bytes(op))
@@ -126,7 +125,7 @@ class ByteGen:
 
         src_object = {
             "entry_locals": len(self.func_locals),
-            "constants": [str(s) for s in self.const_table],
+            "constants": [s for s in self.const_table],
             "ops": code,
         }
 
@@ -179,7 +178,7 @@ class ByteGen:
         elif op.op_size() == OP_SIZE * 2:
             return bytes([op.value, args[0]])
         elif op.op_size() == OP_SIZE:
-            return bytes(op.value)
+            return bytes([op.value])
         else:
             raise NotImplementedError(
                 f"Encoding of op {op} has not yet been implemented"

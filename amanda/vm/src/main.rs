@@ -292,7 +292,6 @@ impl<'a> AmaVM<'a> {
 }
 
 fn main() {
-    /*
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 2 {
@@ -301,13 +300,13 @@ fn main() {
     }
 
     let file = Path::new(&args[1]);
-    let bytes = fs::read(file).unwrap();
-    let mut program = parse::load_bin(&bytes);
+    let mut program_bin = fs::read(file).unwrap();
+    let mut program = parse::load_bin(&mut program_bin);
     let mut vm = AmaVM::new(&mut program);
     vm.run();
     debug_assert!(
         vm.frames.peek().name == "_inicio_",
         "Some function did not cleanely exit! \n{:?}",
         vm.values
-    );*/
+    );
 }

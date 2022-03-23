@@ -1,4 +1,5 @@
 use crate::ama_value::AmaFunc;
+use crate::vm::OpCode;
 use std::collections::HashMap;
 use std::io::Cursor;
 use std::io::Read;
@@ -26,6 +27,17 @@ impl Const {
         match self {
             Self::Str(string) => &string,
             _ => panic!("Const is not a string"),
+        }
+    }
+}
+
+impl<'a> From<BSONType> for Const {
+    fn from(bson_val: BSONType) -> Const {
+        match bson_val {
+            BSONType::String(string) => Const::from_str(&string).unwrap(),
+            BSONType::Int(int) => Const::Int(int),
+            BSONType::Double(double) => Const::Double(double),
+            _ => panic!("Unexpected constant value"),
         }
     }
 }
@@ -66,51 +78,11 @@ enum BSONType {
 }
 
 impl BSONType {
-    fn get_doc(&self) -> &HashMap<String, BSONType> {
-        if let Self::Doc(doc) = self {
-            doc
-        } else {
-            panic!("Value is not a doc")
-        }
-    }
-
-    fn get_vec(&self) -> &Vec<BSONType> {
+    fn take_vec(self) -> Vec<BSONType> {
         if let Self::Array(arr) = self {
             arr
         } else {
             panic!("Value is not a vec")
-        }
-    }
-
-    fn get_f64(&self) -> f64 {
-        if let Self::Double(float) = self {
-            *float
-        } else {
-            panic!("Value is not a float")
-        }
-    }
-
-    fn get_i64(&self) -> i64 {
-        if let Self::Int(int) = self {
-            *int
-        } else {
-            panic!("Value is not a float")
-        }
-    }
-
-    fn get_str(&self) -> &str {
-        if let Self::String(string) = self {
-            &string
-        } else {
-            panic!("Value is not a string")
-        }
-    }
-
-    fn get_bytes(&self) -> &Vec<u8> {
-        if let Self::Bytes(bytes) = self {
-            bytes
-        } else {
-            panic!("Value is not a string")
         }
     }
 }
@@ -203,42 +175,53 @@ fn unpack_bson_doc(raw_doc: &mut Vec<u8>) -> HashMap<String, BSONType> {
     let mut cursor = Cursor::new(raw_doc);
     let mut buf: [u8; 1] = [0; 1];
     while let Ok(()) = cursor.read_exact(&mut buf) {
+        if buf[0] as char == '\0' {
+            break;
+        }
         let key = read_bson_key(&mut cursor);
         let value = unpack_bson_value(&mut cursor, buf[0]);
         doc.insert(key, value);
-        buf = read_bytes::<1>(&mut cursor);
     }
     doc
 }
 
-/*
-pub fn load_bin(amac_bin: &Vec<u8>) -> Program {
+pub fn load_bin(amac_bin: &mut Vec<u8>) -> Program {
     //Skip size bytes
     amac_bin.drain(0..4);
-    let program_doc = unpack_bson_doc(amac_bin);
-    Program {}
-}*/
-
-/*
-fn parse_asm(src: &str) -> Program {
-    let sections: Vec<&str> = src.split("<_SECT_BREAK_>").collect();
-    assert!(sections.len() == 3, "Unknown amasm file format!");
-    let main_locals = sections[0].parse::<usize>().unwrap();
-    let constants = sections[1]
-        .split("<_CONST_>")
-        .map(|constant| constant.parse::<Const>().unwrap())
+    let mut prog_data = unpack_bson_doc(amac_bin);
+    let constants: Vec<Const> = prog_data
+        .remove("constants")
+        .unwrap()
+        .take_vec()
+        .into_iter()
+        .map(|constant| Const::from(constant))
         .collect();
-    let mut ops: Vec<u8> = if !sections[2].is_empty() {
-        sections[2]
-            .split(" ")
-            .map(|op| op.parse::<u8>().unwrap())
-            .collect()
+    let mut ops = if let BSONType::Bytes(ops) = prog_data.remove("ops").unwrap() {
+        ops
     } else {
-        Vec::with_capacity(1)
+        unreachable!("ops field should be an array of bytes")
+    };
+
+    let entry_locals = if let BSONType::Int(num_locals) = prog_data.remove("entry_locals").unwrap()
+    {
+        num_locals
+    } else {
+        unreachable!("entry_locals field should be an array of bytes")
     };
 
     ops.push(OpCode::Halt as u8);
-}*/
+    Program {
+        constants,
+        ops,
+        main: AmaFunc {
+            name: "_inicio_",
+            bp: -1,
+            start_ip: 0,
+            ip: 0,
+            locals: entry_locals as usize,
+        },
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -258,6 +241,53 @@ mod tests {
                 true
             } else {
                 false
+            }
+        }
+        fn get_doc(&self) -> &HashMap<String, BSONType> {
+            if let Self::Doc(doc) = self {
+                doc
+            } else {
+                panic!("Value is not a doc")
+            }
+        }
+
+        fn get_vec(&self) -> &Vec<BSONType> {
+            if let Self::Array(arr) = self {
+                arr
+            } else {
+                panic!("Value is not a vec")
+            }
+        }
+
+        fn get_f64(&self) -> f64 {
+            if let Self::Double(float) = self {
+                *float
+            } else {
+                panic!("Value is not a float")
+            }
+        }
+
+        fn get_i64(&self) -> i64 {
+            if let Self::Int(int) = self {
+                *int
+            } else {
+                panic!("Value is not a float")
+            }
+        }
+
+        fn get_str(&self) -> &str {
+            if let Self::String(string) = self {
+                &string
+            } else {
+                panic!("Value is not a string")
+            }
+        }
+
+        fn get_bytes(&self) -> &Vec<u8> {
+            if let Self::Bytes(bytes) = self {
+                bytes
+            } else {
+                panic!("Value is not a string")
             }
         }
     }
@@ -301,7 +331,6 @@ mod tests {
 
         let doc = unpack_bson_doc(&mut bytes);
         assert_eq!(doc.is_empty(), false);
-        println!("{:?}", doc);
         assert_eq!(doc.contains_key("age"), true);
         assert_eq!(doc.get("age").unwrap().get_i64(), 100);
     }
@@ -316,7 +345,6 @@ mod tests {
 
         let doc = unpack_bson_doc(&mut bytes);
         assert_eq!(doc.is_empty(), false);
-        println!("{:?}", doc);
         assert_eq!(doc.contains_key("bytes"), true);
         assert_eq!(
             doc.get("bytes").unwrap().get_bytes().clone(),
@@ -336,7 +364,6 @@ mod tests {
 
         let doc = unpack_bson_doc(&mut bytes);
         assert_eq!(doc.is_empty(), false);
-        println!("{:?}", doc);
         assert_eq!(doc.contains_key("names"), true);
         assert_eq!(doc.get("names").unwrap().is_vec(), true);
         let arr = doc.get("names").unwrap().get_vec();
@@ -359,7 +386,6 @@ mod tests {
 
         let doc = unpack_bson_doc(&mut bytes);
         assert_eq!(doc.is_empty(), false);
-        println!("{:?}", doc);
         assert_eq!(doc.contains_key("user"), true);
         assert_eq!(doc.get("user").unwrap().is_doc(), true);
 
