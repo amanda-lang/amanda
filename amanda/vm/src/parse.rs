@@ -128,32 +128,32 @@ fn read_bson_key(raw_doc: &mut Cursor<&mut Vec<u8>>) -> String {
     key
 }
 
+fn read_bytes<const N: usize>(cursor: &mut Cursor<&mut Vec<u8>>) -> [u8; N] {
+    let mut buf = [0; N];
+    cursor.read_exact(&mut buf).unwrap();
+    buf
+}
+
 fn unpack_bson_value(raw_doc: &mut Cursor<&mut Vec<u8>>, value_type: u8) -> BSONType {
     match value_type {
         //Doc field types
         0x01 => {
-            let mut num = [0; 8];
-            raw_doc.read_exact(&mut num);
+            let num = read_bytes::<8>(raw_doc);
             BSONType::Double(f64::from_le_bytes(num))
         }
         0x02 => {
-            let mut str_size = [0; 4];
-            raw_doc.read_exact(&mut str_size);
-            let str_size = i32::from_le_bytes(str_size);
+            let str_size = i32::from_le_bytes(read_bytes::<4>(raw_doc));
             let mut string = vec![0; str_size as usize];
-            raw_doc.read_exact(&mut string);
-            raw_doc.read_exact(&mut [0; 1]); // Read null byte at the end
+            raw_doc.read_exact(&mut string).unwrap();
+            read_bytes::<1>(raw_doc); // Read null byte at the end
             BSONType::String(String::from_utf8(string).unwrap())
         }
         0x03 => {
-            //let mut doc_size = [0; 4];
-            //let doc_size = i32::from_le_bytes(doc_size);
-            raw_doc.read_exact(&mut [0; 4]);
+            read_bytes::<4>(raw_doc);
             let mut nested_doc = HashMap::new();
-            //vec![0; doc_size as usize + 1]; // Read null byte at the end
-            let mut buf = [0; 1];
+            let mut buf;
             loop {
-                raw_doc.read_exact(&mut buf);
+                buf = read_bytes::<1>(raw_doc);
                 if buf[0] as char == '\0' {
                     break;
                 }
@@ -165,11 +165,11 @@ fn unpack_bson_value(raw_doc: &mut Cursor<&mut Vec<u8>>, value_type: u8) -> BSON
             BSONType::Doc(nested_doc)
         }
         0x04 => {
-            raw_doc.read_exact(&mut [0; 4]);
+            read_bytes::<4>(raw_doc);
             let mut bson_array = Vec::new();
-            let mut buf = [0; 1];
+            let mut buf;
             loop {
-                raw_doc.read_exact(&mut buf);
+                buf = read_bytes::<1>(raw_doc);
                 if buf[0] as char == '\0' {
                     break;
                 }
@@ -179,19 +179,15 @@ fn unpack_bson_value(raw_doc: &mut Cursor<&mut Vec<u8>>, value_type: u8) -> BSON
             BSONType::Array(bson_array)
         }
         0x05 => {
-            let mut bin_data = [0; 4];
-            raw_doc.read_exact(&mut bin_data);
-            let bin_len = i32::from_le_bytes(bin_data);
+            let bin_len = i32::from_le_bytes(read_bytes::<4>(raw_doc));
             //Ignore subtype
-            raw_doc.read_exact(&mut [0; 1]);
+            read_bytes::<1>(raw_doc);
             let mut bin_data = vec![0; bin_len as usize];
-            raw_doc.read_exact(&mut bin_data);
+            raw_doc.read_exact(&mut bin_data).unwrap();
             BSONType::Bytes(bin_data)
         }
         0x12 => {
-            let mut int64 = [0; 8];
-            raw_doc.read_exact(&mut int64);
-            let int64 = i64::from_le_bytes(int64);
+            let int64 = i64::from_le_bytes(read_bytes::<8>(raw_doc));
             //Ignore subtype
             BSONType::Int(int64)
         }
@@ -204,13 +200,13 @@ fn unpack_bson_value(raw_doc: &mut Cursor<&mut Vec<u8>>, value_type: u8) -> BSON
 
 fn unpack_bson_doc(raw_doc: &mut Vec<u8>) -> HashMap<String, BSONType> {
     let mut doc = HashMap::new();
-    let mut raw_doc = Cursor::new(raw_doc);
+    let mut cursor = Cursor::new(raw_doc);
     let mut buf: [u8; 1] = [0; 1];
-    while let Ok(()) = raw_doc.read_exact(&mut buf) {
-        let key = read_bson_key(&mut raw_doc);
-        let value = unpack_bson_value(&mut raw_doc, buf[0]);
+    while let Ok(()) = cursor.read_exact(&mut buf) {
+        let key = read_bson_key(&mut cursor);
+        let value = unpack_bson_value(&mut cursor, buf[0]);
         doc.insert(key, value);
-        raw_doc.read_exact(&mut buf);
+        buf = read_bytes::<1>(&mut cursor);
     }
     doc
 }
