@@ -196,7 +196,7 @@ pub fn load_bin(amac_bin: &mut Vec<u8>) -> Program {
         .into_iter()
         .map(|constant| Const::from(constant))
         .collect();
-    let mut ops = if let BSONType::Bytes(ops) = prog_data.remove("ops").unwrap() {
+    let ops = if let BSONType::Bytes(ops) = prog_data.remove("ops").unwrap() {
         ops
     } else {
         unreachable!("ops field should be an array of bytes")
@@ -209,7 +209,6 @@ pub fn load_bin(amac_bin: &mut Vec<u8>) -> Program {
         unreachable!("entry_locals field should be an array of bytes")
     };
 
-    ops.push(OpCode::Halt as u8);
     Program {
         constants,
         ops,

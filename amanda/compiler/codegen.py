@@ -61,6 +61,8 @@ class OpCode(Enum):
     CALL_FUNCTION = auto()
     # Returns  from the caller.
     RETURN = auto()
+    # Stops  execution of the VM
+    HALT = 0xFF
 
     def op_size(self) -> int:
         # Return number of bytes (including args) that each op
@@ -117,6 +119,9 @@ class ByteGen:
 
         self.compile_block(program)
         assert self.depth == -1, "A block was not exited in some local scope!"
+        # Add halt ops
+        self.append_op(OpCode.HALT)
+
         ops = BytesIO()
         for op in self.ops:
             ops.write(self.write_op_bytes(op))
