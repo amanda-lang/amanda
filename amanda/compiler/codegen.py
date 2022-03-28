@@ -104,6 +104,8 @@ class ByteGen:
         self.labels = {}
         self.ops = []
         self.ip = 0  # Current bytecode offset
+        self.lineno = -1
+        self.src_map = {}  # Maps source lines to bytecode offset
 
     def compile(self, program) -> bytes:
         """Compiles an amanda ast into bytecode ops.
@@ -131,10 +133,16 @@ class ByteGen:
         code = ops.getvalue()
         ops.close()
 
+        src_map = []
+        for lineno, offsets in self.src_map.items():
+            offsets.append(lineno)
+            if len(offsets) > 2:
+                src_map.extend(offsets)
         program_obj = {
             "entry_locals": len(self.func_locals),
             "constants": list(self.const_table.keys()),
             "ops": code,
+            "src_map": src_map,
         }
 
         return bindump.dumps(program_obj)
@@ -153,6 +161,14 @@ class ByteGen:
         self.labels[label] = self.ip
 
     def append_op(self, op, *args):
+        if self.lineno in self.src_map:
+            offsets = self.src_map[self.lineno]
+            if len(offsets) < 2:
+                offsets.append(self.ip)
+            elif offsets[-1] < self.ip:
+                offsets[-1] = self.ip
+        else:
+            self.src_map[self.lineno] = [self.ip]
         self.ip += op.op_size() // OP_SIZE
         self.ops.append((op, args))
 
@@ -236,11 +252,14 @@ class ByteGen:
         node_class = type(node).__name__.lower()
         method_name = f"gen_{node_class}"
         gen_method = getattr(self, method_name, self.bad_gen)
-        # Update line only if node type has line attribute
-        self.ama_lineno = getattr(node, "lineno", self.ama_lineno)
+        prev_lineno = self.lineno
+        self.lineno = getattr(node, "lineno", self.lineno)
         if node_class == "block":
-            return gen_method(node, args)
-        return gen_method(node)
+            result = gen_method(node, args)
+        else:
+            result = gen_method(node)
+        self.lineno = prev_lineno
+        return result
 
     def enter_block(self, scope):
         self.depth += 1

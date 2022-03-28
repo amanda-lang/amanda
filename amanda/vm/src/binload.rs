@@ -18,6 +18,7 @@ pub struct Program<'a> {
     pub constants: Vec<Const>,
     pub ops: Vec<u8>,
     pub main: AmaFunc<'a>,
+    pub src_map: Vec<isize>,
 }
 
 //TODO: Implement From after i move Const to it's own file
@@ -185,6 +186,16 @@ fn unpack_bson_doc(raw_doc: &mut Vec<u8>) -> HashMap<String, BSONType> {
     doc
 }
 
+macro_rules! bson_take {
+    ($inner: path, $packed: expr) => {
+        if let $inner(inner) = $packed {
+            inner
+        } else {
+            unreachable!("Invalid field unpacking")
+        }
+    };
+}
+
 pub fn load_bin(amac_bin: &mut Vec<u8>) -> Program {
     //Skip size bytes
     amac_bin.drain(0..4);
@@ -196,22 +207,23 @@ pub fn load_bin(amac_bin: &mut Vec<u8>) -> Program {
         .into_iter()
         .map(|constant| Const::from(constant))
         .collect();
-    let ops = if let BSONType::Bytes(ops) = prog_data.remove("ops").unwrap() {
-        ops
-    } else {
-        unreachable!("ops field should be an array of bytes")
-    };
 
-    let entry_locals = if let BSONType::Int(num_locals) = prog_data.remove("entry_locals").unwrap()
+    let ops = bson_take!(BSONType::Bytes, prog_data.remove("ops").unwrap());
+    let entry_locals = bson_take!(BSONType::Int, prog_data.remove("entry_locals").unwrap());
+    let src_map: Vec<isize> = if let BSONType::Array(offsets) = prog_data.remove("src_map").unwrap()
     {
-        num_locals
+        offsets
+            .iter()
+            .map(|num| *bson_take!(BSONType::Int, num) as isize)
+            .collect()
     } else {
-        unreachable!("entry_locals field should be an array of bytes")
+        unreachable!("src_map should be an array of ints")
     };
 
     Program {
         constants,
         ops,
+        src_map,
         main: AmaFunc {
             name: "_inicio_",
             bp: -1,
