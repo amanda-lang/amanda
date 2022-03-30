@@ -15,30 +15,32 @@ fn get_fn_arg<'a>(args: FuncArgs<'a>, idx: usize) -> Result<&AmaValue<'a>, ()> {
     }
 }
 
+type AmaResult<'a> = Result<AmaValue<'a>, &'static str>;
+
 #[inline]
 fn new_builtin<'a>(
     name: &'a str,
-    func: fn(FuncArgs<'a>) -> AmaValue<'a>,
+    func: fn(FuncArgs<'a>) -> AmaResult<'a>,
 ) -> (&'a str, AmaValue<'a>) {
     (name, AmaValue::NativeFn(NativeFunc { name, func }))
 }
 
-fn escrevaln<'a>(args: FuncArgs<'a>) -> AmaValue<'a> {
+fn escrevaln<'a>(args: FuncArgs<'a>) -> AmaResult<'a> {
     let value: &AmaValue = get_fn_arg(args, 0).unwrap();
 
     println!("{}", value);
-    AmaValue::None
+    Ok(AmaValue::None)
 }
 
-fn escreva<'a>(args: FuncArgs<'a>) -> AmaValue<'a> {
+fn escreva<'a>(args: FuncArgs<'a>) -> AmaResult<'a> {
     let value: &AmaValue = get_fn_arg(args, 0).unwrap();
 
     print!("{}", value);
     io::stdout().flush().unwrap();
-    AmaValue::None
+    Ok(AmaValue::None)
 }
 
-fn leia<'a>(args: FuncArgs<'a>) -> AmaValue<'a> {
+fn leia<'a>(args: FuncArgs<'a>) -> AmaResult<'a> {
     escreva(args);
 
     let mut input = String::from("");
@@ -50,22 +52,32 @@ fn leia<'a>(args: FuncArgs<'a>) -> AmaValue<'a> {
         "Removing wrong char"
     );
 
-    AmaValue::Str(Cow::Owned(input))
+    Ok(AmaValue::Str(Cow::Owned(input)))
 }
 
-fn leia_int<'a>(args: FuncArgs<'a>) -> AmaValue<'a> {
-    if let AmaValue::Str(input) = leia(args) {
+fn leia_int<'a>(args: FuncArgs<'a>) -> AmaResult<'a> {
+    if let Ok(AmaValue::Str(input)) = leia(args) {
         //TODO: Propagate possible errors to caller
-        AmaValue::Int(input.parse().unwrap())
+        let maybe_int = input.parse::<i64>();
+        if let Err(_) = maybe_int {
+            Err("Valor introduzido não é um inteiro válido")
+        } else {
+            Ok(AmaValue::Int(maybe_int.unwrap()))
+        }
     } else {
         unreachable!()
     }
 }
 
-fn leia_real<'a>(args: FuncArgs<'a>) -> AmaValue<'a> {
-    if let AmaValue::Str(input) = leia(args) {
+fn leia_real<'a>(args: FuncArgs<'a>) -> AmaResult<'a> {
+    if let Ok(AmaValue::Str(input)) = leia(args) {
         //TODO: Propagate possible errors to caller
-        AmaValue::F64(input.parse().unwrap())
+        let maybe_double = input.parse::<f64>();
+        if let Err(_) = maybe_double {
+            Err("Valor introduzido não é um número real válido")
+        } else {
+            Ok(AmaValue::F64(maybe_double.unwrap()))
+        }
     } else {
         unreachable!()
     }
