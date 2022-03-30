@@ -106,6 +106,7 @@ class ByteGen:
         self.ip = 0  # Current bytecode offset
         self.lineno = -1
         self.src_map = {}  # Maps source lines to bytecode offset
+        self.map_offsets = True
 
     def compile(self, program) -> bytes:
         """Compiles an amanda ast into bytecode ops.
@@ -134,6 +135,8 @@ class ByteGen:
         ops.close()
 
         src_map = []
+        # print(self.src_map)
+        # sys.exit(1)
         for lineno, offsets in self.src_map.items():
             offsets.append(lineno)
             if len(offsets) > 2:
@@ -161,14 +164,15 @@ class ByteGen:
         self.labels[label] = self.ip
 
     def append_op(self, op, *args):
-        if self.lineno in self.src_map:
-            offsets = self.src_map[self.lineno]
-            if len(offsets) < 2:
-                offsets.append(self.ip)
-            elif offsets[-1] < self.ip:
-                offsets[-1] = self.ip
-        else:
-            self.src_map[self.lineno] = [self.ip]
+        if self.map_offsets:
+            if self.lineno in self.src_map:
+                offsets = self.src_map[self.lineno]
+                if len(offsets) < 2:
+                    offsets.append(self.ip)
+                elif offsets[-1] < self.ip:
+                    offsets[-1] = self.ip
+            else:
+                self.src_map[self.lineno] = [self.ip]
         self.ip += op.op_size() // OP_SIZE
         self.ops.append((op, args))
 
@@ -506,6 +510,8 @@ class ByteGen:
         name = func_symbol.out_id
         name_idx = self.get_const_index(func_symbol.name)
         func_end = self.new_label()
+
+        self.map_offsets = False
         self.append_op(OpCode.JUMP, func_end)
         func_start = self.new_label()
 
@@ -518,10 +524,12 @@ class ByteGen:
             idx = len(self.func_locals)
             self.func_locals[local] = idx
 
+        self.map_offsets = True
         self.enter_block(block.symbols)
         for child in block.children:
             self.gen(child)
         # default return
+        self.map_offsets = False
         self.load_const("falso")
         self.append_op(OpCode.RETURN)
         self.exit_block()
@@ -536,6 +544,7 @@ class ByteGen:
 
         self.append_op(OpCode.MAKE_FUNCTION)
         self.set_variable(func_symbol)
+        self.map_offsets = True
 
     def gen_call(self, node):
         func = node.symbol
