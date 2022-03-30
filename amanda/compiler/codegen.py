@@ -1,5 +1,6 @@
 import sys
 import pdb
+from typing import List
 from io import StringIO, BytesIO
 from enum import Enum, auto
 import amanda.compiler.symbols as symbols
@@ -8,6 +9,7 @@ import amanda.compiler.ast as ast
 from amanda.compiler.tokens import TokenType as TT
 from amanda.compiler.error import AmandaError, throw_error
 from amanda.compiler import bindump
+import struct
 
 
 OP_SIZE = 8
@@ -67,20 +69,23 @@ class OpCode(Enum):
     def op_size(self) -> int:
         # Return number of bytes (including args) that each op
         # uses
-        if self in (
+        if self in (OpCode.CALL_FUNCTION,):
+            return OP_SIZE * 2
+        elif self in (
             OpCode.LOAD_CONST,
             OpCode.SET_LOCAL,
             OpCode.GET_LOCAL,
             OpCode.GET_GLOBAL,
             OpCode.SET_GLOBAL,
-            OpCode.JUMP,
-            OpCode.JUMP_IF_FALSE,
         ):
             return OP_SIZE * 3
         elif self == OpCode.DEF_GLOBAL:
             return OP_SIZE * 4
-        elif self in (OpCode.CALL_FUNCTION,):
-            return OP_SIZE * 2
+        elif self in (
+            OpCode.JUMP,
+            OpCode.JUMP_IF_FALSE,
+        ):
+            return OP_SIZE * 9
         else:
             return OP_SIZE
 
@@ -163,8 +168,7 @@ class ByteGen:
         return idx
 
     def patch_label_loc(self, label) -> str:
-        # TODO: Make jump instructions use 64 bit args
-        if self.ip > (2 ** 16) - 1:
+        if self.ip > (2 ** 64) - 1:
             raise Exception(
                 f"Address of jump ({self.ip}) is too large to be supported by the vm"
             )
@@ -185,6 +189,10 @@ class ByteGen:
     def load_const(self, const):
         self.append_op(OpCode.LOAD_CONST, self.get_const_index(const))
 
+    def format_u64_arg(self, arg) -> List[int]:
+        u64 = struct.pack(">Q", arg)
+        return [int(b) for b in u64]
+
     def format_u16_arg(self, arg):
         high = (arg & 0xFF00) >> 8
         low = arg & 0x00FF
@@ -192,29 +200,26 @@ class ByteGen:
 
     def write_op_bytes(self, op) -> bytes:
         op, args = op
+        # Get patched jump label
         if op in (OpCode.JUMP_IF_FALSE, OpCode.JUMP):
             args = [self.labels[args[0]]]
-        if op in (
-            OpCode.LOAD_CONST,
-            OpCode.SET_LOCAL,
-            OpCode.GET_LOCAL,
-            OpCode.GET_GLOBAL,
-            OpCode.SET_GLOBAL,
-            OpCode.JUMP,
-            OpCode.JUMP_IF_FALSE,
-        ):
-            high, low = self.format_u16_arg(args[0])
-            return bytes([op.value, high, low])
+
+        if op.op_size() == OP_SIZE:
+            return bytes([op.value])
         elif op == OpCode.DEF_GLOBAL:
             high, low = self.format_u16_arg(args[0])
             return bytes([op.value, high, low, args[1]])
         elif op.op_size() == OP_SIZE * 2:
             return bytes([op.value, args[0]])
-        elif op.op_size() == OP_SIZE:
-            return bytes([op.value])
+        elif op.op_size() == OP_SIZE * 3:
+            high, low = self.format_u16_arg(args[0])
+            return bytes([op.value, high, low])
+        elif op.op_size() == OP_SIZE * 9:
+            u64 = self.format_u64_arg(args[0])
+            return bytes([op.value, *u64])
         else:
             raise NotImplementedError(
-                f"Encoding of op {op} has not yet been implemented"
+                f"Encoding of op {op.name} has not yet been implemented"
             )
 
     def disassemble_op(self, op, args) -> str:
@@ -293,7 +298,7 @@ class ByteGen:
             self.const_table[constant] = idx
             self.constants += 1
         assert (
-            idx < 2 ** 16
+            idx < (2 ** 16) - 1
         ), f"Too many constants found in program. VM cannot handle them"
         return idx
 

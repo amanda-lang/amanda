@@ -198,6 +198,14 @@ impl<'a> AmaVM<'a> {
         ((self.get_byte() as u16) << 8) | self.get_byte() as u16
     }
 
+    fn get_u64_arg(&mut self) -> u64 {
+        let mut uint64 = [0; 8];
+        for i in 0..8 {
+            uint64[i] = self.get_byte();
+        }
+        u64::from_be_bytes(uint64)
+    }
+
     fn reserve_stack_space(&mut self, size: usize) {
         let new_len = self.values.len() + size;
         self.values.resize(new_len, AmaValue::None);
@@ -282,7 +290,7 @@ impl<'a> AmaVM<'a> {
                     self.globals.insert(id, value);
                 }
                 OpCode::Jump => {
-                    let addr = self.get_u16_arg() as usize;
+                    let addr = self.get_u64_arg() as usize;
                     self.frames.peek_mut().ip = addr;
                     continue;
                 }
@@ -291,7 +299,7 @@ impl<'a> AmaVM<'a> {
                      * Jumps if the top of the values is false
                      * Pops the values
                      * */
-                    let addr = self.get_u16_arg() as usize;
+                    let addr = self.get_u64_arg() as usize;
                     let value = self.op_pop();
                     if let AmaValue::Bool(false) = value {
                         self.frames.peek_mut().ip = addr;
@@ -388,7 +396,7 @@ impl<'a> AmaVM<'a> {
 
     fn panic_and_throw(&mut self, error: &str) -> AmaErr {
         let mut frames_sp = self.frames.sp;
-        let mut err_str = if frames_sp == 0 {
+        let mut err_str = if frames_sp > 0 {
             String::from("Fluxo de execução: \n")
         } else {
             String::from("")
@@ -416,6 +424,10 @@ impl<'a> AmaVM<'a> {
         println!("[Function]: {}", self.frames.peek().name);
         println!("[IP]: {}", self.frames.peek().ip);
         println!("[SP]: {}", self.sp);
+        println!(
+            "[OP]: {:?}",
+            OpCode::from(&self.program[self.frames.peek().ip])
+        );
         println!("[BP]: {}", self.frames.peek().bp);
         println!("[STACK]: {:?}", self.values);
         println!("--------------");
