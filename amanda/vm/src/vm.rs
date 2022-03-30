@@ -26,7 +26,6 @@ pub enum OpCode {
     OpGreaterEq,
     OpLess,
     OpLessEq,
-    DefGlobal,
     GetGlobal,
     SetGlobal,
     Jump,
@@ -60,7 +59,6 @@ impl From<&u8> for OpCode {
             OpCode::OpGreaterEq,
             OpCode::OpLess,
             OpCode::OpLessEq,
-            OpCode::DefGlobal,
             OpCode::GetGlobal,
             OpCode::SetGlobal,
             OpCode::Jump,
@@ -263,19 +261,6 @@ impl<'a> AmaVM<'a> {
                             panic!("Value should always be a bool");
                         }
                     }
-                }
-                OpCode::DefGlobal => {
-                    let id_idx = self.get_u16_arg() as usize;
-                    let init_type = self.get_byte();
-                    let initializer = match init_type {
-                        0 => AmaValue::Int(0),
-                        1 => AmaValue::F64(0.0),
-                        2 => AmaValue::Bool(false),
-                        3 => AmaValue::Str(Cow::Owned(String::from(""))),
-                        _ => unimplemented!("Unknown type initializer"),
-                    };
-                    let id = self.constants[id_idx].get_str();
-                    self.globals.insert(id, initializer);
                 }
                 OpCode::GetGlobal => {
                     let id_idx = self.get_u16_arg() as usize;

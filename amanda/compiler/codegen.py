@@ -37,10 +37,6 @@ class OpCode(Enum):
     OP_GREATEREQ = auto()
     OP_LESS = auto()
     OP_LESSEQ = auto()
-    # DEF_GLOBAL takes two args, the index to the name of the var,  table
-    # and the type of the var so that appropriate value may be chosen
-    # as an initializer
-    DEF_GLOBAL = auto()
     # Gets a global variable. The arg is the index to the name of the var on the
     # constant table. Pushes value to the top of the stack
     GET_GLOBAL = auto()
@@ -79,8 +75,6 @@ class OpCode(Enum):
             OpCode.SET_GLOBAL,
         ):
             return OP_SIZE * 3
-        elif self == OpCode.DEF_GLOBAL:
-            return OP_SIZE * 4
         elif self in (
             OpCode.JUMP,
             OpCode.JUMP_IF_FALSE,
@@ -206,9 +200,6 @@ class ByteGen:
 
         if op.op_size() == OP_SIZE:
             return bytes([op.value])
-        elif op == OpCode.DEF_GLOBAL:
-            high, low = self.format_u16_arg(args[0])
-            return bytes([op.value, high, low, args[1]])
         elif op.op_size() == OP_SIZE * 2:
             return bytes([op.value, args[0]])
         elif op.op_size() == OP_SIZE * 3:
@@ -336,27 +327,14 @@ class ByteGen:
         # Find a better way to do this
         init_values = {
             "int": 0,
-            "real": 1,
-            "bool": 2,
-            "texto": 3,
+            "real": "0.0",  # Warning: This might come back to haunt me
+            "bool": "falso",
+            "texto": "''",
         }
-        # Def global vars
-        # TODO: Simplify this by using set global. DEF_GLOBAL should also probably be removed
-        if symbol.is_global:
-            id_idx = self.get_const_index(idt)
-            if assign:
-                self.gen(assign)
-            else:
-                self.append_op(
-                    OpCode.DEF_GLOBAL, id_idx, init_values[str(node.var_type)]
-                )
-            return
-        # Def local var
         if assign:
             self.gen_assign(assign)
         else:
-            node_type = init_values[str(node.var_type)]
-            initializer = {0: 0, 1: 0.0, 2: "falso", 3: "''"}[node_type]
+            initializer = init_values[str(node.var_type)]
             init_idx = self.get_const_index(initializer)
             self.append_op(OpCode.LOAD_CONST, init_idx)
             self.set_variable(symbol)
