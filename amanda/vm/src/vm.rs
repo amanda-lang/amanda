@@ -81,6 +81,8 @@ impl From<&u8> for OpCode {
 
 const RECURSION_LIMIT: usize = 1000;
 
+type AmaErr = String;
+
 #[derive(Debug)]
 struct FrameStack<'a> {
     stack: [Option<AmaFunc<'a>>; RECURSION_LIMIT],
@@ -96,13 +98,12 @@ impl<'a> FrameStack<'a> {
     }
 
     pub fn push(&mut self, frame: AmaFunc<'a>) -> Result<(), ()> {
-        self.sp += 1;
-        if self.sp as usize == RECURSION_LIMIT {
-            Err(())
-        } else {
-            self.stack[self.sp as usize] = Some(frame);
-            Ok(())
+        if self.sp + 1 == RECURSION_LIMIT as isize {
+            return Err(());
         }
+        self.sp += 1;
+        self.stack[self.sp as usize] = Some(frame);
+        Ok(())
     }
 
     pub fn pop(&mut self) -> Result<AmaFunc, ()> {
@@ -132,7 +133,18 @@ pub struct AmaVM<'a> {
     values: Vec<AmaValue<'a>>,
     frames: FrameStack<'a>,
     globals: HashMap<&'a str, AmaValue<'a>>,
+    src_map: &'a Vec<usize>,
     sp: isize,
+}
+
+//TODO: Make this faster
+fn offset_to_line(offset: usize, src_map: &Vec<usize>) -> usize {
+    for i in (0..src_map.len()).step_by(3) {
+        if offset >= src_map[i] && offset <= src_map[i + 1] {
+            return src_map[i + 2];
+        }
+    }
+    0
 }
 
 impl<'a> AmaVM<'a> {
@@ -143,6 +155,7 @@ impl<'a> AmaVM<'a> {
             values: vec![AmaValue::None; program.main.locals.into()],
             frames: FrameStack::new(),
             globals: builtins::load_builtins(),
+            src_map: &program.src_map,
             sp: -1,
         };
         vm.frames.push(program.main).unwrap();
@@ -186,14 +199,15 @@ impl<'a> AmaVM<'a> {
     }
 
     fn reserve_stack_space(&mut self, size: usize) {
-        for _ in 0..size {
-            self.op_push(AmaValue::None);
-        }
+        let new_len = self.values.len() + size;
+        self.values.resize(new_len, AmaValue::None);
+        self.sp = self.values.len() as isize - 1;
     }
 
-    pub fn run(&mut self) {
+    pub fn run(&mut self) -> Result<(), AmaErr> {
         loop {
             let op = self.program[self.frames.peek().ip];
+            self.frames.peek_mut().last_i = self.frames.peek().ip;
             match OpCode::from(&op) {
                 OpCode::LoadConst => {
                     let idx = self.get_u16_arg();
@@ -217,7 +231,13 @@ impl<'a> AmaVM<'a> {
                 | OpCode::OpLessEq => {
                     let right = self.op_pop();
                     let left = self.op_pop();
-                    self.op_push(AmaValue::binop(left, OpCode::from(&op), right))
+                    let result = AmaValue::binop(left, OpCode::from(&op), right);
+
+                    if let Err(msg) = result {
+                        return Err(self.panic_and_throw(msg));
+                    } else {
+                        self.op_push(result.unwrap());
+                    }
                 }
                 OpCode::OpInvert | OpCode::OpNot => {
                     let operand = self.op_pop();
@@ -297,6 +317,7 @@ impl<'a> AmaVM<'a> {
                         name,
                         start_ip: addr,
                         ip: addr,
+                        last_i: addr,
                         bp: -1,
                         locals,
                     }));
@@ -316,7 +337,11 @@ impl<'a> AmaVM<'a> {
                             }
                             //Set return addr in caller
                             self.frames.peek_mut().ip += 1;
-                            self.frames.push(func).unwrap();
+                            if let Err(()) = self.frames.push(func) {
+                                return Err(
+                                    self.panic_and_throw("Limite máximo de recursão atingido.")
+                                );
+                            }
                             continue;
                         }
                         AmaValue::NativeFn(native_fn) => {
@@ -355,6 +380,32 @@ impl<'a> AmaVM<'a> {
             "Some function did not cleanely exit! \n{:?}",
             self.values
         );
+        Ok(())
+    }
+
+    fn panic_and_throw(&mut self, error: &str) -> AmaErr {
+        if self.frames.sp == 0 {
+            let func = self.frames.pop().unwrap();
+            return format!(
+                "Erro na linha {}: {}.",
+                offset_to_line(func.last_i, self.src_map),
+                error
+            );
+        }
+        let mut err_str = String::from("Fluxo de execução: \n");
+        while let Ok(func) = self.frames.pop() {
+            //TODO: Use stack pointer here
+            if func.name == "_inicio_" {
+                err_str.push_str(&format!("Erro: {}.", error));
+                break;
+            }
+            err_str.push_str(&format!(
+                "    Linha {}, na função {}\n",
+                offset_to_line(func.last_i, self.src_map),
+                func.name
+            ));
+        }
+        err_str
     }
 
     fn print_debug_info(&self) {
@@ -364,5 +415,19 @@ impl<'a> AmaVM<'a> {
         println!("[BP]: {}", self.frames.peek().bp);
         println!("[STACK]: {:?}", self.values);
         println!("--------------");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn offset_to_line_works() {
+        let src_map = vec![0, 3, 1, 4, 5, 2];
+        assert_eq!(offset_to_line(0, &src_map), 1);
+        assert_eq!(offset_to_line(1, &src_map), 1);
+        assert_eq!(offset_to_line(3, &src_map), 1);
+        assert_eq!(offset_to_line(5, &src_map), 2);
     }
 }

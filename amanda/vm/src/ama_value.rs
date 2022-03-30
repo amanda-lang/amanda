@@ -15,32 +15,32 @@ enum BinOpResult {
 
 macro_rules! arith_ops {
     ($res_type: ident, $left: ident, $op: tt, $right: ident) => {
-        match $res_type {
+        Ok(match $res_type {
             BinOpResult::Double => AmaValue::F64($left.take_float() $op $right.take_float()),
             BinOpResult::Int => AmaValue::Int($left.take_int() $op $right.take_int()),
             _ => unimplemented!("Operand type not supported"),
-        }
+        })
     };
 }
 
 macro_rules! comp_ops {
     ($res_type: ident, $left: ident, $op: tt, $right: ident) => {
-        match $res_type {
+        Ok(match $res_type {
             BinOpResult::Double => AmaValue::Bool($left.take_float() $op $right.take_float()),
             BinOpResult::Int => AmaValue::Bool($left.take_int() $op $right.take_int()),
             _ => unimplemented!("Operand type not supported"),
-        }
+        })
     };
 }
 
 macro_rules! eq_ops {
     ($res_type: ident, $left: ident, $op: tt, $right: ident) => {
-        match $res_type {
+        Ok(match $res_type {
             BinOpResult::Int => AmaValue::Bool($left.take_int() $op $right.take_int()),
             BinOpResult::Double => AmaValue::Bool($left.take_float() $op $right.take_float()),
             BinOpResult::Bool => AmaValue::Bool($left.take_bool() $op $right.take_bool()),
             BinOpResult::Str => AmaValue::Bool($left.take_str() $op $right.take_str()),
-        }
+        })
     };
 }
 
@@ -58,6 +58,7 @@ pub struct AmaFunc<'a> {
     pub name: &'a str,
     pub start_ip: usize,
     pub ip: usize,
+    pub last_i: usize,
     pub bp: isize,
     pub locals: usize,
 }
@@ -146,7 +147,7 @@ impl<'a> AmaValue<'a> {
         }
     }
 
-    pub fn binop(left: Self, op: OpCode, right: Self) -> Self {
+    pub fn binop(left: Self, op: OpCode, right: Self) -> Result<Self, &'a str> {
         let res_type = if left.is_float() || right.is_float() {
             BinOpResult::Double
         } else if left.is_int() && right.is_int() {
@@ -163,10 +164,22 @@ impl<'a> AmaValue<'a> {
             OpCode::OpMinus => arith_ops!(res_type, left, -, right),
             OpCode::OpMul => arith_ops!(res_type, left, *, right),
             OpCode::OpModulo => arith_ops!(res_type, left, %, right),
-            OpCode::OpDiv => AmaValue::F64(left.take_float() / right.take_float()),
-            OpCode::OpFloorDiv => AmaValue::Int(left.take_int() / right.take_int()),
-            OpCode::OpAnd => AmaValue::Bool(left.take_bool() && right.take_bool()),
-            OpCode::OpOr => AmaValue::Bool(left.take_bool() || right.take_bool()),
+            OpCode::OpDiv => {
+                if right.take_float() == 0.0 {
+                    Err("não pode dividir um número por zero")
+                } else {
+                    Ok(AmaValue::F64(left.take_float() / right.take_float()))
+                }
+            }
+            OpCode::OpFloorDiv => {
+                if right.take_int() == 0 {
+                    Err("não pode dividir um número por zero")
+                } else {
+                    Ok(AmaValue::Int(left.take_int() / right.take_int()))
+                }
+            }
+            OpCode::OpAnd => Ok(AmaValue::Bool(left.take_bool() && right.take_bool())),
+            OpCode::OpOr => Ok(AmaValue::Bool(left.take_bool() || right.take_bool())),
             OpCode::OpEq => eq_ops!(res_type, left, ==, right),
             OpCode::OpNotEq => eq_ops!(res_type, left, !=,  right),
             OpCode::OpGreater => comp_ops!(res_type, left, >, right),

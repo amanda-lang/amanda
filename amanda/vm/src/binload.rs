@@ -18,7 +18,7 @@ pub struct Program<'a> {
     pub constants: Vec<Const>,
     pub ops: Vec<u8>,
     pub main: AmaFunc<'a>,
-    pub src_map: Vec<isize>,
+    pub src_map: Vec<usize>,
 }
 
 //TODO: Implement From after i move Const to it's own file
@@ -210,11 +210,11 @@ pub fn load_bin(amac_bin: &mut Vec<u8>) -> Program {
 
     let ops = bson_take!(BSONType::Bytes, prog_data.remove("ops").unwrap());
     let entry_locals = bson_take!(BSONType::Int, prog_data.remove("entry_locals").unwrap());
-    let src_map: Vec<isize> = if let BSONType::Array(offsets) = prog_data.remove("src_map").unwrap()
+    let src_map: Vec<usize> = if let BSONType::Array(offsets) = prog_data.remove("src_map").unwrap()
     {
         offsets
             .iter()
-            .map(|num| *bson_take!(BSONType::Int, num) as isize)
+            .map(|num| *bson_take!(BSONType::Int, num) as usize)
             .collect()
     } else {
         unreachable!("src_map should be an array of ints")
@@ -228,6 +228,7 @@ pub fn load_bin(amac_bin: &mut Vec<u8>) -> Program {
             name: "_inicio_",
             bp: -1,
             start_ip: 0,
+            last_i: 0,
             ip: 0,
             locals: entry_locals as usize,
         },
