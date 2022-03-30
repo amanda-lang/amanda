@@ -78,7 +78,9 @@ def run_rs(args):
         )
         print(result.stdout, end="")
         if result.returncode != 0:
-            subprocess.call([VM_BIN_PATH, OUT_FILE])
+            print(result.stdout)
+            print(result.stderr, file=sys.stderr)
+            sys.exit(1)
     else:
         retcode = subprocess.call(
             [VM_BIN_PATH, OUT_FILE],

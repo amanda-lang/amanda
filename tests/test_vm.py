@@ -26,6 +26,7 @@ DIRS = [
     join(TEST_DIR, "call"),
     join(TEST_DIR, "declaration"),
     join(TEST_DIR, "expression"),
+    join(TEST_DIR, "rt_errors"),
 ]
 
 passed = 0
