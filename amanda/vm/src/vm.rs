@@ -339,7 +339,7 @@ impl<'a> AmaVM<'a> {
                             self.frames.peek_mut().ip += 1;
                             if let Err(()) = self.frames.push(func) {
                                 return Err(
-                                    self.panic_and_throw("Limite máximo de recursão atingido.")
+                                    self.panic_and_throw("Limite máximo de recursão atingido")
                                 );
                             }
                             continue;
@@ -352,7 +352,11 @@ impl<'a> AmaVM<'a> {
                                 fn_args = Some(self.values[start..=self.sp as usize].as_ptr());
                                 self.sp = start as isize - 1;
                             }
-                            self.op_push((native_fn.func)(fn_args));
+                            let result = (native_fn.func)(fn_args);
+                            if let Err(msg) = result {
+                                return Err(self.panic_and_throw(msg));
+                            }
+                            self.op_push(result.unwrap());
                             //Drop values
                             self.values.drain(self.sp as usize + 1..);
                         }
@@ -384,19 +388,20 @@ impl<'a> AmaVM<'a> {
     }
 
     fn panic_and_throw(&mut self, error: &str) -> AmaErr {
-        if self.frames.sp == 0 {
-            let func = self.frames.pop().unwrap();
-            return format!(
-                "Erro na linha {}: {}.",
-                offset_to_line(func.last_i, self.src_map),
-                error
-            );
-        }
-        let mut err_str = String::from("Fluxo de execução: \n");
+        let mut frames_sp = self.frames.sp;
+        let mut err_str = if frames_sp == 0 {
+            String::from("Fluxo de execução: \n")
+        } else {
+            String::from("")
+        };
         while let Ok(func) = self.frames.pop() {
-            //TODO: Use stack pointer here
-            if func.name == "_inicio_" {
-                err_str.push_str(&format!("Erro: {}.", error));
+            //BUG: Use stack pointer here
+            if frames_sp == 0 {
+                err_str.push_str(&format!(
+                    "Erro na linha {}: {}.",
+                    offset_to_line(func.last_i, self.src_map),
+                    error
+                ));
                 break;
             }
             err_str.push_str(&format!(
@@ -404,6 +409,7 @@ impl<'a> AmaVM<'a> {
                 offset_to_line(func.last_i, self.src_map),
                 func.name
             ));
+            frames_sp = self.frames.sp;
         }
         err_str
     }

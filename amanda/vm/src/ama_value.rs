@@ -50,7 +50,7 @@ pub type FuncArgs<'a> = Option<*const AmaValue<'a>>;
 #[derive(Debug, Clone, Copy)]
 pub struct NativeFunc<'a> {
     pub name: &'a str,
-    pub func: fn(FuncArgs<'a>) -> AmaValue<'a>,
+    pub func: fn(FuncArgs<'a>) -> Result<AmaValue<'a>, &'static str>,
 }
 
 #[derive(Debug, Clone, Copy)]
