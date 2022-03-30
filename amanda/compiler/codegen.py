@@ -106,7 +106,7 @@ class ByteGen:
         self.ip = 0  # Current bytecode offset
         self.lineno = -1
         self.src_map = {}  # Maps source lines to bytecode offset
-        self.map_offsets = True
+        # TODO: Find a better way to do this
 
     def compile(self, program) -> bytes:
         """Compiles an amanda ast into bytecode ops.
@@ -126,6 +126,7 @@ class ByteGen:
         self.compile_block(program)
         assert self.depth == -1, "A block was not exited in some local scope!"
         # Add halt ops
+        self.lineno = 0
         self.append_op(OpCode.HALT)
 
         ops = BytesIO()
@@ -138,9 +139,17 @@ class ByteGen:
         # print(self.src_map)
         # sys.exit(1)
         for lineno, offsets in self.src_map.items():
+            if lineno == 0:
+                continue
+            # Offset array must contain start and end
+            # If it only contains one value, start == end
+            if len(offsets) == 1:
+                offsets.append(offsets[0])
+            assert (
+                len(offsets) == 2
+            ), f"Found line with offset != 0: {(lineno, offsets)}"
             offsets.append(lineno)
-            if len(offsets) > 2:
-                src_map.extend(offsets)
+            src_map.extend(offsets)
         program_obj = {
             "entry_locals": len(self.func_locals),
             "constants": list(self.const_table.keys()),
@@ -164,15 +173,14 @@ class ByteGen:
         self.labels[label] = self.ip
 
     def append_op(self, op, *args):
-        if self.map_offsets:
-            if self.lineno in self.src_map:
-                offsets = self.src_map[self.lineno]
-                if len(offsets) < 2:
-                    offsets.append(self.ip)
-                elif offsets[-1] < self.ip:
-                    offsets[-1] = self.ip
-            else:
-                self.src_map[self.lineno] = [self.ip]
+        if self.lineno in self.src_map:
+            offsets = self.src_map[self.lineno]
+            if len(offsets) < 2:
+                offsets.append(self.ip)
+            elif offsets[-1] < self.ip:
+                offsets[-1] = self.ip
+        else:
+            self.src_map[self.lineno] = [self.ip]
         self.ip += op.op_size() // OP_SIZE
         self.ops.append((op, args))
 
@@ -256,13 +264,11 @@ class ByteGen:
         node_class = type(node).__name__.lower()
         method_name = f"gen_{node_class}"
         gen_method = getattr(self, method_name, self.bad_gen)
-        prev_lineno = self.lineno
         self.lineno = getattr(node, "lineno", self.lineno)
         if node_class == "block":
             result = gen_method(node, args)
         else:
             result = gen_method(node)
-        self.lineno = prev_lineno
         return result
 
     def enter_block(self, scope):
@@ -511,7 +517,6 @@ class ByteGen:
         name_idx = self.get_const_index(func_symbol.name)
         func_end = self.new_label()
 
-        self.map_offsets = False
         self.append_op(OpCode.JUMP, func_end)
         func_start = self.new_label()
 
@@ -524,12 +529,10 @@ class ByteGen:
             idx = len(self.func_locals)
             self.func_locals[local] = idx
 
-        self.map_offsets = True
         self.enter_block(block.symbols)
         for child in block.children:
             self.gen(child)
         # default return
-        self.map_offsets = False
         self.load_const("falso")
         self.append_op(OpCode.RETURN)
         self.exit_block()
@@ -544,7 +547,6 @@ class ByteGen:
 
         self.append_op(OpCode.MAKE_FUNCTION)
         self.set_variable(func_symbol)
-        self.map_offsets = True
 
     def gen_call(self, node):
         func = node.symbol
