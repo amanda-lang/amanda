@@ -272,7 +272,7 @@ impl<'a> AmaVM<'a> {
                 OpCode::GetGlobal => {
                     let id_idx = self.get_u16_arg() as usize;
                     let id: &str = self.constants[id_idx].get_str();
-                    //#TODO: Do not use clone
+                    //TODO: Do not use clone
                     self.op_push(self.globals.get(id).unwrap().clone());
                 }
                 OpCode::SetGlobal => {
@@ -300,7 +300,7 @@ impl<'a> AmaVM<'a> {
                 }
                 OpCode::GetLocal => {
                     let idx = self.get_u16_arg() as usize + self.frames.peek().bp as usize;
-                    //#TODO: Do not use clone
+                    //TODO: Do not use clone
                     self.op_push(self.values[idx].clone());
                 }
                 OpCode::SetLocal => {
@@ -348,7 +348,6 @@ impl<'a> AmaVM<'a> {
                             let mut fn_args = None;
                             if args > 0 {
                                 let start = (self.sp - (args - 1)) as usize;
-                                //TODO: Stop this from allocating memory
                                 fn_args = Some(self.values[start..=self.sp as usize].as_ptr());
                                 self.sp = start as isize - 1;
                             }
@@ -395,7 +394,6 @@ impl<'a> AmaVM<'a> {
             String::from("")
         };
         while let Ok(func) = self.frames.pop() {
-            //BUG: Use stack pointer here
             if frames_sp == 0 {
                 err_str.push_str(&format!(
                     "Erro na linha {}: {}.",

@@ -136,8 +136,6 @@ class ByteGen:
         ops.close()
 
         src_map = []
-        # print(self.src_map)
-        # sys.exit(1)
         for lineno, offsets in self.src_map.items():
             if lineno == 0:
                 continue
@@ -287,6 +285,7 @@ class ByteGen:
         self.exit_block()
 
     def get_const_index(self, constant):
+        # TODO: Make load const instruction use 64 bit arg
         if constant in self.const_table:
             idx = self.const_table[constant]
         else:
@@ -337,6 +336,7 @@ class ByteGen:
             "texto": 3,
         }
         # Def global vars
+        # TODO: Simplify this by using set global. DEF_GLOBAL should also probably be removed
         if symbol.is_global:
             id_idx = self.get_const_index(idt)
             if assign:
