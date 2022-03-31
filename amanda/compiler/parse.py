@@ -23,11 +23,6 @@ class Lexer:
         self.current_char = None
         self.file = src  # A file object
 
-    @classmethod
-    def string_lexer(cls, string):
-        # Constructor to create a lexer with a string
-        return cls(StringIO(string))
-
     def advance(self):
         if self.current_char == Lexer.EOF:
             return
