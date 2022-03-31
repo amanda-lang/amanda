@@ -18,6 +18,7 @@ pub struct Program<'a> {
     pub constants: Vec<Const>,
     pub ops: Vec<u8>,
     pub main: AmaFunc<'a>,
+    pub functions: Vec<AmaFunc<'a>>,
     pub src_map: Vec<usize>,
 }
 
@@ -196,6 +197,20 @@ macro_rules! bson_take {
     };
 }
 
+fn doc_into_amafn<'a>(doc: BSONType) -> (String, usize, usize) {
+    if let BSONType::Doc(mut func) = doc {
+        let start_ip = bson_take!(BSONType::Int, func.remove("start_ip").unwrap()) as usize;
+
+        (
+            bson_take!(BSONType::String, func.remove("name").unwrap()),
+            start_ip,
+            bson_take!(BSONType::Int, func.remove("locals").unwrap()) as usize,
+        )
+    } else {
+        unreachable!("functions should be an array of functions")
+    }
+}
+
 pub fn load_bin(amac_bin: &mut Vec<u8>) -> Program {
     //Skip size bytes
     amac_bin.drain(0..4);
@@ -220,6 +235,27 @@ pub fn load_bin(amac_bin: &mut Vec<u8>) -> Program {
         unreachable!("src_map should be an array of ints")
     };
 
+    let functions: Vec<AmaFunc> =
+        if let BSONType::Array(funcs) = prog_data.remove("functions").unwrap() {
+            funcs
+                .into_iter()
+                .map(|func| {
+                    let (name, start_ip, locals) = doc_into_amafn(func);
+                    AmaFunc {
+                        //TODO: Check if i should be leaking memory
+                        name: Box::leak(name.into_boxed_str()),
+                        bp: -1,
+                        start_ip: start_ip,
+                        last_i: start_ip,
+                        ip: start_ip,
+                        locals: locals,
+                    }
+                })
+                .collect()
+        } else {
+            unreachable!("functions should be an array of functions")
+        };
+
     Program {
         constants,
         ops,
@@ -232,6 +268,7 @@ pub fn load_bin(amac_bin: &mut Vec<u8>) -> Program {
             ip: 0,
             locals: entry_locals as usize,
         },
+        functions,
     }
 }
 

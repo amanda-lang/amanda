@@ -51,10 +51,6 @@ class OpCode(Enum):
     GET_LOCAL = auto()
     # Sets the value of a non-global variable. The arg is the slot on the stack where the var should be stored
     SET_LOCAL = auto()
-    # Creates a new function. Expects the const table index of the name of the function (TOS2),
-    # address of the first instruction to be on the stack (TOS)
-    # and the number of locals in the function
-    MAKE_FUNCTION = auto()
     # Calls a function. The argument of the op is the number args. Expects function value to be TOS.
     CALL_FUNCTION = auto()
     # Returns  from the caller.
@@ -102,6 +98,7 @@ class ByteGen:
         self.constants = 0
         self.labels = {}
         self.ops = []
+        self.funcs = []
         self.ip = 0  # Current bytecode offset
         self.lineno = -1
         self.src_map = {}  # Maps source lines to bytecode offset
@@ -147,14 +144,15 @@ class ByteGen:
             ), f"Found line with offset != 0: {(lineno, offsets)}"
             offsets.append(lineno)
             src_map.extend(offsets)
-        program_obj = {
+        module = {
             "entry_locals": len(self.func_locals),
             "constants": list(self.const_table.keys()),
             "ops": code,
+            "functions": self.funcs,
             "src_map": src_map,
         }
 
-        return bindump.dumps(program_obj)
+        return bindump.dumps(module)
 
     def new_label(self) -> str:
         idx = len(self.labels)
@@ -496,7 +494,7 @@ class ByteGen:
 
     def gen_functiondecl(self, node):
         func_symbol = self.scope_symtab.resolve(node.name.lexeme)
-        name = func_symbol.out_id
+        name = func_symbol.name
         name_idx = self.get_const_index(func_symbol.name)
         func_end = self.new_label()
 
@@ -523,13 +521,14 @@ class ByteGen:
         self.func_locals = prev_func_locals
 
         self.patch_label_loc(func_end)
-        # Push args for function data
-        self.load_const(name_idx)
-        self.load_const(self.labels[func_start])
-        self.load_const(num_locals)
-
-        self.append_op(OpCode.MAKE_FUNCTION)
-        self.set_variable(func_symbol)
+        # TODO: use uint64 for ip and locals
+        self.funcs.append(
+            {
+                "name": name,
+                "start_ip": self.labels[func_start],
+                "locals": num_locals,
+            }
+        )
 
     def gen_call(self, node):
         func = node.symbol

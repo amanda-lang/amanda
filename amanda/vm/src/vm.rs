@@ -32,7 +32,6 @@ pub enum OpCode {
     JumpIfFalse,
     GetLocal,
     SetLocal,
-    MakeFunction,
     CallFunction,
     Return,
     Halt = 255,
@@ -65,7 +64,6 @@ impl From<&u8> for OpCode {
             OpCode::JumpIfFalse,
             OpCode::GetLocal,
             OpCode::SetLocal,
-            OpCode::MakeFunction,
             OpCode::CallFunction,
             OpCode::Return,
         ];
@@ -159,6 +157,9 @@ impl<'a> AmaVM<'a> {
         vm.frames.push(program.main).unwrap();
         vm.sp = vm.values.len() as isize - 1;
         vm.frames.peek_mut().bp = if vm.sp > -1 { 0 } else { -1 };
+        for func in program.functions.iter() {
+            vm.globals.insert(func.name, AmaValue::Func(*func));
+        }
 
         vm
     }
@@ -299,21 +300,6 @@ impl<'a> AmaVM<'a> {
                 OpCode::SetLocal => {
                     let idx = self.frames.peek().bp as usize + self.get_u16_arg() as usize;
                     self.values[idx] = self.op_pop();
-                }
-                OpCode::MakeFunction => {
-                    let locals = self.op_pop().take_int() as usize;
-                    let addr = self.op_pop().take_int() as usize;
-                    let name_idx = self.op_pop().take_int() as usize;
-                    let name = self.constants[name_idx].get_str();
-
-                    self.op_push(AmaValue::Func(AmaFunc {
-                        name,
-                        start_ip: addr,
-                        ip: addr,
-                        last_i: addr,
-                        bp: -1,
-                        locals,
-                    }));
                 }
                 OpCode::CallFunction => {
                     let args = self.get_byte() as isize;
