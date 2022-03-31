@@ -200,6 +200,9 @@ class Lexer:
             return Token(TT.RBRACKET, char, self.line, self.pos)
         elif self.current_char == ":":
             self.advance()
+            if self.current_char == ":":
+                self.advance()
+                return Token(TT.DOUBLECOLON, "::", self.line, self.pos - 1)
             return Token(TT.COLON, char, self.line, self.pos)
 
     def get_token(self):

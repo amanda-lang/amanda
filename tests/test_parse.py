@@ -2,9 +2,9 @@ import unittest
 import os
 import sys
 from io import StringIO
-from amanda.tokens import TokenType, Token
-from amanda.parse import Parser, Lexer
-from amanda.error import AmandaError
+from amanda.compiler.tokens import TokenType, Token
+from amanda.compiler.parse import Parser, Lexer
+from amanda.compiler.error import AmandaError
 
 
 class LexerTestCase(unittest.TestCase):
@@ -283,7 +283,7 @@ class LexerTestCase(unittest.TestCase):
         self.assertEqual(token.lexeme, "nativa", msg="nativa value test Failed")
 
     def test_delimeters(self):
-        self.buffer.write(". , ; ) ( { } [ ] : ..")
+        self.buffer.write(". , ; ) ( { } [ ] : .. ::")
         self.buffer.seek(0)
 
         token = self.lexer.get_token()
@@ -327,6 +327,14 @@ class LexerTestCase(unittest.TestCase):
         token = self.lexer.get_token()
         self.assertEqual(token.token, TokenType.DDOT, msg="DDOT Test Failed")
         self.assertEqual(token.lexeme, "..", msg="DDOT value test Failed")
+
+        token = self.lexer.get_token()
+        self.assertEqual(
+            token.token, TokenType.DOUBLECOLON, msg="DOUBLECOLON Test Failed"
+        )
+        self.assertEqual(
+            token.lexeme, "::", msg="DOUBLECOLON value test Failed"
+        )
 
     def test_line_count(self):
         self.buffer.write("\n\n\n\n\n")
