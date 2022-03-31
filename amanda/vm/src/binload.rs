@@ -13,10 +13,10 @@ pub enum Const {
 }
 
 #[derive(Debug)]
-pub struct Program<'a> {
+pub struct Module<'a> {
     pub constants: Vec<Const>,
     pub names: Vec<String>,
-    pub ops: Vec<u8>,
+    pub code: Vec<u8>,
     pub main: AmaFunc<'a>,
     pub functions: Vec<AmaFunc<'a>>,
     pub src_map: Vec<usize>,
@@ -209,7 +209,7 @@ fn doc_into_amafn<'a>(doc: BSONType) -> (String, usize, usize) {
     }
 }
 
-pub fn load_bin(amac_bin: &mut Vec<u8>) -> Program {
+pub fn load_bin(amac_bin: &mut Vec<u8>) -> Module {
     //Skip size bytes
     amac_bin.drain(0..4);
     let mut prog_data = unpack_bson_doc(amac_bin);
@@ -262,10 +262,10 @@ pub fn load_bin(amac_bin: &mut Vec<u8>) -> Program {
             unreachable!("functions should be an array of functions")
         };
 
-    Program {
+    Module {
         constants,
         names,
-        ops,
+        code: ops,
         src_map,
         main: AmaFunc {
             name: "_inicio_",
