@@ -2,7 +2,7 @@ import sys
 import pdb
 from io import StringIO
 import amanda.compiler.symbols as symbols
-from amanda.compiler.type import Type, OType
+from amanda.compiler.type import Type, Kind
 import amanda.compiler.ast as ast
 from amanda.compiler.error import AmandaError, throw_error
 
@@ -281,9 +281,9 @@ class Generator:
     def gen_expression(self, expression, prom_type):
         if prom_type == None:
             return expression
-        if prom_type.otype == OType.TINDEF:
+        if prom_type.otype == Kind.TINDEF:
             return f"indef({expression})"
-        elif prom_type.otype == OType.TREAL:
+        elif prom_type.otype == Kind.TREAL:
             return f"float({expression})"
         else:
             return expression
@@ -376,7 +376,7 @@ class Generator:
 
     def gen_mostra(self, node):
         expression = self.gen(node.exp)
-        if node.exp.eval_type.otype == OType.TVAZIO:
+        if node.exp.eval_type.otype == Kind.TVAZIO:
             expression = "vazio"
         return f"printc({expression})"
 
@@ -655,9 +655,9 @@ class Generator:
     def gen_expression(self, expression, prom_type):
         if prom_type == None:
             return expression
-        if prom_type.otype == OType.TINDEF:
+        if prom_type.otype == Kind.TINDEF:
             return f"indef({expression})"
-        elif prom_type.otype == OType.TREAL:
+        elif prom_type.otype == Kind.TREAL:
             return f"float({expression})"
         else:
             return expression
@@ -750,6 +750,6 @@ class Generator:
 
     def gen_mostra(self, node):
         expression = self.gen(node.exp)
-        if node.exp.eval_type.otype == OType.TVAZIO:
+        if node.exp.eval_type.otype == Kind.TVAZIO:
             expression = "vazio"
         return f"printc({expression})"

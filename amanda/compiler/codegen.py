@@ -4,7 +4,7 @@ from typing import List
 from io import StringIO, BytesIO
 from enum import Enum, auto
 import amanda.compiler.symbols as symbols
-from amanda.compiler.type import Type, OType
+from amanda.compiler.type import Type, Kind
 import amanda.compiler.ast as ast
 from amanda.compiler.tokens import TokenType as TT
 from amanda.compiler.error import AmandaError, throw_error

@@ -1,6 +1,6 @@
 from amanda.compiler.objects import Indef, Lista, BaseClass, Nulo
 import amanda.compiler.symbols as symbols
-from amanda.compiler.type import OType, Type
+from amanda.compiler.type import Kind, Type
 from amanda.compiler.error import AmandaError
 import os
 import pathlib
@@ -29,7 +29,7 @@ def ama_builtin(*params, returns=None):
         """Helper that creates a function_symbol and adds it
         to the dict of bltin symbols"""
         name = func.__name__
-        return_type = returns if returns else Type(OType.TVAZIO)
+        return_type = returns if returns else Type(Kind.TVAZIO)
         formal_params = {}
         for pname, ptype in params:
             formal_params[pname] = symbols.VariableSymbol(pname, ptype)
@@ -43,14 +43,14 @@ def ama_builtin(*params, returns=None):
 
 
 # Input functions
-@ama_builtin(("mensagem", Type(OType.TTEXTO)), returns=Type(OType.TTEXTO))
+@ama_builtin(("mensagem", Type(Kind.TTEXTO)), returns=Type(Kind.TTEXTO))
 def leia(prompt):
     """Calls the python input method using a prompt
     given by the amanda caller"""
     return input(prompt)
 
 
-@ama_builtin(("mensagem", Type(OType.TTEXTO)), returns=Type(OType.TINT))
+@ama_builtin(("mensagem", Type(Kind.TTEXTO)), returns=Type(Kind.TINT))
 def leia_int(prompt):
     """Same as 'leia' but converts the result into
     an int"""
@@ -60,7 +60,7 @@ def leia_int(prompt):
         raise AmandaError.runtime_err(INVALID_CONVERSION)
 
 
-@ama_builtin(("mensagem", Type(OType.TTEXTO)), returns=Type(OType.TREAL))
+@ama_builtin(("mensagem", Type(Kind.TTEXTO)), returns=Type(Kind.TREAL))
 def leia_real(prompt):
     """Same as 'leia' but converts the result into
     a float"""
@@ -111,7 +111,7 @@ def anexe(list_obj, value):
 
 
 # TODO: Test this for user defined types
-@ama_builtin(("valor", Type(OType.TINDEF)), returns=Type(OType.TTEXTO))
+@ama_builtin(("valor", Type(Kind.TINDEF)), returns=Type(Kind.TTEXTO))
 def tipo(indef_obj):
     """Returns the type of a
     value as a string. Useful for 'unwrapping'
@@ -128,7 +128,7 @@ def tipo(indef_obj):
     return types.get(type(value))
 
 
-@ama_builtin(("objecto", Type(OType.TINDEF)), returns=Type(OType.TINT))
+@ama_builtin(("objecto", Type(Kind.TINDEF)), returns=Type(Kind.TINT))
 def tamanho(indef_obj):
     value = indef_obj.value  # unwrap value
     if type(value) == Lista:
@@ -148,13 +148,13 @@ def print_wrapper(obj, **kwargs):
         print(obj, **kwargs)
 
 
-@ama_builtin(("objecto", Type(OType.TINDEF)), returns=None)
+@ama_builtin(("objecto", Type(Kind.TINDEF)), returns=None)
 def escreva(indef_obj):
     obj = str(indef_obj.value)
     print_wrapper(obj, end="")
 
 
-@ama_builtin(("objecto", Type(OType.TINDEF)), returns=None)
+@ama_builtin(("objecto", Type(Kind.TINDEF)), returns=None)
 def escrevaln(indef_obj):
     obj = str(indef_obj.value)
     print_wrapper(obj)

@@ -1,58 +1,58 @@
 from amanda.compiler.symbols import Symbol
-from enum import IntEnum
+from enum import auto, IntEnum
 
 # Describes the kind of a type
-class OType(IntEnum):
-    TINT = 1
-    TREAL = 2
-    TBOOL = 3
-    TTEXTO = 4
-    TINDEF = 5
-    TVAZIO = 6
-    TLISTA = 7
-    TKLASS = 8
-    TNULO = 9
+class Kind(IntEnum):
+    TINT = 0
+    TREAL = auto()
+    TBOOL = auto()
+    TTEXTO = auto()
+    TINDEF = auto()
+    TVAZIO = auto()
+    TLISTA = auto()
+    TKLASS = auto()
+    TNULO = auto()
 
     def __str__(self):
         return self.name.lower()[1:]
 
 
 class Type(Symbol):
-    def __init__(self, otype):
-        super().__init__(str(otype), None)
-        self.otype = otype
+    def __init__(self, kind):
+        super().__init__(str(kind), None)
+        self.kind = kind
 
     def __eq__(self, other):
         if not isinstance(other, Type):
             return False
-        return self.otype == other.otype
+        return self.kind == other.kind
 
     def is_numeric(self):
-        return self.otype == OType.TINT or self.otype == OType.TREAL
+        return self.kind == Kind.TINT or self.kind == Kind.TREAL
 
     def is_type(self):
         return True
 
     def __str__(self):
-        return str(self.otype)
+        return str(self.kind)
 
     def is_operable(self):
-        return self.otype != OType.TVAZIO and self.otype != OType.TINDEF
+        return self.kind != Kind.TVAZIO and self.kind != Kind.TINDEF
 
     def promote_to(self, other):
-        otype = self.otype
-        other_kind = other.otype
+        kind = self.kind
+        other_kind = other.kind
 
         auto_cast_table = {
-            OType.TINT: (OType.TREAL, OType.TINDEF),
-            OType.TREAL: (OType.TINDEF,),
-            OType.TBOOL: (OType.TINDEF,),
-            OType.TTEXTO: (OType.TINDEF,),
-            OType.TLISTA: (OType.TINDEF,),
-            OType.TKLASS: (OType.TINDEF,),
-            OType.TNULO: (OType.TKLASS,),
+            Kind.TINT: (Kind.TREAL, Kind.TINDEF),
+            Kind.TREAL: (Kind.TINDEF,),
+            Kind.TBOOL: (Kind.TINDEF,),
+            Kind.TTEXTO: (Kind.TINDEF,),
+            Kind.TLISTA: (Kind.TINDEF,),
+            Kind.TKLASS: (Kind.TINDEF,),
+            Kind.TNULO: (Kind.TKLASS,),
         }
-        auto_cast_types = auto_cast_table.get(otype)
+        auto_cast_types = auto_cast_table.get(kind)
 
         if not auto_cast_types or other_kind not in auto_cast_types:
             return None
@@ -62,7 +62,7 @@ class Type(Symbol):
 
 class Lista(Type):
     def __init__(self, subtype):
-        super().__init__(OType.TLISTA)
+        super().__init__(Kind.TLISTA)
         self.subtype = subtype
 
     def get_type(self):
@@ -82,7 +82,7 @@ class Lista(Type):
 
 class Klass(Type):
     def __init__(self, name, members):
-        super().__init__(OType.TKLASS)
+        super().__init__(Kind.TKLASS)
         self.name = name
         self.out_id = name
         self.members = members
