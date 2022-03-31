@@ -1,7 +1,6 @@
 use crate::ama_value::{AmaFunc, AmaValue};
 use crate::binload::{Const, Program};
 use crate::builtins;
-use std::borrow::Cow;
 use std::collections::HashMap;
 use std::convert::From;
 
@@ -126,6 +125,7 @@ impl<'a> FrameStack<'a> {
 pub struct AmaVM<'a> {
     program: Vec<u8>,
     constants: &'a Vec<Const>,
+    names: &'a Vec<String>,
     values: Vec<AmaValue<'a>>,
     frames: FrameStack<'a>,
     globals: HashMap<&'a str, AmaValue<'a>>,
@@ -148,6 +148,7 @@ impl<'a> AmaVM<'a> {
         let mut vm = AmaVM {
             program: program.ops.clone(),
             constants: &program.constants,
+            names: &program.names,
             values: vec![AmaValue::None; program.main.locals.into()],
             frames: FrameStack::new(),
             globals: builtins::load_builtins(),
@@ -265,13 +266,13 @@ impl<'a> AmaVM<'a> {
                 }
                 OpCode::GetGlobal => {
                     let id_idx = self.get_u16_arg() as usize;
-                    let id: &str = self.constants[id_idx].get_str();
+                    let id: &str = &self.names[id_idx];
                     //TODO: Do not use clone
                     self.op_push(self.globals.get(id).unwrap().clone());
                 }
                 OpCode::SetGlobal => {
                     let id_idx = self.get_u16_arg() as usize;
-                    let id = self.constants[id_idx].get_str();
+                    let id: &str = &self.names[id_idx];
                     let value = self.op_pop();
                     self.globals.insert(id, value);
                 }

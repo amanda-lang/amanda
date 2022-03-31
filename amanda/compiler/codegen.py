@@ -88,6 +88,9 @@ class ByteGen:
     Converts an amanda AST into executable bytecode instructions.
     """
 
+    CONST_TABLE = 0
+    NAME_TABLE = 1
+
     def __init__(self):
         self.depth = -1
         self.ama_lineno = 1  # tracks lineno in input amanda src
@@ -95,7 +98,7 @@ class ByteGen:
         self.scope_symtab = None
         self.func_locals = {}
         self.const_table = {}
-        self.constants = 0
+        self.names = {}
         self.labels = {}
         self.ops = []
         self.funcs = []
@@ -111,13 +114,13 @@ class ByteGen:
         """
         self.program_symtab = self.scope_symtab = program.symbols
         # Define builtin constants
-        self.get_const_index("verdadeiro")
-        self.get_const_index("falso")
+        self.get_table_index("verdadeiro", self.CONST_TABLE)
+        self.get_table_index("falso", self.CONST_TABLE)
         for name, symbol in program.symbols.symbols.items():
             if isinstance(symbol, symbols.VariableSymbol) or isinstance(
                 symbol, symbols.FunctionSymbol
             ):
-                self.get_const_index(name)
+                self.get_table_index(name, self.NAME_TABLE)
 
         self.compile_block(program)
         assert self.depth == -1, "A block was not exited in some local scope!"
@@ -147,6 +150,7 @@ class ByteGen:
         module = {
             "entry_locals": len(self.func_locals),
             "constants": list(self.const_table.keys()),
+            "names": list(self.names.keys()),
             "ops": code,
             "functions": self.funcs,
             "src_map": src_map,
@@ -179,7 +183,9 @@ class ByteGen:
         self.ops.append((op, args))
 
     def load_const(self, const):
-        self.append_op(OpCode.LOAD_CONST, self.get_const_index(const))
+        self.append_op(
+            OpCode.LOAD_CONST, self.get_table_index(const, self.CONST_TABLE)
+        )
 
     def format_u64_arg(self, arg) -> List[int]:
         u64 = struct.pack(">Q", arg)
@@ -278,29 +284,29 @@ class ByteGen:
             self.gen(child)
         self.exit_block()
 
-    def get_const_index(self, constant):
+    def get_table_index(self, item, table):
         # TODO: Make load const instruction use 64 bit arg
-        if constant in self.const_table:
-            idx = self.const_table[constant]
+        tab = self.const_table if table == self.CONST_TABLE else self.names
+        if item in tab:
+            idx = tab[item]
         else:
-            idx = self.constants
-            self.const_table[constant] = idx
-            self.constants += 1
+            idx = len(tab)
+            tab[item] = idx
         assert (
             idx < (2 ** 16) - 1
-        ), f"Too many constants found in program. VM cannot handle them"
+        ), f"Too many items in a single table for the current file."
         return idx
 
     def gen_constant(self, node):
         literal = str(node.token.lexeme)
-        idx = self.get_const_index(literal)
+        idx = self.get_table_index(literal, self.CONST_TABLE)
         self.append_op(OpCode.LOAD_CONST, idx)
         self.update_line_info()
 
     def load_variable(self, symbol):
         name = symbol.name
         if symbol.is_global:
-            self.append_op(OpCode.GET_GLOBAL, self.const_table[name])
+            self.append_op(OpCode.GET_GLOBAL, self.names[name])
         else:
             self.append_op(OpCode.GET_LOCAL, self.func_locals[symbol.out_id])
 
@@ -333,14 +339,14 @@ class ByteGen:
             self.gen_assign(assign)
         else:
             initializer = init_values[str(node.var_type)]
-            init_idx = self.get_const_index(initializer)
+            init_idx = self.get_table_index(initializer, self.CONST_TABLE)
             self.append_op(OpCode.LOAD_CONST, init_idx)
             self.set_variable(symbol)
 
     def set_variable(self, symbol):
         name = symbol.name
         if symbol.is_global:
-            var_idx = self.get_const_index(name)
+            var_idx = self.get_table_index(name, self.NAME_TABLE)
             self.append_op(OpCode.SET_GLOBAL, var_idx)
         else:
             local = symbol.out_id
@@ -495,7 +501,7 @@ class ByteGen:
     def gen_functiondecl(self, node):
         func_symbol = self.scope_symtab.resolve(node.name.lexeme)
         name = func_symbol.name
-        name_idx = self.get_const_index(func_symbol.name)
+        name_idx = self.get_table_index(func_symbol.name, self.NAME_TABLE)
         func_end = self.new_label()
 
         self.append_op(OpCode.JUMP, func_end)
