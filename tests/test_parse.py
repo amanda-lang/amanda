@@ -146,7 +146,7 @@ class LexerTestCase(unittest.TestCase):
 
     def test_identifier(self):
         self.buffer.write(
-            "_test1 test test2 __test3 nulo var mostra verdadeiro falso retorna se senao senaose enquanto entao inc para faca de fim func classe eu usa super vazio converte escolha caso como nativa"
+            "_test1 test test2 __test3 nulo var mostra verdadeiro falso retorna se senao senaose enquanto entao inc para faca de fim func classe eu usa super vazio escolha caso como nativa"
         )
         self.buffer.seek(0)
 
@@ -256,13 +256,6 @@ class LexerTestCase(unittest.TestCase):
         token = self.lexer.get_token()
         self.assertEqual(token.token, TokenType.VAZIO, msg="VAZIO Test Failed")
         self.assertEqual(token.lexeme, "vazio", msg="VAZIO value test Failed")
-        token = self.lexer.get_token()
-        self.assertEqual(
-            token.token, TokenType.CONVERTE, msg="CONVERTE Test Failed"
-        )
-        self.assertEqual(
-            token.lexeme, "converte", msg="CONVERTE value test Failed"
-        )
         token = self.lexer.get_token()
         self.assertEqual(
             token.token, TokenType.ESCOLHA, msg="ESCOLHA Test Failed"
@@ -482,12 +475,12 @@ class ParserTestCase(unittest.TestCase):
         self.buffer.seek(0)
         self.parser.parse()
 
-    def test_converte(self):
+    def test_cast(self):
         phrases = [
-            "converte(2+2,real)",
-            "converte(8,real) - 8.8 * 1 - 8",
-            "converte(1,bool) == verdadeiro",
-            "converte(1,[]int) == verdadeiro",
+            "(2+2)::int",
+            "8::real - 8.8 * 1 - 8",
+            "1::bool == verdadeiro",
+            "1::[]int == verdadeiro",
         ]
         for phrase in phrases:
             print(phrase, file=self.buffer)
