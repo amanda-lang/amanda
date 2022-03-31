@@ -1,5 +1,6 @@
 import sys
 import pdb
+from typing import List
 from io import StringIO, BytesIO
 from enum import Enum, auto
 import amanda.compiler.symbols as symbols
@@ -8,6 +9,7 @@ import amanda.compiler.ast as ast
 from amanda.compiler.tokens import TokenType as TT
 from amanda.compiler.error import AmandaError, throw_error
 from amanda.compiler import bindump
+import struct
 
 
 OP_SIZE = 8
@@ -35,10 +37,6 @@ class OpCode(Enum):
     OP_GREATEREQ = auto()
     OP_LESS = auto()
     OP_LESSEQ = auto()
-    # DEF_GLOBAL takes two args, the index to the name of the var,  table
-    # and the type of the var so that appropriate value may be chosen
-    # as an initializer
-    DEF_GLOBAL = auto()
     # Gets a global variable. The arg is the index to the name of the var on the
     # constant table. Pushes value to the top of the stack
     GET_GLOBAL = auto()
@@ -53,10 +51,6 @@ class OpCode(Enum):
     GET_LOCAL = auto()
     # Sets the value of a non-global variable. The arg is the slot on the stack where the var should be stored
     SET_LOCAL = auto()
-    # Creates a new function. Expects the const table index of the name of the function (TOS2),
-    # address of the first instruction to be on the stack (TOS)
-    # and the number of locals in the function
-    MAKE_FUNCTION = auto()
     # Calls a function. The argument of the op is the number args. Expects function value to be TOS.
     CALL_FUNCTION = auto()
     # Returns  from the caller.
@@ -67,20 +61,21 @@ class OpCode(Enum):
     def op_size(self) -> int:
         # Return number of bytes (including args) that each op
         # uses
-        if self in (
+        if self in (OpCode.CALL_FUNCTION,):
+            return OP_SIZE * 2
+        elif self in (
             OpCode.LOAD_CONST,
             OpCode.SET_LOCAL,
             OpCode.GET_LOCAL,
             OpCode.GET_GLOBAL,
             OpCode.SET_GLOBAL,
+        ):
+            return OP_SIZE * 3
+        elif self in (
             OpCode.JUMP,
             OpCode.JUMP_IF_FALSE,
         ):
-            return OP_SIZE * 3
-        elif self == OpCode.DEF_GLOBAL:
-            return OP_SIZE * 4
-        elif self in (OpCode.CALL_FUNCTION,):
-            return OP_SIZE * 2
+            return OP_SIZE * 9
         else:
             return OP_SIZE
 
@@ -93,6 +88,9 @@ class ByteGen:
     Converts an amanda AST into executable bytecode instructions.
     """
 
+    CONST_TABLE = 0
+    NAME_TABLE = 1
+
     def __init__(self):
         self.depth = -1
         self.ama_lineno = 1  # tracks lineno in input amanda src
@@ -100,9 +98,10 @@ class ByteGen:
         self.scope_symtab = None
         self.func_locals = {}
         self.const_table = {}
-        self.constants = 0
+        self.names = {}
         self.labels = {}
         self.ops = []
+        self.funcs = []
         self.ip = 0  # Current bytecode offset
         self.lineno = -1
         self.src_map = {}  # Maps source lines to bytecode offset
@@ -115,13 +114,13 @@ class ByteGen:
         """
         self.program_symtab = self.scope_symtab = program.symbols
         # Define builtin constants
-        self.get_const_index("verdadeiro")
-        self.get_const_index("falso")
+        self.get_table_index("verdadeiro", self.CONST_TABLE)
+        self.get_table_index("falso", self.CONST_TABLE)
         for name, symbol in program.symbols.symbols.items():
             if isinstance(symbol, symbols.VariableSymbol) or isinstance(
                 symbol, symbols.FunctionSymbol
             ):
-                self.get_const_index(name)
+                self.get_table_index(name, self.NAME_TABLE)
 
         self.compile_block(program)
         assert self.depth == -1, "A block was not exited in some local scope!"
@@ -148,14 +147,16 @@ class ByteGen:
             ), f"Found line with offset != 0: {(lineno, offsets)}"
             offsets.append(lineno)
             src_map.extend(offsets)
-        program_obj = {
+        module = {
             "entry_locals": len(self.func_locals),
             "constants": list(self.const_table.keys()),
+            "names": list(self.names.keys()),
             "ops": code,
+            "functions": self.funcs,
             "src_map": src_map,
         }
 
-        return bindump.dumps(program_obj)
+        return bindump.dumps(module)
 
     def new_label(self) -> str:
         idx = len(self.labels)
@@ -163,8 +164,7 @@ class ByteGen:
         return idx
 
     def patch_label_loc(self, label) -> str:
-        # TODO: Make jump instructions use 64 bit args
-        if self.ip > (2 ** 16) - 1:
+        if self.ip > (2 ** 64) - 1:
             raise Exception(
                 f"Address of jump ({self.ip}) is too large to be supported by the vm"
             )
@@ -183,7 +183,13 @@ class ByteGen:
         self.ops.append((op, args))
 
     def load_const(self, const):
-        self.append_op(OpCode.LOAD_CONST, self.get_const_index(const))
+        self.append_op(
+            OpCode.LOAD_CONST, self.get_table_index(const, self.CONST_TABLE)
+        )
+
+    def format_u64_arg(self, arg) -> List[int]:
+        u64 = struct.pack(">Q", arg)
+        return [int(b) for b in u64]
 
     def format_u16_arg(self, arg):
         high = (arg & 0xFF00) >> 8
@@ -192,29 +198,23 @@ class ByteGen:
 
     def write_op_bytes(self, op) -> bytes:
         op, args = op
+        # Get patched jump label
         if op in (OpCode.JUMP_IF_FALSE, OpCode.JUMP):
             args = [self.labels[args[0]]]
-        if op in (
-            OpCode.LOAD_CONST,
-            OpCode.SET_LOCAL,
-            OpCode.GET_LOCAL,
-            OpCode.GET_GLOBAL,
-            OpCode.SET_GLOBAL,
-            OpCode.JUMP,
-            OpCode.JUMP_IF_FALSE,
-        ):
-            high, low = self.format_u16_arg(args[0])
-            return bytes([op.value, high, low])
-        elif op == OpCode.DEF_GLOBAL:
-            high, low = self.format_u16_arg(args[0])
-            return bytes([op.value, high, low, args[1]])
+
+        if op.op_size() == OP_SIZE:
+            return bytes([op.value])
         elif op.op_size() == OP_SIZE * 2:
             return bytes([op.value, args[0]])
-        elif op.op_size() == OP_SIZE:
-            return bytes([op.value])
+        elif op.op_size() == OP_SIZE * 3:
+            high, low = self.format_u16_arg(args[0])
+            return bytes([op.value, high, low])
+        elif op.op_size() == OP_SIZE * 9:
+            u64 = self.format_u64_arg(args[0])
+            return bytes([op.value, *u64])
         else:
             raise NotImplementedError(
-                f"Encoding of op {op} has not yet been implemented"
+                f"Encoding of op {op.name} has not yet been implemented"
             )
 
     def disassemble_op(self, op, args) -> str:
@@ -284,29 +284,29 @@ class ByteGen:
             self.gen(child)
         self.exit_block()
 
-    def get_const_index(self, constant):
+    def get_table_index(self, item, table):
         # TODO: Make load const instruction use 64 bit arg
-        if constant in self.const_table:
-            idx = self.const_table[constant]
+        tab = self.const_table if table == self.CONST_TABLE else self.names
+        if item in tab:
+            idx = tab[item]
         else:
-            idx = self.constants
-            self.const_table[constant] = idx
-            self.constants += 1
+            idx = len(tab)
+            tab[item] = idx
         assert (
-            idx < 2 ** 16
-        ), f"Too many constants found in program. VM cannot handle them"
+            idx < (2 ** 16) - 1
+        ), f"Too many items in a single table for the current file."
         return idx
 
     def gen_constant(self, node):
         literal = str(node.token.lexeme)
-        idx = self.get_const_index(literal)
+        idx = self.get_table_index(literal, self.CONST_TABLE)
         self.append_op(OpCode.LOAD_CONST, idx)
         self.update_line_info()
 
     def load_variable(self, symbol):
         name = symbol.name
         if symbol.is_global:
-            self.append_op(OpCode.GET_GLOBAL, self.const_table[name])
+            self.append_op(OpCode.GET_GLOBAL, self.names[name])
         else:
             self.append_op(OpCode.GET_LOCAL, self.func_locals[symbol.out_id])
 
@@ -331,35 +331,22 @@ class ByteGen:
         # Find a better way to do this
         init_values = {
             "int": 0,
-            "real": 1,
-            "bool": 2,
-            "texto": 3,
+            "real": "0.0",  # Warning: This might come back to haunt me
+            "bool": "falso",
+            "texto": "''",
         }
-        # Def global vars
-        # TODO: Simplify this by using set global. DEF_GLOBAL should also probably be removed
-        if symbol.is_global:
-            id_idx = self.get_const_index(idt)
-            if assign:
-                self.gen(assign)
-            else:
-                self.append_op(
-                    OpCode.DEF_GLOBAL, id_idx, init_values[str(node.var_type)]
-                )
-            return
-        # Def local var
         if assign:
             self.gen_assign(assign)
         else:
-            node_type = init_values[str(node.var_type)]
-            initializer = {0: 0, 1: 0.0, 2: "falso", 3: "''"}[node_type]
-            init_idx = self.get_const_index(initializer)
+            initializer = init_values[str(node.var_type)]
+            init_idx = self.get_table_index(initializer, self.CONST_TABLE)
             self.append_op(OpCode.LOAD_CONST, init_idx)
             self.set_variable(symbol)
 
     def set_variable(self, symbol):
         name = symbol.name
         if symbol.is_global:
-            var_idx = self.get_const_index(name)
+            var_idx = self.get_table_index(name, self.NAME_TABLE)
             self.append_op(OpCode.SET_GLOBAL, var_idx)
         else:
             local = symbol.out_id
@@ -513,8 +500,8 @@ class ByteGen:
 
     def gen_functiondecl(self, node):
         func_symbol = self.scope_symtab.resolve(node.name.lexeme)
-        name = func_symbol.out_id
-        name_idx = self.get_const_index(func_symbol.name)
+        name = func_symbol.name
+        name_idx = self.get_table_index(func_symbol.name, self.NAME_TABLE)
         func_end = self.new_label()
 
         self.append_op(OpCode.JUMP, func_end)
@@ -540,13 +527,14 @@ class ByteGen:
         self.func_locals = prev_func_locals
 
         self.patch_label_loc(func_end)
-        # Push args for function data
-        self.load_const(name_idx)
-        self.load_const(self.labels[func_start])
-        self.load_const(num_locals)
-
-        self.append_op(OpCode.MAKE_FUNCTION)
-        self.set_variable(func_symbol)
+        # TODO: use uint64 for ip and locals
+        self.funcs.append(
+            {
+                "name": name,
+                "start_ip": self.labels[func_start],
+                "locals": num_locals,
+            }
+        )
 
     def gen_call(self, node):
         func = node.symbol

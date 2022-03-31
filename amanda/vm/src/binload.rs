@@ -1,5 +1,4 @@
 use crate::ama_value::AmaFunc;
-use crate::vm::OpCode;
 use std::collections::HashMap;
 use std::io::Cursor;
 use std::io::Read;
@@ -14,14 +13,14 @@ pub enum Const {
 }
 
 #[derive(Debug)]
-pub struct Program<'a> {
+pub struct Module<'a> {
     pub constants: Vec<Const>,
-    pub ops: Vec<u8>,
+    pub names: Vec<String>,
+    pub code: Vec<u8>,
     pub main: AmaFunc<'a>,
+    pub functions: Vec<AmaFunc<'a>>,
     pub src_map: Vec<usize>,
 }
-
-//TODO: Implement From after i move Const to it's own file
 
 impl Const {
     pub fn get_str(&self) -> &String {
@@ -196,7 +195,21 @@ macro_rules! bson_take {
     };
 }
 
-pub fn load_bin(amac_bin: &mut Vec<u8>) -> Program {
+fn doc_into_amafn<'a>(doc: BSONType) -> (String, usize, usize) {
+    if let BSONType::Doc(mut func) = doc {
+        let start_ip = bson_take!(BSONType::Int, func.remove("start_ip").unwrap()) as usize;
+
+        (
+            bson_take!(BSONType::String, func.remove("name").unwrap()),
+            start_ip,
+            bson_take!(BSONType::Int, func.remove("locals").unwrap()) as usize,
+        )
+    } else {
+        unreachable!("functions should be an array of functions")
+    }
+}
+
+pub fn load_bin(amac_bin: &mut Vec<u8>) -> Module {
     //Skip size bytes
     amac_bin.drain(0..4);
     let mut prog_data = unpack_bson_doc(amac_bin);
@@ -206,6 +219,14 @@ pub fn load_bin(amac_bin: &mut Vec<u8>) -> Program {
         .take_vec()
         .into_iter()
         .map(|constant| Const::from(constant))
+        .collect();
+
+    let names: Vec<String> = prog_data
+        .remove("names")
+        .unwrap()
+        .take_vec()
+        .into_iter()
+        .map(|name| bson_take!(BSONType::String, name))
         .collect();
 
     let ops = bson_take!(BSONType::Bytes, prog_data.remove("ops").unwrap());
@@ -220,9 +241,31 @@ pub fn load_bin(amac_bin: &mut Vec<u8>) -> Program {
         unreachable!("src_map should be an array of ints")
     };
 
-    Program {
+    let functions: Vec<AmaFunc> =
+        if let BSONType::Array(funcs) = prog_data.remove("functions").unwrap() {
+            funcs
+                .into_iter()
+                .map(|func| {
+                    let (name, start_ip, locals) = doc_into_amafn(func);
+                    AmaFunc {
+                        //TODO: Check if i should be leaking memory
+                        name: Box::leak(name.into_boxed_str()),
+                        bp: -1,
+                        start_ip: start_ip,
+                        last_i: start_ip,
+                        ip: start_ip,
+                        locals: locals,
+                    }
+                })
+                .collect()
+        } else {
+            unreachable!("functions should be an array of functions")
+        };
+
+    Module {
         constants,
-        ops,
+        names,
+        code: ops,
         src_map,
         main: AmaFunc {
             name: "_inicio_",
@@ -232,6 +275,7 @@ pub fn load_bin(amac_bin: &mut Vec<u8>) -> Program {
             ip: 0,
             locals: entry_locals as usize,
         },
+        functions,
     }
 }
 

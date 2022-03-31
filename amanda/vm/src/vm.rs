@@ -1,7 +1,6 @@
 use crate::ama_value::{AmaFunc, AmaValue};
-use crate::binload::{Const, Program};
+use crate::binload::Module;
 use crate::builtins;
-use std::borrow::Cow;
 use std::collections::HashMap;
 use std::convert::From;
 
@@ -26,14 +25,12 @@ pub enum OpCode {
     OpGreaterEq,
     OpLess,
     OpLessEq,
-    DefGlobal,
     GetGlobal,
     SetGlobal,
     Jump,
     JumpIfFalse,
     GetLocal,
     SetLocal,
-    MakeFunction,
     CallFunction,
     Return,
     Halt = 255,
@@ -60,14 +57,12 @@ impl From<&u8> for OpCode {
             OpCode::OpGreaterEq,
             OpCode::OpLess,
             OpCode::OpLessEq,
-            OpCode::DefGlobal,
             OpCode::GetGlobal,
             OpCode::SetGlobal,
             OpCode::Jump,
             OpCode::JumpIfFalse,
             OpCode::GetLocal,
             OpCode::SetLocal,
-            OpCode::MakeFunction,
             OpCode::CallFunction,
             OpCode::Return,
         ];
@@ -128,12 +123,10 @@ impl<'a> FrameStack<'a> {
 }
 
 pub struct AmaVM<'a> {
-    program: Vec<u8>,
-    constants: &'a Vec<Const>,
-    values: Vec<AmaValue<'a>>,
+    module: &'a Module<'a>,
     frames: FrameStack<'a>,
     globals: HashMap<&'a str, AmaValue<'a>>,
-    src_map: &'a Vec<usize>,
+    values: Vec<AmaValue<'a>>,
     sp: isize,
 }
 
@@ -148,19 +141,21 @@ fn offset_to_line(offset: usize, src_map: &Vec<usize>) -> usize {
 }
 
 impl<'a> AmaVM<'a> {
-    pub fn new(program: &'a Program<'a>) -> Self {
+    pub fn new(module: &'a Module<'a>) -> Self {
         let mut vm = AmaVM {
-            program: program.ops.clone(),
-            constants: &program.constants,
-            values: vec![AmaValue::None; program.main.locals.into()],
+            module,
             frames: FrameStack::new(),
             globals: builtins::load_builtins(),
-            src_map: &program.src_map,
+            values: vec![AmaValue::None; module.main.locals.into()],
             sp: -1,
         };
-        vm.frames.push(program.main).unwrap();
+        vm.frames.push(module.main).unwrap();
         vm.sp = vm.values.len() as isize - 1;
         vm.frames.peek_mut().bp = if vm.sp > -1 { 0 } else { -1 };
+
+        for func in module.functions.iter() {
+            vm.globals.insert(func.name, AmaValue::Func(*func));
+        }
 
         vm
     }
@@ -191,11 +186,19 @@ impl<'a> AmaVM<'a> {
 
     fn get_byte(&mut self) -> u8 {
         self.frames.peek_mut().ip += 1;
-        self.program[self.frames.peek().ip]
+        self.module.code[self.frames.peek().ip]
     }
 
     fn get_u16_arg(&mut self) -> u16 {
         ((self.get_byte() as u16) << 8) | self.get_byte() as u16
+    }
+
+    fn get_u64_arg(&mut self) -> u64 {
+        let mut uint64 = [0; 8];
+        for i in 0..8 {
+            uint64[i] = self.get_byte();
+        }
+        u64::from_be_bytes(uint64)
     }
 
     fn reserve_stack_space(&mut self, size: usize) {
@@ -206,12 +209,12 @@ impl<'a> AmaVM<'a> {
 
     pub fn run(&mut self) -> Result<(), AmaErr> {
         loop {
-            let op = self.program[self.frames.peek().ip];
+            let op = self.module.code[self.frames.peek().ip];
             self.frames.peek_mut().last_i = self.frames.peek().ip;
             match OpCode::from(&op) {
                 OpCode::LoadConst => {
                     let idx = self.get_u16_arg();
-                    self.op_push(AmaValue::from(&self.constants[idx as usize]));
+                    self.op_push(AmaValue::from(&self.module.constants[idx as usize]));
                 }
                 OpCode::Mostra => println!("{}", self.op_pop()),
                 //Binary Operations
@@ -256,33 +259,20 @@ impl<'a> AmaVM<'a> {
                         }
                     }
                 }
-                OpCode::DefGlobal => {
-                    let id_idx = self.get_u16_arg() as usize;
-                    let init_type = self.get_byte();
-                    let initializer = match init_type {
-                        0 => AmaValue::Int(0),
-                        1 => AmaValue::F64(0.0),
-                        2 => AmaValue::Bool(false),
-                        3 => AmaValue::Str(Cow::Owned(String::from(""))),
-                        _ => unimplemented!("Unknown type initializer"),
-                    };
-                    let id = self.constants[id_idx].get_str();
-                    self.globals.insert(id, initializer);
-                }
                 OpCode::GetGlobal => {
                     let id_idx = self.get_u16_arg() as usize;
-                    let id: &str = self.constants[id_idx].get_str();
+                    let id: &str = &self.module.names[id_idx];
                     //TODO: Do not use clone
                     self.op_push(self.globals.get(id).unwrap().clone());
                 }
                 OpCode::SetGlobal => {
                     let id_idx = self.get_u16_arg() as usize;
-                    let id = self.constants[id_idx].get_str();
+                    let id: &str = &self.module.names[id_idx];
                     let value = self.op_pop();
                     self.globals.insert(id, value);
                 }
                 OpCode::Jump => {
-                    let addr = self.get_u16_arg() as usize;
+                    let addr = self.get_u64_arg() as usize;
                     self.frames.peek_mut().ip = addr;
                     continue;
                 }
@@ -291,7 +281,7 @@ impl<'a> AmaVM<'a> {
                      * Jumps if the top of the values is false
                      * Pops the values
                      * */
-                    let addr = self.get_u16_arg() as usize;
+                    let addr = self.get_u64_arg() as usize;
                     let value = self.op_pop();
                     if let AmaValue::Bool(false) = value {
                         self.frames.peek_mut().ip = addr;
@@ -306,21 +296,6 @@ impl<'a> AmaVM<'a> {
                 OpCode::SetLocal => {
                     let idx = self.frames.peek().bp as usize + self.get_u16_arg() as usize;
                     self.values[idx] = self.op_pop();
-                }
-                OpCode::MakeFunction => {
-                    let locals = self.op_pop().take_int() as usize;
-                    let addr = self.op_pop().take_int() as usize;
-                    let name_idx = self.op_pop().take_int() as usize;
-                    let name = self.constants[name_idx].get_str();
-
-                    self.op_push(AmaValue::Func(AmaFunc {
-                        name,
-                        start_ip: addr,
-                        ip: addr,
-                        last_i: addr,
-                        bp: -1,
-                        locals,
-                    }));
                 }
                 OpCode::CallFunction => {
                     let args = self.get_byte() as isize;
@@ -388,7 +363,7 @@ impl<'a> AmaVM<'a> {
 
     fn panic_and_throw(&mut self, error: &str) -> AmaErr {
         let mut frames_sp = self.frames.sp;
-        let mut err_str = if frames_sp == 0 {
+        let mut err_str = if frames_sp > 0 {
             String::from("Fluxo de execução: \n")
         } else {
             String::from("")
@@ -397,14 +372,14 @@ impl<'a> AmaVM<'a> {
             if frames_sp == 0 {
                 err_str.push_str(&format!(
                     "Erro na linha {}: {}.",
-                    offset_to_line(func.last_i, self.src_map),
+                    offset_to_line(func.last_i, &self.module.src_map),
                     error
                 ));
                 break;
             }
             err_str.push_str(&format!(
                 "    Linha {}, na função {}\n",
-                offset_to_line(func.last_i, self.src_map),
+                offset_to_line(func.last_i, &self.module.src_map),
                 func.name
             ));
             frames_sp = self.frames.sp;
@@ -416,6 +391,10 @@ impl<'a> AmaVM<'a> {
         println!("[Function]: {}", self.frames.peek().name);
         println!("[IP]: {}", self.frames.peek().ip);
         println!("[SP]: {}", self.sp);
+        println!(
+            "[OP]: {:?}",
+            OpCode::from(&self.module.code[self.frames.peek().ip])
+        );
         println!("[BP]: {}", self.frames.peek().bp);
         println!("[STACK]: {:?}", self.values);
         println!("--------------");
