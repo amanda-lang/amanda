@@ -765,7 +765,7 @@ class Parser:
         if self.match(TT.DOUBLECOLON):
             token = self.consume(TT.DOUBLECOLON)
             new_type = self.type()
-            return ast.Converte(token, expr, new_type)
+            return ast.Converta(token, expr, new_type)
         return expr
 
     def primary(self):
