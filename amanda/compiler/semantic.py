@@ -496,19 +496,13 @@ class Analyzer(ast.Visitor):
         node.eval_type = t_type.subtype
 
     def visit_converta(self, node):
-        # Allowed conversions:
-        # int -> bool,real,texto,indef
-        # real -> bool,real,texto,indef
-        # bool -> texto,indef
-        # texto -> int,real,bool,indef
-        # indef -> int,real,bool,texto
-        # check expression
-        # TODO: statically enforce these checks here
-        self.visit(node.expression)
-        type_symbol = self.get_type(node.new_type)
-
-        # Update eval_type
-        node.eval_type = type_symbol
+        self.visit(node.target)
+        t_type = node.target.eval_type
+        new_type = self.get_type(node.new_type)
+        err_msg = f"Não pode converter um valor do tipo '{t_type}' para o tipo '{new_type}'"
+        if not t_type.check_cast(new_type):
+            self.error(err_msg)
+        node.eval_type = new_type
 
     def visit_binop(self, node):
         ls = self.visit(node.left)

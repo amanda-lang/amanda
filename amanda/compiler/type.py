@@ -16,6 +16,9 @@ class Kind(IntEnum):
     def __str__(self):
         return self.name.lower()[1:]
 
+    def cast_to(self, other):
+        pass
+
 
 class Type(Symbol):
     def __init__(self, kind):
@@ -38,6 +41,43 @@ class Type(Symbol):
 
     def is_operable(self):
         return self.kind != Kind.TVAZIO and self.kind != Kind.TINDEF
+
+    def check_cast(self, other) -> bool:
+        # Allowed conversions:
+        # int -> real, bool,real,texto,indef
+        # real -> int, bool,real,texto,indef
+        # *bool -> texto,indef
+        # texto -> int,real,bool,indef
+        # indef -> int,real,bool,texto
+        kind = self.kind
+        other_kind = other.kind
+
+        if kind == other_kind:
+            return True
+
+        primitives = (
+            Kind.TINT,
+            Kind.TTEXTO,
+            Kind.TBOOL,
+            Kind.TREAL,
+            Kind.TINDEF,
+        )
+        cast_table = {
+            Kind.TINT: primitives,
+            Kind.TREAL: primitives,
+            Kind.TTEXTO: primitives,
+            Kind.TBOOL: (Kind.TTEXTO, Kind.TINDEF),
+            Kind.TLISTA: (Kind.TINDEF,),
+            Kind.TKLASS: (Kind.TINDEF,),
+            Kind.TNULO: (Kind.TKLASS,),
+            Kind.TINDEF: (*primitives, Kind.TKLASS, Kind.TLISTA),
+        }
+        cast_types = cast_table.get(kind)
+
+        if not cast_types or other_kind not in cast_types:
+            return False
+
+        return True
 
     def promote_to(self, other):
         kind = self.kind
