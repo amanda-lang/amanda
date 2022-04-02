@@ -4,7 +4,7 @@ from typing import List
 from io import StringIO, BytesIO
 from enum import Enum, auto
 import amanda.compiler.symbols as symbols
-from amanda.compiler.type import Type, OType
+from amanda.compiler.type import Type, Kind
 import amanda.compiler.ast as ast
 from amanda.compiler.tokens import TokenType as TT
 from amanda.compiler.error import AmandaError, throw_error
@@ -55,13 +55,18 @@ class OpCode(Enum):
     CALL_FUNCTION = auto()
     # Returns  from the caller.
     RETURN = auto()
+    # Converts a value into the desired type. Expects TOS to be the target type and TOS-1 the value to convert.
+    # Takes an 8-bit argument that changes the 'strictness' of the conversion.
+    # 0 (cast): Performs the cast as long as the builtin type can be cast into type.
+    # 1 (check cast): Validates if 'interface' type can be cast into the desired type.
+    CAST = auto()
     # Stops execution of the VM. Must always be added to stop execution of the vm
     HALT = 0xFF
 
     def op_size(self) -> int:
         # Return number of bytes (including args) that each op
         # uses
-        if self in (OpCode.CALL_FUNCTION,):
+        if self in (OpCode.CALL_FUNCTION, OpCode.CAST):
             return OP_SIZE * 2
         elif self in (
             OpCode.LOAD_CONST,
@@ -116,10 +121,13 @@ class ByteGen:
         # Define builtin constants
         self.get_table_index("verdadeiro", self.CONST_TABLE)
         self.get_table_index("falso", self.CONST_TABLE)
+        sym_types = (
+            symbols.VariableSymbol,
+            symbols.FunctionSymbol,
+            Type,
+        )
         for name, symbol in program.symbols.symbols.items():
-            if isinstance(symbol, symbols.VariableSymbol) or isinstance(
-                symbol, symbols.FunctionSymbol
-            ):
+            if type(symbol) in sym_types:
                 self.get_table_index(name, self.NAME_TABLE)
 
         self.compile_block(program)
@@ -232,9 +240,12 @@ class ByteGen:
         debug_out.write(f".entry_space: ")
         debug_out.write(str(len(self.func_locals)))
         debug_out.write("\n")
-        debug_out.write(".data\n")
+        debug_out.write(".consts\n")
         for const, i in self.const_table.items():
             debug_out.write(f"{i}: {const}\n")
+        debug_out.write(".names\n")
+        for name, i in self.names.items():
+            debug_out.write(f"{i}: {name}\n")
         debug_out.write(".ops\n")
 
         i = 0
@@ -301,7 +312,7 @@ class ByteGen:
         literal = str(node.token.lexeme)
         idx = self.get_table_index(literal, self.CONST_TABLE)
         self.append_op(OpCode.LOAD_CONST, idx)
-        self.update_line_info()
+        self.gen_auto_cast(node.prom_type)
 
     def load_variable(self, symbol):
         name = symbol.name
@@ -321,6 +332,7 @@ class ByteGen:
         prom_type = node.prom_type
         var_scope = self.scope_symtab.resolve_scope(name, self.depth)
         self.load_variable(symbol)
+        self.gen_auto_cast(prom_type)
 
     def gen_vardecl(self, node):
         assign = node.assign
@@ -379,6 +391,7 @@ class ByteGen:
             raise NotImplementedError(
                 f"OP {node.token.token} has not yet been implemented"
             )
+        self.gen_auto_cast(node.prom_type)
 
     def gen_binop(self, node):
         self.gen(node.left)
@@ -416,6 +429,7 @@ class ByteGen:
             raise NotImplementedError(
                 f"OP {node.token.token} has not yet been implemented"
             )
+        self.gen_auto_cast(node.prom_type)
 
     def gen_se(self, node):
         else_branch = node.else_branch
@@ -543,6 +557,7 @@ class ByteGen:
             self.gen(arg)
         self.gen(node.callee)
         self.append_op(OpCode.CALL_FUNCTION, len(node.fargs))
+        self.gen_auto_cast(node.prom_type)
 
     def gen_retorna(self, node):
         if node.exp:
@@ -550,6 +565,24 @@ class ByteGen:
         else:
             self.load_const("falso")
         self.append_op(OpCode.RETURN)
+
+    def gen_converta(self, node):
+        target_t = node.target.eval_type
+        new_t = node.eval_type
+        self.gen(node.target)
+        # Converting to same type, can ignore this
+        # TODO: Do this in sem analysis
+        if new_t.kind == target_t.kind or new_t.kind == Kind.TINDEF:
+            return
+        self.load_variable(new_t)
+        arg = 0 if target_t.kind != Kind.TINDEF else 1
+        self.append_op(OpCode.CAST, arg)
+
+    def gen_auto_cast(self, prom_type):
+        if not prom_type or prom_type.kind != Kind.TREAL:
+            return
+        self.load_variable(prom_type)
+        self.append_op(OpCode.CAST, 0)
 
     def gen_mostra(self, node):
         self.gen(node.exp)

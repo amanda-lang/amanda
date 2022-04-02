@@ -1,0 +1,2 @@
+_: real = "hello world"::real
+#[output]: Erro na linha 1: A sequência de caracteres 'hello world' não é um número real válido.

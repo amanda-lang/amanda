@@ -157,7 +157,7 @@ unary
   ;
 
 call
-   : primary (LPAR args? RPAR | index | DOT IDENTIFIER)*
+   : primary ((LPAR args? RPAR | index | DOT IDENTIFIER)* | DOUBLECOLON type)?
    ;
 
 
@@ -167,11 +167,10 @@ primary
   | STRING
   | VERDADEIRO
   | FALSO
-  | LPAR expression RPAR
+  | LPAR equality RPAR
   | LBRACKET type COLON args? RBRACKET
   | IDENTIFIER 
   | EU
-  | CONVERTE LPAR equality COMMA IDENTIFIER RPAR
   | NULO
   ;
 

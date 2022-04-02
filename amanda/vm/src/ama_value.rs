@@ -1,4 +1,5 @@
 use crate::binload::Const;
+use crate::errors::AmaErr;
 use crate::vm::OpCode;
 use std::borrow::Cow;
 use std::convert::From;
@@ -50,7 +51,7 @@ pub type FuncArgs<'a> = Option<*const AmaValue<'a>>;
 #[derive(Debug, Clone, Copy)]
 pub struct NativeFunc<'a> {
     pub name: &'a str,
-    pub func: fn(FuncArgs<'a>) -> Result<AmaValue<'a>, &'static str>,
+    pub func: fn(FuncArgs<'a>) -> Result<AmaValue<'a>, AmaErr>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -63,6 +64,15 @@ pub struct AmaFunc<'a> {
     pub locals: usize,
 }
 
+/*Primitive Types*/
+#[derive(Debug, Copy, Clone)]
+pub enum Type {
+    Int,
+    Real,
+    Texto,
+    Bool,
+}
+
 #[derive(Debug)]
 pub enum AmaValue<'a> {
     Str(Cow<'a, String>),
@@ -71,10 +81,21 @@ pub enum AmaValue<'a> {
     Bool(bool),
     Func(AmaFunc<'a>),
     NativeFn(NativeFunc<'a>),
+    Type(Type),
     None,
 }
 
 impl<'a> AmaValue<'a> {
+    pub fn get_type(&self) -> Type {
+        match self {
+            AmaValue::Str(string) => Type::Texto,
+            AmaValue::Int(int) => Type::Int,
+            AmaValue::F64(float) => Type::Real,
+            AmaValue::Bool(val) => Type::Bool,
+            _ => unimplemented!("Cannot return type for this value: {:?}", self),
+        }
+    }
+
     pub fn is_float(&self) -> bool {
         if let AmaValue::F64(_) = self {
             true
@@ -95,6 +116,13 @@ impl<'a> AmaValue<'a> {
         match self {
             AmaValue::Int(int) => *int,
             AmaValue::F64(float) => *float as i64,
+            _ => panic!("Value is not an int"),
+        }
+    }
+
+    pub fn take_type(&self) -> Type {
+        match self {
+            AmaValue::Type(t) => *t,
             _ => panic!("Value is not an int"),
         }
     }
@@ -212,6 +240,7 @@ impl Clone for AmaValue<'_> {
             AmaValue::None => AmaValue::None,
             AmaValue::Func(function) => AmaValue::Func(*function),
             AmaValue::NativeFn(func) => AmaValue::NativeFn(*func),
+            AmaValue::Type(t) => AmaValue::Type(*t),
         }
     }
 }
@@ -234,5 +263,74 @@ impl Display for AmaValue<'_> {
             AmaValue::None => panic!("None value should not be printed"),
             _ => write!(f, "{:?}", self),
         }
+    }
+}
+
+impl Type {
+    pub fn name(&self) -> &str {
+        match self {
+            Type::Int => "int",
+            Type::Real => "real",
+            Type::Texto => "texto",
+            Type::Bool => "bool",
+        }
+    }
+}
+
+pub fn check_cast(val_t: Type, target: Type) -> bool {
+    val_t as u8 == target as u8
+}
+
+pub fn cast(value: AmaValue, target: Type) -> Result<AmaValue, String> {
+    match target {
+        Type::Texto => Ok(AmaValue::Str(Cow::Owned(format!("{}", value)))),
+        Type::Int => match value {
+            AmaValue::F64(_) => Ok(AmaValue::Int(value.take_int())),
+            AmaValue::Str(string) => {
+                let maybe_int = string.parse::<i64>();
+                if let Err(_) = maybe_int {
+                    Err(format!(
+                        "A sequência de caracteres '{}' não é um inteiro válido",
+                        string
+                    ))
+                } else {
+                    Ok(AmaValue::Int(maybe_int.unwrap()))
+                }
+            }
+            _ => unimplemented!(
+                "Fatal error! Should not reach conversion between: {:?} and {:?}",
+                value,
+                target
+            ),
+        },
+        Type::Real => match value {
+            AmaValue::Int(_) => Ok(AmaValue::F64(value.take_float())),
+            AmaValue::Str(string) => {
+                let maybe_real = string.parse::<f64>();
+                if let Err(_) = maybe_real {
+                    Err(format!(
+                        "A sequência de caracteres '{}' não é um número real válido",
+                        string
+                    ))
+                } else {
+                    Ok(AmaValue::F64(maybe_real.unwrap()))
+                }
+            }
+            _ => unimplemented!(
+                "Fatal error! Should not reach conversion between: {:?} and {:?}",
+                value,
+                target
+            ),
+        },
+        Type::Bool => match value {
+            AmaValue::Int(int) => Ok(AmaValue::Bool(int != 0)),
+            AmaValue::F64(double) => Ok(AmaValue::Bool(double != 0.0)),
+            AmaValue::Str(string) => Ok(AmaValue::Bool(string.as_ref() != "")),
+            _ => unimplemented!(
+                "Fatal error! Should not reach conversion between: {:?} and {:?}",
+                value,
+                target
+            ),
+        },
     }
 }

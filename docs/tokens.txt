@@ -33,7 +33,6 @@ VERDADEIRO : verdadeiro
 FALSO : falso
 RETORNA : retorna
 CASO: caso
-CONVERTE : converte
 SE : se
 SENAO : senao
 SENAOSE : senaose
@@ -73,5 +72,6 @@ RBRACE : }
 LBRACKET : [
 RBRACKET : ]
 COLON : ":"
+DOUBLECOLON: "::"
 NEWLINE : "\n"
 COMMENTS: "#"

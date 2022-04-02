@@ -62,10 +62,10 @@ class Variable(Expr):
         return True
 
 
-class Converte(Expr):
-    def __init__(self, token, expression, new_type):
+class Converta(Expr):
+    def __init__(self, token, target, new_type):
         super().__init__(token)
-        self.expression = expression
+        self.target = target
         self.new_type = new_type
         self.tag_children()
 

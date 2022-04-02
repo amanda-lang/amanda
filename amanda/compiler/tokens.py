@@ -38,6 +38,7 @@ class TokenType(Enum):
     LBRACKET = "LBRACKET"
     RBRACKET = "RBRACKET"
     COLON = "COLON"
+    DOUBLECOLON = "DOUBLECOLON"
     NEWLINE = "NEWLINE"
 
     # LOGIC OP
@@ -65,7 +66,6 @@ class TokenType(Enum):
     ENTAO = "ENTAO"
     ENQUANTO = "ENQUANTO"
     PARA = "PARA"
-    CONVERTE = "CONVERTE"
     FACA = "FACA"
     DE = "DE"
     USA = "USA"

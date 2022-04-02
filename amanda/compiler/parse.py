@@ -23,11 +23,6 @@ class Lexer:
         self.current_char = None
         self.file = src  # A file object
 
-    @classmethod
-    def string_lexer(cls, string):
-        # Constructor to create a lexer with a string
-        return cls(StringIO(string))
-
     def advance(self):
         if self.current_char == Lexer.EOF:
             return
@@ -200,6 +195,9 @@ class Lexer:
             return Token(TT.RBRACKET, char, self.line, self.pos)
         elif self.current_char == ":":
             self.advance()
+            if self.current_char == ":":
+                self.advance()
+                return Token(TT.DOUBLECOLON, "::", self.line, self.pos - 1)
             return Token(TT.COLON, char, self.line, self.pos)
 
     def get_token(self):
@@ -764,6 +762,10 @@ class Parser:
                 identifier = self.lookahead
                 self.consume(TT.IDENTIFIER)
                 expr = ast.Get(target=expr, member=identifier)
+        if self.match(TT.DOUBLECOLON):
+            token = self.consume(TT.DOUBLECOLON)
+            new_type = self.type()
+            return ast.Converta(token, expr, new_type)
         return expr
 
     def primary(self):
@@ -808,22 +810,11 @@ class Parser:
         elif self.match(TT.EU):
             expr = ast.Eu(self.lookahead)
             self.consume(TT.EU)
-        elif self.match(TT.CONVERTE):
-            expr = self.converte_expression()
         else:
             self.error(
                 f"início inválido de expressão: '{self.lookahead.lexeme}'"
             )
         return expr
-
-    def converte_expression(self):
-        token = self.consume(TT.CONVERTE)
-        self.consume(TT.LPAR)
-        expression = self.equality()
-        self.consume(TT.COMMA)
-        new_type = self.type()
-        self.consume(TT.RPAR)
-        return ast.Converte(token, expression, new_type)
 
     def args(self):
         current = self.lookahead.token
