@@ -1,4 +1,5 @@
 use crate::ama_value::{AmaValue, FuncArgs, NativeFunc, Type};
+use crate::errors::AmaErr;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::io;
@@ -16,7 +17,7 @@ fn get_fn_arg<'a>(args: FuncArgs<'a>, idx: usize) -> Result<&AmaValue<'a>, ()> {
     }
 }
 
-type AmaResult<'a> = Result<AmaValue<'a>, &'static str>;
+type AmaResult<'a> = Result<AmaValue<'a>, AmaErr>;
 
 #[inline]
 fn new_builtin<'a>(
@@ -61,7 +62,7 @@ fn leia_int<'a>(args: FuncArgs<'a>) -> AmaResult<'a> {
         //TODO: Propagate possible errors to caller
         let maybe_int = input.parse::<i64>();
         if let Err(_) = maybe_int {
-            Err("Valor introduzido não é um inteiro válido")
+            Err("Valor introduzido não é um inteiro válido".to_string())
         } else {
             Ok(AmaValue::Int(maybe_int.unwrap()))
         }
@@ -75,7 +76,7 @@ fn leia_real<'a>(args: FuncArgs<'a>) -> AmaResult<'a> {
         //TODO: Propagate possible errors to caller
         let maybe_double = input.parse::<f64>();
         if let Err(_) = maybe_double {
-            Err("Valor introduzido não é um número real válido")
+            Err("Valor introduzido não é um número real válido".to_string())
         } else {
             Ok(AmaValue::F64(maybe_double.unwrap()))
         }

@@ -2,6 +2,7 @@ use crate::ama_value;
 use crate::ama_value::{AmaFunc, AmaValue};
 use crate::binload::Module;
 use crate::builtins;
+use crate::errors::AmaErr;
 use std::collections::HashMap;
 use std::convert::From;
 
@@ -78,8 +79,6 @@ impl From<&u8> for OpCode {
 }
 
 const RECURSION_LIMIT: usize = 1000;
-
-type AmaErr = String;
 
 #[derive(Debug)]
 struct FrameStack<'a> {
@@ -329,7 +328,7 @@ impl<'a> AmaVM<'a> {
                             }
                             let result = (native_fn.func)(fn_args);
                             if let Err(msg) = result {
-                                return self.panic_and_throw(msg);
+                                return self.panic_and_throw(&msg);
                             }
                             self.op_push(result.unwrap());
                             //Drop values
@@ -353,14 +352,16 @@ impl<'a> AmaVM<'a> {
                     if arg == 0 {
                         let cast_res = ama_value::cast(val, new_type);
                         if let Err(msg) = cast_res {
-                            return self.panic_and_throw(msg);
+                            return self.panic_and_throw(&msg);
                         }
                         self.op_push(cast_res.unwrap());
                     } else if arg == 1 {
                         if !ama_value::check_cast(val.get_type(), new_type) {
-                            return self.panic_and_throw(
-                                "Não pode realizar a conversão entre os tipos especificados",
-                            );
+                            return self.panic_and_throw(&format!(
+                                "Conversão inválida. O tipo original do valor é '{}', mas tentou converter o valor para o tipo '{}'",
+                                val.get_type().name(), 
+                                new_type.name()
+                            ));
                         }
                         self.op_push(val);
                     }
