@@ -63,6 +63,15 @@ pub struct AmaFunc<'a> {
     pub locals: usize,
 }
 
+/*Primitive Types*/
+#[derive(Debug, Copy, Clone)]
+pub enum Type {
+    Int,
+    Real,
+    Texto,
+    Bool,
+}
+
 #[derive(Debug)]
 pub enum AmaValue<'a> {
     Str(Cow<'a, String>),
@@ -71,10 +80,21 @@ pub enum AmaValue<'a> {
     Bool(bool),
     Func(AmaFunc<'a>),
     NativeFn(NativeFunc<'a>),
+    Type(Type),
     None,
 }
 
 impl<'a> AmaValue<'a> {
+    pub fn get_type(&self) -> Type {
+        match self {
+            AmaValue::Str(string) => Type::Texto,
+            AmaValue::Int(int) => Type::Int,
+            AmaValue::F64(float) => Type::Real,
+            AmaValue::Bool(val) => Type::Bool,
+            _ => unimplemented!("Cannot return type for this value: {:?}", self),
+        }
+    }
+
     pub fn is_float(&self) -> bool {
         if let AmaValue::F64(_) = self {
             true
@@ -95,6 +115,13 @@ impl<'a> AmaValue<'a> {
         match self {
             AmaValue::Int(int) => *int,
             AmaValue::F64(float) => *float as i64,
+            _ => panic!("Value is not an int"),
+        }
+    }
+
+    pub fn take_type(&self) -> Type {
+        match self {
+            AmaValue::Type(t) => *t,
             _ => panic!("Value is not an int"),
         }
     }
@@ -212,6 +239,7 @@ impl Clone for AmaValue<'_> {
             AmaValue::None => AmaValue::None,
             AmaValue::Func(function) => AmaValue::Func(*function),
             AmaValue::NativeFn(func) => AmaValue::NativeFn(*func),
+            AmaValue::Type(t) => AmaValue::Type(*t),
         }
     }
 }
@@ -234,5 +262,45 @@ impl Display for AmaValue<'_> {
             AmaValue::None => panic!("None value should not be printed"),
             _ => write!(f, "{:?}", self),
         }
+    }
+}
+
+pub fn check_cast(val_t: Type, target: Type) -> bool {
+    val_t as u8 == target as u8
+}
+
+pub fn cast(value: AmaValue, target: Type) -> Result<AmaValue, &'static str> {
+    match target {
+        Type::Texto => Ok(AmaValue::Str(Cow::Owned(format!("{}", value)))),
+        Type::Int => match value {
+            AmaValue::F64(_) => Ok(AmaValue::Int(value.take_int())),
+            AmaValue::Str(string) => {
+                let maybe_int = string.parse::<i64>();
+                if let Err(_) = maybe_int {
+                    Err("A sequência de caracteres 'xxx' não é um inteiro válido")
+                } else {
+                    Ok(AmaValue::Int(maybe_int.unwrap()))
+                }
+            }
+            _ => unimplemented!("Impossível valor para o tipo especificado"),
+        },
+        Type::Real => match value {
+            AmaValue::Int(_) => Ok(AmaValue::F64(value.take_float())),
+            AmaValue::Str(string) => {
+                let maybe_real = string.parse::<f64>();
+                if let Err(_) = maybe_real {
+                    Err("A sequência de caracteres 'xxx' não é um número real válido")
+                } else {
+                    Ok(AmaValue::F64(maybe_real.unwrap()))
+                }
+            }
+            _ => unimplemented!("Impossível valor para o tipo especificado"),
+        },
+        Type::Bool => match value {
+            AmaValue::Int(int) => Ok(AmaValue::Bool(int != 0)),
+            AmaValue::F64(double) => Ok(AmaValue::Bool(double != 0.0)),
+            AmaValue::Str(string) => Ok(AmaValue::Bool(string.as_ref() != "")),
+            _ => unimplemented!("Impossível valor para o tipo especificado"),
+        },
     }
 }

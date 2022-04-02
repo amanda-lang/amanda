@@ -1,9 +1,10 @@
-use crate::ama_value::{AmaValue, FuncArgs, NativeFunc};
+use crate::ama_value::{AmaValue, FuncArgs, NativeFunc, Type};
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::io;
 use std::io::Write;
 
+/* Builtin functions*/
 fn get_fn_arg<'a>(args: FuncArgs<'a>, idx: usize) -> Result<&AmaValue<'a>, ()> {
     if let Some(ptr) = args {
         //Safety: Args must either be none or point to
@@ -90,5 +91,9 @@ pub fn load_builtins<'a>() -> HashMap<&'a str, AmaValue<'a>> {
         new_builtin("leia", leia),
         new_builtin("leia_int", leia_int),
         new_builtin("leia_real", leia_real),
+        ("int", AmaValue::Type(Type::Int)),
+        ("real", AmaValue::Type(Type::Real)),
+        ("bool", AmaValue::Type(Type::Bool)),
+        ("texto", AmaValue::Type(Type::Texto)),
     ])
 }

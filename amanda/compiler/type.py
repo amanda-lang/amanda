@@ -24,6 +24,7 @@ class Type(Symbol):
     def __init__(self, kind):
         super().__init__(str(kind), None)
         self.kind = kind
+        self.is_global = True
 
     def __eq__(self, other):
         if not isinstance(other, Type):
@@ -127,6 +128,7 @@ class Klass(Type):
         self.out_id = name
         self.members = members
         self.constructor = None
+        self.is_global = False
 
     def __str__(self):
         return self.name

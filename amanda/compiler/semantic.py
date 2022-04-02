@@ -193,6 +193,7 @@ class Analyzer(ast.Visitor):
                     )
                 return se_node
         # Ignore all unused expressions
+        # WARNING: This might be a nasty bug, please test this
         elif nodeT not in (ast.Assign, ast.Call, ast.Set) and isinstance(
             node, ast.Expr
         ):

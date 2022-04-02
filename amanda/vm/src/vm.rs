@@ -1,3 +1,4 @@
+use crate::ama_value;
 use crate::ama_value::{AmaFunc, AmaValue};
 use crate::binload::Module;
 use crate::builtins;
@@ -33,6 +34,7 @@ pub enum OpCode {
     SetLocal,
     CallFunction,
     Return,
+    Cast,
     Halt = 255,
 }
 
@@ -65,6 +67,7 @@ impl From<&u8> for OpCode {
             OpCode::SetLocal,
             OpCode::CallFunction,
             OpCode::Return,
+            OpCode::Cast,
         ];
         if *number == 0xff {
             OpCode::Halt
@@ -237,7 +240,7 @@ impl<'a> AmaVM<'a> {
                     let result = AmaValue::binop(left, OpCode::from(&op), right);
 
                     if let Err(msg) = result {
-                        return Err(self.panic_and_throw(msg));
+                        return self.panic_and_throw(msg);
                     } else {
                         self.op_push(result.unwrap());
                     }
@@ -313,9 +316,7 @@ impl<'a> AmaVM<'a> {
                             //Set return addr in caller
                             self.frames.peek_mut().ip += 1;
                             if let Err(()) = self.frames.push(func) {
-                                return Err(
-                                    self.panic_and_throw("Limite máximo de recursão atingido")
-                                );
+                                return self.panic_and_throw("Limite máximo de recursão atingido");
                             }
                             continue;
                         }
@@ -328,7 +329,7 @@ impl<'a> AmaVM<'a> {
                             }
                             let result = (native_fn.func)(fn_args);
                             if let Err(msg) = result {
-                                return Err(self.panic_and_throw(msg));
+                                return self.panic_and_throw(msg);
                             }
                             self.op_push(result.unwrap());
                             //Drop values
@@ -344,6 +345,25 @@ impl<'a> AmaVM<'a> {
                     self.frames.pop().unwrap();
                     self.op_push(val);
                     continue;
+                }
+                OpCode::Cast => {
+                    let arg = self.get_byte();
+                    let new_type = self.op_pop().take_type();
+                    let val = self.op_pop();
+                    if arg == 0 {
+                        let cast_res = ama_value::cast(val, new_type);
+                        if let Err(msg) = cast_res {
+                            return self.panic_and_throw(msg);
+                        }
+                        self.op_push(cast_res.unwrap());
+                    } else if arg == 1 {
+                        if !ama_value::check_cast(val.get_type(), new_type) {
+                            return self.panic_and_throw(
+                                "Não pode realizar a conversão entre os tipos especificados",
+                            );
+                        }
+                        self.op_push(val);
+                    }
                 }
                 OpCode::Halt => break,
                 _ => unimplemented!(
@@ -361,7 +381,7 @@ impl<'a> AmaVM<'a> {
         Ok(())
     }
 
-    fn panic_and_throw(&mut self, error: &str) -> AmaErr {
+    fn panic_and_throw(&mut self, error: &str) -> Result<(), AmaErr> {
         let mut frames_sp = self.frames.sp;
         let mut err_str = if frames_sp > 0 {
             String::from("Fluxo de execução: \n")
@@ -384,7 +404,7 @@ impl<'a> AmaVM<'a> {
             ));
             frames_sp = self.frames.sp;
         }
-        err_str
+        Err(err_str)
     }
 
     fn print_debug_info(&self) {
