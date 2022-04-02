@@ -1,8 +1,0 @@
-
-func bad_converte()
-    mostra converte("p",int) # expect error
-fim
-
-bad_converte()
-
-#[output]:Erro: impossível realizar a conversão entre os tipos especificados.
