@@ -88,10 +88,10 @@ pub enum AmaValue<'a> {
 impl<'a> AmaValue<'a> {
     pub fn get_type(&self) -> Type {
         match self {
-            AmaValue::Str(string) => Type::Texto,
-            AmaValue::Int(int) => Type::Int,
-            AmaValue::F64(float) => Type::Real,
-            AmaValue::Bool(val) => Type::Bool,
+            AmaValue::Str(_) => Type::Texto,
+            AmaValue::Int(_) => Type::Int,
+            AmaValue::F64(_) => Type::Real,
+            AmaValue::Bool(_) => Type::Bool,
             _ => unimplemented!("Cannot return type for this value: {:?}", self),
         }
     }

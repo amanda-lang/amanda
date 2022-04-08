@@ -1,0 +1,6 @@
+str: texto = "Hello world"
+
+#Indexing
+escrevaln(str[100])
+
+#[output]: Erro na linha 4: Erro de índice inválido. O tamanho da string é 11, mas o índice é 100.

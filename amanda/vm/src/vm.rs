@@ -1,10 +1,13 @@
+use std::borrow::Cow;
 use crate::ama_value;
 use crate::ama_value::{AmaFunc, AmaValue};
 use crate::binload::Module;
 use crate::builtins;
 use crate::errors::AmaErr;
+use unicode_segmentation::UnicodeSegmentation;
 use std::collections::HashMap;
 use std::convert::From;
+
 
 #[repr(u8)]
 #[derive(Debug, Clone, Copy)]
@@ -27,6 +30,7 @@ pub enum OpCode {
     OpGreaterEq,
     OpLess,
     OpLessEq,
+    OpIndex,
     GetGlobal,
     SetGlobal,
     Jump,
@@ -60,6 +64,7 @@ impl From<&u8> for OpCode {
             OpCode::OpGreaterEq,
             OpCode::OpLess,
             OpCode::OpLessEq,
+            OpCode::OpIndex,
             OpCode::GetGlobal,
             OpCode::SetGlobal,
             OpCode::Jump,
@@ -260,6 +265,27 @@ impl<'a> AmaVM<'a> {
                             panic!("Value should always be a bool");
                         }
                     }
+                }
+                OpCode::OpIndex => {
+                    let idx = self.op_pop().take_int();
+                    let target = self.op_pop();
+                    match target {
+                        //TODO: Optimize this
+                        AmaValue::Str(string) =>{
+                            if idx < 0 {
+                               self.panic_and_throw("Erro de índice inválido. Strings só podem ser indexadas com inteiros positivos")?;
+                            }
+                            let real_str = &string as &str;
+                            let user_char = real_str.graphemes(true).nth(idx as usize);
+                            if let Some(user_char) = user_char {
+                                self.op_push(AmaValue::Str(Cow::Owned(String::from(user_char))));
+                            } else {
+                                self.panic_and_throw(&format!("Erro de índice inválido. O tamanho da string é {}, mas o índice é {}", real_str.graphemes(true).count(), idx))?;
+                            }
+                        }
+                        _ => panic!("Fatal error!"),
+                    }
+
                 }
                 OpCode::GetGlobal => {
                     let id_idx = self.get_u16_arg() as usize;

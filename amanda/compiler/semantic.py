@@ -482,19 +482,30 @@ class Analyzer(ast.Visitor):
 
     def visit_index(self, node):
         # Check if index is int
-        index = node.index
-        self.visit(index)
-        if index.eval_type.kind != Kind.TINT:
-            self.error("Os índices de uma lista devem ser inteiros")
-
-        # Check if target supports indexing
         target = node.target
         self.visit(target)
         t_type = target.eval_type
-        if t_type.kind != Kind.TLISTA:
-            self.error(f"O valor do tipo '{t_type}' não é indexável")
 
-        node.eval_type = t_type.subtype
+        index = node.index
+        self.visit(index)
+
+        str_or_list = (Kind.TLISTA, Kind.TTEXTO)
+        if t_type.kind in str_or_list and index.eval_type.kind != Kind.TINT:
+            self.error(
+                f"Índices para valores do tipo '{t_type}' devem ser inteiros"
+            )
+
+        if t_type.kind not in str_or_list:
+            self.error(f"O valor do tipo '{t_type}' não contém índices")
+
+        if t_type.kind == Kind.TLISTA:
+            node.eval_type = t_type.subtype
+        elif t_type.kind == Kind.TTEXTO:
+            node.eval_type = t_type
+        else:
+            raise NotImplementedError(
+                f"Index eval not implemented for '{t_type}'"
+            )
 
     def visit_converta(self, node):
         self.visit(node.target)
