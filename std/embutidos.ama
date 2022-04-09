@@ -12,8 +12,12 @@ func nativa leia_real(mensagem: texto): real
 func nativa escreva(item: indef)
 func nativa escrevaln(item: indef)
 
+# Sequências
+func nativa tam(seq: indef): int
+
+
 # 'Metaprogramação'
-func nativa tipo(objecto: indef):texto
+#func nativa tipo(objecto: indef):texto
 
 
 

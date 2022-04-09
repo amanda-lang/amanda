@@ -270,7 +270,8 @@ impl<'a> AmaVM<'a> {
                     let idx = self.op_pop().take_int();
                     let target = self.op_pop();
                     match target {
-                        //TODO: Optimize this
+                        //TODO - Optimization: Maybe should implement some kind of cache for the grapheme clusters  
+                        // to avoid repeatedly calling iterator
                         AmaValue::Str(string) =>{
                             if idx < 0 {
                                self.panic_and_throw("Erro de índice inválido. Strings só podem ser indexadas com inteiros positivos")?;

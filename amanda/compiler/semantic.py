@@ -758,8 +758,8 @@ class Analyzer(ast.Visitor):
             self.validate_call(sym.constructor, node.fargs)
             node.eval_type = sym
         else:
-            # Special intrinsic function
-            builtin_ops = ("lista", "anexe", "matriz")
+            # Builtin function
+            builtin_ops = ("lista", "anexe", "matriz", "tam")
             # TODO: Add special nodes for these guys
             if sym.name in builtin_ops:
                 self.builtin_call(sym.name, node)
@@ -769,7 +769,7 @@ class Analyzer(ast.Visitor):
         node.symbol = sym
         return sym
 
-    # Handles calls to special intrinsic operation
+    # Handles calls to special functions
     def builtin_call(self, name, node):
         if name == "lista":
             self.check_arity(node.fargs, name, 2)
@@ -822,7 +822,23 @@ class Analyzer(ast.Visitor):
                 self.error(
                     f"incompatibilidade de tipos entre a lista e o valor a anexar: '{list_node.eval_type.subtype}' != '{value.eval_type}'"
                 )
-            node.eval_type = self.ctx_scope.resolve("vazio")
+            node.eval_type = self.global_scope.resolve("vazio")
+
+        elif name == "tam":
+            self.check_arity(node.fargs, name, 1)
+            seq = node.fargs[0]
+            self.visit(seq)
+
+            if seq.eval_type.kind != Kind.TTEXTO:
+                self.error(
+                    "O argumento 1 da função 'tam' deve ser do tipo 'texto'"
+                )
+
+            node.eval_type = self.global_scope.resolve("int")
+            # TODO: Fix this awful hack
+            node.symbol = self.global_scope.resolve("tam")
+        else:
+            raise NotImplementedError()
 
     def check_arity(self, fargs, name, param_len):
         arg_len = len(fargs)
