@@ -10,7 +10,7 @@ dist/
 .venv
 *.log
 feat_tests/
-run.sh
+run
 /*.amasm
 /*.amac
 /amanda/vm/target
