@@ -157,7 +157,7 @@ class ByteGen:
                 offsets.append(offsets[0])
             assert (
                 len(offsets) == 2
-            ), f"Found line with offset != 0: {(lineno, offsets)}"
+            ), f"Found line with offset != 2: {(lineno, offsets)}"
             offsets.append(lineno)
             src_map.extend(offsets)
         module = {

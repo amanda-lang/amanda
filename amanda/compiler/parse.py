@@ -836,7 +836,9 @@ class Parser:
                 continue
             current_str.write(char)
             char = format_str.read(1)
-        parts.append(tokenify_str(current_str.getvalue()))
+        buff_str = current_str.getvalue()
+        if buff_str:
+            parts.append(tokenify_str(buff_str))
 
         return ast.FmtStr(token, parts)
 

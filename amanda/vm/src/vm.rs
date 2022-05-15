@@ -40,6 +40,7 @@ pub enum OpCode {
     CallFunction,
     Return,
     Cast,
+    BuildStr, 
     Halt = 255,
 }
 
@@ -74,6 +75,7 @@ impl From<&u8> for OpCode {
             OpCode::CallFunction,
             OpCode::Return,
             OpCode::Cast,
+            OpCode::BuildStr,
         ];
         if *number == 0xff {
             OpCode::Halt
@@ -88,7 +90,7 @@ const RECURSION_LIMIT: usize = 1000;
 #[derive(Debug)]
 struct FrameStack<'a> {
     stack: [Option<AmaFunc<'a>>; RECURSION_LIMIT],
-    sp: isize,
+    sp: isize, 
 }
 
 impl<'a> FrameStack<'a> {
@@ -167,6 +169,7 @@ impl<'a> AmaVM<'a> {
         vm
     }
 
+    //TODO: Review use of clone in push and pop 
     fn op_push(&mut self, value: AmaValue<'a>) {
         self.sp += 1;
         let values_size = self.values.len() as isize;
@@ -371,6 +374,18 @@ impl<'a> AmaVM<'a> {
                     self.frames.pop().unwrap();
                     self.op_push(val);
                     continue;
+                }
+                OpCode::BuildStr => {
+                    let num_parts = self.get_byte() as isize;
+                    let start = (self.sp - (num_parts - 1)) as usize;
+                    let mut built_str = String::new();
+                    for i in start..=self.sp as usize {
+                        built_str.push_str(&format!("{}", self.values[i]));
+                    }
+                    //Drop values
+                    self.sp = start as isize - 1;
+                    self.values.drain(self.sp as usize + 1..);
+                    self.op_push(AmaValue::Str(Cow::Owned(built_str)));
                 }
                 OpCode::Cast => {
                     let arg = self.get_byte();
