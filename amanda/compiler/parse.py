@@ -8,6 +8,7 @@ from amanda.compiler.error import AmandaError
 import amanda.compiler.ast as ast
 
 
+# TODO: Stop concatenating strings. Use buffers instead
 class Lexer:
     # Special end of file token
     EOF = "__eof__"
@@ -140,17 +141,23 @@ class Lexer:
         )
 
     def string(self):
-        result = ""
+        result = StringIO()
         symbol = self.current_char
+        start_pos = self.pos
         self.advance()
         while self.current_char != symbol:
             if self.current_char == Lexer.EOF:
                 self.error(self.INVALID_STRING, line=self.line)
-            result += self.current_char
+            result.write(self.current_char)
             self.advance()
         self.advance()
+        whole_str = result.getvalue()
+        result.close()
         return Token(
-            TT.STRING, f"{symbol}{result}{symbol}", self.line, self.pos
+            TT.STRING,
+            f"{symbol}{whole_str}{symbol}",
+            self.line,
+            start_pos,
         )
 
     def identifier(self):
@@ -782,12 +789,13 @@ class Parser:
             return ast.Converta(token, expr, new_type)
         return expr
 
-    def parse_fstr_expr(self, format_str):
+    def parse_fstr_expr(self, token, format_str):
         # Save current parsing state
         ctx_lex = self.lexer
         ctx_tok = self.lookahead
 
         # Get current expr
+        # TODO: Use only one buffer
         expr = StringIO()
         current_str = StringIO()
         char = format_str.read(1)
@@ -800,12 +808,19 @@ class Parser:
             )
 
         # Parse expression
+        if not len(expr.getvalue()):
+            self.error(
+                "String de formatação inválida. Expressões vazias não são permitidas"
+            )
         expr.seek(0)
         self.lexer = Lexer(self.filename, expr)
         self.lookahead = self.lexer.get_token()
-        # TODO: Handle potential errors
-        expression = self.equality()
-
+        try:
+            expression = self.equality()
+        except AmandaError as e:
+            raise AmandaError.syntax_error(
+                self.filename, e.message, token.line, token.col
+            )
         # Restore state
         self.lexer = ctx_lex
         self.lookahead = ctx_tok
@@ -813,6 +828,7 @@ class Parser:
         return expression
 
     def parse_format_str(self):
+        # TODO: Turn fstr without expressions into normal strs
         token = self.consume(self.lookahead.token)
         # Exclude delimiters from string
         format_str = StringIO(token.lexeme[1:-1])
@@ -822,6 +838,7 @@ class Parser:
         tokenify_str = lambda lexeme: ast.Constant(
             Token(TT.STRING, lexeme=lexeme, line=token.line, col=token.col)
         )
+        # TODO: Reuse this buffer
         current_str = StringIO()
         # Separate the string into individual expressions
         # Everything up to an '{}' will be a separate string
@@ -831,15 +848,15 @@ class Parser:
                 if len(lexeme) > 0:
                     parts.append(tokenify_str(lexeme))
                 current_str = StringIO()
-                parts.append(self.parse_fstr_expr(format_str))
+                parts.append(self.parse_fstr_expr(token, format_str))
                 char = format_str.read(1)
                 continue
             current_str.write(char)
             char = format_str.read(1)
+
         buff_str = current_str.getvalue()
         if buff_str:
             parts.append(tokenify_str(buff_str))
-
         return ast.FmtStr(token, parts)
 
     def primary(self):
