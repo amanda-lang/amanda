@@ -395,9 +395,16 @@ class Analyzer(ast.Visitor):
         return symbols.VariableSymbol(name, var_type)
 
     def visit_fmtstr(self, node):
-        node.eval_type = self.ctx_scope.resolve("texto")
+        txt_type = self.global_scope.resolve("texto")
+        node.eval_type = txt_type
         for part in node.parts:
             self.visit(part)
+            expr_type = part.eval_type
+            if not expr_type.check_cast(txt_type):
+                self.ctx_node = node
+                self.error(
+                    f"Funções invocadas dentro de expressões em fstrings devem retornar valores coercíveis para o tipo 'texto'"
+                )
 
     # TODO: Rename this to literal
     def visit_constant(self, node):

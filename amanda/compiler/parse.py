@@ -808,14 +808,20 @@ class Parser:
             )
 
         # Parse expression
-        if not len(expr.getvalue()):
+        expr_str = expr.getvalue().strip()
+        if not len(expr_str):
             self.error(
                 "String de formatação inválida. Expressões vazias não são permitidas"
             )
+        # Cannot nest fstrings
+        if expr_str[:2] in ("f'", 'f"'):
+            self.error(
+                "String de formatação inválida. Não pode ter uma f-string dentro de outra f-string"
+            )
         expr.seek(0)
         self.lexer = Lexer(self.filename, expr)
-        self.lookahead = self.lexer.get_token()
         try:
+            self.lookahead = self.lexer.get_token()
             expression = self.equality()
         except AmandaError as e:
             raise AmandaError.syntax_error(

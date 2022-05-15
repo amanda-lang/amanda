@@ -1,0 +1,6 @@
+func hello(): texto
+    retorna "hello word"
+fim
+
+escrevaln(f"{hello()} i am amanda")
+#[output]: hello word i am amanda

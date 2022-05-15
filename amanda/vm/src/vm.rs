@@ -384,7 +384,7 @@ impl<'a> AmaVM<'a> {
                     }
                     //Drop values
                     self.sp = start as isize - 1;
-                    self.values.drain(self.sp as usize + 1..);
+                    self.values.drain((self.sp + 1) as usize..);
                     self.op_push(AmaValue::Str(Cow::Owned(built_str)));
                 }
                 OpCode::Cast => {
