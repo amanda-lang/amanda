@@ -140,12 +140,32 @@ class Lexer:
             TT.INTEGER, int(result), self.line, self.pos - (len(result) + 1)
         )
 
+    def escape_seq(self, char, result, seq):
+        if self.lookahead() == char:
+            result.write(seq)
+            self.advance()
+            self.advance()
+            return True
+        return False
+
     def string(self):
         result = StringIO()
         symbol = self.current_char
         start_pos = self.pos
         self.advance()
         while self.current_char != symbol:
+            if self.current_char == "\\":
+                # Attempt to read different control sequences
+                # if control sequence is not read, just process
+                # the char combination as is
+                is_ctl_seq = False
+                is_ctl_seq |= self.escape_seq("n", result, "\n")
+                is_ctl_seq |= self.escape_seq("'", result, "'")
+                is_ctl_seq |= self.escape_seq('"', result, '"')
+                if not is_ctl_seq:
+                    result.write("\\")
+                    self.advance()
+                continue
             if self.current_char == Lexer.EOF:
                 self.error(self.INVALID_STRING, line=self.line)
             result.write(self.current_char)
