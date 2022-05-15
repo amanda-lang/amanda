@@ -21,3 +21,5 @@ func nativa tam(seq: indef): int
 
 
 
+# Funções para trabalhar com texto
+func nativa txt_contem(palheiro: texto, agulha: texto): bool

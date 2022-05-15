@@ -96,6 +96,17 @@ fn tam<'a>(args: FuncArgs<'a>) -> AmaResult<'a> {
     }
 }
 
+fn txt_contem<'a>(args: FuncArgs<'a>) -> AmaResult<'a> {
+    let haystack = get_fn_arg(args, 0).unwrap();
+    let needle = get_fn_arg(args, 1).unwrap();
+    match (haystack, needle) {
+        (AmaValue::Str(haystack), AmaValue::Str(needle)) => Ok(AmaValue::Bool(
+            (&haystack as &str).contains(&needle as &str),
+        )),
+        _ => unreachable!("function called with something of invalid type"),
+    }
+}
+
 pub fn load_builtins<'a>() -> HashMap<&'a str, AmaValue<'a>> {
     HashMap::from([
         new_builtin("escrevaln", escrevaln),
@@ -104,6 +115,7 @@ pub fn load_builtins<'a>() -> HashMap<&'a str, AmaValue<'a>> {
         new_builtin("leia_int", leia_int),
         new_builtin("leia_real", leia_real),
         new_builtin("tam", tam),
+        new_builtin("txt_contem", txt_contem),
         ("int", AmaValue::Type(Type::Int)),
         ("real", AmaValue::Type(Type::Real)),
         ("bool", AmaValue::Type(Type::Bool)),
