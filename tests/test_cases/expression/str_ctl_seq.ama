@@ -1,0 +1,12 @@
+func hello(): texto 
+    retorna "Hello world,"
+
+fim
+
+escreva(f"{hello()} i am amanda\n")
+escreva(f"another line\n")
+escrevaln("\"")
+escrevaln("\'")
+escrevaln("\ ")
+
+#[output]: Hello world, i am amanda another line " ' \

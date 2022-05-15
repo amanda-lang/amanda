@@ -1,0 +1,5 @@
+func nada() fim
+
+escrevaln(f"{nada()} i am amanda")
+
+#[output]: Erro: Funções invocadas dentro de expressões em fstrings devem retornar valores coercíveis para o tipo 'texto'.

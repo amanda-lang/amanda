@@ -1,0 +1,4 @@
+str: texto = "Hello world"
+
+escrevaln(f"{ f'{str}'} i am amanda")
+#[output]: Erro sintático: String de formatação inválida. Não pode ter uma f-string dentro de outra f-string.

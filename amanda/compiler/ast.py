@@ -51,6 +51,12 @@ class Constant(Expr):
         super().__init__(token)
 
 
+class FmtStr(Expr):
+    def __init__(self, token, parts):
+        super().__init__(token)
+        self.parts = parts
+
+
 class Variable(Expr):
     def __init__(self, token):
         super().__init__(token)

@@ -165,6 +165,7 @@ primary
   : INTEGER 
   | REAL
   | STRING
+  | FORMAT_STR
   | VERDADEIRO
   | FALSO
   | LPAR equality RPAR

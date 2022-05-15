@@ -1,0 +1,13 @@
+str: texto = "Hello world"
+
+#Indexing
+escrevaln(str[0])
+
+# tamanho
+escrevaln(tam(str))
+
+
+#formating
+escrevaln(f"{str} i am amanda")
+escrevaln(f"1 + 2 = {1+2}")
+#[output]: H 11 Hello world i am amanda 1 + 2 = 3

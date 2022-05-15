@@ -1,0 +1,2 @@
+escrevaln(tam(1))
+#[output]: Erro: O argumento 1 da função 'tam' deve ser do tipo 'texto'.

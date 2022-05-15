@@ -1,0 +1,2 @@
+escrevaln(f"{2 + '' } i am amanda")
+#[output]: Erro: os tipos 'int' e 'texto' não suportam operações com o operador '+'.

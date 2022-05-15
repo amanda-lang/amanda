@@ -394,6 +394,18 @@ class Analyzer(ast.Visitor):
         var_type = self.get_type(node.param_type)
         return symbols.VariableSymbol(name, var_type)
 
+    def visit_fmtstr(self, node):
+        txt_type = self.global_scope.resolve("texto")
+        node.eval_type = txt_type
+        for part in node.parts:
+            self.visit(part)
+            expr_type = part.eval_type
+            if not expr_type.check_cast(txt_type):
+                self.ctx_node = node
+                self.error(
+                    f"Funções invocadas dentro de expressões em fstrings devem retornar valores coercíveis para o tipo 'texto'"
+                )
+
     # TODO: Rename this to literal
     def visit_constant(self, node):
         constant = node.token.token
@@ -482,19 +494,30 @@ class Analyzer(ast.Visitor):
 
     def visit_index(self, node):
         # Check if index is int
-        index = node.index
-        self.visit(index)
-        if index.eval_type.kind != Kind.TINT:
-            self.error("Os índices de uma lista devem ser inteiros")
-
-        # Check if target supports indexing
         target = node.target
         self.visit(target)
         t_type = target.eval_type
-        if t_type.kind != Kind.TLISTA:
-            self.error(f"O valor do tipo '{t_type}' não é indexável")
 
-        node.eval_type = t_type.subtype
+        index = node.index
+        self.visit(index)
+
+        str_or_list = (Kind.TLISTA, Kind.TTEXTO)
+        if t_type.kind in str_or_list and index.eval_type.kind != Kind.TINT:
+            self.error(
+                f"Índices para valores do tipo '{t_type}' devem ser inteiros"
+            )
+
+        if t_type.kind not in str_or_list:
+            self.error(f"O valor do tipo '{t_type}' não contém índices")
+
+        if t_type.kind == Kind.TLISTA:
+            node.eval_type = t_type.subtype
+        elif t_type.kind == Kind.TTEXTO:
+            node.eval_type = t_type
+        else:
+            raise NotImplementedError(
+                f"Index eval not implemented for '{t_type}'"
+            )
 
     def visit_converta(self, node):
         self.visit(node.target)
@@ -747,8 +770,8 @@ class Analyzer(ast.Visitor):
             self.validate_call(sym.constructor, node.fargs)
             node.eval_type = sym
         else:
-            # Special intrinsic function
-            builtin_ops = ("lista", "anexe", "matriz")
+            # Builtin function
+            builtin_ops = ("lista", "anexe", "matriz", "tam")
             # TODO: Add special nodes for these guys
             if sym.name in builtin_ops:
                 self.builtin_call(sym.name, node)
@@ -758,7 +781,7 @@ class Analyzer(ast.Visitor):
         node.symbol = sym
         return sym
 
-    # Handles calls to special intrinsic operation
+    # Handles calls to special functions
     def builtin_call(self, name, node):
         if name == "lista":
             self.check_arity(node.fargs, name, 2)
@@ -811,7 +834,23 @@ class Analyzer(ast.Visitor):
                 self.error(
                     f"incompatibilidade de tipos entre a lista e o valor a anexar: '{list_node.eval_type.subtype}' != '{value.eval_type}'"
                 )
-            node.eval_type = self.ctx_scope.resolve("vazio")
+            node.eval_type = self.global_scope.resolve("vazio")
+
+        elif name == "tam":
+            self.check_arity(node.fargs, name, 1)
+            seq = node.fargs[0]
+            self.visit(seq)
+
+            if seq.eval_type.kind != Kind.TTEXTO:
+                self.error(
+                    "O argumento 1 da função 'tam' deve ser do tipo 'texto'"
+                )
+
+            node.eval_type = self.global_scope.resolve("int")
+            # TODO: Fix this awful hack
+            node.symbol = self.global_scope.resolve("tam")
+        else:
+            raise NotImplementedError()
 
     def check_arity(self, fargs, name, param_len):
         arg_len = len(fargs)

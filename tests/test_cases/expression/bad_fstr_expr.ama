@@ -1,0 +1,4 @@
+str: texto = "Hello world"
+
+escrevaln(f"{ 2 + ; } i am amanda")
+#[output]: Erro sintático: início inválido de expressão: ';'.

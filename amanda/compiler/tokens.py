@@ -24,6 +24,7 @@ class TokenType(Enum):
     INTEGER = "INTEGER"
     REAL = "REAL"
     STRING = "STRING"
+    FORMAT_STR = "FORMAT_STR"
     IDENTIFIER = "IDENTIFIER"
 
     # GENERAL P
@@ -90,7 +91,7 @@ class Token:
 
     def __str__(self) -> str:
         return "<Type: %s, Lexeme: %s Line:%s>" % (
-            self.token.value,
+            self.token,
             self.lexeme,
             self.line,
         )

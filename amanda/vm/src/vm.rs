@@ -1,10 +1,13 @@
+use std::borrow::Cow;
 use crate::ama_value;
 use crate::ama_value::{AmaFunc, AmaValue};
 use crate::binload::Module;
 use crate::builtins;
 use crate::errors::AmaErr;
+use unicode_segmentation::UnicodeSegmentation;
 use std::collections::HashMap;
 use std::convert::From;
+
 
 #[repr(u8)]
 #[derive(Debug, Clone, Copy)]
@@ -27,6 +30,7 @@ pub enum OpCode {
     OpGreaterEq,
     OpLess,
     OpLessEq,
+    OpIndex,
     GetGlobal,
     SetGlobal,
     Jump,
@@ -36,6 +40,7 @@ pub enum OpCode {
     CallFunction,
     Return,
     Cast,
+    BuildStr, 
     Halt = 255,
 }
 
@@ -60,6 +65,7 @@ impl From<&u8> for OpCode {
             OpCode::OpGreaterEq,
             OpCode::OpLess,
             OpCode::OpLessEq,
+            OpCode::OpIndex,
             OpCode::GetGlobal,
             OpCode::SetGlobal,
             OpCode::Jump,
@@ -69,6 +75,7 @@ impl From<&u8> for OpCode {
             OpCode::CallFunction,
             OpCode::Return,
             OpCode::Cast,
+            OpCode::BuildStr,
         ];
         if *number == 0xff {
             OpCode::Halt
@@ -83,7 +90,7 @@ const RECURSION_LIMIT: usize = 1000;
 #[derive(Debug)]
 struct FrameStack<'a> {
     stack: [Option<AmaFunc<'a>>; RECURSION_LIMIT],
-    sp: isize,
+    sp: isize, 
 }
 
 impl<'a> FrameStack<'a> {
@@ -162,6 +169,7 @@ impl<'a> AmaVM<'a> {
         vm
     }
 
+    //TODO: Review use of clone in push and pop 
     fn op_push(&mut self, value: AmaValue<'a>) {
         self.sp += 1;
         let values_size = self.values.len() as isize;
@@ -261,6 +269,28 @@ impl<'a> AmaVM<'a> {
                         }
                     }
                 }
+                OpCode::OpIndex => {
+                    let idx = self.op_pop().take_int();
+                    let target = self.op_pop();
+                    match target {
+                        //TODO - Optimization: Maybe should implement some kind of cache for the grapheme clusters  
+                        // to avoid repeatedly calling iterator
+                        AmaValue::Str(string) =>{
+                            if idx < 0 {
+                               self.panic_and_throw("Erro de índice inválido. Strings só podem ser indexadas com inteiros positivos")?;
+                            }
+                            let real_str = &string as &str;
+                            let user_char = real_str.graphemes(true).nth(idx as usize);
+                            if let Some(user_char) = user_char {
+                                self.op_push(AmaValue::Str(Cow::Owned(String::from(user_char))));
+                            } else {
+                                self.panic_and_throw(&format!("Erro de índice inválido. O tamanho da string é {}, mas o índice é {}", real_str.graphemes(true).count(), idx))?;
+                            }
+                        }
+                        _ => panic!("Fatal error!"),
+                    }
+
+                }
                 OpCode::GetGlobal => {
                     let id_idx = self.get_u16_arg() as usize;
                     let id: &str = &self.module.names[id_idx];
@@ -344,6 +374,18 @@ impl<'a> AmaVM<'a> {
                     self.frames.pop().unwrap();
                     self.op_push(val);
                     continue;
+                }
+                OpCode::BuildStr => {
+                    let num_parts = self.get_byte() as isize;
+                    let start = (self.sp - (num_parts - 1)) as usize;
+                    let mut built_str = String::new();
+                    for i in start..=self.sp as usize {
+                        built_str.push_str(&format!("{}", self.values[i]));
+                    }
+                    //Drop values
+                    self.sp = start as isize - 1;
+                    self.values.drain((self.sp + 1) as usize..);
+                    self.op_push(AmaValue::Str(Cow::Owned(built_str)));
                 }
                 OpCode::Cast => {
                     let arg = self.get_byte();
