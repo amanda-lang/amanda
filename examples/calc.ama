@@ -1,0 +1,36 @@
+cmd: texto
+
+func txt_contem(palheiro: texto, agulha: texto): bool
+    se tam(agulha) > tam(palheiro) entao
+        retorna falso
+    fim
+    para offset de 0..(tam(palheiro) - tam(agulha)) + 1 faca
+        match: bool = verdadeiro
+        para i de 0..tam(agulha) faca
+            match = match e (palheiro[offset + i] == agulha[i])
+        fim
+        se match entao
+            retorna verdadeiro
+        fim
+    fim
+    retorna falso
+fim
+
+
+func e_alg(str: texto): bool
+    retorna txt_contem("0123456789", str)
+fim
+
+func inicio()
+    enquanto cmd != "fim" faca
+        cmd = leia("> ")
+        se cmd != "fim" entao
+            para i de 0..tam(cmd) faca
+                escreva(cmd[i])
+            fim
+            escrevaln("")
+        fim
+    fim
+fim
+
+inicio()

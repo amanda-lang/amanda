@@ -62,13 +62,16 @@ class OpCode(Enum):
     # 0 (cast): Performs the cast as long as the builtin type can be cast into type.
     # 1 (check cast): Validates if 'interface' type can be cast into the desired type.
     CAST = auto()
+    # Builds a string using elements on the stack. 8-bit arg indicates the number of elements
+    # on the stack to use
+    BUILD_STR = auto()
     # Stops execution of the VM. Must always be added to stop execution of the vm
     HALT = 0xFF
 
     def op_size(self) -> int:
         # Return number of bytes (including args) that each op
         # uses
-        if self in (OpCode.CALL_FUNCTION, OpCode.CAST):
+        if self in (OpCode.CALL_FUNCTION, OpCode.CAST, OpCode.BUILD_STR):
             return OP_SIZE * 2
         elif self in (
             OpCode.LOAD_CONST,
@@ -594,3 +597,13 @@ class ByteGen:
         self.gen(node.target)
         self.gen(node.index)
         self.append_op(OpCode.OP_INDEX)
+
+    def gen_index(self, node):
+        self.gen(node.target)
+        self.gen(node.index)
+        self.append_op(OpCode.OP_INDEX)
+
+    def gen_fmtstr(self, node):
+        for part in node.parts:
+            self.gen(part)
+        self.append_op(OpCode.BUILD_STR, len(node.parts))

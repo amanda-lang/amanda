@@ -144,6 +144,28 @@ class LexerTestCase(unittest.TestCase):
             token.lexeme, '"Ramboeiro"', msg="STRING value Test Failed"
         )
 
+    def test_format_str(self):
+        self.buffer.write("f'Rambo jndjnsjndnsjns' ")
+        self.buffer.write('f"Ramboeiro" ')
+        self.buffer.seek(0)
+
+        token = self.lexer.get_token()
+        self.assertEqual(
+            token.token, TokenType.FORMAT_STR, msg="FORMAT_STR Test Failed"
+        )
+        self.assertEqual(
+            token.lexeme,
+            "'Rambo jndjnsjndnsjns'",
+            msg="FORMAT_STR value test Failed",
+        )
+        token = self.lexer.get_token()
+        self.assertEqual(
+            token.token, TokenType.FORMAT_STR, msg="FORMAT_STR Test Failed"
+        )
+        self.assertEqual(
+            token.lexeme, '"Ramboeiro"', msg="FORMAT_STR value Test Failed"
+        )
+
     def test_identifier(self):
         self.buffer.write(
             "_test1 test test2 __test3 nulo var mostra verdadeiro falso retorna se senao senaose enquanto entao inc para faca de fim func classe eu usa super vazio escolha caso como nativa"

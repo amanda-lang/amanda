@@ -394,6 +394,11 @@ class Analyzer(ast.Visitor):
         var_type = self.get_type(node.param_type)
         return symbols.VariableSymbol(name, var_type)
 
+    def visit_fmtstr(self, node):
+        node.eval_type = self.ctx_scope.resolve("texto")
+        for part in node.parts:
+            self.visit(part)
+
     # TODO: Rename this to literal
     def visit_constant(self, node):
         constant = node.token.token

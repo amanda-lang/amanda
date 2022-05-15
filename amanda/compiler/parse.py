@@ -21,21 +21,28 @@ class Lexer:
         self.pos = 1
         self.current_token = None
         self.current_char = None
-        self.file = src  # A file object
+        self.src = src  # A file object
+
+    def set_src(self, src):
+        self.src = src
+        self.line = 1
+        self.pos = 1
+        self.current_token = None
+        self.current_char = None
 
     def advance(self):
         if self.current_char == Lexer.EOF:
             return
-        self.current_char = self.file.read(1)
+        self.current_char = self.src.read(1)
         if self.current_char == "":
             self.current_char = Lexer.EOF
         else:
             self.pos += 1
 
     def lookahead(self):
-        last_position = self.file.tell()
-        next_char = self.file.read(1)
-        self.file.seek(last_position)
+        last_position = self.src.tell()
+        next_char = self.src.read(1)
+        self.src.seek(last_position)
         return next_char
 
     def error(self, code, **kwargs):
@@ -200,6 +207,11 @@ class Lexer:
                 return Token(TT.DOUBLECOLON, "::", self.line, self.pos - 1)
             return Token(TT.COLON, char, self.line, self.pos)
 
+    def format_str(self):
+        self.advance()
+        str_lit = self.string()
+        return Token(TT.FORMAT_STR, str_lit.lexeme, str_lit.line, str_lit.col)
+
     def get_token(self):
         if self.current_char is None:
             self.advance()
@@ -218,6 +230,8 @@ class Lexer:
         if self.current_char == "'" or self.current_char == '"':
             return self.string()
         if self.current_char.isalpha() or self.current_char == "_":
+            if self.current_char == "f" and self.lookahead() in ('"', "'"):
+                return self.format_str()
             return self.identifier()
         if self.current_char in (
             "(",
@@ -253,7 +267,7 @@ class Parser:
         self.filename = filename
         self.lookahead = self.lexer.get_token()
 
-    def consume(self, expected, error=None, skip_newlines=False):
+    def consume(self, expected, error=None, skip_newlines=False) -> Token:
         if skip_newlines or self.delimited:
             self.skip_newlines()
         if self.match(expected):
@@ -768,6 +782,64 @@ class Parser:
             return ast.Converta(token, expr, new_type)
         return expr
 
+    def parse_fstr_expr(self, format_str):
+        # Save current parsing state
+        ctx_lex = self.lexer
+        ctx_tok = self.lookahead
+
+        # Get current expr
+        expr = StringIO()
+        current_str = StringIO()
+        char = format_str.read(1)
+        while char != "}" and char != "":
+            expr.write(char)
+            char = format_str.read(1)
+        if char == "":
+            self.error(
+                "String de formatação inválida. Expressões devem ser delimitadas por '{' e '}'"
+            )
+
+        # Parse expression
+        expr.seek(0)
+        self.lexer = Lexer(self.filename, expr)
+        self.lookahead = self.lexer.get_token()
+        # TODO: Handle potential errors
+        expression = self.equality()
+
+        # Restore state
+        self.lexer = ctx_lex
+        self.lookahead = ctx_tok
+
+        return expression
+
+    def parse_format_str(self):
+        token = self.consume(self.lookahead.token)
+        # Exclude delimiters from string
+        format_str = StringIO(token.lexeme[1:-1])
+        char = format_str.read(1)
+        parts = []
+
+        tokenify_str = lambda lexeme: ast.Constant(
+            Token(TT.STRING, lexeme=lexeme, line=token.line, col=token.col)
+        )
+        current_str = StringIO()
+        # Separate the string into individual expressions
+        # Everything up to an '{}' will be a separate string
+        while char != "":
+            if char == "{":
+                lexeme = current_str.getvalue()
+                if len(lexeme) > 0:
+                    parts.append(tokenify_str(lexeme))
+                current_str = StringIO()
+                parts.append(self.parse_fstr_expr(format_str))
+                char = format_str.read(1)
+                continue
+            current_str.write(char)
+            char = format_str.read(1)
+        parts.append(tokenify_str(current_str.getvalue()))
+
+        return ast.FmtStr(token, parts)
+
     def primary(self):
         current = self.lookahead.token
         expr = None
@@ -803,6 +875,8 @@ class Parser:
             expr = ast.ListLiteral(
                 token, list_type=list_type, elements=elements
             )
+        elif self.match(TT.FORMAT_STR):
+            return self.parse_format_str()
         elif self.match(TT.LPAR):
             self.consume(TT.LPAR)
             expr = self.equality()
