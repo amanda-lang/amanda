@@ -42,6 +42,8 @@ ENQUANTO : enquanto
 PARA : para
 FACA : faca
 DE : de
+CONTINUA: continua
+quebra: quebra
 FUNC : func
 INC : inc
 FIM : fim
@@ -51,7 +53,6 @@ NULO : nulo
 EU : eu
 USA : usa
 COMO: como
-SUPER : super
 NATIVA: nativa
 
 *OPERANDS*

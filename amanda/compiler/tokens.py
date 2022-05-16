@@ -69,6 +69,8 @@ class TokenType(Enum):
     PARA = "PARA"
     FACA = "FACA"
     DE = "DE"
+    CONTINUA = "CONTINUA"
+    QUEBRA = "QUEBRA"
     USA = "USA"
     COMO = "como"
     EU = "EU"

@@ -141,6 +141,14 @@ class Mostra(Statement):
     pass
 
 
+class Continua(Statement):
+    pass
+
+
+class Quebra(Statement):
+    pass
+
+
 class Se(ASTNode):
     def __init__(
         self,

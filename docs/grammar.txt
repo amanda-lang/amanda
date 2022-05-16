@@ -56,6 +56,8 @@ stmt
   | enquanto_stmt
   | para_stmt
   | decl_stmt
+  | quebra_stmt
+  | continua_stmt
   ;
 
 escolha_stmt
@@ -66,7 +68,7 @@ escolha_stmt
   ;
 
 retorna_stmt
-  : RETORNA equality end_stmt
+  : RETORNA equality? end_stmt
   ;
 
 mostra_stmt
@@ -95,6 +97,14 @@ para_expression
 
 range_expression
   : equality DDOT equality (inc equality)?
+  ;
+
+quebra_stmt
+  : QUEBRA end_stmt
+  ;
+
+continua_stmt
+  : CONTINUA end_stmt
   ;
 
 comp_op
