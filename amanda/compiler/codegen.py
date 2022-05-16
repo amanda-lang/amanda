@@ -114,8 +114,9 @@ class ByteGen:
         self.funcs = []
         self.ip = 0  # Current bytecode offset
         self.lineno = -1
+        self.ctx_loop_start = -1
+        self.ctx_loop_exit = -1
         self.src_map = {}  # Maps source lines to bytecode offset
-        # TODO: Find a better way to do this
 
     def compile(self, program) -> bytes:
         """Compiles an amanda ast into bytecode ops.
@@ -464,7 +465,15 @@ class ByteGen:
 
     def gen_enquanto(self, node):
         after_loop = self.new_label()
+        # Set the current loop exit
+        loop_exit_state = self.ctx_loop_exit
+        self.ctx_loop_exit = after_loop
+
         loop = self.new_label()
+        # Set the current loop start
+        loop_start_state = self.ctx_loop_start
+        self.ctx_loop_start = loop
+
         block = node.statement
         self.enter_block(block.symbols)
         # BEGIN LOOP
@@ -478,6 +487,11 @@ class ByteGen:
         # END LOOP
         self.patch_label_loc(after_loop)
         self.exit_block()
+
+        # Restore old loop start
+        self.ctx_loop_start = loop_start_state
+        # Restore old loop exit
+        self.ctx_loop_exit = loop_exit_state
 
     # NOTE: this statement is very unstable and will be changed
     # NOTE: This is a loop that can only count forward
@@ -607,3 +621,10 @@ class ByteGen:
         for part in node.parts:
             self.gen(part)
         self.append_op(OpCode.BUILD_STR, len(node.parts))
+
+    def gen_loopctlstmt(self, node):
+        token = node.token
+        if token.token == TT.QUEBRA:
+            self.append_op(OpCode.JUMP, self.ctx_loop_exit)
+        else:
+            self.append_op(OpCode.JUMP, self.ctx_loop_start)

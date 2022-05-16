@@ -511,10 +511,8 @@ class Parser:
             return self.para_stmt()
         elif self.match(TT.ESCOLHA):
             return self.escolha_stmt()
-        elif self.match(TT.QUEBRA):
-            return self.quebra_stmt()
-        elif self.match(TT.CONTINUA):
-            return self.continua_stmt()
+        elif self.match(TT.QUEBRA) or self.match(TT.CONTINUA):
+            return self.loop_ctl_statement()
         else:
             return self.decl_stmt()
 
@@ -524,13 +522,8 @@ class Parser:
         self.end_stmt()
         return ast.Mostra(token, exp)
 
-    def quebra_stmt(self):
-        token = self.consume(TT.QUEBRA)
-        self.end_stmt()
-        return ast.LoopCtlStmt(token)
-
-    def continua_stmt(self):
-        token = self.consume(TT.CONTINUA)
+    def loop_ctl_statement(self):
+        token = self.consume(self.lookahead.token)
         self.end_stmt()
         return ast.LoopCtlStmt(token)
 
