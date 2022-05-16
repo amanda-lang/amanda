@@ -527,12 +527,12 @@ class Parser:
     def quebra_stmt(self):
         token = self.consume(TT.QUEBRA)
         self.end_stmt()
-        return ast.Quebra(token)
+        return ast.LoopCtlStmt(token)
 
     def continua_stmt(self):
         token = self.consume(TT.CONTINUA)
         self.end_stmt()
-        return ast.Continua(token)
+        return ast.LoopCtlStmt(token)
 
     def retorna_statement(self):
         token = self.consume(TT.RETORNA)

@@ -133,19 +133,15 @@ class Statement(ASTNode):
         self.tag_children()
 
 
+class LoopCtlStmt(Statement):
+    pass
+
+
 class Retorna(Statement):
     pass
 
 
 class Mostra(Statement):
-    pass
-
-
-class Continua(Statement):
-    pass
-
-
-class Quebra(Statement):
     pass
 
 

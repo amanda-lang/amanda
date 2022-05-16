@@ -27,6 +27,7 @@ class Analyzer(ast.Visitor):
         self.ctx_node = None
         self.ctx_class = None
         self.ctx_func = None
+        self.in_loop = False
         self.imports = {}
         # Module currently being executed
         self.ctx_module = module
@@ -299,7 +300,7 @@ class Analyzer(ast.Visitor):
         self.define_symbol(symbol, self.scope_depth, self.ctx_scope)
         scope, symbol.params = self.define_func_scope(name, node.params)
 
-        # There is no need to check the body of a native function
+        # Native functions don't have a body, so there's nothing to visit
         if node.is_native:
             return
 
@@ -635,6 +636,14 @@ class Analyzer(ast.Visitor):
         # Check if it is trying to reference method
         self.validate_get(node.exp, sym)
 
+    def visit_loopctlstmt(self, node):
+        token = node.token
+        if not self.in_loop:
+            self.ctx_node = node
+            self.error(
+                f"A directiva '{token.lexeme}' só pode ser usada dentro de uma estrutura de repetição"
+            )
+
     def visit_retorna(self, node):
         if not self.ctx_func:
             self.ctx_node = node
@@ -706,7 +715,13 @@ class Analyzer(ast.Visitor):
             self.error(
                 f"a condição da instrução 'enquanto' deve ser um valor lógico"
             )
+
+        in_loop_state = self.in_loop
+        self.in_loop = True
+
         self.visit(node.statement)
+
+        self.in_loop = in_loop_state
 
     # TODO: Figure out what to do with this guy
     def visit_para(self, node):
