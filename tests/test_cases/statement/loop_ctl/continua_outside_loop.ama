@@ -1,0 +1,5 @@
+continua
+escrevaln("Bad break")
+
+#[output]:Erro: A directiva 'continua' só pode ser usada dentro de uma estrutura de repetição.
+

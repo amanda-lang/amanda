@@ -511,6 +511,8 @@ class Parser:
             return self.para_stmt()
         elif self.match(TT.ESCOLHA):
             return self.escolha_stmt()
+        elif self.match(TT.QUEBRA) or self.match(TT.CONTINUA):
+            return self.loop_ctl_statement()
         else:
             return self.decl_stmt()
 
@@ -519,6 +521,11 @@ class Parser:
         exp = self.equality()
         self.end_stmt()
         return ast.Mostra(token, exp)
+
+    def loop_ctl_statement(self):
+        token = self.consume(self.lookahead.token)
+        self.end_stmt()
+        return ast.LoopCtlStmt(token)
 
     def retorna_statement(self):
         token = self.consume(TT.RETORNA)

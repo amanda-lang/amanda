@@ -168,7 +168,7 @@ class LexerTestCase(unittest.TestCase):
 
     def test_identifier(self):
         self.buffer.write(
-            "_test1 test test2 __test3 nulo var mostra verdadeiro falso retorna se senao senaose enquanto entao inc para faca de fim func classe eu usa super vazio escolha caso como nativa"
+            "_test1 test test2 __test3 nulo var mostra verdadeiro falso retorna se senao senaose enquanto entao inc para faca de fim func classe eu usa super vazio escolha caso como nativa quebra continua"
         )
         self.buffer.seek(0)
 
@@ -296,6 +296,18 @@ class LexerTestCase(unittest.TestCase):
             token.token, TokenType.NATIVA, msg="nativa Test Failed"
         )
         self.assertEqual(token.lexeme, "nativa", msg="nativa value test Failed")
+        token = self.lexer.get_token()
+        self.assertEqual(
+            token.token, TokenType.QUEBRA, msg="quebra Test Failed"
+        )
+        self.assertEqual(token.lexeme, "quebra", msg="quebra value test Failed")
+        token = self.lexer.get_token()
+        self.assertEqual(
+            token.token, TokenType.CONTINUA, msg="continua Test Failed"
+        )
+        self.assertEqual(
+            token.lexeme, "continua", msg="continua value test Failed"
+        )
 
     def test_delimeters(self):
         self.buffer.write(". , ; ) ( { } [ ] : .. ::")

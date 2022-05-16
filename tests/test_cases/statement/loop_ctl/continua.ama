@@ -1,0 +1,13 @@
+i: int = 0
+
+enquanto i < 10 faca
+    i += 1
+    se i % 2 != 0 entao
+        continua
+    fim
+    escrevaln(i)
+fim 
+
+
+
+#[output]:2 4 6 8 10

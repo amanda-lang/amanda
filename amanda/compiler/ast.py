@@ -133,6 +133,10 @@ class Statement(ASTNode):
         self.tag_children()
 
 
+class LoopCtlStmt(Statement):
+    pass
+
+
 class Retorna(Statement):
     pass
 

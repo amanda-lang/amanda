@@ -22,6 +22,7 @@ DIRS = [
     join(STATEMENT, "escolha"),
     join(TEST_DIR, "function"),
     join(STATEMENT, "retorna"),
+    join(STATEMENT, "loop_ctl"),
     join(TEST_DIR, "comment"),
     join(TEST_DIR, "call"),
     join(TEST_DIR, "declaration"),
