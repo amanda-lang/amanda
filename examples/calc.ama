@@ -57,11 +57,12 @@ fim
 
 func inicio()
     cmd: texto
-    enquanto cmd != "fim" faca
+    enquanto verdadeiro faca
         cmd = leia("> ")
-        se cmd != "fim" entao
-            processar_cmd(cmd)
+        se cmd == "fim" entao
+            quebra
         fim
+        processar_cmd(cmd)
     fim
 fim
 
