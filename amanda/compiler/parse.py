@@ -879,6 +879,16 @@ class Parser:
         # Everything up to an '{}' will be a separate string
         while char != "":
             if char == "{":
+                pos = format_str.tell()
+                next_char = format_str.read(1)
+                format_str.seek(pos)
+                # Found a double "{{", do not treat as expression
+                if next_char == "{":
+                    current_str.write("{")
+                    # Get char after "{{"
+                    format_str.read(1)
+                    char = format_str.read(1)
+                    continue
                 lexeme = current_str.getvalue()
                 if len(lexeme) > 0:
                     parts.append(tokenify_str(lexeme))
