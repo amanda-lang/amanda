@@ -1,10 +1,10 @@
 # Isto é uma var que guarda uma lista
 
-minha_lista : [] int 
+minha_lista : [int]
 
 #Para criar a lista use a 'função' lista
 
-minha_lista = lista(int,4) # tipo e o tamanho
+minha_lista = vec(int,4) # tipo e o tamanho
 
 # Preencher a lista usando índices
 
