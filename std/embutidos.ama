@@ -12,7 +12,8 @@ func nativa leia_real(mensagem: texto): real
 func nativa escreva(item: indef)
 func nativa escrevaln(item: indef)
 
-# Sequências
+# Para colecções
+func nativa vec(tipo: indef, tam: int): indef
 func nativa tam(seq: indef): int
 
 
