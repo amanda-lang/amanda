@@ -1,0 +1,4 @@
+java: texto = "System.out.println()"
+
+escrevaln(f"public static void main(){{ {java} }")
+#[output]: public static void main(){ System.out.println() }

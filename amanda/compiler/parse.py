@@ -873,13 +873,26 @@ class Parser:
         )
         # TODO: Reuse this buffer
         current_str = StringIO()
+        # Indicates whether fstr has at least one expression
+        has_expr = False
         # Separate the string into individual expressions
         # Everything up to an '{}' will be a separate string
         while char != "":
             if char == "{":
+                pos = format_str.tell()
+                next_char = format_str.read(1)
+                format_str.seek(pos)
+                # Found a double "{{", do not treat as expression
+                if next_char == "{":
+                    current_str.write("{")
+                    # Get char after "{{"
+                    format_str.read(1)
+                    char = format_str.read(1)
+                    continue
                 lexeme = current_str.getvalue()
                 if len(lexeme) > 0:
                     parts.append(tokenify_str(lexeme))
+                has_expr = True
                 current_str = StringIO()
                 parts.append(self.parse_fstr_expr(token, format_str))
                 char = format_str.read(1)
@@ -890,6 +903,8 @@ class Parser:
         buff_str = current_str.getvalue()
         if buff_str:
             parts.append(tokenify_str(buff_str))
+        if not has_expr:
+            return parts[0]
         return ast.FmtStr(token, parts)
 
     def primary(self):
