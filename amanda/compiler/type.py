@@ -2,7 +2,7 @@ from __future__ import annotations
 from amanda.compiler.symbols import Symbol
 from enum import auto, IntEnum
 from dataclasses import dataclass
-from typing import cast, Optional
+from typing import cast, List, Tuple, Optional
 
 # Describes the kind of a type
 class Kind(IntEnum):
@@ -129,13 +129,12 @@ class Klass(Type):
     pass
 
 
-#    def __init__(self, name, members):
-#        super().__init__(Kind.TKLASS)
-#        self.name = name
-#        self.out_id = name
-#        self.members = members
-#        self.constructor = None
-#        self.is_global = False
-#
-#    def __str__(self):
-#        return self.name
+builtin_types: List[Tuple[str, Type]] = [
+    ("int", Type(Kind.TINT)),
+    ("real", Type(Kind.TREAL)),
+    ("bool", Type(Kind.TBOOL)),
+    ("texto", Type(Kind.TTEXTO)),
+    ("vazio", Type(Kind.TVAZIO)),
+    ("indef", Type(Kind.TINDEF)),
+    ("nulo", Type(Kind.TNULO)),
+]
