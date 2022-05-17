@@ -5,7 +5,7 @@ from amanda.compiler.parse import parse
 from amanda.compiler.tokens import TokenType as TT, Token
 import amanda.compiler.ast as ast
 import amanda.compiler.symbols as symbols
-from amanda.compiler.type import Kind, Type, Lista, Klass
+from amanda.compiler.type import Kind, Type, Vector, Klass
 from amanda.compiler.error import AmandaError
 from amanda.compiler.bltins import bltin_symbols
 from amanda.config import STD_LIB
@@ -121,18 +121,14 @@ class Analyzer(ast.Visitor):
     def get_type(self, type_node):
         if not type_node:
             return self.ctx_scope.resolve("vazio")
-        type_name = type_node.type_name.lexeme
-        type_symbol = self.ctx_scope.resolve(type_name)
-        if not type_symbol or not type_symbol.is_type():
-            self.error(f"o tipo '{type_name}' não foi declarado")
-
-        if type_node.is_list:
-            ama_type = Lista(type_symbol)
-            for i in range(0, type_node.dim - 1):
-                ama_type = Lista(ama_type)
-        else:
-            ama_type = type_symbol
-        return ama_type
+        if type(type_node) == ast.Type:
+            type_id = type_node.name.lexeme
+            type_symbol = self.ctx_scope.resolve(type_id)
+            if not type_symbol or not type_symbol.is_type():
+                self.error(f"o tipo '{type_id}' não foi declarado")
+            return type_symbol
+        elif type(type_node) == ast.ArrayType:
+            return Vector(get_type(type_node.element_type))
 
     def types_match(self, expected, received):
         return expected == received or received.promote_to(expected)
