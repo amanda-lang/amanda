@@ -134,6 +134,13 @@ class Analyzer(ast.Visitor):
     def visit_or_transform(self, node):
         nodeT = type(node)
         self.visit(node)
+        has_side_fx = (
+            ast.Assign,
+            ast.Call,
+            ast.Set,
+            ast.IndexGet,
+            ast.IndexSet,
+        )
         # TODO: Actually implement a jump table for escolha
         if nodeT == ast.Escolha:
             token = node.token
@@ -180,9 +187,8 @@ class Analyzer(ast.Visitor):
                 return se_node
         # Ignore all unused expressions
         # WARNING: This might be a nasty bug, please test this
-        elif nodeT not in (ast.Assign, ast.Call, ast.Set) and isinstance(
-            node, ast.Expr
-        ):
+        # TODO: Implement a proper way to do this
+        elif nodeT not in has_side_fx and isinstance(node, ast.Expr):
             return None
         else:
             return node
