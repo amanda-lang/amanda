@@ -38,7 +38,7 @@ class OpCode(Enum):
     OP_LESS = auto()
     OP_LESSEQ = auto()
     # Uses TOS to index into TOS - 1. The result is pushed onto the stack
-    OP_INDEX = auto()
+    OP_INDEX_GET = auto()
     # Gets a global variable. The arg is the index to the name of the var on the
     # constant table. Pushes value to the top of the stack
     GET_GLOBAL = auto()
@@ -356,7 +356,7 @@ class ByteGen:
         if assign:
             self.gen_assign(assign)
         else:
-            initializer = init_values[str(node.var_type)]
+            initializer = init_values.get(str(node.var_type), "falso")
             init_idx = self.get_table_index(initializer, self.CONST_TABLE)
             self.append_op(OpCode.LOAD_CONST, init_idx)
             self.set_variable(symbol)
@@ -607,15 +607,10 @@ class ByteGen:
         self.gen(node.exp)
         self.append_op(OpCode.MOSTRA)
 
-    def gen_index(self, node):
+    def gen_indexget(self, node):
         self.gen(node.target)
         self.gen(node.index)
-        self.append_op(OpCode.OP_INDEX)
-
-    def gen_index(self, node):
-        self.gen(node.target)
-        self.gen(node.index)
-        self.append_op(OpCode.OP_INDEX)
+        self.append_op(OpCode.OP_INDEX_GET)
 
     def gen_fmtstr(self, node):
         for part in node.parts:

@@ -727,6 +727,8 @@ class Parser:
                 self.error(self.ILLEGAL_ASSIGN)
             if isinstance(expr, ast.Get):
                 expr = ast.Set(target=expr, expr=self.assignment())
+            elif isinstance(expr, ast.IndexGet):
+                expr = ast.IndexSet(token, expr, self.assignment())
             else:
                 expr = ast.Assign(token, left=expr, right=self.assignment())
         return expr
@@ -807,7 +809,7 @@ class Parser:
                 self.consume(TT.LBRACKET)
                 index = self.equality()
                 token = self.consume(TT.RBRACKET)
-                expr = ast.Index(token, expr, index)
+                expr = ast.IndexGet(token, expr, index)
             else:
                 self.consume(TT.DOT)
                 identifier = self.lookahead

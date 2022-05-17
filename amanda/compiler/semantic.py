@@ -478,7 +478,7 @@ class Analyzer(ast.Visitor):
             )
         node.eval_type = target.eval_type
 
-    def visit_index(self, node):
+    def visit_indexget(self, node):
         # Check if index is int
         target = node.target
         self.visit(target)
@@ -504,6 +504,22 @@ class Analyzer(ast.Visitor):
             raise NotImplementedError(
                 f"Index eval not implemented for '{t_type}'"
             )
+
+    def visit_indexset(self, node):
+        index = node.index
+        value = node.value
+        self.visit(index)
+        if index.eval_type.kind == Kind.TTEXTO:
+            self.error(
+                f"As strings não podem ser modificadas por meio de índices"
+            )
+        self.visit(value)
+        if not self.types_match(index.eval_type, value.eval_type):
+            self.ctx_node = node
+            self.error(
+                f"atribuição inválida. incompatibilidade entre os operandos da atribuição: '{lhs.eval_type}' e '{rhs.eval_type}'"
+            )
+        node.eval_type = index.eval_type
 
     def visit_converta(self, node):
         self.visit(node.target)
@@ -767,7 +783,6 @@ class Analyzer(ast.Visitor):
             self.error(message)
         if sym.name in BUILTINS:
             self.builtin_call(BUILTINS[sym.name], node)
-            return sym
         else:
             self.validate_call(sym, node.fargs)
             node.eval_type = sym.type

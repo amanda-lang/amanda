@@ -251,11 +251,22 @@ class Get(Expr):
         return True
 
 
-class Index(Expr):
+class IndexGet(Expr):
     def __init__(self, token, target, index):
         super().__init__(token)
         self.target = target
         self.index = index
+        self.tag_children()
+
+    def is_assignable(self):
+        return True
+
+
+class IndexSet(Expr):
+    def __init__(self, token, index, value):
+        super().__init__(token)
+        self.index = index
+        self.value = value
         self.tag_children()
 
     def is_assignable(self):
