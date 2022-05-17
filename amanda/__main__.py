@@ -6,7 +6,6 @@ import sys
 from os import path
 from amanda.amarun import run_py, run_rs
 from amanda.compiler.error import handle_exception, throw_error
-from amanda.compiler.bltins import bltin_objs
 
 
 def main(*args):
