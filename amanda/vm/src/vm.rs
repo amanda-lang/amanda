@@ -1,3 +1,4 @@
+use std::fmt::Write;
 use std::borrow::Cow;
 use crate::ama_value;
 use crate::ama_value::{AmaFunc, AmaValue};
@@ -380,7 +381,7 @@ impl<'a> AmaVM<'a> {
                     let start = (self.sp - (num_parts - 1)) as usize;
                     let mut built_str = String::new();
                     for i in start..=self.sp as usize {
-                        built_str.push_str(&format!("{}", self.values[i]));
+                        write!(built_str, "{}", self.values[i]);
                     }
                     //Drop values
                     self.sp = start as isize - 1;
