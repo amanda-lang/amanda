@@ -1,34 +1,28 @@
 use crate::ama_value::AmaValue;
 use std::ptr;
 
-#[derive(Debug, Copy)]
-pub struct Ref<'a> {
+#[derive(Debug)]
+struct InnerRef<'a> {
     inner: *mut AmaValue<'a>,
-    next: *const Ref<'a>,
+    next: *const InnerRef<'a>,
 }
 
-impl Clone for Ref<'_> {
-    fn clone(&self) -> Self {
-        Self {
-            inner: self.inner,
-            next: self.next,
-        }
-    }
-}
+#[derive(Debug, Copy, Clone)]
+pub struct Ref<'a>(*mut InnerRef<'a>);
 
 impl<'a> Ref<'a> {
     pub fn inner(&self) -> &AmaValue<'a> {
-        /*SAFETY: Inner should be a valid and non-null pointer as it should only be obtained
-         * from the alloc_ref
+        /*SAFETY: The InnerRef should be obtained from the 'alloc_ref' function
+         * of the Alloc struct.
          */
-        unsafe { &*(self.inner) }
+        unsafe { &(*(*self.0).inner) }
     }
 
     pub fn inner_mut(&self) -> &mut AmaValue<'a> {
-        /*SAFETY: Inner should be a valid and non-null pointer as it should only be obtained
-         * from the alloc_ref
+        /*SAFETY: The InnerRef should be obtained from the 'alloc_ref' function
+         * of the Alloc struct.
          */
-        unsafe { &mut *(self.inner) }
+        unsafe { &mut (*(*self.0).inner) }
     }
 }
 
@@ -57,17 +51,18 @@ impl<'a> Alloc<'a> {
             }
             _ => unimplemented!(),
         };
-        let mut new_ref = Ref {
+        let ama_ref = Ref(Box::into_raw(Box::new(InnerRef {
             inner: Box::into_raw(boxed),
             next: ptr::null(),
-        };
+        })));
         if let Some(ref object) = self.objects {
-            new_ref.next = object;
-            self.objects = Some(new_ref);
+            //SAFETY: Pointer obtained from box
+            unsafe { &mut *ama_ref.0 }.next = object.0;
+            self.objects = Some(ama_ref);
         } else {
-            self.objects = Some(new_ref);
+            self.objects = Some(ama_ref);
         }
-        new_ref
+        ama_ref
         //unimplemented!()
     }
 }
