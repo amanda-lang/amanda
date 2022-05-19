@@ -2,6 +2,7 @@ use crate::alloc::Alloc;
 use crate::ama_value::{AmaValue, FuncArgs, NativeFunc, Type};
 use crate::errors::AmaErr;
 use std::borrow::Cow;
+use std::collections::HashMap;
 use std::io;
 use std::io::Write;
 use unicode_segmentation::UnicodeSegmentation;
@@ -20,14 +21,14 @@ fn get_fn_arg<'a>(args: FuncArgs<'a>, idx: usize) -> Result<&AmaValue<'a>, ()> {
 
 type AmaResult<'a> = Result<AmaValue<'a>, AmaErr>;
 
-fn escrevaln<'a>(args: FuncArgs, _: &Alloc<'a>) -> AmaResult<'a> {
+fn escrevaln<'a>(args: FuncArgs, _: &mut Alloc<'a>) -> AmaResult<'a> {
     let value: &AmaValue = get_fn_arg(args, 0).unwrap();
 
     println!("{}", value);
     Ok(AmaValue::None)
 }
 
-fn escreva<'a>(args: FuncArgs, _: &Alloc<'a>) -> AmaResult<'a> {
+fn escreva<'a>(args: FuncArgs, _: &mut Alloc<'a>) -> AmaResult<'a> {
     let value: &AmaValue = get_fn_arg(args, 0).unwrap();
 
     print!("{}", value);
@@ -35,7 +36,7 @@ fn escreva<'a>(args: FuncArgs, _: &Alloc<'a>) -> AmaResult<'a> {
     Ok(AmaValue::None)
 }
 
-fn leia<'a>(args: FuncArgs, alloc: &Alloc<'a>) -> AmaResult<'a> {
+fn leia<'a>(args: FuncArgs, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     escreva(args, alloc)?;
 
     let mut input = String::from("");
@@ -50,7 +51,7 @@ fn leia<'a>(args: FuncArgs, alloc: &Alloc<'a>) -> AmaResult<'a> {
     Ok(AmaValue::Str(Cow::Owned(input)))
 }
 
-fn leia_int<'a>(args: FuncArgs, alloc: &Alloc<'a>) -> AmaResult<'a> {
+fn leia_int<'a>(args: FuncArgs, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     if let Ok(AmaValue::Str(input)) = leia(args, alloc) {
         //TODO: Propagate possible errors to caller
         let maybe_int = input.parse::<i64>();
@@ -64,7 +65,7 @@ fn leia_int<'a>(args: FuncArgs, alloc: &Alloc<'a>) -> AmaResult<'a> {
     }
 }
 
-fn leia_real<'a>(args: FuncArgs, alloc: &Alloc<'a>) -> AmaResult<'a> {
+fn leia_real<'a>(args: FuncArgs, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     if let Ok(AmaValue::Str(input)) = leia(args, alloc) {
         //TODO: Propagate possible errors to caller
         let maybe_double = input.parse::<f64>();
@@ -78,7 +79,7 @@ fn leia_real<'a>(args: FuncArgs, alloc: &Alloc<'a>) -> AmaResult<'a> {
     }
 }
 
-fn tam<'a>(args: FuncArgs, _: &Alloc<'a>) -> AmaResult<'a> {
+fn tam<'a>(args: FuncArgs, _: &mut Alloc<'a>) -> AmaResult<'a> {
     let value = get_fn_arg(args, 0).unwrap();
     match value {
         AmaValue::Str(string) => Ok(AmaValue::Int(
@@ -88,7 +89,7 @@ fn tam<'a>(args: FuncArgs, _: &Alloc<'a>) -> AmaResult<'a> {
     }
 }
 
-fn txt_contem<'a>(args: FuncArgs, _: &Alloc<'a>) -> AmaResult<'a> {
+fn txt_contem<'a>(args: FuncArgs, _: &mut Alloc<'a>) -> AmaResult<'a> {
     let haystack = get_fn_arg(args, 0).unwrap();
     let needle = get_fn_arg(args, 1).unwrap();
     match (haystack, needle) {
@@ -99,7 +100,7 @@ fn txt_contem<'a>(args: FuncArgs, _: &Alloc<'a>) -> AmaResult<'a> {
     }
 }
 
-fn vec<'a>(args: FuncArgs, alloc: &Alloc<'a>) -> AmaResult<'a> {
+fn vec<'a>(args: FuncArgs, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     let el_type = get_fn_arg(args, 0).unwrap().take_type();
     let size = get_fn_arg(args, 1).unwrap().take_int();
     if size < 0 {
@@ -125,7 +126,7 @@ fn vec<'a>(args: FuncArgs, alloc: &Alloc<'a>) -> AmaResult<'a> {
 #[inline]
 fn new_builtin<'a>(
     name: &'a str,
-    func: fn(FuncArgs, &Alloc<'a>) -> AmaResult<'a>,
+    func: fn(FuncArgs, &mut Alloc<'a>) -> AmaResult<'a>,
 ) -> (&'a str, AmaValue<'a>) {
     (name, (AmaValue::NativeFn(NativeFunc { name, func })))
 }

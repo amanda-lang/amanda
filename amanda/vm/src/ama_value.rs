@@ -53,7 +53,7 @@ pub type FuncArgs<'a> = Option<*const Ref<'a>>;
 #[derive(Clone, Copy)]
 pub struct NativeFunc<'a> {
     pub name: &'a str,
-    pub func: fn(FuncArgs, &Alloc<'a>) -> Result<AmaValue<'a>, AmaErr>,
+    pub func: fn(FuncArgs, &mut Alloc<'a>) -> Result<AmaValue<'a>, AmaErr>,
 }
 
 impl<'a> Debug for NativeFunc<'a> {
