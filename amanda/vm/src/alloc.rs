@@ -26,6 +26,12 @@ impl<'a> Ref<'a> {
     }
 }
 
+macro_rules! raw_from_box {
+    ($target: expr) => {
+        Box::into_raw(Box::new($target))
+    };
+}
+
 #[derive(Debug)]
 pub struct Alloc<'a> {
     objects: Option<Ref<'a>>,
@@ -37,24 +43,11 @@ impl<'a> Alloc<'a> {
     }
 
     pub fn alloc_ref(&mut self, value: AmaValue<'a>) -> Ref<'a> {
-        let boxed = match value {
-            AmaValue::Int(_)
-            | AmaValue::F64(_)
-            | AmaValue::Bool(_)
-            | AmaValue::Func(_)
-            | AmaValue::NativeFn(_)
-            | AmaValue::None
-            | AmaValue::Type(_)
-            | AmaValue::Str(_) => {
-                //Cheap and sized type, use stack
-                Box::new(value)
-            }
-            _ => unimplemented!(),
-        };
-        let ama_ref = Ref(Box::into_raw(Box::new(InnerRef {
-            inner: Box::into_raw(boxed),
+        let value_alloc = raw_from_box!(value);
+        let ama_ref = Ref(raw_from_box!(InnerRef {
+            inner: value_alloc,
             next: ptr::null(),
-        })));
+        }));
         if let Some(ref object) = self.objects {
             //SAFETY: Pointer obtained from box
             unsafe { &mut *ama_ref.0 }.next = object.0;
