@@ -840,14 +840,16 @@ class Analyzer(ast.Visitor):
                     f"incompatibilidade de tipos entre a lista e o valor a anexar: '{list_node.eval_type.subtype}' != '{value.eval_type}'"
                 )
             node.eval_type = self.global_scope.resolve("vazio")
+
         elif fn == BuiltinFn.TAM:
             self.check_arity(node.fargs, fn, 1)
             seq = node.fargs[0]
             self.visit(seq)
 
-            if seq.eval_type.kind != Kind.TTEXTO:
+            SEQ_TYPES = (Kind.TTEXTO, Kind.TVEC)
+            if seq.eval_type.kind not in SEQ_TYPES:
                 self.error(
-                    "O argumento 1 da função 'tam' deve ser do tipo 'texto'"
+                    "O argumento 1 da função 'tam' deve ser do tipo 'texto' ou do tipo 'vector'"
                 )
 
             node.eval_type = self.global_scope.resolve("int")

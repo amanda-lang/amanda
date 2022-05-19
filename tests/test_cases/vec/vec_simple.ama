@@ -1,0 +1,23 @@
+# Isto é uma var que guarda uma vec
+minha_lista : [int]
+
+#Para criar um vec use a 'função' vec
+
+minha_lista = vec(int,4) # tipo e o tamanho
+
+# Preencher o vec usando índices
+
+minha_lista[0] = -3
+minha_lista[1] = 88
+minha_lista[2] = 65
+minha_lista[3] = 11
+
+
+# Imprimir a lista
+
+para i de 0..4 faca
+    mostra minha_lista[i]
+fim
+
+
+#[output]:-3 88 65 11

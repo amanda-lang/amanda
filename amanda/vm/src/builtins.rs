@@ -2,7 +2,6 @@ use crate::alloc::Alloc;
 use crate::ama_value::{AmaValue, FuncArgs, NativeFunc, Type};
 use crate::errors::AmaErr;
 use std::borrow::Cow;
-use std::collections::HashMap;
 use std::io;
 use std::io::Write;
 use unicode_segmentation::UnicodeSegmentation;
@@ -85,6 +84,7 @@ fn tam<'a>(args: FuncArgs, _: &mut Alloc<'a>) -> AmaResult<'a> {
         AmaValue::Str(string) => Ok(AmaValue::Int(
             (&string as &str).graphemes(true).count() as i64
         )),
+        AmaValue::Vector(vec) => Ok(AmaValue::Int(vec.len() as i64)),
         _ => unreachable!("function called with something of invalid type"),
     }
 }
