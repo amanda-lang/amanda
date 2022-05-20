@@ -321,7 +321,7 @@ impl<'a> AmaVM<'a> {
                     match target.inner_mut() {
                         AmaValue::Vector(vec) =>{
                             if idx < 0 {
-                               self.panic_and_throw("Erro de índice inválido. Vectores só podem ser indexadas com inteiros positivos")?;
+                               self.panic_and_throw("Erro de índice inválido. Vectores só podem ser indexados com inteiros positivos")?;
                             }
                             vec[idx as usize] = value;
                         }

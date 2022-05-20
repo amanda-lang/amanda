@@ -827,8 +827,8 @@ class Analyzer(ast.Visitor):
             self.visit(list_node)
             self.visit(value)
 
-            if type(list_node.eval_type) != Lista:
-                self.error("O argumento 1 da função 'anexe' deve ser uma lista")
+            if list_node.eval_type.kind != Kind.TVEC:
+                self.error("O argumento 1 da função 'anexa' deve ser uma lista")
 
             value.prom_type = value.eval_type.promote_to(
                 list_node.eval_type.subtype

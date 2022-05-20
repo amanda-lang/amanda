@@ -6,7 +6,7 @@ use std::borrow::Cow;
 use std::convert::From;
 use std::fmt;
 use std::fmt::Debug;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Display, Formatter, Write};
 
 #[derive(Clone, Copy)]
 enum BinOpResult {
@@ -276,8 +276,21 @@ impl Display for AmaValue<'_> {
                 let val_str = if *val { "verdadeiro" } else { "falso" };
                 write!(f, "{}", val_str)
             }
+            AmaValue::Vector(vec) => {
+                let mut res = String::new();
+                write!(res, "[");
+                vec.iter().enumerate().for_each(|(i, val)| {
+                    if i == vec.len() - 1 {
+                        write!(res, "{}", vec[i].inner());
+                        return;
+                    }
+                    write!(res, "{}, ", vec[i].inner());
+                });
+                write!(res, "]");
+                write!(f, "{}", res)
+            }
             AmaValue::None => panic!("None value should not be printed"),
-            _ => write!(f, "{:?}", self),
+            _ => unimplemented!(),
         }
     }
 }
