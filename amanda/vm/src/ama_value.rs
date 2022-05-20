@@ -281,10 +281,10 @@ impl Display for AmaValue<'_> {
                 write!(res, "[");
                 vec.iter().enumerate().for_each(|(i, val)| {
                     if i == vec.len() - 1 {
-                        write!(res, "{}", vec[i].inner());
+                        write!(res, "{}", val.inner());
                         return;
                     }
-                    write!(res, "{}, ", vec[i].inner());
+                    write!(res, "{}, ", val.inner());
                 });
                 write!(res, "]");
                 write!(f, "{}", res)
