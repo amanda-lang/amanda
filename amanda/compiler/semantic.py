@@ -110,8 +110,13 @@ class Analyzer(ast.Visitor):
     def get_type(self, type_node):
         if not type_node:
             return self.ctx_scope.resolve("vazio")
-        if type(type_node) == ast.Type:
-            type_id = type_node.name.lexeme
+        node_t = type(type_node)
+        if node_t == ast.Type or node_t == ast.Variable:
+            type_id = (
+                type_node.name.lexeme
+                if node_t == ast.Type
+                else type_node.token.lexeme
+            )
             type_symbol = self.ctx_scope.resolve(type_id)
             if not type_symbol or not type_symbol.is_type():
                 self.error(f"o tipo '{type_id}' não foi declarado")
@@ -798,27 +803,28 @@ class Analyzer(ast.Visitor):
     # Validates call to builtin functions
     def builtin_call(self, fn, node):
         if fn == BuiltinFn.VEC:
+            self.check_arity(node.fargs, fn, 2)
             # Is size given valid?
             size = node.fargs[1]
             self.visit(size)
             if size.eval_type.kind != Kind.TINT:
                 self.error(
-                    "O tamanho de uma lista deve ser representado por um inteiro"
+                    "O tamanho de um vector deve ser representado por um inteiro"
+                )
+            # Is arg 1 a simple type?
+            type_node = node.fargs[0]
+            el_type = self.get_type(type_node)
+            if type(el_type) == Vector:
+                self.error(
+                    f"O argumento 1 da função '{fn}' deve ser um tipo simples"
+                )
+            # Is arg 1 a valid type?
+            elif el_type is None:
+                self.error(
+                    f"O tipo '{type_node.token.lexeme}' não é um tipo válido"
                 )
 
-            # Is arg 1 an identifier?
-            self.check_arity(node.fargs, fn, 2)
-            el_type = node.fargs[0]
-            if type(el_type) != ast.Variable:
-                self.error(f"O argumento 1 da função '{fn}' deve ser um tipo")
-
-            # Is arg 1 a valid type?
-            type_id = el_type.token.lexeme
-            type_sym = self.ctx_scope.resolve(type_id)
-            if not type_sym or type(type_sym) != Type:
-                self.error(f"O identificador '{type_id}' não é um tipo válido")
-
-            node.eval_type = Vector(type_sym)
+            node.eval_type = Vector(el_type)
 
         elif fn == BuiltinFn.ANEXA:
             self.check_arity(node.fargs, fn, 2)
@@ -856,7 +862,9 @@ class Analyzer(ast.Visitor):
             # TODO: Fix this awful hack
             node.symbol = self.global_scope.resolve("tam")
         else:
-            raise NotImplementedError()
+            raise NotImplementedError(
+                f"Code for the builtin '{fn}' has not been implemented"
+            )
 
     def check_arity(self, fargs, name, param_len):
         arg_len = len(fargs)
