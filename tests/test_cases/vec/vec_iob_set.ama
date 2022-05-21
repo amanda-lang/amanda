@@ -1,0 +1,8 @@
+#Para criar um vec use a 'função' vec
+
+lista: [int] = vec(int,1)
+
+
+lista[1] = 0
+
+#[output]:Erro na linha 6: Erro de índice inválido. O tamanho do vector é 1, mas tentou aceder o índice 1.

@@ -305,12 +305,12 @@ impl<'a> AmaVM<'a> {
                             }
                         }
                         AmaValue::Vector(vec) =>{
-                            if idx < 0 {
-                               self.panic_and_throw("Erro de índice inválido. Vectores só podem ser indexadas com inteiros positivos")?;
-                            }
-                            self.op_push(vec[idx as usize]);
+                            match target.inner().vec_index_check(idx){
+                                Ok(_) => self.op_push(vec[idx as usize]), 
+                                Err(err) => self.panic_and_throw(&err)?
+                            };
                         }
-                        _ => panic!("Fatal error!"),
+                        _ => unimplemented!(),
                     }
                 }
                 OpCode::OpIndexSet => {
@@ -320,12 +320,12 @@ impl<'a> AmaVM<'a> {
                     let target = self.op_pop();
                     match target.inner_mut() {
                         AmaValue::Vector(vec) =>{
-                            if idx < 0 {
-                               self.panic_and_throw("Erro de índice inválido. Vectores só podem ser indexados com inteiros positivos")?;
-                            }
-                            vec[idx as usize] = value;
+                            match target.inner().vec_index_check(idx){
+                                Ok(_) => vec[idx as usize] = value, 
+                                Err(err) => self.panic_and_throw(&err)?
+                            };
                         }
-                        _ => panic!("Fatal error!"),
+                        _ => unimplemented!(),
                     }
 
                 }

@@ -682,6 +682,17 @@ class Parser:
         elif self.match(TT.NOTEQUAL):
             return self.consume(TT.NOTEQUAL)
 
+    def compound_operator(self):
+        if self.match(TT.PLUSEQ):
+            op = (TT.PLUS, "+")
+        elif self.match(TT.MINUSEQ):
+            op = (TT.MINUS, "-")
+        elif self.match(TT.STAREQ):
+            op = (TT.STAR, "*")
+        elif self.match(TT.SLASHEQ):
+            op = (TT.SLASH, "/")
+        return op
+
     def compound_assignment(self):
         expr = self.assignment()
         compound_operator = (TT.PLUSEQ, TT.MINUSEQ, TT.SLASHEQ, TT.STAREQ)
@@ -700,6 +711,12 @@ class Parser:
             self.consume(current)
             if isinstance(expr, ast.Get):
                 expr = ast.Set(target=expr, expr=self.assignment())
+            elif isinstance(expr, ast.IndexGet):
+                expr = ast.IndexSet(
+                    token,
+                    expr,
+                    ast.BinOp(token, left=expr, right=self.equality()),
+                )
             else:
                 expr = ast.Assign(
                     eq,
@@ -707,17 +724,6 @@ class Parser:
                     right=ast.BinOp(token, left=expr, right=self.equality()),
                 )
         return expr
-
-    def compound_operator(self):
-        if self.match(TT.PLUSEQ):
-            op = (TT.PLUS, "+")
-        elif self.match(TT.MINUSEQ):
-            op = (TT.MINUS, "-")
-        elif self.match(TT.STAREQ):
-            op = (TT.STAR, "*")
-        elif self.match(TT.SLASHEQ):
-            op = (TT.SLASH, "/")
-        return op
 
     def assignment(self):
         expr = self.equality()

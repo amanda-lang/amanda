@@ -384,7 +384,9 @@ class ByteGen:
             name = expr.left.token.lexeme
             self.load_variable(var_sym)
         var = node.left
-        assert isinstance(var, ast.Variable)
+        assert isinstance(
+            var, ast.Variable
+        ), f"Expected ast.Variable, Got node {type(var)}. Line: {var.token}"
         var_sym = var.var_symbol
         self.set_variable(var_sym)
 

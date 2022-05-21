@@ -7,6 +7,7 @@ use std::convert::From;
 use std::fmt;
 use std::fmt::Debug;
 use std::fmt::{Display, Formatter, Write};
+use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Clone, Copy)]
 enum BinOpResult {
@@ -187,6 +188,27 @@ impl<'a> AmaValue<'a> {
         } else {
             false
         }
+    }
+
+    pub fn vec_index_check(&self, idx: i64) -> Result<(), AmaErr> {
+        if idx < 0 {
+            return Err(String::from(
+                "Erro de índice inválido. Vectores só podem ser indexadas com inteiros positivos",
+            ));
+        }
+        //Check bounds
+        let vec = match self {
+            AmaValue::Vector(vec) => vec,
+            _ => unreachable!(),
+        };
+        if idx as usize >= vec.len() {
+            return Err(format!(
+                "Erro de índice inválido. O tamanho do vector é {}, mas tentou aceder o índice {}",
+                vec.len(),
+                idx
+            ));
+        }
+        Ok(())
     }
 
     pub fn binop(left: &Self, op: OpCode, right: &Self) -> Result<Self, &'a str> {
