@@ -48,8 +48,7 @@ macro_rules! eq_ops {
     };
 }
 
-//TODO: Find a 'safe' way to do this
-pub type FuncArgs<'a> = Option<*const Ref<'a>>;
+pub type FuncArgs<'a, 'args> = &'args [Ref<'a>];
 
 #[derive(Clone, Copy)]
 pub struct NativeFunc<'a> {

@@ -388,10 +388,10 @@ impl<'a> AmaVM<'a> {
                             continue;
                         }
                         AmaValue::NativeFn(native_fn) => {
-                            let mut fn_args = None;
+                            let mut fn_args: &[Ref] = &[];
                             if args > 0 {
                                 let start = (self.sp - (args - 1)) as usize;
-                                fn_args = Some(self.values[start..=self.sp as usize].as_ptr());
+                                fn_args = &self.values[start..=self.sp as usize];
                                 self.sp = start as isize - 1;
                             }
                             let result = (native_fn.func)(fn_args, &mut self.alloc);

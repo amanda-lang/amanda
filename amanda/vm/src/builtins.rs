@@ -6,29 +6,19 @@ use std::io;
 use std::io::Write;
 use unicode_segmentation::UnicodeSegmentation;
 
-/* Builtin functions*/
-fn get_fn_arg<'a>(args: FuncArgs<'a>, idx: usize) -> Result<&AmaValue<'a>, ()> {
-    if let Some(ptr) = args {
-        //Safety: Args must either be none or point to
-        //the first argument of the function.
-        // Pointer is valid because it was read from the stack
-        unsafe { Ok((&*ptr.offset(idx as isize)).inner()) }
-    } else {
-        Err(())
-    }
-}
-
+/*Helpers*/
 type AmaResult<'a> = Result<AmaValue<'a>, AmaErr>;
 
+/* Builtin functions*/
 fn escrevaln<'a>(args: FuncArgs, _: &mut Alloc<'a>) -> AmaResult<'a> {
-    let value: &AmaValue = get_fn_arg(args, 0).unwrap();
+    let value: &AmaValue = args[0].inner();
 
     println!("{}", value);
     Ok(AmaValue::None)
 }
 
 fn escreva<'a>(args: FuncArgs, _: &mut Alloc<'a>) -> AmaResult<'a> {
-    let value: &AmaValue = get_fn_arg(args, 0).unwrap();
+    let value: &AmaValue = args[0].inner();
 
     print!("{}", value);
     io::stdout().flush().unwrap();
@@ -79,7 +69,7 @@ fn leia_real<'a>(args: FuncArgs, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
 }
 
 fn tam<'a>(args: FuncArgs, _: &mut Alloc<'a>) -> AmaResult<'a> {
-    let value = get_fn_arg(args, 0).unwrap();
+    let value = args[0].inner();
     match value {
         AmaValue::Str(string) => Ok(AmaValue::Int(
             (&string as &str).graphemes(true).count() as i64
@@ -90,8 +80,8 @@ fn tam<'a>(args: FuncArgs, _: &mut Alloc<'a>) -> AmaResult<'a> {
 }
 
 fn txt_contem<'a>(args: FuncArgs, _: &mut Alloc<'a>) -> AmaResult<'a> {
-    let haystack = get_fn_arg(args, 0).unwrap();
-    let needle = get_fn_arg(args, 1).unwrap();
+    let haystack = args[0].inner();
+    let needle = args[1].inner();
     match (haystack, needle) {
         (AmaValue::Str(haystack), AmaValue::Str(needle)) => Ok(AmaValue::Bool(
             (&haystack as &str).contains(&needle as &str),
@@ -101,8 +91,8 @@ fn txt_contem<'a>(args: FuncArgs, _: &mut Alloc<'a>) -> AmaResult<'a> {
 }
 
 fn vec<'a>(args: FuncArgs, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
-    let el_type = get_fn_arg(args, 0).unwrap().take_type();
-    let size = get_fn_arg(args, 1).unwrap().take_int();
+    let el_type = args[0].inner().take_type();
+    let size = args[1].inner().take_int();
     if size < 0 {
         return Err(String::from(
             "Tamanho de vector deve ser um número inteiro positivo",
