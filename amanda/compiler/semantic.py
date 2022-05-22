@@ -803,29 +803,33 @@ class Analyzer(ast.Visitor):
     # Validates call to builtin functions
     def builtin_call(self, fn, node):
         if fn == BuiltinFn.VEC:
-            self.check_arity(node.fargs, fn, 2)
-            # Is size given valid?
-            size = node.fargs[1]
-            self.visit(size)
-            if size.eval_type.kind != Kind.TINT:
+            if len(node.fargs) < 2:
                 self.error(
-                    "O tamanho de um vector deve ser representado por um inteiro"
+                    f"Função 'vec' deve ser invocada com pelo menos 2 argumentos"
                 )
+            # Is size given valid?
+            for arg in node.fargs[1:]:
+                self.visit(arg)
+                if arg.eval_type.kind != Kind.TINT:
+                    self.error(
+                        "Os tamanhos de um vector devem ser representado por inteiros"
+                    )
+
             # Is arg 1 a simple type?
             type_node = node.fargs[0]
             el_type = self.get_type(type_node)
             if type(el_type) == Vector:
-                self.error(
-                    f"O argumento 1 da função '{fn}' deve ser um tipo simples"
-                )
+                self.error(f"O tipo de um vector deve ser um tipo simples")
             # Is arg 1 a valid type?
             elif el_type is None:
                 self.error(
                     f"O tipo '{type_node.token.lexeme}' não é um tipo válido"
                 )
-
-            node.eval_type = Vector(el_type)
-
+            # Set type based on dimensions
+            vec_type = Vector(el_type)
+            for i in range(len(node.fargs[1:]) - 1):
+                vec_type = Vector(vec_type)
+            node.eval_type = vec_type
         elif fn == BuiltinFn.ANEXA:
             self.check_arity(node.fargs, fn, 2)
             list_node = node.fargs[0]

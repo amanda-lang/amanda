@@ -1,4 +1,4 @@
-use crate::alloc::Alloc;
+use crate::alloc::{Alloc, Ref};
 use crate::ama_value::{AmaValue, FuncArgs, NativeFunc, Type};
 use crate::errors::AmaErr;
 use std::borrow::Cow;
@@ -90,27 +90,55 @@ fn txt_contem<'a>(args: FuncArgs, _: &mut Alloc<'a>) -> AmaResult<'a> {
     }
 }
 
+//TODO: Maybe optimize this
+fn build_vec<'a>(
+    dim: usize,
+    n_dims: usize,
+    dims: &[Ref],
+    el_type: Type,
+    alloc: &mut Alloc<'a>,
+) -> Vec<Ref<'a>> {
+    let size = dims[dim].inner().take_int() as usize;
+    if dim == n_dims {
+        match el_type {
+            Type::Int => vec![alloc.alloc_ref(AmaValue::Int(0)); size as usize],
+            Type::Real => vec![alloc.alloc_ref(AmaValue::F64(0.0)); size],
+            Type::Bool => vec![alloc.alloc_ref(AmaValue::Bool(false)); size],
+            Type::Texto => vec![alloc.alloc_ref(AmaValue::Str(Cow::Owned(String::new()))); size],
+            _ => unreachable!("Only primitives types should have this"),
+        }
+    } else {
+        if size == 0 {
+            Vec::with_capacity(0)
+        } else {
+            let inner = build_vec(dim + 1, n_dims, dims, el_type, alloc);
+            let mut container = Vec::with_capacity(inner.len());
+            container.resize_with(size, || alloc.alloc_ref(AmaValue::Vector(inner.clone())));
+            container
+        }
+    }
+}
+
 fn vec<'a>(args: FuncArgs, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     let el_type = args[0].inner().take_type();
-    let size = args[1].inner().take_int();
-    if size < 0 {
-        return Err(String::from(
-            "Tamanho de vector deve ser um número inteiro positivo",
-        ));
+    let dims = &args[1..];
+    let n_dims = dims.len();
+    for dim in dims {
+        let size = dim.inner().take_int();
+        if size < 0 {
+            return Err(String::from(
+                "Dimensões de um vector deve ser especificidas por números inteiros positivos",
+            ));
+        }
     }
-    let new_vec = match el_type {
-        Type::Int => AmaValue::Vector(vec![alloc.alloc_ref(AmaValue::Int(0)); size as usize]),
-        Type::Real => AmaValue::Vector(vec![alloc.alloc_ref(AmaValue::F64(0.0)); size as usize]),
-        Type::Bool => AmaValue::Vector(vec![alloc.alloc_ref(AmaValue::Bool(false)); size as usize]),
-        Type::Texto => AmaValue::Vector(vec![
-            alloc.alloc_ref(AmaValue::Str(Cow::Owned(
-                String::new()
-            )));
-            size as usize
-        ]),
-        _ => unreachable!("Only primitives types should have this"),
-    };
-    Ok(new_vec)
+    return Ok(AmaValue::Vector(build_vec(
+        0,
+        n_dims - 1,
+        dims,
+        el_type,
+        alloc,
+    )));
+    unimplemented!()
 }
 
 #[inline]
