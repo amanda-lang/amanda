@@ -16,6 +16,7 @@ func nativa escrevaln(item: indef)
 func nativa vec(tipo: indef, tam: int): indef
 func nativa tam(seq: indef): int
 func nativa anexa(vec: indef, valor: indef)
+func nativa remova(vec: indef, indice: int): indef
 
 
 # 'Metaprogramação'
