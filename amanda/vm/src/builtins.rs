@@ -7,25 +7,25 @@ use std::io::Write;
 use unicode_segmentation::UnicodeSegmentation;
 
 /*Helpers*/
-type AmaResult<'a> = Result<AmaValue<'a>, AmaErr>;
+type AmaResult<'a> = Result<Ref<'a>, AmaErr>;
 
 /* Builtin functions*/
-fn escrevaln<'a>(args: FuncArgs, _: &mut Alloc<'a>) -> AmaResult<'a> {
+fn escrevaln<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     let value: &AmaValue = args[0].inner();
 
     println!("{}", value);
-    Ok(AmaValue::None)
+    Ok(alloc.null_ref())
 }
 
-fn escreva<'a>(args: FuncArgs, _: &mut Alloc<'a>) -> AmaResult<'a> {
+fn escreva<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     let value: &AmaValue = args[0].inner();
 
     print!("{}", value);
     io::stdout().flush().unwrap();
-    Ok(AmaValue::None)
+    Ok(alloc.null_ref())
 }
 
-fn leia<'a>(args: FuncArgs, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
+fn leia<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     escreva(args, alloc)?;
 
     let mut input = String::from("");
@@ -37,55 +37,57 @@ fn leia<'a>(args: FuncArgs, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
         "Removing wrong char"
     );
 
-    Ok(AmaValue::Str(Cow::Owned(input)))
+    Ok(alloc.alloc_ref(AmaValue::Str(Cow::Owned(input))))
 }
 
-fn leia_int<'a>(args: FuncArgs, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
-    if let Ok(AmaValue::Str(input)) = leia(args, alloc) {
+fn leia_int<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
+    let input = leia(args, alloc);
+    if input.is_ok() {
         //TODO: Propagate possible errors to caller
-        let maybe_int = input.parse::<i64>();
+        let maybe_int = input.unwrap().inner().take_str().parse::<i64>();
         if let Err(_) = maybe_int {
             Err("Valor introduzido não é um inteiro válido".to_string())
         } else {
-            Ok(AmaValue::Int(maybe_int.unwrap()))
+            Ok(alloc.alloc_ref(AmaValue::Int(maybe_int.unwrap())))
         }
     } else {
         unreachable!()
     }
 }
 
-fn leia_real<'a>(args: FuncArgs, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
-    if let Ok(AmaValue::Str(input)) = leia(args, alloc) {
+fn leia_real<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
+    let input = leia(args, alloc);
+    if input.is_ok() {
         //TODO: Propagate possible errors to caller
-        let maybe_double = input.parse::<f64>();
+        let maybe_double = input.unwrap().inner().take_str().parse::<f64>();
         if let Err(_) = maybe_double {
             Err("Valor introduzido não é um número real válido".to_string())
         } else {
-            Ok(AmaValue::F64(maybe_double.unwrap()))
+            Ok(alloc.alloc_ref(AmaValue::F64(maybe_double.unwrap())))
         }
     } else {
         unreachable!()
     }
 }
 
-fn tam<'a>(args: FuncArgs, _: &mut Alloc<'a>) -> AmaResult<'a> {
+fn tam<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     let value = args[0].inner();
     match value {
-        AmaValue::Str(string) => Ok(AmaValue::Int(
-            (&string as &str).graphemes(true).count() as i64
-        )),
-        AmaValue::Vector(vec) => Ok(AmaValue::Int(vec.len() as i64)),
+        AmaValue::Str(string) => Ok(alloc.alloc_ref(AmaValue::Int(
+            (&string as &str).graphemes(true).count() as i64,
+        ))),
+        AmaValue::Vector(vec) => Ok(alloc.alloc_ref(AmaValue::Int(vec.len() as i64))),
         _ => unreachable!("function called with something of invalid type"),
     }
 }
 
-fn txt_contem<'a>(args: FuncArgs, _: &mut Alloc<'a>) -> AmaResult<'a> {
+fn txt_contem<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     let haystack = args[0].inner();
     let needle = args[1].inner();
     match (haystack, needle) {
-        (AmaValue::Str(haystack), AmaValue::Str(needle)) => Ok(AmaValue::Bool(
+        (AmaValue::Str(haystack), AmaValue::Str(needle)) => Ok(alloc.alloc_ref(AmaValue::Bool(
             (&haystack as &str).contains(&needle as &str),
-        )),
+        ))),
         _ => unreachable!("function called with something of invalid type"),
     }
 }
@@ -119,7 +121,7 @@ fn build_vec<'a>(
     }
 }
 
-fn vec<'a>(args: FuncArgs, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
+fn vec<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     let el_type = args[0].inner().take_type();
     let dims = &args[1..];
     let n_dims = dims.len();
@@ -131,33 +133,38 @@ fn vec<'a>(args: FuncArgs, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
             ));
         }
     }
-    Ok(AmaValue::Vector(build_vec(
-        0,
-        n_dims - 1,
-        dims,
-        el_type,
-        alloc,
-    )))
+    let vec = AmaValue::Vector(build_vec(0, n_dims - 1, dims, el_type, alloc));
+    Ok(alloc.alloc_ref(vec))
 }
 
-fn anexa<'a>(args: FuncArgs, _: &mut Alloc<'a>) -> AmaResult<'a> {
+fn anexa<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     let vec = match args[0].inner_mut() {
         AmaValue::Vector(vec) => vec,
         _ => unreachable!("Something bad is happening"),
     };
     vec.push(args[1]);
-    Ok(AmaValue::None)
+    Ok(alloc.null_ref())
+}
+
+fn remova<'a>(args: FuncArgs<'a, '_>, _: &mut Alloc<'a>) -> AmaResult<'a> {
+    let vec = args[0].inner_mut();
+    let idx = args[1].inner().take_int();
+    vec.vec_index_check(idx)?;
+    match vec {
+        AmaValue::Vector(vec) => Ok(vec.remove(idx as usize)),
+        _ => unreachable!("Invalid call!"),
+    }
 }
 
 #[inline]
 fn new_builtin<'a>(
     name: &'a str,
-    func: fn(FuncArgs, &mut Alloc<'a>) -> AmaResult<'a>,
+    func: fn(FuncArgs<'a, '_>, &mut Alloc<'a>) -> AmaResult<'a>,
 ) -> (&'a str, AmaValue<'a>) {
     (name, (AmaValue::NativeFn(NativeFunc { name, func })))
 }
 
-pub fn load_builtins<'a>() -> [(&'a str, AmaValue<'a>); 13] {
+pub fn load_builtins<'a>() -> [(&'a str, AmaValue<'a>); 14] {
     [
         new_builtin("escrevaln", escrevaln),
         new_builtin("escreva", escreva),
@@ -167,6 +174,7 @@ pub fn load_builtins<'a>() -> [(&'a str, AmaValue<'a>); 13] {
         new_builtin("tam", tam),
         new_builtin("vec", vec),
         new_builtin("anexa", anexa),
+        new_builtin("remova", remova),
         new_builtin("txt_contem", txt_contem),
         ("int", AmaValue::Type(Type::Int)),
         ("real", AmaValue::Type(Type::Real)),

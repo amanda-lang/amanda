@@ -40,7 +40,7 @@ pub struct Alloc<'a> {
 
 impl<'a> Alloc<'a> {
     pub fn new() -> Alloc<'a> {
-        let alloc = Alloc {
+        let mut alloc = Alloc {
             objects: None,
             null_ref: None,
         };

@@ -316,7 +316,7 @@ impl<'a> AmaVM<'a> {
                             if let Err(msg) = result {
                                 return self.panic_and_throw(&msg);
                             }
-                            self.alloc_push(result.unwrap());
+                            self.op_push(result.unwrap());
                             //Drop values
                             self.values.drain(self.sp as usize + 1..);
                         }
