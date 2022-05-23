@@ -35,11 +35,20 @@ macro_rules! raw_from_box {
 #[derive(Debug)]
 pub struct Alloc<'a> {
     objects: Option<Ref<'a>>,
+    null_ref: Option<Ref<'a>>,
 }
 
 impl<'a> Alloc<'a> {
     pub fn new() -> Alloc<'a> {
-        Alloc { objects: None }
+        let alloc = Alloc {
+            objects: None,
+            null_ref: None,
+        };
+        //Create a single reference to None to be used
+        //by the vm
+        let null_ref = alloc.alloc_ref(AmaValue::None);
+        alloc.null_ref = Some(null_ref);
+        alloc
     }
 
     pub fn alloc_ref(&mut self, value: AmaValue<'a>) -> Ref<'a> {
@@ -57,5 +66,9 @@ impl<'a> Alloc<'a> {
         }
         ama_ref
         //unimplemented!()
+    }
+
+    pub fn null_ref(&self) -> Ref<'a> {
+        self.null_ref.unwrap()
     }
 }
