@@ -414,7 +414,7 @@ impl<'a> AmaVM<'a> {
                     let start = (self.sp - (num_parts - 1)) as usize;
                     let mut built_str = String::new();
                     for i in start..=self.sp as usize {
-                        write!(built_str, "{}", self.values[i].inner());
+                        write!(built_str, "{}", self.values[i].inner()).unwrap();
                     }
                     //Drop values
                     self.sp = start as isize - 1;
@@ -444,10 +444,6 @@ impl<'a> AmaVM<'a> {
                     }
                 }
                 OpCode::Halt => break,
-                _ => unimplemented!(
-                    "Cannot not execute OpCode {:?}, maybe it hasn't been implemented yet",
-                    op
-                ),
             }
             self.frames.peek_mut().ip += 1;
         }

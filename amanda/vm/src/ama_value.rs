@@ -1,5 +1,4 @@
 use crate::alloc::{Alloc, Ref};
-use crate::binload::Const;
 use crate::errors::AmaErr;
 use crate::vm::OpCode;
 use std::borrow::Cow;
@@ -57,7 +56,7 @@ pub struct NativeFunc<'a> {
 
 impl<'a> Debug for NativeFunc<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "NativeFunc");
+        write!(f, "NativeFunc").unwrap();
         Ok(())
     }
 }
@@ -265,7 +264,6 @@ impl Clone for AmaValue<'_> {
             AmaValue::NativeFn(func) => AmaValue::NativeFn(*func),
             AmaValue::Type(t) => AmaValue::Type(*t),
             AmaValue::Vector(vec) => AmaValue::Vector(vec.clone()),
-            _ => unreachable!("Should not reach here"),
         }
     }
 }
@@ -287,15 +285,15 @@ impl Display for AmaValue<'_> {
             }
             AmaValue::Vector(vec) => {
                 let mut res = String::new();
-                write!(res, "[");
+                write!(res, "[").unwrap();
                 vec.iter().enumerate().for_each(|(i, val)| {
                     if i == vec.len() - 1 {
-                        write!(res, "{}", val.inner());
+                        write!(res, "{}", val.inner()).unwrap();
                         return;
                     }
-                    write!(res, "{}, ", val.inner());
+                    write!(res, "{}, ", val.inner()).unwrap();
                 });
-                write!(res, "]");
+                write!(res, "]").unwrap();
                 write!(f, "{}", res)
             }
             AmaValue::None => panic!("None value should not be printed"),
