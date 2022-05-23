@@ -1,0 +1,3 @@
+remova([int: ], verdadeiro)
+
+#[output]: Erro: O argumento 2 da função 'remova' deve ser um número inteiro.
