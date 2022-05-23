@@ -93,6 +93,7 @@ pub enum AmaValue<'a> {
     None,
     //Heap objects
     Vector(Vec<Ref<'a>>),
+    //TODO: Change this into a Box<str>,
     Str(Cow<'a, String>),
 }
 
