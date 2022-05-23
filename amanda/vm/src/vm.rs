@@ -179,7 +179,6 @@ impl<'a> AmaVM<'a> {
         vm
     }
 
-    //TODO: Review use of clone in push and pop 
     fn op_push(&mut self, value: Ref<'a>) {
         self.sp += 1;
         let values_size = self.values.len() as isize;
@@ -332,7 +331,6 @@ impl<'a> AmaVM<'a> {
                 OpCode::GetGlobal => {
                     let id_idx = self.get_u16_arg() as usize;
                     let id: &str = &self.module.names[id_idx];
-                    //TODO: Do not use clone
                     self.op_push(*self.globals.get(id).unwrap());
                 }
                 OpCode::SetGlobal => {
@@ -360,7 +358,6 @@ impl<'a> AmaVM<'a> {
                 }
                 OpCode::GetLocal => {
                     let idx = self.get_u16_arg() as usize + self.frames.peek().bp as usize;
-                    //TODO: Do not use clone
                     self.op_push(self.values[idx]);
                 }
                 OpCode::SetLocal => {

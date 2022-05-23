@@ -83,7 +83,6 @@ pub enum Type {
     Vector,
 }
 
-//TODO: Implement a cheap type to make cloning easier
 #[derive(Debug)]
 pub enum AmaValue<'a> {
     Int(i64),

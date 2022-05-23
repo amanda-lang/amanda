@@ -872,7 +872,6 @@ class Parser:
         return expression
 
     def parse_format_str(self):
-        # TODO: Turn fstr without expressions into normal strs
         token = self.consume(self.lookahead.token)
         # Exclude delimiters from string
         format_str = StringIO(token.lexeme[1:-1])
