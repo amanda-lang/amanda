@@ -802,7 +802,14 @@ class Analyzer(ast.Visitor):
 
     # Validates call to builtin functions
     def builtin_call(self, fn, node):
+        # TODO: Change this into an actual ast node cause it uses
+        # special syntax
         if fn == BuiltinFn.VEC:
+            # TODO: When vargs are implemented, make sure to
+            # come here and change the way this node works
+            assert (
+                len(node.fargs) < 256
+            ), "Builtin call exceeded max number of args"
             if len(node.fargs) < 2:
                 self.error(
                     f"Função 'vec' deve ser invocada com pelo menos 2 argumentos"
@@ -815,16 +822,11 @@ class Analyzer(ast.Visitor):
                         "Os tamanhos de um vector devem ser representado por inteiros"
                     )
 
-            # Is arg 1 a simple type?
             type_node = node.fargs[0]
-            el_type = self.get_type(type_node)
+            el_type = self.get_type(type_node)  # Attempt to get type
+            # Is arg 1 a vector type?
             if type(el_type) == Vector:
                 self.error(f"O tipo de um vector deve ser um tipo simples")
-            # Is arg 1 a valid type?
-            elif el_type is None:
-                self.error(
-                    f"O tipo '{type_node.token.lexeme}' não é um tipo válido"
-                )
             # Set type based on dimensions
             vec_type = Vector(el_type)
             for i in range(len(node.fargs[1:]) - 1):
