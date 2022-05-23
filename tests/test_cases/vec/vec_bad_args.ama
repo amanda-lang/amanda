@@ -1,0 +1,3 @@
+vec(int)
+
+#[output]:Erro: Função 'vec' deve ser invocada com pelo menos 2 argumentos.

@@ -1,0 +1,3 @@
+vec(int, -3, 3)
+
+#[output]:Erro na linha 1: Dimensões de um vector devem ser especificidas por números inteiros positivos.
