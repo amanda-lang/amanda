@@ -8,6 +8,7 @@ class BuiltinFn(enum.Enum):
     VEC = "vec"
     TAM = "tam"
     ANEXA = "anexa"
+    REMOVA = "remova"
 
     def __str__(self) -> str:
         return f"{self.value}"

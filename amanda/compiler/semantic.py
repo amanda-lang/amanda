@@ -800,6 +800,17 @@ class Analyzer(ast.Visitor):
         node.symbol = sym
         return sym
 
+    def check_vec_op(self, fn, node):
+        self.check_arity(node.fargs, fn, 2)
+        vec_expr = node.fargs[0]
+        value = node.fargs[1]
+        self.visit(vec_expr)
+        self.visit(value)
+
+        vec_t = vec_expr.eval_type
+        if vec_t.kind != Kind.TVEC:
+            self.error(f"O argumento 1 da função '{fn}' deve ser um vector")
+
     # Validates call to builtin functions
     def builtin_call(self, fn, node):
         # TODO: Change this into an actual ast node cause it uses
@@ -833,16 +844,11 @@ class Analyzer(ast.Visitor):
                 vec_type = Vector(vec_type)
             node.eval_type = vec_type
         elif fn == BuiltinFn.ANEXA:
-            self.check_arity(node.fargs, fn, 2)
             vec_expr = node.fargs[0]
             value = node.fargs[1]
-            self.visit(vec_expr)
-            self.visit(value)
+            self.check_vec_op(fn, node)
 
             vec_t = vec_expr.eval_type
-            if vec_t.kind != Kind.TVEC:
-                self.error("O argumento 1 da função 'anexa' deve ser um vector")
-
             el_type = vec_t.element_type
             val_t = value.eval_type
             if not self.types_match(el_type, val_t):
@@ -851,6 +857,15 @@ class Analyzer(ast.Visitor):
                 )
             value.prom_type = val_t.promote_to(el_type)
             node.eval_type = self.global_scope.resolve("vazio")
+        elif fn == BuiltinFn.REMOVA:
+            vec_expr = node.fargs[0]
+            index = node.fargs[1]
+            self.check_vec_op(fn, node)
+            if index.eval_type.kind != Kind.TINT:
+                self.error(
+                    "O argumento 2 da função 'remova' deve ser um número inteiro"
+                )
+            node.eval_type = vec_expr.eval_type.element_type
 
         elif fn == BuiltinFn.TAM:
             self.check_arity(node.fargs, fn, 1)
