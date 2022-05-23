@@ -834,23 +834,22 @@ class Analyzer(ast.Visitor):
             node.eval_type = vec_type
         elif fn == BuiltinFn.ANEXA:
             self.check_arity(node.fargs, fn, 2)
-            list_node = node.fargs[0]
+            vec_expr = node.fargs[0]
             value = node.fargs[1]
-            self.visit(list_node)
+            self.visit(vec_expr)
             self.visit(value)
 
-            if list_node.eval_type.kind != Kind.TVEC:
-                self.error("O argumento 1 da função 'anexa' deve ser uma lista")
+            vec_t = vec_expr.eval_type
+            if vec_t.kind != Kind.TVEC:
+                self.error("O argumento 1 da função 'anexa' deve ser um vector")
 
-            value.prom_type = value.eval_type.promote_to(
-                list_node.eval_type.subtype
-            )
-            if not self.types_match(
-                list_node.eval_type.subtype, value.eval_type
-            ):
+            el_type = vec_t.element_type
+            val_t = value.eval_type
+            if not self.types_match(el_type, val_t):
                 self.error(
-                    f"incompatibilidade de tipos entre a lista e o valor a anexar: '{list_node.eval_type.subtype}' != '{value.eval_type}'"
+                    f"incompatibilidade de tipos entre o tipo dos elementos da lista e o valor a anexar: '{el_type}' != '{val_t}'"
                 )
+            value.prom_type = val_t.promote_to(el_type)
             node.eval_type = self.global_scope.resolve("vazio")
 
         elif fn == BuiltinFn.TAM:

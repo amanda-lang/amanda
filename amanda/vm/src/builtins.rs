@@ -140,6 +140,15 @@ fn vec<'a>(args: FuncArgs, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     )));
 }
 
+fn anexa<'a>(args: FuncArgs, _: &mut Alloc<'a>) -> AmaResult<'a> {
+    let vec = match args[0].inner_mut() {
+        AmaValue::Vector(vec) => vec,
+        _ => unreachable!("Something bad is happening"),
+    };
+    vec.push(args[1]);
+    Ok(AmaValue::None)
+}
+
 #[inline]
 fn new_builtin<'a>(
     name: &'a str,
@@ -148,7 +157,7 @@ fn new_builtin<'a>(
     (name, (AmaValue::NativeFn(NativeFunc { name, func })))
 }
 
-pub fn load_builtins<'a>() -> [(&'a str, AmaValue<'a>); 12] {
+pub fn load_builtins<'a>() -> [(&'a str, AmaValue<'a>); 13] {
     [
         new_builtin("escrevaln", escrevaln),
         new_builtin("escreva", escreva),
@@ -157,6 +166,7 @@ pub fn load_builtins<'a>() -> [(&'a str, AmaValue<'a>); 12] {
         new_builtin("leia_real", leia_real),
         new_builtin("tam", tam),
         new_builtin("vec", vec),
+        new_builtin("anexa", anexa),
         new_builtin("txt_contem", txt_contem),
         ("int", AmaValue::Type(Type::Int)),
         ("real", AmaValue::Type(Type::Real)),

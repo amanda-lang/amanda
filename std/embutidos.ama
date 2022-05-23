@@ -15,6 +15,7 @@ func nativa escrevaln(item: indef)
 # Para colecções
 func nativa vec(tipo: indef, tam: int): indef
 func nativa tam(seq: indef): int
+func nativa anexa(vec: indef, valor: indef)
 
 
 # 'Metaprogramação'
