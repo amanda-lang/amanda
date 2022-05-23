@@ -9,7 +9,6 @@ import amanda.compiler.ast as ast
 from amanda.compiler.tokens import TokenType as TT
 from amanda.compiler.error import AmandaError, throw_error
 from amanda.compiler import bindump
-from amanda.compiler.builtinfn import FN_VEC_FROM_LIT
 import struct
 
 
@@ -150,10 +149,6 @@ class ByteGen:
         for name, symbol in program.symbols.symbols.items():
             if type(symbol) in sym_types:
                 self.get_table_index(name, self.NAME_TABLE)
-
-        # HACK: To simplify building list literals, a builtin function
-        # only available at runtime will be added to the names dict
-        self.get_table_index(FN_VEC_FROM_LIT, self.NAME_TABLE)
 
         self.compile_block(program)
         assert self.depth == -1, "A block was not exited in some local scope!"

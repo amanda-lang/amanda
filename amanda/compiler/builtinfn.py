@@ -14,7 +14,3 @@ class BuiltinFn(enum.Enum):
 
 
 BUILTINS = {key.lower(): value for key, value in BuiltinFn.__members__.items()}
-
-# HACK: To simplify building list literals, a builtin function
-# only available at runtime will be added to the names dict
-FN_VEC_FROM_LIT = "vec_from_literal"
