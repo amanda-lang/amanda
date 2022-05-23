@@ -127,7 +127,7 @@ fn vec<'a>(args: FuncArgs, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
         let size = dim.inner().take_int();
         if size < 0 {
             return Err(String::from(
-                "Dimensões de um vector deve ser especificidas por números inteiros positivos",
+                "Dimensões de um vector devem ser especificidas por números inteiros positivos",
             ));
         }
     }
@@ -138,7 +138,6 @@ fn vec<'a>(args: FuncArgs, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
         el_type,
         alloc,
     )));
-    unimplemented!()
 }
 
 #[inline]
