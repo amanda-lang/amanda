@@ -155,9 +155,8 @@ fn offset_to_line(offset: usize, src_map: &Vec<usize>) -> usize {
 }
 
 impl<'a> AmaVM<'a> {
-    pub fn new(module: &'a Module<'a>) -> Self {
+    pub fn new(module: &'a Module<'a>, mut alloc: Alloc<'a>) -> Self {
         let builtin_objs = builtins::load_builtins();
-        let mut alloc = Alloc::new();
         let mut vm = AmaVM {
             module,
             frames: FrameStack::new(),
@@ -238,7 +237,7 @@ impl<'a> AmaVM<'a> {
             match OpCode::from(&op) {
                 OpCode::LoadConst => {
                     let idx = self.get_u16_arg();
-                    self.alloc_push(AmaValue::from(&self.module.constants[idx as usize]));
+                    self.op_push(self.module.constants[idx as usize]);
                 }
                 OpCode::Mostra => println!("{}", self.op_pop().inner()),
                 //Binary Operations

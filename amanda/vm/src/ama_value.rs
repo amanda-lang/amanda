@@ -7,7 +7,6 @@ use std::convert::From;
 use std::fmt;
 use std::fmt::Debug;
 use std::fmt::{Display, Formatter, Write};
-use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Clone, Copy)]
 enum BinOpResult {
@@ -249,17 +248,6 @@ impl<'a> AmaValue<'a> {
             OpCode::OpLess => comp_ops!(res_type, left, <, right),
             OpCode::OpLessEq => comp_ops!(res_type, left, <=, right),
             _ => unimplemented!("Op {:?} has not yet been implemented", op),
-        }
-    }
-}
-
-impl<'a> From<&'a Const> for AmaValue<'a> {
-    fn from(constant: &Const) -> AmaValue {
-        match constant {
-            Const::Str(string) => AmaValue::Str(Cow::Borrowed(string)),
-            Const::Int(int) => AmaValue::Int(*int),
-            Const::Double(real) => AmaValue::F64(*real),
-            Const::Bool(boolean) => AmaValue::Bool(*boolean),
         }
     }
 }

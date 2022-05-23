@@ -1,4 +1,5 @@
 use std::{env, fs, path::Path};
+use vm::alloc::Alloc;
 use vm::binload;
 use vm::vm::AmaVM;
 
@@ -12,8 +13,9 @@ fn main() -> Result<(), ()> {
 
     let file = Path::new(&args[1]);
     let mut program_bin = fs::read(file).unwrap();
-    let mut program = binload::load_bin(&mut program_bin);
-    let mut vm = AmaVM::new(&mut program);
+    let mut alloc = Alloc::new();
+    let mut program = binload::load_bin(&mut program_bin, &mut alloc);
+    let mut vm = AmaVM::new(&mut program, alloc);
     if let Err(err) = vm.run() {
         eprint!("{}", err);
         std::process::exit(1);
