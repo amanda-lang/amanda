@@ -190,7 +190,7 @@ impl<'a> AmaValue<'a> {
     pub fn vec_index_check(&self, idx: i64) -> Result<(), AmaErr> {
         if idx < 0 {
             return Err(String::from(
-                "Erro de índice inválido. Vectores só podem ser indexadas com inteiros positivos",
+                "Erro de índice inválido. Vectores só podem ser indexados com inteiros positivos",
             ));
         }
         //Check bounds
