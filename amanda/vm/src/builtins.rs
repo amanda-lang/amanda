@@ -131,13 +131,13 @@ fn vec<'a>(args: FuncArgs, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
             ));
         }
     }
-    return Ok(AmaValue::Vector(build_vec(
+    Ok(AmaValue::Vector(build_vec(
         0,
         n_dims - 1,
         dims,
         el_type,
         alloc,
-    )));
+    )))
 }
 
 fn anexa<'a>(args: FuncArgs, _: &mut Alloc<'a>) -> AmaResult<'a> {

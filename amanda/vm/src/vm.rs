@@ -6,88 +6,10 @@ use crate::binload::Module;
 use crate::builtins;
 use crate::errors::AmaErr;
 use crate::alloc::{Alloc, Ref};
+use crate::opcode::OpCode;
 use unicode_segmentation::UnicodeSegmentation;
 use std::collections::HashMap;
 use std::convert::From;
-
-
-#[repr(u8)]
-#[derive(Debug, Clone, Copy)]
-pub enum OpCode {
-    Mostra,
-    LoadConst,
-    OpAdd,
-    OpMinus,
-    OpMul,
-    OpDiv,
-    OpFloorDiv,
-    OpModulo,
-    OpInvert,
-    OpAnd,
-    OpOr,
-    OpNot,
-    OpEq,
-    OpNotEq,
-    OpGreater,
-    OpGreaterEq,
-    OpLess,
-    OpLessEq,
-    OpIndexGet,
-    OpIndexSet,
-    GetGlobal,
-    SetGlobal,
-    Jump,
-    JumpIfFalse,
-    GetLocal,
-    SetLocal,
-    CallFunction,
-    Return,
-    Cast,
-    BuildStr, 
-    Halt = 255,
-}
-
-impl From<&u8> for OpCode {
-    fn from(number: &u8) -> Self {
-        let ops = [
-            OpCode::Mostra,
-            OpCode::LoadConst,
-            OpCode::OpAdd,
-            OpCode::OpMinus,
-            OpCode::OpMul,
-            OpCode::OpDiv,
-            OpCode::OpFloorDiv,
-            OpCode::OpModulo,
-            OpCode::OpInvert,
-            OpCode::OpAnd,
-            OpCode::OpOr,
-            OpCode::OpNot,
-            OpCode::OpEq,
-            OpCode::OpNotEq,
-            OpCode::OpGreater,
-            OpCode::OpGreaterEq,
-            OpCode::OpLess,
-            OpCode::OpLessEq,
-            OpCode::OpIndexGet,
-            OpCode::OpIndexSet,
-            OpCode::GetGlobal,
-            OpCode::SetGlobal,
-            OpCode::Jump,
-            OpCode::JumpIfFalse,
-            OpCode::GetLocal,
-            OpCode::SetLocal,
-            OpCode::CallFunction,
-            OpCode::Return,
-            OpCode::Cast,
-            OpCode::BuildStr,
-        ];
-        if *number == 0xff {
-            OpCode::Halt
-        } else {
-            ops[*number as usize]
-        }
-    }
-}
 
 const RECURSION_LIMIT: usize = 1000;
 
@@ -420,6 +342,20 @@ impl<'a> AmaVM<'a> {
                     self.sp = start as isize - 1;
                     self.values.drain((self.sp + 1) as usize..);
                     self.alloc_push(AmaValue::Str(Cow::Owned(built_str)));
+                }
+                OpCode::BuildVec => {
+                    let args = self.get_byte() as isize;
+                    if args == 0 {
+                        self.alloc_push(AmaValue::Vector(Vec::new()));
+                        self.frames.peek_mut().ip += 1;
+                        continue;
+                    }
+                    let start = (self.sp - (args - 1)) as usize;
+                    let elements = AmaValue::Vector(Vec::from(&self.values[start..=self.sp as usize]));
+                    self.sp = start as isize - 1;
+                    self.alloc_push(elements);
+                    //Drop values
+                    self.values.drain(self.sp as usize + 1..);
                 }
                 OpCode::Cast => {
                     let arg = self.get_byte();

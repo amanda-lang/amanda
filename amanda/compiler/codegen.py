@@ -9,6 +9,7 @@ import amanda.compiler.ast as ast
 from amanda.compiler.tokens import TokenType as TT
 from amanda.compiler.error import AmandaError, throw_error
 from amanda.compiler import bindump
+from amanda.compiler.builtinfn import FN_VEC_FROM_LIT
 import struct
 
 
@@ -67,13 +68,25 @@ class OpCode(Enum):
     # Builds a string using elements on the stack. 8-bit arg indicates the number of elements
     # on the stack to use
     BUILD_STR = auto()
+    # Builds a vec using elements on the stack. 8-bit arg indicates the number of elements
+    # on the stack to use.
+    BUILD_VEC = auto()
     # Stops execution of the VM. Must always be added to stop execution of the vm
     HALT = 0xFF
 
     def op_size(self) -> int:
         # Return number of bytes (including args) that each op
         # uses
-        if self in (OpCode.CALL_FUNCTION, OpCode.CAST, OpCode.BUILD_STR):
+        num_ops = len(list(OpCode))
+        assert (
+            num_ops == 32
+        ), f"Please update the size of ops after adding a new Op. New size: {num_ops}"
+        if self in (
+            OpCode.CALL_FUNCTION,
+            OpCode.CAST,
+            OpCode.BUILD_STR,
+            OpCode.BUILD_VEC,
+        ):
             return OP_SIZE * 2
         elif self in (
             OpCode.LOAD_CONST,
@@ -137,6 +150,10 @@ class ByteGen:
         for name, symbol in program.symbols.symbols.items():
             if type(symbol) in sym_types:
                 self.get_table_index(name, self.NAME_TABLE)
+
+        # HACK: To simplify building list literals, a builtin function
+        # only available at runtime will be added to the names dict
+        self.get_table_index(FN_VEC_FROM_LIT, self.NAME_TABLE)
 
         self.compile_block(program)
         assert self.depth == -1, "A block was not exited in some local scope!"
@@ -635,3 +652,9 @@ class ByteGen:
             self.append_op(OpCode.JUMP, self.ctx_loop_exit)
         else:
             self.append_op(OpCode.JUMP, self.ctx_loop_start)
+
+    def gen_listliteral(self, node):
+        elements = node.elements
+        for element in elements:
+            self.gen(element)
+        self.append_op(OpCode.BUILD_VEC, len(elements))

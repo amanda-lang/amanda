@@ -421,15 +421,15 @@ class Analyzer(ast.Visitor):
     def visit_listliteral(self, node):
         elements = node.elements
         list_type = self.get_type(node.list_type)
-        node.eval_type = Lista(list_type)
-        if not len(elements):
+        node.eval_type = Vector(list_type)
+        if len(elements) == 0:
             return
         for i, element in enumerate(elements):
             self.visit(element)
             element_type = element.eval_type
             if not self.types_match(list_type, element_type):
                 self.error(
-                    f"O tipo do elemento {i} da lista não condiz com o tipo da lista"
+                    f"O tipo do elemento {i} da lista não condiz com o tipo da lista. Esperava elemento do tipo '{list_type}', encontrou elemento do tipo '{element_type}'"
                 )
             element.prom_type = element_type.promote_to(list_type)
 

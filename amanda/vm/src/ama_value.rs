@@ -1,6 +1,6 @@
 use crate::alloc::{Alloc, Ref};
 use crate::errors::AmaErr;
-use crate::vm::OpCode;
+use crate::opcode::OpCode;
 use std::borrow::Cow;
 use std::convert::From;
 use std::fmt;
