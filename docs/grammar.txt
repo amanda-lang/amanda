@@ -22,7 +22,8 @@ class_body
 
 
 type
-  : (LBRACKET RBRACKET)* IDENTIFIER 
+  :  IDENTIFIER 
+  | LBRACKET type RBRACKET
   ;
 
 function_header

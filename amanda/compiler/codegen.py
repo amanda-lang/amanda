@@ -38,7 +38,9 @@ class OpCode(Enum):
     OP_LESS = auto()
     OP_LESSEQ = auto()
     # Uses TOS to index into TOS - 1. The result is pushed onto the stack
-    OP_INDEX = auto()
+    OP_INDEX_GET = auto()
+    # Performs TOS-2[TOS-1] = TOS.
+    OP_INDEX_SET = auto()
     # Gets a global variable. The arg is the index to the name of the var on the
     # constant table. Pushes value to the top of the stack
     GET_GLOBAL = auto()
@@ -65,13 +67,25 @@ class OpCode(Enum):
     # Builds a string using elements on the stack. 8-bit arg indicates the number of elements
     # on the stack to use
     BUILD_STR = auto()
+    # Builds a vec using elements on the stack. 8-bit arg indicates the number of elements
+    # on the stack to use.
+    BUILD_VEC = auto()
     # Stops execution of the VM. Must always be added to stop execution of the vm
     HALT = 0xFF
 
     def op_size(self) -> int:
         # Return number of bytes (including args) that each op
         # uses
-        if self in (OpCode.CALL_FUNCTION, OpCode.CAST, OpCode.BUILD_STR):
+        num_ops = len(list(OpCode))
+        assert (
+            num_ops == 32
+        ), f"Please update the size of ops after adding a new Op. New size: {num_ops}"
+        if self in (
+            OpCode.CALL_FUNCTION,
+            OpCode.CAST,
+            OpCode.BUILD_STR,
+            OpCode.BUILD_VEC,
+        ):
             return OP_SIZE * 2
         elif self in (
             OpCode.LOAD_CONST,
@@ -356,7 +370,7 @@ class ByteGen:
         if assign:
             self.gen_assign(assign)
         else:
-            initializer = init_values[str(node.var_type)]
+            initializer = init_values.get(str(node.var_type), "falso")
             init_idx = self.get_table_index(initializer, self.CONST_TABLE)
             self.append_op(OpCode.LOAD_CONST, init_idx)
             self.set_variable(symbol)
@@ -373,6 +387,8 @@ class ByteGen:
                 self.func_locals[local] = idx
             self.append_op(OpCode.SET_LOCAL, self.func_locals[local])
 
+    # TODO: Test whether chained assign still with
+    # mixture of normal assigns and index set (Potential bug)
     def gen_assign(self, node):
         expr = node.right
         self.gen(expr)
@@ -382,7 +398,9 @@ class ByteGen:
             name = expr.left.token.lexeme
             self.load_variable(var_sym)
         var = node.left
-        assert isinstance(var, ast.Variable)
+        assert isinstance(
+            var, ast.Variable
+        ), f"Expected ast.Variable, Got node {type(var)}. Line: {var.token}"
         var_sym = var.var_symbol
         self.set_variable(var_sym)
 
@@ -607,15 +625,16 @@ class ByteGen:
         self.gen(node.exp)
         self.append_op(OpCode.MOSTRA)
 
-    def gen_index(self, node):
+    def gen_indexget(self, node, gen_get=True):
         self.gen(node.target)
         self.gen(node.index)
-        self.append_op(OpCode.OP_INDEX)
+        if gen_get:
+            self.append_op(OpCode.OP_INDEX_GET)
 
-    def gen_index(self, node):
-        self.gen(node.target)
-        self.gen(node.index)
-        self.append_op(OpCode.OP_INDEX)
+    def gen_indexset(self, node):
+        self.gen_indexget(node.index, gen_get=False)
+        self.gen(node.value)
+        self.append_op(OpCode.OP_INDEX_SET)
 
     def gen_fmtstr(self, node):
         for part in node.parts:
@@ -628,3 +647,9 @@ class ByteGen:
             self.append_op(OpCode.JUMP, self.ctx_loop_exit)
         else:
             self.append_op(OpCode.JUMP, self.ctx_loop_start)
+
+    def gen_listliteral(self, node):
+        elements = node.elements
+        for element in elements:
+            self.gen(element)
+        self.append_op(OpCode.BUILD_VEC, len(elements))

@@ -1,0 +1,12 @@
+#Para criar um vec use a 'função' vec
+
+lista: [int] = vec(int,5)
+
+
+
+para i de 0..5 faca
+    lista[i] = (i + 1) * 5
+fim
+
+escrevaln(lista)
+#[output]:[5, 10, 15, 20, 25]

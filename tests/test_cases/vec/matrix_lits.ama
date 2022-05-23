@@ -1,0 +1,35 @@
+matrix : [[int]] = [
+  [int]: 
+  [int:  ],  
+  [int:  ],  
+  [int:  ]
+]
+
+matrix_madness : [[[int]]] = [
+  [[int]]: 
+  [ 
+    [int]:
+    [int: 1],
+    [int: ]
+  ], 
+  [ 
+    [int]:
+    [int: ],
+    [int: ]
+  ], 
+  [ 
+    [int]:
+    [int: ],
+    [int: ]
+  ]
+]
+
+anexa(matrix[0] , 1)
+anexa(matrix[0] , 2)
+anexa(matrix[0] , 3)
+anexa(matrix[0] , 4)
+
+escrevaln(matrix[0])
+escrevaln(matrix_madness[0][0][0])
+
+#[output]: [1, 2, 3, 4] 1

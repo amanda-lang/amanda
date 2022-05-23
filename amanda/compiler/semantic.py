@@ -5,9 +5,9 @@ from amanda.compiler.parse import parse
 from amanda.compiler.tokens import TokenType as TT, Token
 import amanda.compiler.ast as ast
 import amanda.compiler.symbols as symbols
-from amanda.compiler.type import Kind, Type, Lista, Klass
+from amanda.compiler.type import builtin_types, Kind, Type, Vector, Klass
 from amanda.compiler.error import AmandaError
-from amanda.compiler.bltins import bltin_symbols
+from amanda.compiler.builtinfn import BUILTINS, BuiltinFn
 from amanda.config import STD_LIB
 
 
@@ -33,23 +33,12 @@ class Analyzer(ast.Visitor):
         self.ctx_module = module
 
         # Initialize builtin types
-        self.global_scope.define("int", Type(Kind.TINT))
-        self.global_scope.define("real", Type(Kind.TREAL))
-        self.global_scope.define("bool", Type(Kind.TBOOL))
-        self.global_scope.define("texto", Type(Kind.TTEXTO))
-        self.global_scope.define("vazio", Type(Kind.TVAZIO))
-        self.global_scope.define("indef", Type(Kind.TINDEF))
-        self.global_scope.define("nulo", Type(Kind.TNULO))
+        for type_id, sym in builtin_types:
+            self.global_scope.define(type_id, sym)
 
         # Load builtin module
         module = symbols.Module(path.join(STD_LIB, "embutidos.ama"))
         self.load_module(module)
-
-        # Load remaining builtins
-        for name, obj in bltin_symbols.items():
-            if name in self.global_scope.symbols:
-                continue
-            self.global_scope.define(name, obj)
 
     def has_return(self, node):
         """Method that checks if function non void
@@ -121,18 +110,19 @@ class Analyzer(ast.Visitor):
     def get_type(self, type_node):
         if not type_node:
             return self.ctx_scope.resolve("vazio")
-        type_name = type_node.type_name.lexeme
-        type_symbol = self.ctx_scope.resolve(type_name)
-        if not type_symbol or not type_symbol.is_type():
-            self.error(f"o tipo '{type_name}' não foi declarado")
-
-        if type_node.is_list:
-            ama_type = Lista(type_symbol)
-            for i in range(0, type_node.dim - 1):
-                ama_type = Lista(ama_type)
-        else:
-            ama_type = type_symbol
-        return ama_type
+        node_t = type(type_node)
+        if node_t == ast.Type or node_t == ast.Variable:
+            type_id = (
+                type_node.name.lexeme
+                if node_t == ast.Type
+                else type_node.token.lexeme
+            )
+            type_symbol = self.ctx_scope.resolve(type_id)
+            if not type_symbol or not type_symbol.is_type():
+                self.error(f"o tipo '{type_id}' não foi declarado")
+            return type_symbol
+        elif type(type_node) == ast.ArrayType:
+            return Vector(self.get_type(type_node.element_type))
 
     def types_match(self, expected, received):
         return expected == received or received.promote_to(expected)
@@ -149,6 +139,13 @@ class Analyzer(ast.Visitor):
     def visit_or_transform(self, node):
         nodeT = type(node)
         self.visit(node)
+        has_side_fx = (
+            ast.Assign,
+            ast.Call,
+            ast.Set,
+            ast.IndexGet,
+            ast.IndexSet,
+        )
         # TODO: Actually implement a jump table for escolha
         if nodeT == ast.Escolha:
             token = node.token
@@ -195,9 +192,8 @@ class Analyzer(ast.Visitor):
                 return se_node
         # Ignore all unused expressions
         # WARNING: This might be a nasty bug, please test this
-        elif nodeT not in (ast.Assign, ast.Call, ast.Set) and isinstance(
-            node, ast.Expr
-        ):
+        # TODO: Implement a proper way to do this
+        elif nodeT not in has_side_fx and isinstance(node, ast.Expr):
             return None
         else:
             return node
@@ -425,15 +421,15 @@ class Analyzer(ast.Visitor):
     def visit_listliteral(self, node):
         elements = node.elements
         list_type = self.get_type(node.list_type)
-        node.eval_type = Lista(list_type)
-        if not len(elements):
+        node.eval_type = Vector(list_type)
+        if len(elements) == 0:
             return
         for i, element in enumerate(elements):
             self.visit(element)
             element_type = element.eval_type
             if not self.types_match(list_type, element_type):
                 self.error(
-                    f"O tipo do elemento {i} da lista não condiz com o tipo da lista"
+                    f"O tipo do elemento {i} da lista não condiz com o tipo da lista. Esperava elemento do tipo '{list_type}', encontrou elemento do tipo '{element_type}'"
                 )
             element.prom_type = element_type.promote_to(list_type)
 
@@ -493,7 +489,7 @@ class Analyzer(ast.Visitor):
             )
         node.eval_type = target.eval_type
 
-    def visit_index(self, node):
+    def visit_indexget(self, node):
         # Check if index is int
         target = node.target
         self.visit(target)
@@ -502,7 +498,7 @@ class Analyzer(ast.Visitor):
         index = node.index
         self.visit(index)
 
-        str_or_list = (Kind.TLISTA, Kind.TTEXTO)
+        str_or_list = (Kind.TVEC, Kind.TTEXTO)
         if t_type.kind in str_or_list and index.eval_type.kind != Kind.TINT:
             self.error(
                 f"Índices para valores do tipo '{t_type}' devem ser inteiros"
@@ -511,14 +507,30 @@ class Analyzer(ast.Visitor):
         if t_type.kind not in str_or_list:
             self.error(f"O valor do tipo '{t_type}' não contém índices")
 
-        if t_type.kind == Kind.TLISTA:
-            node.eval_type = t_type.subtype
+        if t_type.kind == Kind.TVEC:
+            node.eval_type = t_type.element_type
         elif t_type.kind == Kind.TTEXTO:
             node.eval_type = t_type
         else:
             raise NotImplementedError(
                 f"Index eval not implemented for '{t_type}'"
             )
+
+    def visit_indexset(self, node):
+        index = node.index
+        value = node.value
+        self.visit(index)
+        if index.eval_type.kind == Kind.TTEXTO:
+            self.error(
+                f"As strings não podem ser modificadas por meio de índices"
+            )
+        self.visit(value)
+        if not self.types_match(index.eval_type, value.eval_type):
+            self.ctx_node = node
+            self.error(
+                f"atribuição inválida. incompatibilidade entre os operandos da atribuição: '{lhs.eval_type}' e '{rhs.eval_type}'"
+            )
+        node.eval_type = index.eval_type
 
     def visit_converta(self, node):
         self.visit(node.target)
@@ -780,92 +792,99 @@ class Analyzer(ast.Visitor):
                 else f"o símbolo '{node.callee.token.lexeme}' não é invocável"
             )
             self.error(message)
-
-        if type(sym) == Klass:
-            self.validate_call(sym.constructor, node.fargs)
-            node.eval_type = sym
+        if sym.name in BUILTINS:
+            self.builtin_call(BUILTINS[sym.name], node)
         else:
-            # Builtin function
-            builtin_ops = ("lista", "anexe", "matriz", "tam")
-            # TODO: Add special nodes for these guys
-            if sym.name in builtin_ops:
-                self.builtin_call(sym.name, node)
-                return sym
             self.validate_call(sym, node.fargs)
             node.eval_type = sym.type
         node.symbol = sym
         return sym
 
-    # Handles calls to special functions
-    def builtin_call(self, name, node):
-        if name == "lista":
-            self.check_arity(node.fargs, name, 2)
-            list_type = node.fargs[0]
-            if type(list_type) != ast.Variable:
-                self.error("O argumento 1 da função 'lista' deve ser um tipo")
+    def check_vec_op(self, fn, node):
+        self.check_arity(node.fargs, fn, 2)
+        vec_expr = node.fargs[0]
+        value = node.fargs[1]
+        self.visit(vec_expr)
+        self.visit(value)
 
-            node.eval_type = self.get_type(
-                ast.Type(list_type.token, dim=1, is_list=True)
-            )
-            size = node.fargs[1]
-            self.visit(size)
-            if size.eval_type.kind != Kind.TINT:
+        vec_t = vec_expr.eval_type
+        if vec_t.kind != Kind.TVEC:
+            self.error(f"O argumento 1 da função '{fn}' deve ser um vector")
+
+    # Validates call to builtin functions
+    def builtin_call(self, fn, node):
+        # TODO: Change this into an actual ast node cause it uses
+        # special syntax
+        if fn == BuiltinFn.VEC:
+            # TODO: When vargs are implemented, make sure to
+            # come here and change the way this node works
+            assert (
+                len(node.fargs) < 256
+            ), "Builtin call exceeded max number of args"
+            if len(node.fargs) < 2:
                 self.error(
-                    "O tamanho de uma lista deve ser representado por um inteiro"
+                    f"Função 'vec' deve ser invocada com pelo menos 2 argumentos"
                 )
-
-        elif name == "matriz":
-            self.check_arity(node.fargs, name, 3)
-            m_type = node.fargs[0]
-            if type(m_type) != ast.Variable:
-                self.error("O argumento 1 da função 'matriz' deve ser um tipo")
-            node.eval_type = self.get_type(
-                ast.Type(m_type.token, dim=2, is_list=True)
-            )
-            args = node.fargs[1:]
-            for i, arg in enumerate(args):
+            # Is size given valid?
+            for arg in node.fargs[1:]:
                 self.visit(arg)
                 if arg.eval_type.kind != Kind.TINT:
                     self.error(
-                        f"O argumento {i+2} da função matriz deve ser um inteiro"
+                        "Os tamanhos de um vector devem ser representado por inteiros"
                     )
 
-        elif name == "anexe":
-            self.check_arity(node.fargs, name, 2)
-            list_node = node.fargs[0]
+            type_node = node.fargs[0]
+            el_type = self.get_type(type_node)  # Attempt to get type
+            # Is arg 1 a vector type?
+            if type(el_type) == Vector:
+                self.error(f"O tipo de um vector deve ser um tipo simples")
+            # Set type based on dimensions
+            vec_type = Vector(el_type)
+            for i in range(len(node.fargs[1:]) - 1):
+                vec_type = Vector(vec_type)
+            node.eval_type = vec_type
+        elif fn == BuiltinFn.ANEXA:
+            vec_expr = node.fargs[0]
             value = node.fargs[1]
-            self.visit(list_node)
-            self.visit(value)
+            self.check_vec_op(fn, node)
 
-            if type(list_node.eval_type) != Lista:
-                self.error("O argumento 1 da função 'anexe' deve ser uma lista")
-
-            value.prom_type = value.eval_type.promote_to(
-                list_node.eval_type.subtype
-            )
-            if not self.types_match(
-                list_node.eval_type.subtype, value.eval_type
-            ):
+            vec_t = vec_expr.eval_type
+            el_type = vec_t.element_type
+            val_t = value.eval_type
+            if not self.types_match(el_type, val_t):
                 self.error(
-                    f"incompatibilidade de tipos entre a lista e o valor a anexar: '{list_node.eval_type.subtype}' != '{value.eval_type}'"
+                    f"incompatibilidade de tipos entre o tipo dos elementos da lista e o valor a anexar: '{el_type}' != '{val_t}'"
                 )
+            value.prom_type = val_t.promote_to(el_type)
             node.eval_type = self.global_scope.resolve("vazio")
+        elif fn == BuiltinFn.REMOVA:
+            vec_expr = node.fargs[0]
+            index = node.fargs[1]
+            self.check_vec_op(fn, node)
+            if index.eval_type.kind != Kind.TINT:
+                self.error(
+                    "O argumento 2 da função 'remova' deve ser um número inteiro"
+                )
+            node.eval_type = vec_expr.eval_type.element_type
 
-        elif name == "tam":
-            self.check_arity(node.fargs, name, 1)
+        elif fn == BuiltinFn.TAM:
+            self.check_arity(node.fargs, fn, 1)
             seq = node.fargs[0]
             self.visit(seq)
 
-            if seq.eval_type.kind != Kind.TTEXTO:
+            SEQ_TYPES = (Kind.TTEXTO, Kind.TVEC)
+            if seq.eval_type.kind not in SEQ_TYPES:
                 self.error(
-                    "O argumento 1 da função 'tam' deve ser do tipo 'texto'"
+                    "O argumento 1 da função 'tam' deve ser do tipo 'texto' ou do tipo 'vector'"
                 )
 
             node.eval_type = self.global_scope.resolve("int")
             # TODO: Fix this awful hack
             node.symbol = self.global_scope.resolve("tam")
         else:
-            raise NotImplementedError()
+            raise NotImplementedError(
+                f"Code for the builtin '{fn}' has not been implemented"
+            )
 
     def check_arity(self, fargs, name, param_len):
         arg_len = len(fargs)

@@ -1,10 +1,11 @@
-use crate::binload::Const;
+use crate::alloc::{Alloc, Ref};
 use crate::errors::AmaErr;
-use crate::vm::OpCode;
+use crate::opcode::OpCode;
 use std::borrow::Cow;
 use std::convert::From;
 use std::fmt;
-use std::fmt::{Display, Formatter};
+use std::fmt::Debug;
+use std::fmt::{Display, Formatter, Write};
 
 #[derive(Clone, Copy)]
 enum BinOpResult {
@@ -45,13 +46,19 @@ macro_rules! eq_ops {
     };
 }
 
-//TODO: Find a 'safe' way to do this
-pub type FuncArgs<'a> = Option<*const AmaValue<'a>>;
+pub type FuncArgs<'a, 'args> = &'args [Ref<'a>];
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub struct NativeFunc<'a> {
     pub name: &'a str,
-    pub func: fn(FuncArgs<'a>) -> Result<AmaValue<'a>, AmaErr>,
+    pub func: fn(FuncArgs<'a, '_>, &mut Alloc<'a>) -> Result<Ref<'a>, AmaErr>,
+}
+
+impl<'a> Debug for NativeFunc<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "NativeFunc").unwrap();
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -71,11 +78,11 @@ pub enum Type {
     Real,
     Texto,
     Bool,
+    Vector,
 }
 
 #[derive(Debug)]
 pub enum AmaValue<'a> {
-    Str(Cow<'a, String>),
     Int(i64),
     F64(f64),
     Bool(bool),
@@ -83,6 +90,10 @@ pub enum AmaValue<'a> {
     NativeFn(NativeFunc<'a>),
     Type(Type),
     None,
+    //Heap objects
+    Vector(Vec<Ref<'a>>),
+    //TODO: Change this into a Box<str>,
+    Str(Cow<'a, String>),
 }
 
 impl<'a> AmaValue<'a> {
@@ -92,6 +103,7 @@ impl<'a> AmaValue<'a> {
             AmaValue::Int(_) => Type::Int,
             AmaValue::F64(_) => Type::Real,
             AmaValue::Bool(_) => Type::Bool,
+            AmaValue::Vector(_) => Type::Vector,
             _ => unimplemented!("Cannot return type for this value: {:?}", self),
         }
     }
@@ -175,7 +187,28 @@ impl<'a> AmaValue<'a> {
         }
     }
 
-    pub fn binop(left: Self, op: OpCode, right: Self) -> Result<Self, &'a str> {
+    pub fn vec_index_check(&self, idx: i64) -> Result<(), AmaErr> {
+        if idx < 0 {
+            return Err(String::from(
+                "Erro de índice inválido. Vectores só podem ser indexados com inteiros positivos",
+            ));
+        }
+        //Check bounds
+        let vec = match self {
+            AmaValue::Vector(vec) => vec,
+            _ => unreachable!(),
+        };
+        if idx as usize >= vec.len() {
+            return Err(format!(
+                "Erro de índice inválido. O tamanho do vector é {}, mas tentou aceder o índice {}",
+                vec.len(),
+                idx
+            ));
+        }
+        Ok(())
+    }
+
+    pub fn binop(left: &Self, op: OpCode, right: &Self) -> Result<Self, &'a str> {
         let res_type = if left.is_float() || right.is_float() {
             BinOpResult::Double
         } else if left.is_int() && right.is_int() {
@@ -219,17 +252,6 @@ impl<'a> AmaValue<'a> {
     }
 }
 
-impl<'a> From<&'a Const> for AmaValue<'a> {
-    fn from(constant: &Const) -> AmaValue {
-        match constant {
-            Const::Str(string) => AmaValue::Str(Cow::Borrowed(string)),
-            Const::Int(int) => AmaValue::Int(*int),
-            Const::Double(real) => AmaValue::F64(*real),
-            Const::Bool(boolean) => AmaValue::Bool(*boolean),
-        }
-    }
-}
-
 impl Clone for AmaValue<'_> {
     fn clone(&self) -> Self {
         match self {
@@ -241,6 +263,7 @@ impl Clone for AmaValue<'_> {
             AmaValue::Func(function) => AmaValue::Func(*function),
             AmaValue::NativeFn(func) => AmaValue::NativeFn(*func),
             AmaValue::Type(t) => AmaValue::Type(*t),
+            AmaValue::Vector(vec) => AmaValue::Vector(vec.clone()),
         }
     }
 }
@@ -260,8 +283,21 @@ impl Display for AmaValue<'_> {
                 let val_str = if *val { "verdadeiro" } else { "falso" };
                 write!(f, "{}", val_str)
             }
+            AmaValue::Vector(vec) => {
+                let mut res = String::new();
+                write!(res, "[").unwrap();
+                vec.iter().enumerate().for_each(|(i, val)| {
+                    if i == vec.len() - 1 {
+                        write!(res, "{}", val.inner()).unwrap();
+                        return;
+                    }
+                    write!(res, "{}, ", val.inner()).unwrap();
+                });
+                write!(res, "]").unwrap();
+                write!(f, "{}", res)
+            }
             AmaValue::None => panic!("None value should not be printed"),
-            _ => write!(f, "{:?}", self),
+            _ => unimplemented!(),
         }
     }
 }
@@ -273,15 +309,17 @@ impl Type {
             Type::Real => "real",
             Type::Texto => "texto",
             Type::Bool => "bool",
+            Type::Vector => "Vector",
         }
     }
 }
 
+#[inline]
 pub fn check_cast(val_t: Type, target: Type) -> bool {
     val_t as u8 == target as u8
 }
 
-pub fn cast(value: AmaValue, target: Type) -> Result<AmaValue, String> {
+pub fn cast<'a>(value: &AmaValue, target: Type) -> Result<AmaValue<'a>, String> {
     match target {
         Type::Texto => Ok(AmaValue::Str(Cow::Owned(format!("{}", value)))),
         Type::Int => match value {
@@ -323,8 +361,8 @@ pub fn cast(value: AmaValue, target: Type) -> Result<AmaValue, String> {
             ),
         },
         Type::Bool => match value {
-            AmaValue::Int(int) => Ok(AmaValue::Bool(int != 0)),
-            AmaValue::F64(double) => Ok(AmaValue::Bool(double != 0.0)),
+            AmaValue::Int(int) => Ok(AmaValue::Bool(*int != 0)),
+            AmaValue::F64(double) => Ok(AmaValue::Bool(*double != 0.0)),
             AmaValue::Str(string) => Ok(AmaValue::Bool(string.as_ref() != "")),
             _ => unimplemented!(
                 "Fatal error! Should not reach conversion between: {:?} and {:?}",
@@ -332,5 +370,6 @@ pub fn cast(value: AmaValue, target: Type) -> Result<AmaValue, String> {
                 target
             ),
         },
+        _ => unreachable!("Fraudulent cast!"),
     }
 }

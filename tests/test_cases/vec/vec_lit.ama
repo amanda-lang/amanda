@@ -1,0 +1,7 @@
+list : [int] = [int: 1, 2, 3, 4]
+vec1 : [texto] = [texto: "texto"]
+
+escrevaln(list)
+escrevaln(vec1)
+
+#[output]:[1, 2, 3, 4] [texto]

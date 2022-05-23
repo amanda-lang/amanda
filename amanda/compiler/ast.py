@@ -1,8 +1,10 @@
+from dataclasses import dataclass
+
 # TODO: Rename fields of some classes
 class ASTNode:
-    def __init__(self, token=None):
-        self.parent = None
+    def __init__(self, token):
         self.token = token
+        self.parent = None
         self.lineno = token.line
 
     def tag_children(self):
@@ -15,21 +17,21 @@ class ASTNode:
         return False
 
 
-class Usa(ASTNode):
-    def __init__(self, token, *, module="", alias=None):
-        super().__init__(token)
-        self.module = module
-        self.alias = alias
-        self.tag_children()
-
-
-class Program(ASTNode):
+class Program:
     def __init__(self):
         self.children = []
         self.symbols = None
 
     def add_child(self, node):
         self.children.append(node)
+
+
+class Usa(ASTNode):
+    def __init__(self, token, *, module="", alias=None):
+        super().__init__(token)
+        self.module = module
+        self.alias = alias
+        self.tag_children()
 
 
 class Block(Program):
@@ -249,11 +251,22 @@ class Get(Expr):
         return True
 
 
-class Index(Expr):
+class IndexGet(Expr):
     def __init__(self, token, target, index):
         super().__init__(token)
         self.target = target
         self.index = index
+        self.tag_children()
+
+    def is_assignable(self):
+        return True
+
+
+class IndexSet(Expr):
+    def __init__(self, token, index, value):
+        super().__init__(token)
+        self.index = index
+        self.value = value
         self.tag_children()
 
     def is_assignable(self):
@@ -307,12 +320,15 @@ class Param(ASTNode):
 
 
 class Type(ASTNode):
-    def __init__(self, type_name, *, dim=0, is_list=False):
-        super().__init__(type_name)
-        self.type_name = type_name
-        self.is_list = is_list
-        self.dim = dim  # For lists only
+    def __init__(self, name):
+        super().__init__(name)
+        self.name = name
         self.tag_children()
+
+
+@dataclass
+class ArrayType(ASTNode):
+    element_type: Type
 
 
 # Base class for visitor objects

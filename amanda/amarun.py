@@ -4,7 +4,6 @@ import subprocess
 from contextlib import redirect_stdout, redirect_stderr
 from amanda.compiler.symbols import Module
 from amanda.compiler.error import AmandaError, handle_exception, throw_error
-from amanda.compiler.bltins import bltin_objs
 from amanda.compiler.parse import parse
 from amanda.compiler.compile import Generator
 from amanda.compiler.semantic import Analyzer
@@ -18,7 +17,7 @@ def write_file(name, code):
 
 
 def run_py(args):
-    _run_py(args.file, gen_out=args.generate, outname=args.outname)
+    pass
 
 
 def run_frontend(filename):
@@ -30,23 +29,6 @@ def run_frontend(filename):
     except AmandaError as e:
         throw_error(e)
     return valid_program
-
-
-def _run_py(filename, *, gen_out=False, outname="output.py"):
-    valid_program = run_frontend(filename)
-    generator = Generator()
-    code, line_info = generator.generate_code(valid_program)
-    if gen_out:
-        write_file(outname, code)
-    pycode_obj = compile(code, outname, "exec")
-    try:
-        # Run compiled python code
-        exec(pycode_obj, bltin_objs)
-    except Exception as e:
-        ama_error = handle_exception(e, outname, filename, line_info)
-        if not ama_error:
-            raise e
-        throw_error(ama_error)
 
 
 def run_rs(args):

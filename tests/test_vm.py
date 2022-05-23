@@ -28,6 +28,7 @@ DIRS = [
     join(TEST_DIR, "declaration"),
     join(TEST_DIR, "expression"),
     join(TEST_DIR, "converte"),
+    join(TEST_DIR, "vec"),
     join(TEST_DIR, "rt_errors"),
 ]
 

@@ -1,0 +1,4 @@
+vet1: [int] = vec(int, 2)
+anexa(vet1, 2.1)
+
+#[output]:Erro: incompatibilidade de tipos entre o tipo dos elementos da lista e o valor a anexar: 'int' != 'real'.

@@ -1,0 +1,4 @@
+
+str: texto = "a"
+str[0] = "as"
+#[output]: Erro: As strings não podem ser modificadas por meio de índices.

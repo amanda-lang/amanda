@@ -1,4 +1,0 @@
-matrix : [][]int = matriz(int, 3, 3)
-mostra matrix
-
-#[output]:[[0, 0, 0], [0, 0, 0], [0, 0, 0]]

@@ -1,0 +1,8 @@
+matrix : [[int]] = vec(int, 2, 2)
+mostra matrix
+
+anexa(matrix, [int: 2, 2])
+
+mostra matrix[2]
+
+#[output]:[[0, 0], [0, 0]] [2, 2]

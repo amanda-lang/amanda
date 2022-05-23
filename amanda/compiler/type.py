@@ -1,5 +1,8 @@
+from __future__ import annotations
 from amanda.compiler.symbols import Symbol
 from enum import auto, IntEnum
+from dataclasses import dataclass
+from typing import cast, List, Tuple, Optional
 
 # Describes the kind of a type
 class Kind(IntEnum):
@@ -9,41 +12,39 @@ class Kind(IntEnum):
     TTEXTO = auto()
     TINDEF = auto()
     TVAZIO = auto()
-    TLISTA = auto()
+    TVEC = auto()
     TKLASS = auto()
     TNULO = auto()
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name.lower()[1:]
 
-    def cast_to(self, other):
-        pass
 
-
+@dataclass
 class Type(Symbol):
-    def __init__(self, kind):
+    def __init__(self, kind: Kind):
         super().__init__(str(kind), None)
         self.kind = kind
         self.is_global = True
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, Type):
             return False
         return self.kind == other.kind
 
-    def is_numeric(self):
+    def is_numeric(self) -> bool:
         return self.kind == Kind.TINT or self.kind == Kind.TREAL
 
-    def is_type(self):
+    def is_type(self) -> bool:
         return True
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.kind)
 
-    def is_operable(self):
+    def is_operable(self) -> bool:
         return self.kind != Kind.TVAZIO and self.kind != Kind.TINDEF
 
-    def check_cast(self, other) -> bool:
+    def check_cast(self, other: Type) -> bool:
         # Allowed conversions:
         # int -> real, bool,real,texto,indef
         # real -> int, bool,real,texto,indef
@@ -68,10 +69,10 @@ class Type(Symbol):
             Kind.TREAL: primitives,
             Kind.TTEXTO: primitives,
             Kind.TBOOL: (Kind.TTEXTO, Kind.TINDEF),
-            Kind.TLISTA: (Kind.TINDEF,),
+            Kind.TVEC: (Kind.TINDEF,),
             Kind.TKLASS: (Kind.TINDEF,),
             Kind.TNULO: (Kind.TKLASS,),
-            Kind.TINDEF: (*primitives, Kind.TKLASS, Kind.TLISTA),
+            Kind.TINDEF: (*primitives, Kind.TKLASS, Kind.TVEC),
         }
         cast_types = cast_table.get(kind)
 
@@ -80,7 +81,7 @@ class Type(Symbol):
 
         return True
 
-    def promote_to(self, other):
+    def promote_to(self, other: Type) -> Optional[Type]:
         kind = self.kind
         other_kind = other.kind
 
@@ -89,7 +90,7 @@ class Type(Symbol):
             Kind.TREAL: (Kind.TINDEF,),
             Kind.TBOOL: (Kind.TINDEF,),
             Kind.TTEXTO: (Kind.TINDEF,),
-            Kind.TLISTA: (Kind.TINDEF,),
+            Kind.TVEC: (Kind.TINDEF,),
             Kind.TKLASS: (Kind.TINDEF,),
             Kind.TNULO: (Kind.TKLASS,),
         }
@@ -101,34 +102,39 @@ class Type(Symbol):
         return other
 
 
-class Lista(Type):
-    def __init__(self, subtype):
-        super().__init__(Kind.TLISTA)
-        self.subtype = subtype
+class Vector(Type):
+    def __init__(self, element_type: Type):
+        super().__init__(Kind.TVEC)
+        self.element_type: Type = element_type
 
-    def get_type(self):
-        subtype = self.subtype
-        while type(subtype) == Lista:
-            subtype = subtype.subtype
-        return subtype
+    def get_type(self) -> Type:
+        if self.element_type.kind != Kind.TVEC:
+            return self.element_type
 
-    def __str__(self):
-        return f"[]{self.subtype}"
+        el_type = cast(Vector, self).element_type
+        while el_type.kind != Kind.TVEC:
+            subtype = cast(Vector, el_type).element_type
+        return el_type
 
-    def __eq__(self, other):
-        if type(other) != Lista:
+    def __str__(self) -> str:
+        return f"[{str(self.element_type)}]"
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Vector):
             return False
-        return self.subtype == other.subtype
+        return self.element_type == other.element_type
 
 
 class Klass(Type):
-    def __init__(self, name, members):
-        super().__init__(Kind.TKLASS)
-        self.name = name
-        self.out_id = name
-        self.members = members
-        self.constructor = None
-        self.is_global = False
+    pass
 
-    def __str__(self):
-        return self.name
+
+builtin_types: List[Tuple[str, Type]] = [
+    ("int", Type(Kind.TINT)),
+    ("real", Type(Kind.TREAL)),
+    ("bool", Type(Kind.TBOOL)),
+    ("texto", Type(Kind.TTEXTO)),
+    ("vazio", Type(Kind.TVAZIO)),
+    ("indef", Type(Kind.TINDEF)),
+    ("nulo", Type(Kind.TNULO)),
+]

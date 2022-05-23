@@ -389,15 +389,18 @@ class Parser:
             return self.statement()
 
     def type(self):
-        is_list = False
-        dim = 0
-        while self.match(TT.LBRACKET):
+        if self.match(TT.IDENTIFIER):
+            name = self.consume(TT.IDENTIFIER)
+            return ast.Type(name)
+        elif self.match(TT.LBRACKET):
             self.consume(TT.LBRACKET)
+            el_type = self.type()
             self.consume(TT.RBRACKET)
-            dim += 1
-            is_list = True
-        type_name = self.consume(TT.IDENTIFIER)
-        return ast.Type(type_name, dim=dim, is_list=is_list)
+            return ast.ArrayType(el_type)
+        else:
+            self.error(
+                "Tipo inválido. Esperava um identificador ou a descrição de um vector"
+            )
 
     def end_stmt(self):
         if self.match(TT.NEWLINE):
@@ -679,6 +682,17 @@ class Parser:
         elif self.match(TT.NOTEQUAL):
             return self.consume(TT.NOTEQUAL)
 
+    def compound_operator(self):
+        if self.match(TT.PLUSEQ):
+            op = (TT.PLUS, "+")
+        elif self.match(TT.MINUSEQ):
+            op = (TT.MINUS, "-")
+        elif self.match(TT.STAREQ):
+            op = (TT.STAR, "*")
+        elif self.match(TT.SLASHEQ):
+            op = (TT.SLASH, "/")
+        return op
+
     def compound_assignment(self):
         expr = self.assignment()
         compound_operator = (TT.PLUSEQ, TT.MINUSEQ, TT.SLASHEQ, TT.STAREQ)
@@ -697,6 +711,12 @@ class Parser:
             self.consume(current)
             if isinstance(expr, ast.Get):
                 expr = ast.Set(target=expr, expr=self.assignment())
+            elif isinstance(expr, ast.IndexGet):
+                expr = ast.IndexSet(
+                    token,
+                    expr,
+                    ast.BinOp(token, left=expr, right=self.equality()),
+                )
             else:
                 expr = ast.Assign(
                     eq,
@@ -704,17 +724,6 @@ class Parser:
                     right=ast.BinOp(token, left=expr, right=self.equality()),
                 )
         return expr
-
-    def compound_operator(self):
-        if self.match(TT.PLUSEQ):
-            op = (TT.PLUS, "+")
-        elif self.match(TT.MINUSEQ):
-            op = (TT.MINUS, "-")
-        elif self.match(TT.STAREQ):
-            op = (TT.STAR, "*")
-        elif self.match(TT.SLASHEQ):
-            op = (TT.SLASH, "/")
-        return op
 
     def assignment(self):
         expr = self.equality()
@@ -724,6 +733,8 @@ class Parser:
                 self.error(self.ILLEGAL_ASSIGN)
             if isinstance(expr, ast.Get):
                 expr = ast.Set(target=expr, expr=self.assignment())
+            elif isinstance(expr, ast.IndexGet):
+                expr = ast.IndexSet(token, expr, self.assignment())
             else:
                 expr = ast.Assign(token, left=expr, right=self.assignment())
         return expr
@@ -804,7 +815,7 @@ class Parser:
                 self.consume(TT.LBRACKET)
                 index = self.equality()
                 token = self.consume(TT.RBRACKET)
-                expr = ast.Index(token, expr, index)
+                expr = ast.IndexGet(token, expr, index)
             else:
                 self.consume(TT.DOT)
                 identifier = self.lookahead
@@ -861,7 +872,6 @@ class Parser:
         return expression
 
     def parse_format_str(self):
-        # TODO: Turn fstr without expressions into normal strs
         token = self.consume(self.lookahead.token)
         # Exclude delimiters from string
         format_str = StringIO(token.lexeme[1:-1])
