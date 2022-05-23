@@ -375,6 +375,8 @@ class ByteGen:
                 self.func_locals[local] = idx
             self.append_op(OpCode.SET_LOCAL, self.func_locals[local])
 
+    # TODO: Test whether chained assign still with
+    # mixture of normal assigns and index set (Potential bug)
     def gen_assign(self, node):
         expr = node.right
         self.gen(expr)
