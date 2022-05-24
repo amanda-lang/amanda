@@ -99,26 +99,24 @@ def fmt_error(output):
 
 
 def run_case(filename):
-    stdout = StringIO()
-    stderr = StringIO()
-    try:
-        with redirect_stdout(stdout), redirect_stderr(stderr):
-            ama_main("rs", "-t", filename)
-    except SystemExit as e:
-        # Print stdout + stderr in case some code ran
-        # before error was thrown
-        out = stdout.getvalue()
-        err = stderr.getvalue()
-        # HACK: This is to check if
-        # the system exit was caused by an AmandaError
-        # or some other error in main
-        if len(out) and len(err):
-            return (out + fmt_error(err)).replace("\n", " ")
-        elif len(err):
-            return fmt_error(err)
-        else:
-            raise e
-    return stdout.getvalue().replace("\n", " ")
+    test_p = subprocess.run(
+        ["python", "-m", "amanda", "rs", filename],
+        capture_output=True,
+        encoding="utf8",
+    )
+    # Print stdout + stderr in case some code ran
+    # before error was thrown
+    out = test_p.stdout
+    err = test_p.stderr
+    # HACK: This is to check if
+    # the system exit was caused by an AmandaError
+    # or some other error in main
+    if len(out) and len(err):
+        return (out + fmt_error(err)).replace("\n", " ")
+    elif len(err):
+        return fmt_error(err)
+    else:
+        return out.replace("\n", " ")
 
 
 def run_suite(test_cases):
@@ -141,3 +139,5 @@ if __name__ == "__main__":
         test_cases = load_test_cases(suite)
         run_suite(test_cases)
     print_results()
+    if failed > 0:
+        sys.exit(1)
