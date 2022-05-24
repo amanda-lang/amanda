@@ -1,4 +1,6 @@
-use std::{env, fs, path::Path};
+use alloc::Alloc;
+use std::slice;
+use vm::AmaVM;
 
 mod alloc;
 mod ama_value;
@@ -8,26 +10,21 @@ mod errors;
 mod opcode;
 mod vm;
 
-use alloc::Alloc;
-use vm::AmaVM;
+#[no_mangle]
+pub extern "C" fn run_module(bin_module: *mut u8, size: u32) -> u8 {
+    let module = unsafe {
+        assert!(!bin_module.is_null());
+        //Skip size bytes
+        &mut slice::from_raw_parts_mut(bin_module, size as usize)[4..]
+    };
 
-fn main() -> Result<(), ()> {
-    let args: Vec<String> = env::args().collect();
-
-    if args.len() < 2 {
-        eprintln!("Please specify a compiled bytecode file to run");
-        return Err(());
-    }
-
-    let file = Path::new(&args[1]);
-    let mut program_bin = fs::read(file).unwrap();
     let mut alloc = Alloc::new();
-    let mut program = binload::load_bin(&mut program_bin, &mut alloc);
-    let mut vm = AmaVM::new(&mut program, alloc);
+    let mut ama_module = binload::load_bin(module, &mut alloc);
+    let mut vm = AmaVM::new(&mut ama_module, alloc);
     if let Err(err) = vm.run() {
         eprint!("{}", err);
-        std::process::exit(1);
+        1
     } else {
-        Ok(())
+        0
     }
 }

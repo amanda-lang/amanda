@@ -8,4 +8,4 @@ STD_LIB = path.join(PROJECT_ROOT, "std")
 
 # Path to vm project
 VM_CONFIG_PATH = path.join(PROJECT_ROOT, "amanda/vm/Cargo.toml")
-VM_BIN_PATH = path.join(PROJECT_ROOT, "amanda/vm/target/debug/vm")
+LIB_AMANDA_PATH = path.join(PROJECT_ROOT, "amanda/vm/target/debug/libamanda.so")

@@ -1,6 +1,7 @@
 import sys
 import os
 import subprocess
+import ctypes
 from contextlib import redirect_stdout, redirect_stderr
 from amanda.compiler.symbols import Module
 from amanda.compiler.error import AmandaError, handle_exception, throw_error
@@ -8,7 +9,10 @@ from amanda.compiler.parse import parse
 from amanda.compiler.compile import Generator
 from amanda.compiler.semantic import Analyzer
 from amanda.compiler.codegen import ByteGen
-from amanda.config import VM_CONFIG_PATH, VM_BIN_PATH
+from amanda.config import VM_CONFIG_PATH, LIB_AMANDA_PATH
+
+
+amanda_vm = ctypes.CDLL(LIB_AMANDA_PATH)
 
 
 def write_file(name, code):
@@ -31,19 +35,15 @@ def run_frontend(filename):
     return valid_program
 
 
+def run_module(module_bin) -> int:
+    bin_size = ctypes.c_uint32(len(module_bin))
+    return amanda_vm.run_module(ctypes.c_char_p(module_bin), bin_size)
+
+
 def run_rs(args):
-    compiler = ByteGen()
-    bin_obj = compiler.compile(run_frontend(args.file))
-    OUT_FILE = "out.amac"
-    with open(OUT_FILE, "wb") as out:
-        out.write(bin_obj)
-
-    if args.debug:
-        write_file("debug.amasm", compiler.make_debug_asm())
-
     os.environ["RUST_BACKTRACE"] = "1"
     return_code = subprocess.call(
-        ["cargo", "build", "--bins", "--manifest-path", VM_CONFIG_PATH],
+        ["cargo", "build", "--manifest-path", VM_CONFIG_PATH],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
@@ -51,19 +51,12 @@ def run_rs(args):
         subprocess.call(["cargo", "check", "--manifest-path", VM_CONFIG_PATH])
         sys.exit(1)
 
-    # TODO: This is kinda of sus. Find a better way to do this
-    if args.test:
-        result = subprocess.run(
-            [VM_BIN_PATH, OUT_FILE],
-            capture_output=True,
-            encoding="utf8",
-        )
-        print(result.stdout, end="")
-        if result.returncode != 0:
-            print(result.stdout)
-            print(result.stderr, file=sys.stderr)
-            sys.exit(1)
-    else:
-        retcode = subprocess.call(
-            [VM_BIN_PATH, OUT_FILE],
-        )
+    compiler = ByteGen()
+    bin_obj = compiler.compile(run_frontend(args.file))
+
+    if args.debug:
+        write_file("debug.amasm", compiler.make_debug_asm())
+
+    exit_code = run_module(bin_obj)
+    if exit_code != 0:
+        sys.exit(exit_code)
