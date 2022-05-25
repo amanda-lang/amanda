@@ -77,13 +77,13 @@ fn offset_to_line(offset: usize, src_map: &Vec<usize>) -> usize {
 }
 
 impl<'a> AmaVM<'a> {
-    pub fn new(module: &'a Module<'a>, mut alloc: Alloc<'a>) -> Self {
+    pub fn new(module: &'a Module<'a>, alloc: Alloc<'a>) -> Self {
         let builtin_objs = builtins::load_builtins();
         let mut vm = AmaVM {
             module,
             frames: FrameStack::new(),
             globals: HashMap::with_capacity(builtin_objs.len()), 
-            values: vec![alloc.alloc_ref(AmaValue::None); module.main.locals.into()],
+            values: vec![alloc.null_ref(); module.main.locals.into()],
             alloc, 
             sp: -1,
         };
@@ -143,7 +143,7 @@ impl<'a> AmaVM<'a> {
 
     fn reserve_stack_space(&mut self, size: usize) {
         let new_len = self.values.len() + size;
-        self.values.resize(new_len, self.alloc.alloc_ref(AmaValue::None));
+        self.values.resize(new_len, self.alloc.null_ref());
         self.sp = self.values.len() as isize - 1;
     }
 
