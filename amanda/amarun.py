@@ -9,19 +9,13 @@ from amanda.compiler.parse import parse
 from amanda.compiler.compile import Generator
 from amanda.compiler.semantic import Analyzer
 from amanda.compiler.codegen import ByteGen
-from amanda.config import VM_CONFIG_PATH, LIB_AMANDA_PATH
-
-
-amanda_vm = ctypes.CDLL(LIB_AMANDA_PATH)
+from amanda.libamanda import run_module
+from amanda.config import VM_CONFIG_PATH
 
 
 def write_file(name, code):
     with open(name, "w") as output:
         output.write(code)
-
-
-def run_py(args):
-    pass
 
 
 def run_frontend(filename):
@@ -35,12 +29,7 @@ def run_frontend(filename):
     return valid_program
 
 
-def run_module(module_bin) -> int:
-    bin_size = ctypes.c_uint32(len(module_bin))
-    return amanda_vm.run_module(ctypes.c_char_p(module_bin), bin_size)
-
-
-def run_rs(args):
+def run_file(args):
     os.environ["RUST_BACKTRACE"] = "1"
     return_code = subprocess.call(
         ["cargo", "build", "--manifest-path", VM_CONFIG_PATH],

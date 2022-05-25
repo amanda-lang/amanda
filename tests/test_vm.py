@@ -6,7 +6,6 @@ import re
 import traceback
 import subprocess
 from contextlib import redirect_stdout, redirect_stderr
-from amanda.__main__ import main as ama_main
 
 TEST_DIR = os.path.abspath("./tests/test_cases/")
 STATEMENT = join(TEST_DIR, "statement")
@@ -100,7 +99,7 @@ def fmt_error(output):
 
 def run_case(filename):
     test_p = subprocess.run(
-        ["python", "-m", "amanda", "rs", filename],
+        ["python", "-m", "amanda", filename],
         capture_output=True,
         encoding="utf8",
     )
