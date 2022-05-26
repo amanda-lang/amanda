@@ -10,6 +10,9 @@ mod errors;
 mod opcode;
 mod vm;
 
+const OK: u8 = 0;
+const ERR: u8 = 1;
+
 #[no_mangle]
 pub extern "C" fn run_module(bin_module: *mut u8, size: u32) -> u8 {
     let module = unsafe {
@@ -23,8 +26,8 @@ pub extern "C" fn run_module(bin_module: *mut u8, size: u32) -> u8 {
     let mut vm = AmaVM::new(&mut ama_module, alloc);
     if let Err(err) = vm.run() {
         eprint!("{}", err);
-        1
+        OK
     } else {
-        0
+        ERR
     }
 }

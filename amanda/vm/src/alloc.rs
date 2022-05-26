@@ -53,11 +53,10 @@ impl<'a> Alloc<'a> {
 
     pub fn alloc_ref(&mut self, value: AmaValue<'a>) -> Ref<'a> {
         if let AmaValue::None = value {
-            if self.null_ref.is_some() {
-                panic!(
-                    "Do not allocate a new None reference, use the one returned from Alloc::null_ref()"
-                );
-            }
+            debug_assert!(
+                self.null_ref.is_none(),
+                "Do not allocate a new None reference, use the one returned from Alloc::null_ref()"
+            );
         }
         let value_alloc = raw_from_box!(value);
         let ama_ref = Ref(raw_from_box!(InnerRef {
