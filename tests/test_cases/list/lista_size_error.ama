@@ -1,4 +1,0 @@
-lista(int,-1)
-
-
-#[output]:Erro: O tamanho de uma lista não pode ser um inteiro negativo.

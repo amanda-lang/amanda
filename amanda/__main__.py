@@ -3,51 +3,64 @@ import time
 from io import StringIO
 import os
 import sys
+import subprocess
 from os import path
-from amanda.amarun import run_py, run_rs
-from amanda.compiler.error import handle_exception, throw_error
+from amanda.compiler.symbols import Module
+from amanda.compiler.error import AmandaError, handle_exception, throw_error
+from amanda.compiler.parse import parse
+from amanda.compiler.compile import Generator
+from amanda.compiler.semantic import Analyzer
+from amanda.compiler.codegen import ByteGen
+from amanda.libamanda import run_module
+from amanda.config import VM_CONFIG_PATH
+
+
+def write_file(name, code):
+    with open(name, "w") as output:
+        output.write(code)
+
+
+def run_frontend(filename):
+    try:
+        program = parse(filename)
+        valid_program = Analyzer(filename, Module(filename)).visit_program(
+            program
+        )
+    except AmandaError as e:
+        throw_error(e)
+    return valid_program
+
+
+def run_file(args):
+    os.environ["RUST_BACKTRACE"] = "1"
+    return_code = subprocess.call(
+        ["cargo", "build", "--manifest-path", VM_CONFIG_PATH],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    if return_code != 0:
+        subprocess.call(["cargo", "check", "--manifest-path", VM_CONFIG_PATH])
+        sys.exit(1)
+
+    compiler = ByteGen()
+    bin_obj = compiler.compile(run_frontend(args.file))
+
+    if args.debug:
+        write_file("debug.amasm", compiler.make_debug_asm())
+
+    exit_code = run_module(bin_obj)
+    if exit_code != 0:
+        sys.exit(exit_code)
 
 
 def main(*args):
     parser = argparse.ArgumentParser()
-    subparsers = parser.add_subparsers(
-        help="subcommands for running code with the vm"
-    )
 
-    py_cmds = subparsers.add_parser(
-        "py", description="Run using the python transpiler backend"
-    )
-
-    py_cmds.add_argument("file", help="source file to be executed")
-
-    py_cmds.add_argument(
-        "-g", "--generate", help="Generate an output file", action="store_true"
-    )
-    py_cmds.add_argument(
-        "-o",
-        "--outname",
-        type=str,
-        help="Name of the output file, Requires the -g option to take effect. Defaults to output.py.",
-        default="output.py",
-    )
-    py_cmds.set_defaults(exec_cmd=run_py)
-
-    rs_cmds = subparsers.add_parser(
-        "rs", description="Run using the rust vm backend"
-    )
-
-    rs_cmds.add_argument(
-        "-t",
-        "--test",
-        help="Used when running tests. captures output of executable",
-        action="store_true",
-    )
-
-    rs_cmds.add_argument(
+    parser.add_argument(
         "-d", "--debug", help="Generate a debug amasm file", action="store_true"
     )
-    rs_cmds.add_argument("file", help="source file to be executed")
-    rs_cmds.set_defaults(exec_cmd=run_rs)
+
+    parser.add_argument("file", help="source file to be executed")
 
     if len(args):
         args = parser.parse_args(args)
@@ -57,7 +70,7 @@ def main(*args):
         sys.exit(
             f"The file '{path.abspath(args.file)}' was not found on this system"
         )
-    args.exec_cmd(args)
+    run_file(args)
 
 
 if __name__ == "__main__":

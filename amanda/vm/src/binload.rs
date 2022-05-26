@@ -89,7 +89,7 @@ impl BSONType {
     }
 }
 
-fn read_bson_key(raw_doc: &mut Cursor<&mut Vec<u8>>) -> String {
+fn read_bson_key(raw_doc: &mut Cursor<&mut [u8]>) -> String {
     let mut key: String = String::new();
     loop {
         let mut buf: [u8; 1] = [0; 1];
@@ -102,13 +102,13 @@ fn read_bson_key(raw_doc: &mut Cursor<&mut Vec<u8>>) -> String {
     key
 }
 
-fn read_bytes<const N: usize>(cursor: &mut Cursor<&mut Vec<u8>>) -> [u8; N] {
+fn read_bytes<const N: usize>(cursor: &mut Cursor<&mut [u8]>) -> [u8; N] {
     let mut buf = [0; N];
     cursor.read_exact(&mut buf).unwrap();
     buf
 }
 
-fn unpack_bson_value(raw_doc: &mut Cursor<&mut Vec<u8>>, value_type: u8) -> BSONType {
+fn unpack_bson_value(raw_doc: &mut Cursor<&mut [u8]>, value_type: u8) -> BSONType {
     match value_type {
         //Doc field types
         0x01 => {
@@ -172,7 +172,7 @@ fn unpack_bson_value(raw_doc: &mut Cursor<&mut Vec<u8>>, value_type: u8) -> BSON
     }
 }
 
-fn unpack_bson_doc(raw_doc: &mut Vec<u8>) -> HashMap<String, BSONType> {
+fn unpack_bson_doc(raw_doc: &mut [u8]) -> HashMap<String, BSONType> {
     let mut doc = HashMap::new();
     let mut cursor = Cursor::new(raw_doc);
     let mut buf: [u8; 1] = [0; 1];
@@ -220,9 +220,8 @@ pub fn consume_const<'a>(constant: Const) -> AmaValue<'a> {
     }
 }
 
-pub fn load_bin<'bin>(amac_bin: &'bin mut Vec<u8>, alloc: &mut Alloc<'bin>) -> Module<'bin> {
+pub fn load_bin<'bin>(amac_bin: &'bin mut [u8], alloc: &mut Alloc<'bin>) -> Module<'bin> {
     //Skip size bytes
-    amac_bin.drain(0..4);
     let mut prog_data = unpack_bson_doc(amac_bin);
     let raw_consts = prog_data.remove("constants").unwrap().take_vec();
     let mut constants = Vec::with_capacity(raw_consts.len());

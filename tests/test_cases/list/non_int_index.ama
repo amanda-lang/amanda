@@ -1,8 +1,0 @@
-
-
-l1 : []int = lista(int,8) 
-
-l1["000"]
-
-
-#[output]:Erro: Os índices de uma lista devem ser inteiros.

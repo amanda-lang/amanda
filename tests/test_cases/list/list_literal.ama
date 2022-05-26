@@ -1,7 +1,0 @@
-list : []int = [int: 1, 2, 3, 4]
-
-mostra list[0]
-
-mostra [texto: "texto"][0]
-
-#[output]:1 texto

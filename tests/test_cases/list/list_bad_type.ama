@@ -1,4 +1,0 @@
-list : []int = [int: 1, "ainn"]
-list : []int = [int: 1, 2.4]
-
-#[output]:Erro: O tipo do elemento 1 da lista não condiz com o tipo da lista.

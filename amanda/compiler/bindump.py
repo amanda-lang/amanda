@@ -20,6 +20,10 @@ def into_int32(bson_int: bytes) -> int:
 
 
 def bson_int32_len(obj: Sized) -> bytes:
+    if len(obj) >= 2 ** (31):
+        raise OverflowError(
+            f"Object too large to be bsonyfied. Object size: {len(obj)}"
+        )
     return into_bson_int32(len(obj))
 
 

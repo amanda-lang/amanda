@@ -1,6 +1,0 @@
-l1 : []int = lista(int,8) 
-
-l1[0] = "int"
-
-
-#[output]:Erro: atribuição inválida. incompatibilidade entre os operandos da atribuição: 'int' e 'texto'.
