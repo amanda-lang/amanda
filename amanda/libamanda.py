@@ -1,11 +1,11 @@
 import ctypes
-from amanda.config import LIB_AMANDA_PATH
+from amanda.config import LIB_AMA
 
 
 # TODO: Use a struct to represent the module instead of using
 # BSON
 def run_module(module_bin: bytes) -> int:
-    lib_ama = ctypes.CDLL(LIB_AMANDA_PATH)
+    lib_ama = ctypes.CDLL(LIB_AMA)
     count = len(module_bin)
     # Note: Using ubyte to guarantee that arg 1 is an array of bytes
     # on all platforms

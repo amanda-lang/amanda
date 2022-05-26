@@ -3,7 +3,7 @@ import os.path as path
 import shutil
 import sys
 import subprocess
-import PyInstaller.__main__
+import PyInstaller.__main__ as pyinst_main
 
 OS_X = sys.platform == "darwin"
 WIN_32 = sys.platform == "win32"
@@ -11,28 +11,28 @@ LINUX = sys.platform == "linux"
 
 
 def main():
-    BINARY_NAME = "amanda"
-    SCRIPT = path.abspath(path.join("./amanda", "__main__.py"))
-    BUILD_DIR = path.abspath("./dist")
+    bin_name = "amanda"
+    script = path.abspath(path.join("./amanda", "__main__.py"))
+    build_dir = path.abspath("./dist")
 
-    PyInstaller.__main__.run(
+    pyinst_main.run(
         [
-            f"--name={BINARY_NAME}",
+            f"--name={bin_name}",
             "--onefile",
             "--console",
             "--clean",
-            f"{SCRIPT}",
+            f"{script}",
         ]
     )
 
     # Remove build files
-    os.remove(f"{BINARY_NAME}.spec")
+    os.remove(f"{bin_name}.spec")
     shutil.rmtree("./build")
     # Create a symlink pointing to binary in /usr/local/bin/
     # in Mac and linux
     if OS_X or LINUX:
-        target = path.abspath(path.join(BUILD_DIR, BINARY_NAME))
-        link = path.join(path.abspath("/usr/local/bin"), BINARY_NAME)
+        target = path.abspath(path.join(build_dir, bin_name))
+        link = path.join(path.abspath("/usr/local/bin"), bin_name)
         subprocess.run(["ln", "-s", "-f", target, link], check=True)
     elif WIN_32:
         # Do windows stuff in here
