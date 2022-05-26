@@ -1,5 +1,0 @@
-lista1 : []int = lista(int,0) 
-
-anexe(lista1,"strug")
-
-#[output]:Erro: incompatibilidade de tipos entre a lista e o valor a anexar: 'int' != 'texto'.

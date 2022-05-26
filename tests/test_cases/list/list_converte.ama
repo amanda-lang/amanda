@@ -1,8 +1,0 @@
-
-
-lista1: indef = lista(int,4)
-lista2 : []int = converte(lista1,[]int)
-
-mostra lista2[0] # expect 0
-
-#[output]:0

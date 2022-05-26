@@ -1,5 +1,0 @@
-
-matrix : [][]int = matriz("passo", 3, 3)
-mostra matrix
-
-#[output]:Erro: O argumento 1 da função 'matriz' deve ser um tipo.
