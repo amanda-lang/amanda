@@ -23,6 +23,7 @@ def main():
     os.environ["RUST_BACKTRACE"] = "1"
     main_args = ["cargo", "build"]
     if args.release:
+        print("Bulding VM lib with release optimizations.")
         main_args.append("--release")
 
     return_code = subprocess.call(

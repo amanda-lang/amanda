@@ -46,6 +46,7 @@ def add_failure(test_case, error):
     global failed, failed_tests
     failed += 1
     failed_tests.append((os.path.relpath(test_case), error))
+    print("x", end="")
 
 
 def print_failed():
@@ -134,6 +135,9 @@ def run_suite(test_cases):
 
 
 if __name__ == "__main__":
+    # Compile libamanda
+    subprocess.call([sys.executable, "-m", "utils.build"])
+    # Run end-to-end tests
     for suite in DIRS:
         test_cases = load_test_cases(suite)
         run_suite(test_cases)

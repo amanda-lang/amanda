@@ -150,9 +150,6 @@ if __name__ == "__main__":
     # Run "unit" tests
     subprocess.call([sys.executable, "-m", "unittest", "discover"])
     # Run end_to_end tests
-    # suite = DIRS[22]
-    # test_cases = load_test_cases(suite)
-    # run_suite(test_cases)
     for suite in DIRS:
         test_cases = load_test_cases(suite)
         run_suite(test_cases)
