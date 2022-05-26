@@ -3,7 +3,7 @@ func e_alg(str: texto): bool
 fim
 
 func e_operador(str: texto): bool
-    retorna txt_contem("+-", str)
+    retorna txt_contem("+-*/", str)
 fim
 
 func anexa_txt(espaco: texto, extra: texto): texto
@@ -48,6 +48,8 @@ func processar_cmd(cmd: texto)
     escolha operador:
         caso "+": resultado = op1::int + op2::int
         caso "-": resultado = op1::int - op2::int
+        caso "*": resultado = op1::int * op2::int
+        caso "/": resultado = op1::int // op2::int
         senao: 
             escrevaln(err_msg)
             retorna
