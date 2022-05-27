@@ -11,11 +11,20 @@ if not BUNDLED:
     VM_CONFIG = path.join(VM_ROOT, "Cargo.toml")
     # Path to std lib
     STD_LIB = path.join(PROJECT_ROOT, "std")
+    # Choose dynlib extension
+    if sys.platform == "win32":
+        ext = "dll"
+    elif sys.platform == "linux":
+        ext = "so"
+    else:
+        raise NotImplemented(
+            f"Extension for {sys.platform} has not yet been implemeneted"
+        )
     # Path to vm output
     LIB_OUT_DIR = (
-        "target/release/libamanda.so"
+        f"target/release/libamanda.{ext}"
         if os.getenv("PYINST_BUILD")
-        else "target/debug/libamanda.so"
+        else f"target/debug/libamanda.{ext}"
     )
     LIB_AMA = path.join(VM_ROOT, LIB_OUT_DIR)
 else:

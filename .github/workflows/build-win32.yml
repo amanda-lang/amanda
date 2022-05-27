@@ -24,10 +24,10 @@ jobs:
         pip install -r requirements.txt
     - name: Run build
       run: |
-        python -m tests.test
         python setup.py
+        dist\amanda examples\hello_world.ama
     - name: Archive binary
       uses: actions/upload-artifact@v2
       with:
           name: amanda.exe
-          path: dist/amanda
+          path: dist\amanda
