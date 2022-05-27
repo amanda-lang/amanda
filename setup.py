@@ -16,10 +16,17 @@ def main():
     script = path.abspath(path.join("./amanda", "__main__.py"))
     build_dir = "./dist"
     os.environ["PYINST_BUILD"] = "1"
-    # Compile VM
-    subprocess.run(
-        [sys.executable, "-m", "utils.build", "--release"], check=True
-    )
+    try:
+        # Run tests
+        subprocess.run([sys.executable, "-m", "tests.test"], check=True)
+        # Compile VM
+        subprocess.run(
+            [sys.executable, "-m", "utils.build", "--release"], check=True
+        )
+    except Exception as e:
+        print("Error during build tests: ")
+        print(e.output)
+        sys.exit(1)
     path_sep = os.pathsep
     # Build the things
     pyinst_main.run(
@@ -41,16 +48,6 @@ def main():
     # Remove build files
     os.remove(f"{bin_name}.spec")
     shutil.rmtree("./build")
-    # Create a symlink pointing to binary in /usr/local/bin/
-    # in Mac and linux
-    if OS_X or LINUX:
-        # target = path.abspath(path.join(build_dir, bin_name))
-        # link = path.join(path.abspath("/usr/local/bin"), bin_name)
-        # subprocess.run(["ln", "-s", "-f", target, link], check=True)
-        pass
-    elif WIN_32:
-        # Do windows stuff in here
-        pass
 
 
 if __name__ == "__main__":
