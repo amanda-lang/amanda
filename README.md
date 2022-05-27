@@ -2,12 +2,14 @@
 ![tests](https://github.com/stackswithans/amanda/workflows/tests/badge.svg)
 
 Amanda is a statically typed programming language with portuguese constructs. 
-It is implemented using a Python backend (The source code is compiled/translated to Python and then executed) and was mainly made to help me get a feel for progamming language design and implementation. 
+It is implemented using a Python compiler and a Rust VM.
 It's specifically designed to be used by portuguese speakers who are just getting started with programming.
 
 ## Build Instructions
 
-You can build the compiler directly in your machine using python 3.8 or higher.
+To build the project on your machine you need following:
+- Python 3.8+
+- Rust and Cargo v1.59.0+ 
 
 **On Windows**
 
@@ -20,7 +22,7 @@ python setup.py
 Test the installation by running the following command on CMD:
 
 ```
-amanda examples/hello_world.ama 
+dist\amanda examples\hello_world.ama 
 ```
 
 **On Linux/Mac** 
@@ -29,12 +31,12 @@ Run the following commands at the root folder of the repo:
 
 ```
 pip3 install -r requirements.txt 
-sudo python3 setup.py
+python3 setup.py
 ```
 Test the installation by running:
 
 ```
-amanda examples/hello_world.ama 
+dist/amanda examples/hello_world.ama 
 ```
 
 ## Tour of Amanda

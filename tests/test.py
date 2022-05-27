@@ -6,39 +6,29 @@ import re
 import traceback
 import subprocess
 from contextlib import redirect_stdout, redirect_stderr
-from amanda.__main__ import main as ama_main
 
 TEST_DIR = os.path.abspath("./tests/test_cases/")
 STATEMENT = join(TEST_DIR, "statement")
-EXCLUDED = "result.txt"
+EXCLUDED = []
 
 # test paths
 DIRS = [
     join(TEST_DIR, "assignment"),
+    join(STATEMENT, "mostra"),
+    join(TEST_DIR, "operator"),
+    join(STATEMENT, "se"),
+    join(STATEMENT, "enquanto"),
+    join(STATEMENT, "escolha"),
+    join(TEST_DIR, "function"),
+    join(STATEMENT, "retorna"),
+    join(STATEMENT, "loop_ctl"),
+    join(TEST_DIR, "comment"),
+    join(TEST_DIR, "call"),
     join(TEST_DIR, "declaration"),
     join(TEST_DIR, "expression"),
-    join(TEST_DIR, "function"),
-    join(STATEMENT, "enquanto"),
-    join(STATEMENT, "mostra"),
-    # join(STATEMENT, "para"),
-    join(STATEMENT, "retorna"),
-    join(STATEMENT, "escolha"),
-    join(STATEMENT, "se"),
-    join(TEST_DIR, "operator"),
-    join(TEST_DIR, "call"),
-    join(TEST_DIR, "comment"),
-    join(TEST_DIR, "transpiler"),
-    join(TEST_DIR, "rt_errors"),
-    join(TEST_DIR, "indef_type"),
     join(TEST_DIR, "converte"),
-    join(TEST_DIR, "builtins"),
-    join(TEST_DIR, "list"),
-    join(TEST_DIR, "class"),
-    join(TEST_DIR, "get"),
-    join(TEST_DIR, "set"),
-    join(TEST_DIR, "eu"),
-    join(TEST_DIR, "nulo"),
-    join(TEST_DIR, "usa"),
+    join(TEST_DIR, "vec"),
+    join(TEST_DIR, "rt_errors"),
 ]
 
 passed = 0
@@ -56,6 +46,7 @@ def add_failure(test_case, error):
     global failed, failed_tests
     failed += 1
     failed_tests.append((os.path.relpath(test_case), error))
+    print("x", end="")
 
 
 def print_failed():
@@ -108,26 +99,24 @@ def fmt_error(output):
 
 
 def run_case(filename):
-    stdout = StringIO()
-    stderr = StringIO()
-    try:
-        with redirect_stdout(stdout), redirect_stderr(stderr):
-            ama_main("py", filename)
-    except SystemExit as e:
-        # Print stdout + stderr in case some code ran
-        # before error was thrown
-        out = stdout.getvalue()
-        err = stderr.getvalue()
-        # HACK: This is to check if
-        # the system exit was caused by an AmandaError
-        # or some other error in main
-        if len(out) and len(err):
-            return (out + fmt_error(err)).replace("\n", " ")
-        elif len(err):
-            return fmt_error(err)
-        else:
-            raise e
-    return stdout.getvalue().replace("\n", " ")
+    test_p = subprocess.run(
+        ["python", "-m", "amanda", filename],
+        capture_output=True,
+        encoding="utf8",
+    )
+    # Print stdout + stderr in case some code ran
+    # before error was thrown
+    out = test_p.stdout
+    err = test_p.stderr
+    # HACK: This is to check if
+    # the system exit was caused by an AmandaError
+    # or some other error in main
+    if len(out) and len(err):
+        return (out + fmt_error(err)).replace("\n", " ")
+    elif len(err):
+        return fmt_error(err)
+    else:
+        return out.replace("\n", " ")
 
 
 def run_suite(test_cases):
@@ -146,14 +135,13 @@ def run_suite(test_cases):
 
 
 if __name__ == "__main__":
-
-    # Run "unit" tests
-    subprocess.call([sys.executable, "-m", "unittest", "discover"])
-    # Run end_to_end tests
-    # suite = DIRS[22]
-    # test_cases = load_test_cases(suite)
-    # run_suite(test_cases)
+    # Compile libamanda
+    subprocess.call([sys.executable, "-m", "utils.build"])
+    # Run end-to-end tests
+    print("Running tests...")
     for suite in DIRS:
         test_cases = load_test_cases(suite)
         run_suite(test_cases)
     print_results()
+    if failed > 0:
+        sys.exit(1)
