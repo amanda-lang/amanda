@@ -1,6 +1,0 @@
-
-lista1 : int = -132
-
-anexe(lista1,2)
-
-#[output]:Erro: O argumento 1 da função 'anexe' deve ser uma lista.

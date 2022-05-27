@@ -1,4 +1,0 @@
-
-l1 : []int = lista(int,"4")
-
-#[output]:Erro: O tamanho de uma lista deve ser representado por um inteiro.

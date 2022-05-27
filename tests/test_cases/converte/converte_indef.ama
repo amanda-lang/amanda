@@ -1,5 +1,5 @@
-a : indef = converte(8,indef)
-mostra a # expect int -> 8
-mostra converte(a,int) + 8 # expect 16 
+a : indef = 8::indef
+mostra a # expect 8
+mostra a::int + 8 # expect 16 
 
-#[output]:int -> 8 16
+#[output]:8 16

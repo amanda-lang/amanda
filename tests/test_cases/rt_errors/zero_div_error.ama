@@ -7,4 +7,4 @@ mostra a/i #expect error
 
 
 
-#[output]:Erro: não pode dividir um número por zero.
+#[output]:Erro na linha 5: não pode dividir um número por zero.

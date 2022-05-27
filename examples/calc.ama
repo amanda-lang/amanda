@@ -1,0 +1,71 @@
+func e_alg(str: texto): bool
+    retorna txt_contem("0123456789", str)
+fim
+
+func e_operador(str: texto): bool
+    retorna txt_contem("+-*/", str)
+fim
+
+func anexa_txt(espaco: texto, extra: texto): texto
+    retorna f"{espaco}{extra}"
+fim
+
+func processar_cmd(cmd: texto)
+    err_msg: texto = "Comando mal formatado. Comandos devem estar na forma: {operando1} {operador} {operando2}"
+    op1: texto = ""
+    operador: texto = ""
+    op2: texto = ""
+    pos: int = 0
+    char: texto = cmd[pos]
+    buf: texto = ""
+    str_tam: int = tam(cmd)
+
+    #Extrair primeiro operando
+    enquanto e_alg(cmd[pos]) e (pos < str_tam) faca
+        char = cmd[pos]
+        op1 = anexa_txt(op1, char)
+        pos += 1
+    fim
+
+    char = cmd[pos]
+    se (pos >= str_tam) ou nao e_operador(char)  entao
+        escrevaln(err_msg)
+        retorna
+    fim
+
+    operador = char
+    pos += 1
+
+    #Extrair segundo operando
+    enquanto pos < str_tam faca
+        char = cmd[pos]
+        op2 = anexa_txt(op2, char)
+        pos += 1
+    fim
+
+    #Definir qual o operador
+    resultado: int = 0
+    escolha operador:
+        caso "+": resultado = op1::int + op2::int
+        caso "-": resultado = op1::int - op2::int
+        caso "*": resultado = op1::int * op2::int
+        caso "/": resultado = op1::int // op2::int
+        senao: 
+            escrevaln(err_msg)
+            retorna
+    fim
+    escrevaln(f"> {resultado}")
+fim
+
+func inicio()
+    cmd: texto
+    enquanto verdadeiro faca
+        cmd = leia("> ")
+        se cmd == "fim" entao
+            quebra
+        fim
+        processar_cmd(cmd)
+    fim
+fim
+
+inicio()

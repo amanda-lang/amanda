@@ -1,0 +1,13 @@
+lista1 : [real] = vec(real, 0) 
+
+anexa(lista1,1)
+anexa(lista1,2)
+anexa(lista1,3)
+
+escrevaln(tam(lista1))
+
+para i de 0..tam(lista1) faca
+    escrevaln(lista1[i])
+fim
+
+#[output]:3 1.0 2.0 3.0

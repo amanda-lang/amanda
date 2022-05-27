@@ -21,20 +21,9 @@ func crazy()
          d : int
 
         mostra a # expect 3
-
-
-        func nested_crazy()
-            
-            mostra a # expect 3
-             a : int = 2
-            mostra a # expect 2
-
-        fim
-
-        nested_crazy()
     fim
 
 fim
 crazy()
 
-#[output]:5 4 4 3 3 2
+#[output]:5 4 4 3

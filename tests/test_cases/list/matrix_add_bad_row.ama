@@ -1,6 +1,0 @@
-matrix : [][]int = matriz(int, 2, 2)
-mostra matrix
-
-anexe(matrix, [texto: "2", "2"])
-
-#[output]:Erro: incompatibilidade de tipos entre a lista e o valor a anexar: '[]int' != '[]texto'.

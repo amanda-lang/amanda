@@ -1,5 +1,5 @@
 
-mostra converte(8,undeclared) # 8.0
+mostra 8::undeclared
 
 
 #[output]:Erro: o tipo 'undeclared' não foi declarado.

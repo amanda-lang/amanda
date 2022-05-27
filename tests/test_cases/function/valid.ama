@@ -24,21 +24,6 @@ rand:real = random();
 mostra rand; #expect 150.0
 
 
-# nested func
-func crazy_sum(a:int , b:int): int 
-
-  func sum(a:int , b:int): int 
-    retorna a+b;
-  fim
-
-  retorna sum(a,b);
-fim
-
-
-a = crazy_sum(2,2);
-mostra a; # expect 4
-
-
 # recursion
 func factorial(n:int): int
   se n == 0 entao
@@ -49,4 +34,4 @@ fim
 
 mostra factorial(5); # expect 120
 
-#[output]:3 150.0 4 120
+#[output]:3 150.0 120

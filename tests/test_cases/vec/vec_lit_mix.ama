@@ -1,0 +1,3 @@
+list : [int] = [int: 1, "ainn"]
+
+#[output]:Erro: O tipo do elemento 1 da lista não condiz com o tipo da lista. Esperava elemento do tipo 'int', encontrou elemento do tipo 'texto'.

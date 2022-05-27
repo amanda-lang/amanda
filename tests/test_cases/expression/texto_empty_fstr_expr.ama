@@ -1,0 +1,4 @@
+str: texto = "Hello world"
+
+escrevaln(f"{} i am amanda")
+#[output]: Erro sintático: String de formatação inválida. Expressões vazias não são permitidas.

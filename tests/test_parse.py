@@ -2,9 +2,9 @@ import unittest
 import os
 import sys
 from io import StringIO
-from amanda.tokens import TokenType, Token
-from amanda.parse import Parser, Lexer
-from amanda.error import AmandaError
+from amanda.compiler.tokens import TokenType, Token
+from amanda.compiler.parse import Parser, Lexer
+from amanda.compiler.error import AmandaError
 
 
 class LexerTestCase(unittest.TestCase):
@@ -144,9 +144,31 @@ class LexerTestCase(unittest.TestCase):
             token.lexeme, '"Ramboeiro"', msg="STRING value Test Failed"
         )
 
+    def test_format_str(self):
+        self.buffer.write("f'Rambo jndjnsjndnsjns' ")
+        self.buffer.write('f"Ramboeiro" ')
+        self.buffer.seek(0)
+
+        token = self.lexer.get_token()
+        self.assertEqual(
+            token.token, TokenType.FORMAT_STR, msg="FORMAT_STR Test Failed"
+        )
+        self.assertEqual(
+            token.lexeme,
+            "'Rambo jndjnsjndnsjns'",
+            msg="FORMAT_STR value test Failed",
+        )
+        token = self.lexer.get_token()
+        self.assertEqual(
+            token.token, TokenType.FORMAT_STR, msg="FORMAT_STR Test Failed"
+        )
+        self.assertEqual(
+            token.lexeme, '"Ramboeiro"', msg="FORMAT_STR value Test Failed"
+        )
+
     def test_identifier(self):
         self.buffer.write(
-            "_test1 test test2 __test3 nulo var mostra verdadeiro falso retorna se senao senaose enquanto entao inc para faca de fim func classe eu usa super vazio converte escolha caso como"
+            "_test1 test test2 __test3 nulo var mostra verdadeiro falso retorna se senao senaose enquanto entao inc para faca de fim func classe eu usa super vazio escolha caso como nativa quebra continua"
         )
         self.buffer.seek(0)
 
@@ -258,13 +280,6 @@ class LexerTestCase(unittest.TestCase):
         self.assertEqual(token.lexeme, "vazio", msg="VAZIO value test Failed")
         token = self.lexer.get_token()
         self.assertEqual(
-            token.token, TokenType.CONVERTE, msg="CONVERTE Test Failed"
-        )
-        self.assertEqual(
-            token.lexeme, "converte", msg="CONVERTE value test Failed"
-        )
-        token = self.lexer.get_token()
-        self.assertEqual(
             token.token, TokenType.ESCOLHA, msg="ESCOLHA Test Failed"
         )
         self.assertEqual(
@@ -276,9 +291,26 @@ class LexerTestCase(unittest.TestCase):
         token = self.lexer.get_token()
         self.assertEqual(token.token, TokenType.COMO, msg="COMO Test Failed")
         self.assertEqual(token.lexeme, "como", msg="COMO value test Failed")
+        token = self.lexer.get_token()
+        self.assertEqual(
+            token.token, TokenType.NATIVA, msg="nativa Test Failed"
+        )
+        self.assertEqual(token.lexeme, "nativa", msg="nativa value test Failed")
+        token = self.lexer.get_token()
+        self.assertEqual(
+            token.token, TokenType.QUEBRA, msg="quebra Test Failed"
+        )
+        self.assertEqual(token.lexeme, "quebra", msg="quebra value test Failed")
+        token = self.lexer.get_token()
+        self.assertEqual(
+            token.token, TokenType.CONTINUA, msg="continua Test Failed"
+        )
+        self.assertEqual(
+            token.lexeme, "continua", msg="continua value test Failed"
+        )
 
     def test_delimeters(self):
-        self.buffer.write(". , ; ) ( { } [ ] : ..")
+        self.buffer.write(". , ; ) ( { } [ ] : .. ::")
         self.buffer.seek(0)
 
         token = self.lexer.get_token()
@@ -322,6 +354,14 @@ class LexerTestCase(unittest.TestCase):
         token = self.lexer.get_token()
         self.assertEqual(token.token, TokenType.DDOT, msg="DDOT Test Failed")
         self.assertEqual(token.lexeme, "..", msg="DDOT value test Failed")
+
+        token = self.lexer.get_token()
+        self.assertEqual(
+            token.token, TokenType.DOUBLECOLON, msg="DOUBLECOLON Test Failed"
+        )
+        self.assertEqual(
+            token.lexeme, "::", msg="DOUBLECOLON value test Failed"
+        )
 
     def test_line_count(self):
         self.buffer.write("\n\n\n\n\n")
@@ -469,12 +509,12 @@ class ParserTestCase(unittest.TestCase):
         self.buffer.seek(0)
         self.parser.parse()
 
-    def test_converte(self):
+    def test_cast(self):
         phrases = [
-            "converte(2+2,real)",
-            "converte(8,real) - 8.8 * 1 - 8",
-            "converte(1,bool) == verdadeiro",
-            "converte(1,[]int) == verdadeiro",
+            "(2+2)::int",
+            "8::real - 8.8 * 1 - 8",
+            "1::bool == verdadeiro",
+            "1::[]int == verdadeiro",
         ]
         for phrase in phrases:
             print(phrase, file=self.buffer)

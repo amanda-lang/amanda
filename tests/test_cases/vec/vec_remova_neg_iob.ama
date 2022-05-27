@@ -1,0 +1,3 @@
+lista: [int] = [int: ]
+remova(lista, -1)
+#[output]:Erro na linha 2: Erro de índice inválido. Vectores só podem ser indexados com inteiros positivos.

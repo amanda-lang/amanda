@@ -2,11 +2,15 @@ teste : texto = "texto"
 mostra teste # expect texto
 
 
-teste += teste
 mostra teste # expect testeteste
+
 
 
 mostra teste == teste # expect verdadeiro
 mostra teste != teste # expect falso
 
-#[output]:texto textotexto verdadeiro falso
+mostra teste[0] #expect t
+mostra teste[2] #expect x
+mostra teste[4] #expect o
+
+#[output]:texto texto verdadeiro falso t x o

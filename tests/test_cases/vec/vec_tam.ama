@@ -1,0 +1,12 @@
+#Para criar um vec use a 'função' vec
+
+lista: [int] = vec(int,4)
+
+escrevaln(f"tamanho: {tam(lista)}")
+
+para i de 0..tam(lista) faca
+    mostra lista[i]
+fim
+
+
+#[output]:tamanho: 4 0 0 0 0

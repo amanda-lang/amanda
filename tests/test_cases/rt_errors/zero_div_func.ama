@@ -9,4 +9,4 @@ fim
 
 test()
 
-#[output]:Erro: não pode dividir um número por zero.
+#[output]:Erro na linha 10: não pode dividir um número por zero.

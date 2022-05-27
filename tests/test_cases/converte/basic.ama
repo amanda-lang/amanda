@@ -1,0 +1,24 @@
+num: int = "40212"::int
+
+num_real: real = num
+
+logico: bool = num_real::bool
+
+num_real2: indef = (15.01::indef)::indef 
+num_int: int = num_real::int
+
+
+escrevaln(num)
+escrevaln(num_real2::real)
+escrevaln(num_real)
+escrevaln(1::bool)
+escrevaln(0::bool)
+escrevaln(""::bool)
+escrevaln(" "::bool)
+escrevaln(1.0::bool)
+escrevaln(0.0::bool)
+escrevaln(verdadeiro::texto)
+escrevaln(falso::texto)
+
+
+#[output]: 40212 15.01 40212.0 verdadeiro falso falso verdadeiro verdadeiro falso verdadeiro falso

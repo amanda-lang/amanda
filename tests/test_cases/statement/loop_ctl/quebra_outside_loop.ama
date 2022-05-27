@@ -1,0 +1,4 @@
+quebra
+escrevaln("Bad break")
+
+#[output]:Erro: A directiva 'quebra' só pode ser usada dentro de uma estrutura de repetição.

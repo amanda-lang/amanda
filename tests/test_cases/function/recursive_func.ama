@@ -1,0 +1,16 @@
+func fatorial(i: int): int 
+    se i == 0 entao
+        retorna 1
+    senao
+        retorna i * fatorial(i - 1)
+    fim
+fim
+
+mostra fatorial(0)
+mostra fatorial(1)
+mostra fatorial(2)
+mostra fatorial(3)
+mostra fatorial(4)
+mostra fatorial(5)
+
+#[output]:1 1 2 6 24 120

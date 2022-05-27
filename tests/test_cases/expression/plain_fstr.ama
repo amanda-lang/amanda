@@ -1,0 +1,2 @@
+escrevaln(f"format string without expressions")
+#[output]: format string without expressions

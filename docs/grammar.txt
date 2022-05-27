@@ -22,13 +22,20 @@ class_body
 
 
 type
-  : (LBRACKET RBRACKET)* IDENTIFIER 
+  :  IDENTIFIER 
+  | LBRACKET type RBRACKET
+  ;
+
+function_header
+  : IDENTIFIER LPAR formal_parameter_section? RPAR COL (type | VAZIO)
+  ;
+
+native_function_decl
+  : NATIVA header end_stmt
   ;
 
 function_declaration
-  : FUNC IDENTIFIER LPAR formal_parameter_section? RPAR COL (type | VAZIO)
-  body
-  FIM
+  : FUNC (native_function_decl | function_header body FIM)
   ;
 
 
@@ -50,6 +57,8 @@ stmt
   | enquanto_stmt
   | para_stmt
   | decl_stmt
+  | quebra_stmt
+  | continua_stmt
   ;
 
 escolha_stmt
@@ -60,7 +69,7 @@ escolha_stmt
   ;
 
 retorna_stmt
-  : RETORNA equality end_stmt
+  : RETORNA equality? end_stmt
   ;
 
 mostra_stmt
@@ -89,6 +98,14 @@ para_expression
 
 range_expression
   : equality DDOT equality (inc equality)?
+  ;
+
+quebra_stmt
+  : QUEBRA end_stmt
+  ;
+
+continua_stmt
+  : CONTINUA end_stmt
   ;
 
 comp_op
@@ -151,7 +168,7 @@ unary
   ;
 
 call
-   : primary (LPAR args? RPAR | index | DOT IDENTIFIER)*
+   : primary ((LPAR args? RPAR | index | DOT IDENTIFIER)* | DOUBLECOLON type)?
    ;
 
 
@@ -159,13 +176,13 @@ primary
   : INTEGER 
   | REAL
   | STRING
+  | FORMAT_STR
   | VERDADEIRO
   | FALSO
-  | LPAR expression RPAR
+  | LPAR equality RPAR
   | LBRACKET type COLON args? RBRACKET
   | IDENTIFIER 
   | EU
-  | CONVERTE LPAR equality COMMA IDENTIFIER RPAR
   | NULO
   ;
 

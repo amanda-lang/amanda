@@ -1,0 +1,3 @@
+el: bool = remova([int: 1], 0)
+
+#[output]: Erro: atribuição inválida. incompatibilidade entre os operandos da atribuição: 'bool' e 'int'.

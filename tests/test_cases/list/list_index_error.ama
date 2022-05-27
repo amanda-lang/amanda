@@ -1,4 +1,0 @@
-lista_m : []texto = lista(texto,5)
-mostra lista_m[5]
-
-#[output]:Erro: índice de lista inválido.

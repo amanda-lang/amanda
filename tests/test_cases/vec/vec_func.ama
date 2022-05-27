@@ -1,0 +1,33 @@
+
+func doubler(l1 : [int]) : [int]
+    para i de 0..tam(l1) faca
+        l1[i] *= 2
+    fim
+    retorna l1
+fim
+
+
+func fmt_lista(lx: [int], sep : texto)
+    resultado : texto
+    tamanho: int = tam(lx)
+    para i de 0..tamanho faca
+        valor : texto = lx[i]::texto
+        se i == tamanho - 1 entao
+            resultado = f"{resultado}{valor}"
+        senao
+            resultado = f"{resultado}{valor}{sep}"
+        fim
+    fim
+    mostra resultado
+fim
+ 
+l1 : [int] = vec(int,3)
+l1[0] = 2
+l1[1] = 3
+l1[2] = 5
+
+l1 = doubler(l1)
+
+fmt_lista(l1,",")
+
+#[output]:4,6,10

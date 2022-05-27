@@ -1,0 +1,28 @@
+# Este módulo contém as declarações de funções que já vêm com a linguagem
+# E estão disponíveis em todos os programas
+
+
+# Funções de entrada functions
+func nativa leia(mensagem: texto): texto
+func nativa leia_int(mensagem: texto): int
+func nativa leia_real(mensagem: texto): real
+
+
+# Funções de saída
+func nativa escreva(item: indef)
+func nativa escrevaln(item: indef)
+
+# Para colecções
+func nativa vec(tipo: indef, tam: int): indef
+func nativa tam(seq: indef): int
+func nativa anexa(vec: indef, valor: indef)
+func nativa remova(vec: indef, indice: int): indef
+
+
+# 'Metaprogramação'
+#func nativa tipo(objecto: indef):texto
+
+
+
+# Funções para trabalhar com texto
+func nativa txt_contem(palheiro: texto, agulha: texto): bool

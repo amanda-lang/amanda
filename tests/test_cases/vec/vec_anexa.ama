@@ -1,0 +1,22 @@
+vec1 : [int] = vec(int, 0) 
+
+escrevaln(tam(vec1))
+
+anexa(vec1,1)
+anexa(vec1,2)
+anexa(vec1,3)
+
+escrevaln(vec1)
+escrevaln(tam(vec1))
+
+vec2 : [int] = vec(int, 3) 
+
+escrevaln(tam(vec2))
+
+anexa(vec2, 255)
+
+escrevaln(tam(vec2))
+
+escrevaln(vec2)
+
+#[output]:0 [1, 2, 3] 3 3 4 [0, 0, 0, 255] 

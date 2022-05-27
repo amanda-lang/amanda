@@ -1,0 +1,3 @@
+a: int = falso::int
+
+#[output]:Erro: Não pode converter um valor do tipo 'bool' para o tipo 'int'.

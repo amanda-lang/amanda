@@ -1,0 +1,12 @@
+lista: [int] = [int: 1, 2, 3]
+
+
+escrevaln(tam(lista))
+escrevaln(remova(lista, 2))
+escrevaln(tam(lista))
+escrevaln(remova(lista, 1))
+escrevaln(tam(lista))
+escrevaln(remova(lista, 0))
+escrevaln(tam(lista))
+
+#[output]:3 3 2 2 1 1 0

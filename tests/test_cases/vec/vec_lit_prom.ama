@@ -1,0 +1,5 @@
+lista1 : [real] = [real: 1, 2]
+escreva(lista1)
+
+
+#[output]:[1.0, 2.0]

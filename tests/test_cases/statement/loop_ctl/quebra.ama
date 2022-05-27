@@ -1,0 +1,18 @@
+enquanto verdadeiro faca
+    quebra
+fim 
+
+escrevaln("Saí do loop 1")
+
+enquanto verdadeiro faca
+
+    enquanto verdadeiro faca
+        quebra
+    fim 
+    escrevaln("Saí do loop 2")
+
+    quebra
+fim 
+escrevaln("Saí do loop 3")
+#[output]:Saí do loop 1 Saí do loop 2 Saí do loop 3
+

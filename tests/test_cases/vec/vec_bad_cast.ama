@@ -1,0 +1,6 @@
+
+lista_r: [real] = 1::[int]
+
+
+
+#[output]:Erro: Não pode converter um valor do tipo 'int' para o tipo '[int]'.

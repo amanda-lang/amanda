@@ -1,0 +1,6 @@
+escrevaln(vec(int, 3))
+escrevaln(vec(real, 3))
+escrevaln(vec(bool, 3))
+escrevaln(vec(texto, 3))
+
+#[output]:[0, 0, 0] [0.0, 0.0, 0.0] [falso, falso, falso] [, , ]

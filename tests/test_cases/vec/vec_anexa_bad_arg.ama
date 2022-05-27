@@ -1,0 +1,3 @@
+anexa(0, 255)
+
+#[output]:Erro: O argumento 1 da função 'anexa' deve ser um vector.

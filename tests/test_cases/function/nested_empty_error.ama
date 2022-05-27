@@ -1,13 +1,8 @@
 # nested function declared without return
 
 
-func outer_func():int 
+func inner_func():int 
    a : int = 10;
-
-  func inner_func():int 
-     a : int = 10;# expect error
-  fim
-  retorna a
 fim
 
 #[output]:Erro: a função 'inner_func' não possui a instrução 'retorna'.

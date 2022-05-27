@@ -1,0 +1,3 @@
+lista: [int] = [int: ]
+remova(lista, 0)
+#[output]:Erro na linha 2: Erro de índice inválido. O tamanho do vector é 0, mas tentou aceder o índice 0.

@@ -1,5 +1,5 @@
 func escrevaln1(arg : indef)
-    str : texto = converte(arg,texto)
+    str : texto = arg::texto
     mostra str
 fim
 
@@ -11,4 +11,4 @@ escrevaln1(verdadeiro)
 escrevaln1(3.14)
 escrevaln1(falso)
 
-#[output]:10 eu verdadeiro 3.14 falso
+#[output]:Erro na linha 8: Conversão inválida. O tipo original do valor é 'int', mas tentou converter o valor para o tipo 'texto'.

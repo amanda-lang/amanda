@@ -1,4 +1,3 @@
-tools/*
 *.pyc
 amac
 pyamanda
@@ -10,3 +9,7 @@ dist/
 .venv
 *.log
 feat_tests/
+run
+/*.amasm
+/*.amac
+/amanda/vm/target

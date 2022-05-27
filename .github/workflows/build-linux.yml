@@ -14,12 +14,17 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: 3.8
+    - name: Set up Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
     - name: Install dependencies
       run: |
-        pip3.8 install --upgrade pip
-        pip3.8 install -r requirements.txt
+        python3.8 -m venv env
+        source env/bin/activate
+        pip install --upgrade pip
+        pip install -r requirements.txt
     - name: Run build
       run: |
-        python3.8 -m tests.test
-        sudo $pythonLocation/bin/python3.8 setup.py
-        amanda ./examples/hello_world.ama
+        env/bin/python3.8 setup.py
+        dist/amanda ./examples/hello_world.ama

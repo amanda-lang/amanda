@@ -1,0 +1,2 @@
+vet2: [int] = vec(fake_type, 4) # Vec with 4 zeros
+#[output]: Erro: o tipo 'fake_type' não foi declarado.

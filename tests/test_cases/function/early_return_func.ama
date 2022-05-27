@@ -1,0 +1,8 @@
+func early_ret()
+    mostra "hello"
+    retorna
+    mostra "world"
+fim
+
+early_ret()
+#[output]: hello

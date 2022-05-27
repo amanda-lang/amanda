@@ -1,6 +1,0 @@
-lista1: indef = lista(int,4)
-lista2 : []real = converte(lista1,[]real)
-
-mostra lista2[0] # expect 0
-
-#[output]:Erro: impossível realizar a conversão entre os tipos especificados.

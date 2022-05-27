@@ -1,0 +1,8 @@
+str: texto = "Hello world"
+
+# tamanho
+escrevaln(tam(str))
+escrevaln(str[tam(str) - 1])
+
+
+#[output]: 11 d
