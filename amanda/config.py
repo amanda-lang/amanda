@@ -22,3 +22,4 @@ else:
     BUNDLE_ROOT = sys._MEIPASS
     # Path to vm project
     LIB_AMA = path.join(BUNDLE_ROOT, "deps/libamanda.so")
+    STD_LIB = path.join(BUNDLE_ROOT, "std")

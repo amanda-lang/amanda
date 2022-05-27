@@ -12,7 +12,6 @@ from amanda.compiler.compile import Generator
 from amanda.compiler.semantic import Analyzer
 from amanda.compiler.codegen import ByteGen
 from amanda.libamanda import run_module
-from amanda.config import VM_CONFIG
 
 
 def write_file(name, code):
