@@ -29,7 +29,7 @@ def main():
             "--console",
             "--clean",
             "--noconfirm",
-            # Standard lib
+            # Builtin modules
             f"--add-data=./std/embutidos.ama{path_sep}./std/",
             # VM dynamic lib
             f"--add-data={LIB_AMA}{path_sep}./deps/",
