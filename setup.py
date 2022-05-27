@@ -24,7 +24,7 @@ def main():
             [sys.executable, "-m", "utils.build", "--release"], check=True
         )
     except Exception as e:
-        print("Error during build tests: ")
+        print("Error during setup: ")
         print(e.output)
         sys.exit(1)
     path_sep = os.pathsep
