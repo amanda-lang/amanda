@@ -15,11 +15,11 @@ def main():
     bin_name = "amanda"
     script = path.abspath(path.join("./amanda", "__main__.py"))
     build_dir = "./dist"
-    os.environ["PYINST_BUILD"] = "1"
     try:
         # Run tests
         subprocess.run([sys.executable, "-m", "tests.test"], check=True)
         # Compile VM
+        os.environ["PYINST_BUILD"] = "1"
         subprocess.run(
             [sys.executable, "-m", "utils.build", "--release"], check=True
         )

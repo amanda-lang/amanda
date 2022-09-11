@@ -136,6 +136,9 @@ def run_suite(test_cases):
 
 
 if __name__ == "__main__":
+    # Used to make sure that the interpreter's stdio uses utf-8 on windows
+    if sys.platform == "win32":
+        os.environ["PYTHONIOENCODING"] = "utf-8"
     # Compile libamanda
     subprocess.call([sys.executable, "-m", "utils.build"])
     # Run end-to-end tests

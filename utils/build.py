@@ -32,7 +32,7 @@ def main():
         stderr=subprocess.DEVNULL,
     )
     if return_code != 0:
-        subprocess.call(["cargo", "check", "--manifest-path", VM_CONFIG_PATH])
+        subprocess.call(["cargo", "check", "--manifest-path", VM_CONFIG])
         sys.exit(1)
 
 
