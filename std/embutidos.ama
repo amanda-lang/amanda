@@ -26,3 +26,16 @@ func nativa remova(vec: indef, indice: int): indef
 
 # Funções para trabalhar com texto
 func nativa txt_contem(palheiro: texto, agulha: texto): bool
+
+#Funções matemáticas
+func nativa abs(valor: real): real
+func nativa expoente(x: real, y: real): real
+func nativa raiz(valor: real): real
+func nativa arredonda(valor: real): int
+func nativa piso(valor: real): real
+func nativa teto(valor: real): real
+func nativa log(valor: real): real
+func nativa log10(valor: real): real
+func nativa sin(valor: real): real
+func nativa cos(valor: real): real
+
