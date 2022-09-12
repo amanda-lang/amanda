@@ -246,6 +246,10 @@ class Lexer:
             self.comment()
         if self.current_char != "\n" and self.current_char.isspace():
             self.whitespace()
+        if self.current_char == "\n" and self.lookahead() == "":
+            # EOF
+            self.advance()
+            return Token(Lexer.EOF, "", line=self.line, col=self.pos)
         if self.current_char == "\n":
             return self.newline()
         if self.current_char in ("+", "-", "*", "/", "%"):
@@ -973,11 +977,13 @@ class Parser:
         self.skip_newlines()
         if not self.match(TT.RPAR):
             args.append(self.equality())
-        while not self.match(TT.RPAR):
+        self.skip_newlines()
+        while self.match(TT.COMMA):
             self.consume(TT.COMMA, skip_newlines=True)
             self.skip_newlines()
             args.append(self.equality())
             self.skip_newlines()
+        self.skip_newlines()
         return args
 
     def mult_operator(self):
