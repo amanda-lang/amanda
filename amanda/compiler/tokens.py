@@ -5,51 +5,53 @@ from typing import Dict
 
 
 class TokenType(Enum):
+    # Special eof token
+    EOF = "_EOF_"
     # Enum used to represents all the different
     # tokens in the amanda grammar
 
     # ARIT OPERATORS
-    PLUS = "PLUS"
-    MINUS = "MINUS"
-    STAR = "STAR"
-    SLASH = "SLASH"
-    DOUBLESLASH = "DOUBLESLASH"
-    MODULO = "MODULO"
-    PLUSEQ = "PLUSEQ"
-    MINUSEQ = "MINUSEQ"
-    STAREQ = "STAREQ"
-    SLASHEQ = "SLASHEQ"
+    PLUS = "+"
+    MINUS = "-"
+    STAR = "*"
+    SLASH = "/"
+    DOUBLESLASH = "//"
+    MODULO = "%"
+    PLUSEQ = "+="
+    MINUSEQ = "-="
+    STAREQ = "*="
+    SLASHEQ = "/="
 
     # LITERALS
-    INTEGER = "INTEGER"
-    REAL = "REAL"
-    STRING = "STRING"
-    FORMAT_STR = "FORMAT_STR"
-    IDENTIFIER = "IDENTIFIER"
+    INTEGER = "inteiro"
+    REAL = "real"
+    STRING = "cadeia"
+    FORMAT_STR = "cadeia formatada"
+    IDENTIFIER = "identificador"
 
     # GENERAL P
-    LPAR = "LPAR"
-    RPAR = "RPAR"
-    DOT = "DOT"
-    DDOT = "DDOT"
-    SEMI = "SEMI"
-    COMMA = "COMMA"
-    LBRACE = "LBRACE"
-    RBRACE = "RBRACE"
-    LBRACKET = "LBRACKET"
-    RBRACKET = "RBRACKET"
-    COLON = "COLON"
-    DOUBLECOLON = "DOUBLECOLON"
-    NEWLINE = "NEWLINE"
+    LPAR = "("
+    RPAR = ")"
+    DOT = "."
+    DDOT = ".."
+    SEMI = ";"
+    COMMA = ","
+    LBRACE = "{"
+    RBRACE = "}"
+    LBRACKET = "["
+    RBRACKET = "]"
+    COLON = ":"
+    DOUBLECOLON = "::"
+    NEWLINE = "\\n"
 
     # LOGIC OP
-    LESS = "LESS"
-    GREATER = "GREATER"
-    LESSEQ = "LESSEQ"
-    GREATEREQ = "GREATEREQ"
-    NOTEQUAL = "NOTEQUAL"
-    EQUAL = "EQUAL"
-    DOUBLEEQUAL = "DOUBLEEQUAL"
+    LESS = "<"
+    GREATER = ">"
+    LESSEQ = "<="
+    GREATEREQ = ">="
+    NOTEQUAL = "!="
+    EQUAL = "="
+    DOUBLEEQUAL = "=="
 
     # KEYWORDS
     MOSTRA = "MOSTRA"
