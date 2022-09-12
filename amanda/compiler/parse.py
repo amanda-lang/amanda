@@ -249,7 +249,7 @@ class Lexer:
         if self.current_char == "\n" and self.lookahead() == "":
             # EOF
             self.advance()
-            return Token(Lexer.EOF, "", line=self.line, col=self.pos)
+            return Token(Lexer.EOF, "", line=self.line, col=self.pos - 1)
         if self.current_char == "\n":
             return self.newline()
         if self.current_char in ("+", "-", "*", "/", "%"):
