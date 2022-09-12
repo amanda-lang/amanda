@@ -1,0 +1,242 @@
+
+**Amanda**
+
+** keywords **
+
+var
+verdadeiro
+falso
+retorna
+caso
+se
+senao
+senaose
+ESCOLHA: escolha
+entao
+enquanto
+para
+faca
+de
+continua
+quebra
+func
+inc
+fim
+classe
+vazio
+
+** Lexical grammar **
+
+DIGITO
+    : "0" | ... | "9" 
+    ; 
+
+ALPHA
+    : "A" | ... | "Z" 
+    | "a" | ... | "z" 
+    | "_"
+    ;
+
+
+ALPHANUM
+    : DIGITO 
+    | ALPHA
+    ;
+
+INTEIRO
+    : DIGITO+
+    ;
+
+REAL
+    : DIGITO+ "." DIGITO+
+    ;
+
+IDENTFICADOR
+    :  ALPHA ALPHANUM*
+    ;
+
+STRING
+    : '"' @'"' '"'
+    | ''' @''' '''
+    ;
+
+STRING_F
+    : "f" STRING
+    ;
+
+LOGICO
+    : verdadeiro
+    | falso
+    ;
+
+NOVA_LINHA
+    : "\n"
+    ;
+
+PONTO_VIRG
+    : ";"
+    ;
+
+COMMENT:
+  : '#' @ '\n'
+  ; 
+
+** syntax grammar **
+
+programa
+ : ( declaracao | NOVA_LINHA )* 
+ ;
+
+declaracao
+  : decl_funcao
+  | decl_variavel
+  | instrucao
+  ;
+
+
+decl_variavel
+  : "var" IDENTFICADOR ":" tipo "=" igualdade fim_instr
+  ;
+
+fim_instr
+  : PONTO_VIRG 
+  | NOVA_LINHA
+  ;
+
+decl_funcao
+  : "func" IDENTFICADOR "(" parametro* ")" ":" tipo bloco_funcao "fim"
+  ;
+
+parametro
+  : IDENTIFICADOR ":" tipo
+  ;
+
+bloco_funcao
+  : ( declaracao | instr_retorna |  NOVA_LINHA )*
+  ;
+
+
+instr_retorna
+  : RETORNA igualdade? fim_instr
+  ;
+
+
+instrucao
+  : instr_escolha
+  | instr_se
+  | instr_enquanto
+  | instr_para
+  | expressao
+  ;
+
+tipo
+  :  IDENTFICADOR
+  | "[" tipo "]"
+  ;
+
+instr_escolha
+  : "escolha" igualdade ":" 
+        ("caso" igualdade ":" bloco)* 
+        ("senao" igualdade COLON bloco)?
+    "fim" 
+  ;
+
+instr_se
+  : "se" igualdade "entao" bloco ("senaose" igualdade "entao" bloco)* ("senao" bloco)? "fim"
+  ;
+
+bloco
+  : ( declaracao |  NOVA_LINHA )*
+  ;
+
+instr_enquanto
+  : "enquanto" igualdade "faca" bloco_ciclo "fim"
+  ;
+
+instr_para
+  : "para" para_expr "faca" bloco_ciclo "fim"
+  ;
+
+para_expr
+  : IDENTIFICADOR "de" igualdade ".." igualdade ("inc" igualdade)?
+  ;
+
+bloco_ciclo
+  : ( declaracao | instr_quebra | instr_continua |  NOVA_LINHA )*
+  ;
+
+instr_quebra
+  : "quebra" fim_instr
+  ;
+
+instr_continua
+  : "continua" fim_instr
+  ;
+
+comp_op
+  : GREATER
+  | LESSEQ
+  | GREATEREQ
+  | LESSEQ
+
+expressao
+  : atrib_comp
+  ;
+
+
+atrib_comp
+  : atribuicao (("+=" | "-=" | "/=" | "*=") igualdade)?
+  ;
+
+atribuicao
+  : igualdade ("=" igualdade)*
+  ;
+
+igualdade
+  : comparacao (("!=" | "==") comparacao)*
+  ;
+
+comparacao
+  : adicao ((">=" | ">" | "<" | "<=") adicao)*
+  ;
+
+adicao
+  : multiplicacao (("+" | "-" | "ou") multiplicacao)*
+  ;
+
+multiplicacao
+  : conversao (("*" | "/" | "//" | "%" | "e") conversao)*
+  ;
+
+conversao
+  : unario_prefixo ("::" tipo)*
+  ;
+
+unario_prefixo
+  : ("+" | "-" | "nao") unario_prefixo
+  | unario_posfixo
+  ;
+
+unario_posfixo
+   : atomo ("(" args? ")" | indice | "." IDENTIFICADOR)* 
+   ;
+
+atomo
+  : INTEIRO 
+  | REAL
+  | STRING
+  | STRING_F
+  | "verdadeiro"
+  | "falso"
+  | "(" igualdade ")"
+  | "[" tipo ":" argumentos? "]"
+  | IDENTIFICADOR 
+  ;
+
+args
+  : igualdade ("," igualdade)*
+  ;
+
+indice
+  : "[" igualdade "]"
+  ;

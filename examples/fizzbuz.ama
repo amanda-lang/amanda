@@ -1,0 +1,11 @@
+para i de 1..100 faca
+    se (i % 3 == 0) e (i % 5 == 0) entao
+        escrevaln("FizzBuzz")
+    senaose i % 3 == 0 entao
+        escrevaln("Fizz")
+    senaose i % 5 == 0 entao
+        escrevaln("Buzz")
+    senao
+        escrevaln(i)
+    fim
+fim
