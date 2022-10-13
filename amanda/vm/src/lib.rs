@@ -26,8 +26,8 @@ pub extern "C" fn run_module(bin_module: *mut u8, size: u32) -> u8 {
     let mut vm = AmaVM::new(&mut ama_module, alloc);
     if let Err(err) = vm.run() {
         eprint!("{}", err);
-        OK
-    } else {
         ERR
+    } else {
+        OK
     }
 }
