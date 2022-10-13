@@ -1,0 +1,22 @@
+escrevaln(arredonda(expoente(9, 2)))
+escrevaln(abs(-9))
+escrevaln(abs(9))
+escrevaln(raizqd(4))
+escrevaln(arredonda(4.5))
+escrevaln(arredonda(5.1))
+escrevaln(arredonda(6.8))
+escrevaln(piso(6.8))
+escrevaln(teto(6.2))
+escrevaln(log(10, 10))
+
+#Test conversion
+err: real = 0.00000000001
+
+rads: real = grausprad(180)
+dif_abs: real = abs(rads - PI)
+escrevaln(dif_abs < err)
+
+graus: real = radpgraus(PI)
+dif_abs= abs(graus - 180.0)
+escrevaln(dif_abs < err)
+#[output]:81 9.0 9.0 2.0 5 5 7 6 7 1.0 verdadeiro verdadeiro
