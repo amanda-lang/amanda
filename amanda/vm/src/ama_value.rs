@@ -16,12 +16,19 @@ enum BinOpResult {
 }
 
 macro_rules! arith_ops {
-    ($res_type: ident, $left: ident, $op: tt, $right: ident) => {
-        Ok(match $res_type {
-            BinOpResult::Double => AmaValue::F64($left.take_float() $op $right.take_float()),
-            BinOpResult::Int => AmaValue::Int($left.take_int() $op $right.take_int()),
+    ($res_type: ident, $left: ident, $op:tt, $op_fn: ident, $right: ident) => {
+        match $res_type {
+            BinOpResult::Double => Ok(AmaValue::F64($left.take_float() $op $right.take_float())),
+            BinOpResult::Int => {
+                    let result = $left.take_int().$op_fn($right.take_int());
+                    if let Some(int) = result {
+                        Ok(AmaValue::Int(int))
+                    } else {
+                        Err("Erro ao realizar operação aritmética. Resultado fora do intervalo de inteiros representáveis")
+                    }
+                }
             _ => unimplemented!("Operand type not supported"),
-        })
+        }
     };
 }
 
@@ -221,10 +228,16 @@ impl<'a> AmaValue<'a> {
             unimplemented!("Error is not implemented")
         };
         match op {
-            OpCode::OpAdd => arith_ops!(res_type, left, +, right),
-            OpCode::OpMinus => arith_ops!(res_type, left, -, right),
-            OpCode::OpMul => arith_ops!(res_type, left, *, right),
-            OpCode::OpModulo => arith_ops!(res_type, left, %, right),
+            OpCode::OpAdd => arith_ops!(res_type, left, +, checked_add, right),
+            OpCode::OpMinus => arith_ops!(res_type, left, -, checked_sub, right),
+            OpCode::OpMul => arith_ops!(res_type, left, *, checked_mul, right),
+            OpCode::OpModulo => {
+                if right.take_float() == 0.0 {
+                    Err("não pode calcular o resto da divisão de um número por zero")
+                } else {
+                    arith_ops!(res_type, left, %, checked_rem, right)
+                }
+            }
             OpCode::OpDiv => {
                 if right.take_float() == 0.0 {
                     Err("não pode dividir um número por zero")
@@ -236,7 +249,8 @@ impl<'a> AmaValue<'a> {
                 if right.take_int() == 0 {
                     Err("não pode dividir um número por zero")
                 } else {
-                    Ok(AmaValue::Int(left.take_int() / right.take_int()))
+                    let res_type = BinOpResult::Int;
+                    arith_ops!(res_type, left, /, checked_div, right)
                 }
             }
             OpCode::OpAnd => Ok(AmaValue::Bool(left.take_bool() && right.take_bool())),

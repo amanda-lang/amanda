@@ -10,6 +10,8 @@ from amanda.compiler.error import AmandaError
 from amanda.compiler.builtinfn import BUILTINS, BuiltinFn
 from amanda.config import STD_LIB
 
+MAX_AMA_INT = 2**63 - 1
+
 
 class Analyzer(ast.Visitor):
 
@@ -285,7 +287,7 @@ class Analyzer(ast.Visitor):
             self.error(self.ID_IN_USE, name=name)
 
         # Check that func is within max param number
-        if len(node.params) > (2 ** 8) - 1:
+        if len(node.params) > (2**8) - 1:
             self.error(f"As funções só podem ter até 255 parâmetros")
 
         function_type = self.get_type(node.func_type)
@@ -404,11 +406,16 @@ class Analyzer(ast.Visitor):
                 )
 
     # TODO: Rename this to literal
-    def visit_constant(self, node):
+    def visit_constant(self, node: ast.Constant):
         constant = node.token.token
         scope = self.ctx_scope
         if constant == TT.INTEGER:
             node.eval_type = scope.resolve("int")
+            int_value = int(node.token.lexeme)
+            if int_value > MAX_AMA_INT:
+                self.error(
+                    f"Número inteiro demasiado grande. Só pode usar números inteiros iguais ou menores que '{MAX_AMA_INT}'"
+                )
         elif constant == TT.REAL:
             node.eval_type = scope.resolve("real")
         elif constant == TT.STRING:
