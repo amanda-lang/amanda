@@ -1,11 +1,12 @@
 import copy
 import keyword
 from os import path
+from typing import Optional, List, cast
 from amanda.compiler.parse import parse
 from amanda.compiler.tokens import TokenType as TT, Token
 import amanda.compiler.ast as ast
 import amanda.compiler.symbols as symbols
-from amanda.compiler.type import builtin_types, Kind, Type, Vector, Klass
+from amanda.compiler.type import builtin_types, Kind, Type, Vector, Registo
 from amanda.compiler.error import AmandaError
 from amanda.compiler.builtinfn import BUILTINS, BuiltinFn
 from amanda.config import STD_LIB
@@ -26,8 +27,8 @@ class Analyzer(ast.Visitor):
         self.global_scope = symbols.Scope()
         self.scope_depth = 0
         self.ctx_scope = self.global_scope
-        self.ctx_node = None
-        self.ctx_class = None
+        self.ctx_node: Optional[ast.ASTNode] = None
+        self.ctx_reg = None
         self.ctx_func = None
         self.in_loop = False
         self.imports = {}
@@ -42,6 +43,7 @@ class Analyzer(ast.Visitor):
         module = symbols.Module(path.join(STD_LIB, "embutidos.ama"))
         self.load_module(module)
 
+    # Helper methods
     def has_return(self, node):
         """Method that checks if function non void
         function has return statement"""
@@ -126,9 +128,20 @@ class Analyzer(ast.Visitor):
         elif type(type_node) == ast.ArrayType:
             return Vector(self.get_type(type_node.element_type))
 
-    def types_match(self, expected, received):
+    def types_match(self, expected: Type, received: Type):
         return expected == received or received.promote_to(expected)
 
+    def enter_scope(self, scope: Optional[symbols.Scope] = None):
+        self.scope_depth += 1
+        if not scope:
+            scope = symbols.Scope(self.ctx_scope)
+        self.ctx_scope = scope
+
+    def leave_scope(self):
+        self.ctx_scope = cast(symbols.Scope, self.ctx_scope).enclosing_scope
+        self.scope_depth -= 1
+
+    # Visitor methods
     def visit(self, node, args=None):
         node_class = type(node).__name__.lower()
         method_name = f"visit_{node_class}"
@@ -260,8 +273,12 @@ class Analyzer(ast.Visitor):
 
     def visit_vardecl(self, node):
         name = node.name.lexeme
-        if self.ctx_scope.get(name):
+        in_use = self.ctx_scope.get(name)
+        if in_use and not self.ctx_reg:
             self.error(self.ID_IN_USE, name=name)
+        elif in_use and self.ctx_reg:
+            self.ctx_node = node
+            self.error(f"O atributo '{name}' já foi declarado neste registo")
         var_type = self.get_type(node.var_type)
         symbol = symbols.VariableSymbol(name, var_type)
         self.define_symbol(symbol, self.scope_depth, self.ctx_scope)
@@ -318,7 +335,7 @@ class Analyzer(ast.Visitor):
 
     def define_func_scope(self, name, params):
         params_dict = {}
-        klass = self.ctx_class
+        klass = self.ctx_reg
         for param in params:
             param_name = param.name.lexeme
             if params_dict.get(param_name):
@@ -333,60 +350,39 @@ class Analyzer(ast.Visitor):
             scope.add_local(param.out_id)
         return (scope, params_dict)
 
-    def visit_classdecl(self, node):
+    def visit_registo(self, node: ast.Registo):
         name = node.name.lexeme
-        if self.ctx_scope.get(name):
+        reg_scope = symbols.Scope(self.ctx_scope)
+        if cast(symbols.Scope, self.ctx_scope).get(name):
             self.error(self.ID_IN_USE, name=name)
-        klass = Klass(name, None)
-        self.define_symbol(klass, self.scope_depth, self.ctx_scope)
-        self.ctx_scope = symbols.Scope(self.ctx_scope)
-        prev_class = self.ctx_class
-        self.ctx_class = klass
-        klass.members = self.ctx_scope.symbols
-        # Will resolve class in two loops:
-        # 1. Get all instance variables
-        # 2. Analyze all functions declarations
-        # This allows forward references inside a class
-        declarations = node.body.children
-        for declaration in declarations:
-            if type(declaration) == ast.VarDecl:
-                self.visit(declaration)
-        # Make a constructor out of the class instance variables
-        # By copying the current members dict
-        class_attrs = copy.copy(klass.members)
-        klass.constructor = symbols.FunctionSymbol(
-            klass.name, klass, class_attrs
-        )
 
-        for declaration in declarations:
-            if type(declaration) == ast.FunctionDecl:
-                self.visit(declaration)
+        registo = Registo(name, reg_scope.symbols)
+        self.ctx_reg = registo
+        self.enter_scope(reg_scope)
 
-        # Tag class fields of the class
-        for symbol in klass.members.values():
+        for field in node.fields:
+            self.visit_vardecl(field)
+
+        for symbol in cast(symbols.Scope, self.ctx_scope).symbols.values():
             symbol.is_property = True
 
-        node.body.symbols = self.ctx_scope
-        self.ctx_scope = self.ctx_scope.enclosing_scope
-        self.ctx_class = prev_class
+        self.leave_scope()
+        self.define_symbol(registo, self.scope_depth, self.ctx_scope)
+        self.ctx_reg = None
 
     def visit_eu(self, node):
-        if not self.ctx_class or not self.ctx_func:
+        if not self.ctx_reg or not self.ctx_func:
             self.error(
                 "a palavra reservada 'eu' só pode ser usada dentro de um método"
             )
-        node.eval_type = self.ctx_class
-        return symbols.VariableSymbol("eu", self.ctx_class)
+        node.eval_type = self.ctx_reg
+        return symbols.VariableSymbol("eu", self.ctx_reg)
 
     def visit_block(self, node, scope=None):
-        self.scope_depth += 1
-        if scope is None:
-            scope = symbols.Scope(self.ctx_scope)
-        self.ctx_scope = scope
+        self.enter_scope(scope)
         self.visit_children(node.children)
-        node.symbols = scope
-        self.ctx_scope = self.ctx_scope.enclosing_scope
-        self.scope_depth -= 1
+        node.symbols = self.ctx_scope
+        self.leave_scope()
 
     def visit_param(self, node):
         name = node.name.lexeme
@@ -453,43 +449,38 @@ class Analyzer(ast.Visitor):
         assert node.var_symbol
         return sym
 
-    # This function is everywhere because
-    # there needs to be a way to check for
-    # things that you can't evaluate (functions and other stuff).
-    # TODO: Find a better way to find this.
-    def validate_get(self, node, sym):
-        if isinstance(node, ast.Get) and not sym.can_evaluate():
-            self.error(self.INVALID_REF, name=sym.name)
-
     def visit_get(self, node):
         target = node.target
         self.visit(target)
-        if target.eval_type.kind != Kind.TKLASS:
+        if target.eval_type.kind != Kind.TREGISTO:
             self.error("Tipos primitivos não possuem atributos")
-        # Get the class symbol
-        # This hack is for objects that can be created via a literal
-        obj_type = target.eval_type
-        # check if member exists
-        member = node.member.lexeme
-        member_obj = obj_type.members.get(member)
-        if not member_obj:
+        ty_sym: Registo = target.eval_type
+        field = node.field.lexeme
+        field_sym = ty_sym.fields.get(field)
+        if not field_sym:
             self.error(
-                f"O objecto do tipo '{obj_type.name}' não possui o atributo {member}"
+                f"O objecto do tipo '{ty_sym.name}' não possui o atributo {field}"
             )
-        node.eval_type = member_obj.type
-        return member_obj
+        # Check if valid use of get
+        in_eval_ctx = (
+            node.child_of(ast.Expr)
+            or node.child_of(ast.Set)
+            or node.child_of(ast.Assign)
+            or node.child_of(ast.Statement)
+        )
+        if in_eval_ctx and not field_sym.can_evaluate():
+            self.error(self.INVALID_REF, name=field_sym.name)
+        node.eval_type = field_sym.type
+        return field_sym
 
     def visit_set(self, node):
         target = node.target
         expr = node.expr
         # evaluate sides
-        ts = self.visit(target)
-        es = self.visit(expr)
-        # Check both sides for get expression
-        self.validate_get(target, ts)
-        self.validate_get(expr, es)
+        self.visit(target)
+        self.visit(expr)
         expr.prom_type = expr.eval_type.promote_to(target.eval_type)
-        if target.eval_type != expr.eval_type and not expr.prom_type:
+        if not self.types_match(target.eval_type, expr.eval_type):
             self.ctx_node = node
             self.error(
                 f"atribuição inválida. incompatibilidade entre os operandos da atribuição: '{target.eval_type.name}' e '{expr.eval_type.name}'"
@@ -535,7 +526,7 @@ class Analyzer(ast.Visitor):
         if not self.types_match(index.eval_type, value.eval_type):
             self.ctx_node = node
             self.error(
-                f"atribuição inválida. incompatibilidade entre os operandos da atribuição: '{lhs.eval_type}' e '{rhs.eval_type}'"
+                f"atribuição inválida. incompatibilidade entre os operandos da atribuição: '{index.eval_type}' e '{value.eval_type}'"
             )
         node.eval_type = index.eval_type
 
@@ -553,9 +544,6 @@ class Analyzer(ast.Visitor):
         rs = self.visit(node.right)
         lhs = node.left
         rhs = node.right
-        # Validate in case of get nodes
-        self.validate_get(lhs, ls)
-        self.validate_get(rhs, rs)
         # Evaluate type of binary
         # arithmetic operation
         operator = node.token
@@ -617,7 +605,6 @@ class Analyzer(ast.Visitor):
     def visit_unaryop(self, node):
         operand = self.visit(node.operand)
         # Check if operand is a get node that can not be evaluated
-        self.validate_get(node.operand, operand)
         operator = node.token.token
         lexeme = node.token.lexeme
         op_type = node.operand.eval_type
@@ -637,7 +624,6 @@ class Analyzer(ast.Visitor):
         rs = self.visit(rhs)
         # Check rhs of assignment
         # is expression
-        self.validate_get(rhs, rs)
         self.visit(lhs)
         # Set node types
         node.eval_type = lhs.eval_type
@@ -652,8 +638,6 @@ class Analyzer(ast.Visitor):
 
     def visit_mostra(self, node):
         sym = self.visit(node.exp)
-        # Check if it is trying to reference method
-        self.validate_get(node.exp, sym)
 
     def visit_loopctlstmt(self, node):
         token = node.token
@@ -779,6 +763,10 @@ class Analyzer(ast.Visitor):
             if node.eval_type.kind != Kind.TINT:
                 self.error("os parâmetros de uma série devem ser do tipo 'int'")
 
+    def visit_namedarg(self, node: ast.NamedArg):
+        self.visit(node.arg)
+        node.eval_type = node.arg.eval_type
+
     def visit_call(self, node):
         callee = node.callee
         calle_type = type(callee)
@@ -801,8 +789,11 @@ class Analyzer(ast.Visitor):
             self.error(message)
         if sym.name in BUILTINS:
             self.builtin_call(BUILTINS[sym.name], node)
+        elif isinstance(sym, Registo):
+            self.validate_initializer(sym, node.fargs)
+            node.eval_type = sym
         else:
-            self.validate_call(sym, node.fargs)
+            self.validate_call(cast(symbols.FunctionSymbol, sym), node.fargs)
             node.eval_type = sym.type
         node.symbol = sym
         return sym
@@ -900,11 +891,16 @@ class Analyzer(ast.Visitor):
                 f"número incorrecto de argumentos para a função {name}. Esperava {param_len} argumento(s), porém recebeu {arg_len}"
             )
 
-    def validate_call(self, sym, fargs):
+    def validate_call(self, sym: symbols.FunctionSymbol, fargs: List[ast.Expr]):
         name = sym.name
         if not sym.is_callable():
             self.error(f"identificador '{name}' não é invocável")
         for arg in fargs:
+            if arg.of_type(ast.NamedArg):
+                self.ctx_node = arg
+                self.error(
+                    f"Funções e métodos não suportam argumentos nomeados"
+                )
             self.visit(arg)
         self.check_arity(fargs, name, sym.arity())
         # Type promotion for parameter
@@ -914,3 +910,36 @@ class Analyzer(ast.Visitor):
                 self.error(
                     f"argumento inválido. Esperava-se um argumento do tipo '{param.type}' mas recebeu o tipo '{arg.eval_type}'"
                 )
+
+    def validate_initializer(self, sym: Registo, fargs: List[ast.NamedArg]):
+        # Check call arity
+        if len(fargs) != len(sym.fields):
+            self.error(
+                f"número incorrecto de argumentos para o inicializador do registo '{sym.name}'. Esperava {len(sym.fields)} argumento(s), porém recebeu {len(fargs)}"
+            )
+        inited_args = set()
+        for arg in fargs:
+            self.ctx_node = arg
+            # 1. All args must be named args
+            if not arg.of_type(ast.NamedArg):
+                self.error(
+                    f"Todos os argumentos do inicializador de um registo devem ser nomeados"
+                )
+            arg_id = arg.name.lexeme
+            self.visit(arg)
+            # 2. No unknown named arg in args
+            if arg_id not in sym.fields:
+                self.error(
+                    f"O registo '{sym.name}' não possui o atributo '{arg_id}'"
+                )
+            # 3. Args cannot be duplicated
+            if arg_id in inited_args:
+                self.error(f"O atributo '{arg_id}' já foi inicializado")
+            # 4. Type of named arg must match type of the record field
+            field_ty = sym.fields[arg_id].type
+            arg.prom_type = arg.eval_type.promote_to(field_ty)
+            if not self.types_match(field_ty, arg.eval_type):
+                self.error(
+                    f"argumento nomeado inválido. incompatibilidade de tipos entre o valor do argumento nomeado '{arg_id}' e o atributo do registo. '{arg.eval_type}' incompatível com '{field_ty}'"
+                )
+            inited_args.add(arg_id)

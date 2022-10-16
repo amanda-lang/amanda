@@ -1,0 +1,12 @@
+
+
+#All field must be set in initializer
+registo Foo
+    a: int
+    b: texto
+
+fim
+
+
+a: Foo = Foo(a: 0, a: "hello")
+#[output]: Erro: O atributo 'a' já foi inicializado.

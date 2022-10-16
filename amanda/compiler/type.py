@@ -1,8 +1,8 @@
 from __future__ import annotations
-from amanda.compiler.symbols import Symbol
+from amanda.compiler.symbols import Symbol, VariableSymbol
 from enum import auto, IntEnum
 from dataclasses import dataclass
-from typing import cast, List, Tuple, Optional
+from typing import cast, List, Tuple, Dict, Optional
 
 # Describes the kind of a type
 class Kind(IntEnum):
@@ -13,8 +13,11 @@ class Kind(IntEnum):
     TINDEF = auto()
     TVAZIO = auto()
     TVEC = auto()
-    TKLASS = auto()
+    TREGISTO = auto()
     TNULO = auto()
+    # unknown is a type used as a default type value
+    # to avoid setting eval_type to null on ast nodes
+    TUNKNOWN = auto()
 
     def __str__(self) -> str:
         return self.name.lower()[1:]
@@ -70,9 +73,9 @@ class Type(Symbol):
             Kind.TTEXTO: primitives,
             Kind.TBOOL: (Kind.TTEXTO, Kind.TINDEF),
             Kind.TVEC: (Kind.TINDEF,),
-            Kind.TKLASS: (Kind.TINDEF,),
-            Kind.TNULO: (Kind.TKLASS,),
-            Kind.TINDEF: (*primitives, Kind.TKLASS, Kind.TVEC),
+            Kind.TREGISTO: (Kind.TINDEF,),
+            Kind.TNULO: (Kind.TREGISTO,),
+            Kind.TINDEF: (*primitives, Kind.TREGISTO, Kind.TVEC),
         }
         cast_types = cast_table.get(kind)
 
@@ -91,8 +94,8 @@ class Type(Symbol):
             Kind.TBOOL: (Kind.TINDEF,),
             Kind.TTEXTO: (Kind.TINDEF,),
             Kind.TVEC: (Kind.TINDEF,),
-            Kind.TKLASS: (Kind.TINDEF,),
-            Kind.TNULO: (Kind.TKLASS,),
+            Kind.TREGISTO: (Kind.TINDEF,),
+            Kind.TNULO: (Kind.TREGISTO,),
         }
         auto_cast_types = auto_cast_table.get(kind)
 
@@ -125,8 +128,13 @@ class Vector(Type):
         return self.element_type == other.element_type
 
 
-class Klass(Type):
-    pass
+class Registo(Type):
+    def __init__(self, name: str, fields: Dict[str, Symbol]):
+        self.name = name
+        self.fields = fields
+
+    def is_callable(self) -> bool:
+        return True
 
 
 builtin_types: List[Tuple[str, Type]] = [

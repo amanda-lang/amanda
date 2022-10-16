@@ -1,0 +1,11 @@
+#All field must be set in initializer
+
+registo Foo
+    a: int
+    b: texto
+
+fim
+
+
+a: Foo = Foo(a: 0, c: "0")
+#[output]: Erro: O registo 'Foo' não possui o atributo 'c'.

@@ -1,13 +1,15 @@
+from __future__ import annotations
 from amanda.compiler.tokens import Token
+import amanda.compiler.type as types
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional, Type
 
 # TODO: Rename fields of some classes
 class ASTNode:
-    def __init__(self, token):
+    def __init__(self, token: Token):
         self.token = token
-        self.parent = None
-        self.lineno = token.line
+        self.parent: Optional[ASTNode] = None
+        self.lineno: int = token.line
 
     def tag_children(self):
         for attr in self.__dict__:
@@ -17,6 +19,13 @@ class ASTNode:
 
     def is_assignable(self):
         return False
+
+    def child_of(self, ty: type) -> bool:
+        assert self.parent, "parent should not be none"
+        return isinstance(self.parent, ty)
+
+    def of_type(self, ty: type) -> bool:
+        return isinstance(self, ty)
 
 
 class Program:
@@ -41,10 +50,10 @@ class Block(Program):
 
 
 class Expr(ASTNode):
-    def __init__(self, token=None):
+    def __init__(self, token: Token):
         super().__init__(token)
-        self.eval_type = None
-        self.prom_type = None
+        self.eval_type = types.Type(types.Kind.TUNKNOWN)
+        self.prom_type = types.Type(types.Kind.TUNKNOWN)
 
     def __str__(self):
         return f"{self.token.lexeme}"
@@ -223,7 +232,7 @@ class RangeExpr(ASTNode):
 
 class Call(Expr):
     def __init__(self, callee=None, paren=None, fargs=[]):
-        super().__init__(paren)
+        super().__init__(callee.token)
         self.callee = callee
         self.fargs = fargs
         self.tag_children()
