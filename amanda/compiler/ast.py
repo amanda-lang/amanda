@@ -1,4 +1,6 @@
+from amanda.compiler.tokens import Token
 from dataclasses import dataclass
+from typing import List
 
 # TODO: Rename fields of some classes
 class ASTNode:
@@ -86,12 +88,7 @@ class Lista(Expr):
         self.tag_children()
 
 
-class Eu(Expr):
-    def __init__(self, token):
-        super().__init__(token)
-
-
-class Super(Expr):
+class Reg(Expr):
     def __init__(self, token):
         super().__init__(token)
 
@@ -292,12 +289,11 @@ class FunctionDecl(ASTNode):
         self.tag_children()
 
 
-class ClassDecl(ASTNode):
-    def __init__(self, name=None, superclass=None, body=None):
+class Registo(ASTNode):
+    def __init__(self, *, name: Token, fields: List[VarDecl]):
         super().__init__(name)
         self.name = name
-        self.superclass = superclass
-        self.body = body
+        self.fields = fields
         self.tag_children()
 
 

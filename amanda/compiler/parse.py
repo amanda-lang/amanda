@@ -1,6 +1,7 @@
 import os
 import copy
 from io import StringIO
+from typing import List, Union
 from amanda.compiler.tokens import TokenType as TT
 from amanda.compiler.tokens import Token
 from amanda.compiler.tokens import KEYWORDS as TK_KEYWORDS
@@ -239,7 +240,7 @@ class Lexer:
         str_lit = self.string()
         return Token(TT.FORMAT_STR, str_lit.lexeme, str_lit.line, str_lit.col)
 
-    def get_token(self):
+    def get_token(self) -> Token:
         if self.current_char is None:
             self.advance()
         if self.current_char == "#":
@@ -296,9 +297,9 @@ class Parser:
         self.lexer = Lexer(filename, io_object)
         self.delimited = False
         self.filename = filename
-        self.lookahead = self.lexer.get_token()
+        self.lookahead: Token = self.lexer.get_token()
 
-    def consume(self, expected, error=None, skip_newlines=False) -> Token:
+    def consume(self, expected: TT, error=None, skip_newlines=False) -> Token:
         if skip_newlines or self.delimited:
             self.skip_newlines()
         if self.match(expected):
@@ -387,8 +388,8 @@ class Parser:
     def declaration(self):
         if self.match(TT.FUNC):
             return self.function_decl()
-        elif self.match(TT.CLASSE):
-            return self.class_decl()
+        elif self.match(TT.REGISTO):
+            return self.registo_decl()
         else:
             return self.statement()
 
@@ -451,42 +452,38 @@ class Parser:
         function.block = self.block()
         self.consume(
             TT.FIM,
-            "O corpo de um função deve ser terminado com a directiva 'fim'",
+            "O corpo de uma função deve ser terminado com a directiva 'fim'",
         )
         return function
 
-    def class_decl(self):
-        self.consume(TT.CLASSE)
+    def registo_decl(self):
+        self.consume(TT.REGISTO)
         name = self.consume(TT.IDENTIFIER)
-        body = self.class_body()
+        fields = self.registo_body()
         self.consume(
-            TT.FIM, "O corpo de uma classe deve ser terminado com o símbolo fim"
+            TT.FIM, "O corpo de um registo deve ser terminado com o símbolo fim"
         )
-        return ast.ClassDecl(name=name, body=body)
+        return ast.Registo(name=name, fields=fields)
 
-    def class_body(self):
-        body = ast.ClassBody()
-        while not self.match(TT.FIM):
+    def registo_body(self) -> List[ast.VarDecl]:
+        fields = []
+        while not self.match(TT.FIM) and not self.match(TT.EOF):
+            if not self.match(TT.NEWLINE) and not self.match(TT.IDENTIFIER):
+                self.error(
+                    f"O corpo de um registo deve conter apenas as declarações dos campos do registo"
+                )
             if self.match(TT.NEWLINE):
                 self.skip_newlines()
-            else:
-                member = self.declaration()
-                member_type = type(member)
-                if (
-                    member_type != ast.FunctionDecl
-                    and member_type != ast.VarDecl
-                ):
-                    self.error(
-                        "directiva inválida para o corpo de uma classe",
-                        member.lineno,
-                    )
-                if member_type == ast.VarDecl and member.assign is not None:
-                    self.error(
-                        "Não pode inicializar os campos de um classe",
-                        member.lineno,
-                    )
-                body.add_child(member)
-        return body
+                continue
+            name = self.consume(TT.IDENTIFIER)
+            if self.match(TT.COLON):
+                field = self.simple_decl(name)
+                fields.append(field)
+            elif self.match(TT.COMMA):
+                new_fields = self.multi_decl(name)
+                fields += new_fields
+            self.end_stmt()
+        return fields
 
     def formal_params(self):
         params = []
@@ -652,13 +649,13 @@ class Parser:
             )
         return assign
 
-    def simple_decl(self, name):
+    def simple_decl(self, name) -> ast.VarDecl:
         token = self.consume(TT.COLON)
         var_type = self.type()
         assign = self.get_decl_assign(name)
         return ast.VarDecl(token, name=name, var_type=var_type, assign=assign)
 
-    def multi_decl(self, name):
+    def multi_decl(self, name) -> List[ast.VarDecl]:
         names = []
         names.append(name)
         while self.match(TT.COMMA):
@@ -962,9 +959,9 @@ class Parser:
             self.consume(TT.LPAR)
             expr = self.equality()
             self.consume(TT.RPAR)
-        elif self.match(TT.EU):
-            expr = ast.Eu(self.lookahead)
-            self.consume(TT.EU)
+        elif self.match(TT.REG):
+            expr = ast.Reg(self.lookahead)
+            self.consume(TT.REG)
         else:
             self.error(
                 f"início inválido de expressão: '{self.lookahead.lexeme}'"
