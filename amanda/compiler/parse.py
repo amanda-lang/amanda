@@ -990,7 +990,6 @@ class Parser:
         return args
 
     def named_arg(self, arg_name: Token) -> ast.NamedArg:
-        print(arg_name)
         self.consume(TT.COLON)
         return ast.NamedArg(name=arg_name, arg=self.equality())
 
