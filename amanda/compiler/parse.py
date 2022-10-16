@@ -740,7 +740,7 @@ class Parser:
                 expr = ast.Assign(token, left=expr, right=self.assignment())
         return expr
 
-    def equality(self):
+    def equality(self) -> ast.Expr:
         node = self.comparison()
         while self.lookahead.token in (TT.DOUBLEEQUAL, TT.NOTEQUAL):
             op = self.eq_operator()
@@ -973,15 +973,26 @@ class Parser:
         args = []
         self.skip_newlines()
         if not self.match(TT.RPAR):
-            args.append(self.equality())
+            arg = self.equality()
+            if type(arg) == ast.Variable and self.match(TT.COLON):
+                arg = self.named_arg(arg.token)
+            args.append(arg)
         self.skip_newlines()
         while self.match(TT.COMMA):
             self.consume(TT.COMMA, skip_newlines=True)
             self.skip_newlines()
-            args.append(self.equality())
+            arg = self.equality()
+            if type(arg) == ast.Variable and self.match(TT.COLON):
+                arg = self.named_arg(arg.token)
+            args.append(arg)
             self.skip_newlines()
         self.skip_newlines()
         return args
+
+    def named_arg(self, arg_name: Token) -> ast.NamedArg:
+        print(arg_name)
+        self.consume(TT.COLON)
+        return ast.NamedArg(name=arg_name, arg=self.equality())
 
     def mult_operator(self):
         if self.match(TT.E):

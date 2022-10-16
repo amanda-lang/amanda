@@ -237,6 +237,13 @@ class ListLiteral(Expr):
         self.tag_children()
 
 
+class NamedArg(Expr):
+    def __init__(self, *, name: Token, arg: Expr):
+        super().__init__(name)
+        self.name = name
+        self.arg = arg
+
+
 class Get(Expr):
     def __init__(self, target=None, member=None):
         super().__init__(member)

@@ -194,7 +194,11 @@ primary
   ;
 
 args
-  : equality (COMMA equality)*
+  : (named_parameter | equality) (COMMA (named_parameter | equality))*
+  ;
+
+named_parameter
+  : IDENTIFIER COLON equality
   ;
 
 index
