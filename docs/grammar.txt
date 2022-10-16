@@ -7,18 +7,24 @@ usa_stmt
  ;
 
 declaration
-  | class_declaration
+  | registo_declaration
   | function_declaration
   | stmt
   ;
 
 
-class_declaration
-  : CLASSE IDENTIFIER ( < IDENTIFIER )? class_body FIM
+registo_declaration
+  : REGISTO IDENTIFIER reg_body FIM
   ;
 
-class_body
-  : ( var_declaration | function_declaration | NEWLINE )*
+reg_body
+  : field_declaration*
+  ;
+
+field_declaration
+  : IDENTIFIER COLON type end_stmt
+  | NEWLINE
+  ;
 
 
 type
@@ -184,6 +190,7 @@ primary
   | IDENTIFIER 
   | EU
   | NULO
+  | reg
   ;
 
 args

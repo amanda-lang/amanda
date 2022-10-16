@@ -53,6 +53,8 @@ NULO : nulo
 EU : eu
 USA : usa
 COMO: como
+REG: reg
+REGISTO: registo
 NATIVA: nativa
 
 *OPERANDS*
