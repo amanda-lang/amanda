@@ -118,7 +118,9 @@ class UnaryOp(Expr):
 
 
 class VarDecl(ASTNode):
-    def __init__(self, token, name=None, var_type=None, assign=None):
+    def __init__(
+        self, token: Token, *, name: Token, var_type=None, assign=None
+    ):
         super().__init__(token)
         self.var_type = var_type
         self.assign = assign
@@ -259,7 +261,7 @@ class NamedArg(Expr):
 
 
 class Get(Expr):
-    def __init__(self, target=None, member=None):
+    def __init__(self, *, target: ASTNode, member: Token):
         super().__init__(member)
         self.target = target
         self.member = member
