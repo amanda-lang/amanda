@@ -1,25 +1,20 @@
-use crate::alloc::{Alloc, Ref};
+use crate::alloc::Ref;
 use crate::errors::AmaErr;
 use crate::opcode::OpCode;
+use crate::values::amatype::Type;
+use crate::values::function::{AmaFunc, NativeFunc};
+use crate::values::registo::{RegObj, Registo};
 use std::borrow::Cow;
 use std::convert::From;
 use std::fmt;
 use std::fmt::Debug;
 use std::fmt::{Display, Formatter, Write};
 
-#[derive(Clone, Copy)]
-enum BinOpResult {
-    Int,
-    Double,
-    Bool,
-    Str,
-}
-
 macro_rules! arith_ops {
     ($res_type: ident, $left: ident, $op:tt, $op_fn: ident, $right: ident) => {
         match $res_type {
-            BinOpResult::Double => Ok(AmaValue::F64($left.take_float() $op $right.take_float())),
-            BinOpResult::Int => {
+            Type::Real => Ok(AmaValue::F64($left.take_float() $op $right.take_float())),
+            Type::Int => {
                     let result = $left.take_int().$op_fn($right.take_int());
                     if let Some(int) = result {
                         Ok(AmaValue::Int(int))
@@ -35,8 +30,8 @@ macro_rules! arith_ops {
 macro_rules! comp_ops {
     ($res_type: ident, $left: ident, $op: tt, $right: ident) => {
         Ok(match $res_type {
-            BinOpResult::Double => AmaValue::Bool($left.take_float() $op $right.take_float()),
-            BinOpResult::Int => AmaValue::Bool($left.take_int() $op $right.take_int()),
+            Type::Real => AmaValue::Bool($left.take_float() $op $right.take_float()),
+            Type::Int => AmaValue::Bool($left.take_int() $op $right.take_int()),
             _ => unimplemented!("Operand type not supported"),
         })
     };
@@ -45,47 +40,13 @@ macro_rules! comp_ops {
 macro_rules! eq_ops {
     ($res_type: ident, $left: ident, $op: tt, $right: ident) => {
         Ok(match $res_type {
-            BinOpResult::Int => AmaValue::Bool($left.take_int() $op $right.take_int()),
-            BinOpResult::Double => AmaValue::Bool($left.take_float() $op $right.take_float()),
-            BinOpResult::Bool => AmaValue::Bool($left.take_bool() $op $right.take_bool()),
-            BinOpResult::Str => AmaValue::Bool($left.take_str() $op $right.take_str()),
+            Type::Int => AmaValue::Bool($left.take_int() $op $right.take_int()),
+            Type::Real => AmaValue::Bool($left.take_float() $op $right.take_float()),
+            Type::Bool => AmaValue::Bool($left.take_bool() $op $right.take_bool()),
+            Type::Texto => AmaValue::Bool($left.take_str() $op $right.take_str()),
+            _ => unimplemented!("Operand type not supported"),
         })
     };
-}
-
-pub type FuncArgs<'a, 'args> = &'args [Ref<'a>];
-
-#[derive(Clone, Copy)]
-pub struct NativeFunc<'a> {
-    pub name: &'a str,
-    pub func: fn(FuncArgs<'a, '_>, &mut Alloc<'a>) -> Result<Ref<'a>, AmaErr>,
-}
-
-impl<'a> Debug for NativeFunc<'a> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "NativeFunc").unwrap();
-        Ok(())
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct AmaFunc<'a> {
-    pub name: &'a str,
-    pub start_ip: usize,
-    pub ip: usize,
-    pub last_i: usize,
-    pub bp: isize,
-    pub locals: usize,
-}
-
-/*Primitive Types*/
-#[derive(Debug, Copy, Clone)]
-pub enum Type {
-    Int,
-    Real,
-    Texto,
-    Bool,
-    Vector,
 }
 
 #[derive(Debug)]
@@ -101,6 +62,8 @@ pub enum AmaValue<'a> {
     Vector(Vec<Ref<'a>>),
     //TODO: Change this into a Box<str>,
     Str(Cow<'a, String>),
+    Registo(Registo<'a>),
+    RegObj(RegObj<'a>),
 }
 
 impl<'a> AmaValue<'a> {
@@ -217,13 +180,13 @@ impl<'a> AmaValue<'a> {
 
     pub fn binop(left: &Self, op: OpCode, right: &Self) -> Result<Self, &'a str> {
         let res_type = if left.is_float() || right.is_float() {
-            BinOpResult::Double
+            Type::Real
         } else if left.is_int() && right.is_int() {
-            BinOpResult::Int
+            Type::Int
         } else if left.is_bool() && right.is_bool() {
-            BinOpResult::Bool
+            Type::Bool
         } else if left.is_str() && right.is_str() {
-            BinOpResult::Str
+            Type::Texto
         } else {
             unimplemented!("Error is not implemented")
         };
@@ -249,7 +212,7 @@ impl<'a> AmaValue<'a> {
                 if right.take_int() == 0 {
                     Err("não pode dividir um número por zero")
                 } else {
-                    let res_type = BinOpResult::Int;
+                    let res_type = Type::Int;
                     arith_ops!(res_type, left, /, checked_div, right)
                 }
             }
@@ -278,6 +241,7 @@ impl Clone for AmaValue<'_> {
             AmaValue::NativeFn(func) => AmaValue::NativeFn(*func),
             AmaValue::Type(t) => AmaValue::Type(*t),
             AmaValue::Vector(vec) => AmaValue::Vector(vec.clone()),
+            _ => unimplemented!("Cannot clone value of type"),
         }
     }
 }
@@ -314,23 +278,6 @@ impl Display for AmaValue<'_> {
             _ => unimplemented!(),
         }
     }
-}
-
-impl Type {
-    pub fn name(&self) -> &str {
-        match self {
-            Type::Int => "int",
-            Type::Real => "real",
-            Type::Texto => "texto",
-            Type::Bool => "bool",
-            Type::Vector => "Vector",
-        }
-    }
-}
-
-#[inline]
-pub fn check_cast(val_t: Type, target: Type) -> bool {
-    val_t as u8 == target as u8
 }
 
 pub fn cast<'a>(value: &AmaValue, target: Type) -> Result<AmaValue<'a>, String> {
@@ -386,4 +333,9 @@ pub fn cast<'a>(value: &AmaValue, target: Type) -> Result<AmaValue<'a>, String> 
         },
         _ => unreachable!("Fraudulent cast!"),
     }
+}
+
+#[inline]
+pub fn check_cast(val_t: Type, target: Type) -> bool {
+    val_t as u8 == target as u8
 }

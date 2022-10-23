@@ -33,6 +33,7 @@ pub enum OpCode {
     Cast,
     BuildStr,
     BuildVec,
+    BuildObj,
     Halt = 255,
 }
 
@@ -70,6 +71,7 @@ impl From<&u8> for OpCode {
             OpCode::Cast,
             OpCode::BuildStr,
             OpCode::BuildVec,
+            OpCode::BuildObj,
         ];
         if *number == 0xff {
             OpCode::Halt

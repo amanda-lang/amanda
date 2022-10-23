@@ -6,6 +6,7 @@ edition = "2018"
 
 [dependencies]
 unicode-segmentation = "1.9.0"
+rustc-hash = "1.1.0"
 
 [lib]
 name = "amanda"

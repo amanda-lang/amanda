@@ -1,5 +1,6 @@
 use crate::alloc::{Alloc, Ref};
-use crate::ama_value::{AmaFunc, AmaValue};
+use crate::ama_value::AmaValue;
+use crate::values::function::AmaFunc;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::io::Cursor;

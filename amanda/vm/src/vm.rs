@@ -1,7 +1,10 @@
 use std::fmt::Write;
 use std::borrow::Cow;
 use crate::ama_value;
-use crate::ama_value::{AmaFunc, AmaValue};
+use crate::ama_value::{AmaValue};
+use crate::values::function::{AmaFunc};
+use crate::values::tabela::{Tabela};
+use crate::values::registo::{RegObj};
 use crate::binload::Module;
 use crate::builtins;
 use crate::errors::AmaErr;
@@ -10,6 +13,7 @@ use crate::opcode::OpCode;
 use unicode_segmentation::UnicodeSegmentation;
 use std::collections::HashMap;
 use std::convert::From;
+use std::iter::FromIterator;
 
 const RECURSION_LIMIT: usize = 1000;
 
@@ -354,6 +358,36 @@ impl<'a> AmaVM<'a> {
                     let elements = AmaValue::Vector(Vec::from(&self.values[start..=self.sp as usize]));
                     self.sp = start as isize - 1;
                     self.alloc_push(elements);
+                    //Drop values
+                    self.values.drain(self.sp as usize + 1..);
+                }
+                OpCode::BuildObj => {
+                    let fields_init = self.get_byte() as isize;
+                    if fields_init == 0 {
+                        let registo = *&self.values[self.sp as usize];
+                        self.alloc_push(AmaValue::RegObj(RegObj::new(
+                            registo,
+                            Tabela::default()
+                        )));
+                        self.frames.peek_mut().ip += 1;
+                        continue;
+                    }
+                    let start = (self.sp - (fields_init * 2 - 2))  as usize;
+                    let build_args = &self.values[start..=self.sp as usize];
+                    let registo = build_args[0];
+                    let init_pairs = build_args[1..].iter()
+                            .step_by(2)
+                            .zip(build_args[2..]
+                            .iter()
+                            .step_by(2))
+                            .map(|pair| (*pair.0, *pair.1));
+                    let state = Tabela::from_iter(init_pairs);
+
+                    self.alloc_push(AmaValue::RegObj(RegObj::new(
+                        registo, 
+                        state
+                    )));
+                    self.sp = start as isize - 1;
                     //Drop values
                     self.values.drain(self.sp as usize + 1..);
                 }
