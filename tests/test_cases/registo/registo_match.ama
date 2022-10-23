@@ -1,0 +1,10 @@
+registo Foo
+fim
+
+
+registo Bar
+fim
+
+
+foo: Foo = Bar()
+#[output]: Erro: atribuição inválida. incompatibilidade entre os operandos da atribuição: 'Foo' e 'Bar'.

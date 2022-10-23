@@ -1,0 +1,11 @@
+
+registo Foo
+    sender: texto
+    to: texto
+    corpo: texto
+fim
+
+
+msg: Foo = Foo(sender: "hello", to: "world", corpo: "am") 
+msg.sender = 0
+#[output]:Erro: atribuição inválida. incompatibilidade entre os operandos da atribuição: 'texto' e 'int'.
