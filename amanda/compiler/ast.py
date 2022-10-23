@@ -237,6 +237,11 @@ class Call(Expr):
         self.fargs = fargs
         self.tag_children()
 
+    def tag_children(self):
+        super().tag_children()
+        for arg in self.fargs:
+            arg.parent = self
+
 
 class ListLiteral(Expr):
     def __init__(self, token, *, list_type=None, elements=None):

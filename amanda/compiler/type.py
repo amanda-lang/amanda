@@ -130,6 +130,7 @@ class Vector(Type):
 
 class Registo(Type):
     def __init__(self, name: str, fields: Dict[str, Symbol]):
+        super().__init__(Kind.TREGISTO)
         self.name = name
         self.fields = fields
 

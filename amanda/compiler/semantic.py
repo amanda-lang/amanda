@@ -449,13 +449,13 @@ class Analyzer(ast.Visitor):
         assert node.var_symbol
         return sym
 
-    def visit_get(self, node):
+    def visit_get(self, node: ast.Get):
         target = node.target
         self.visit(target)
         if target.eval_type.kind != Kind.TREGISTO:
             self.error("Tipos primitivos não possuem atributos")
         ty_sym: Registo = target.eval_type
-        field = node.field.lexeme
+        field = node.member.lexeme
         field_sym = ty_sym.fields.get(field)
         if not field_sym:
             self.error(
@@ -618,7 +618,7 @@ class Analyzer(ast.Visitor):
                 self.error(bad_uop)
         node.eval_type = op_type
 
-    def visit_assign(self, node):
+    def visit_assign(self, node: ast.Assign):
         lhs = node.left
         rhs = node.right
         rs = self.visit(rhs)
