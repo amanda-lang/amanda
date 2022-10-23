@@ -165,6 +165,14 @@ impl<'a> AmaVM<'a> {
                     let idx = self.get_u16_arg();
                     self.op_push(self.module.constants[idx as usize]);
                 }
+                OpCode::LoadName => {
+                    let idx = self.get_u16_arg();
+                    self.alloc_push(AmaValue::Str(Cow::Borrowed(&self.module.names[idx as usize])));
+                }
+                OpCode::LoadRegisto => {
+                    let idx = self.get_u16_arg() as usize;
+                    self.alloc_push(AmaValue::Registo(&self.module.registos[idx]))
+                }
                 OpCode::Mostra => println!("{}", self.op_pop().inner()),
                 //Binary Operations
                 OpCode::OpAdd
@@ -363,8 +371,8 @@ impl<'a> AmaVM<'a> {
                 }
                 OpCode::BuildObj => {
                     let fields_init = self.get_byte() as isize;
+                    let registo = self.op_pop();
                     if fields_init == 0 {
-                        let registo = *&self.values[self.sp as usize];
                         self.alloc_push(AmaValue::RegObj(RegObj::new(
                             registo,
                             Tabela::default()
@@ -372,22 +380,21 @@ impl<'a> AmaVM<'a> {
                         self.frames.peek_mut().ip += 1;
                         continue;
                     }
-                    let start = (self.sp - (fields_init * 2 - 2))  as usize;
+                    let start = (self.sp - ((fields_init * 2) - 1))  as usize;
                     let build_args = &self.values[start..=self.sp as usize];
-                    let registo = build_args[0];
-                    let init_pairs = build_args[1..].iter()
+                    let init_pairs = build_args[0..].iter()
                             .step_by(2)
-                            .zip(build_args[2..]
+                            .zip(build_args[1..]
                             .iter()
                             .step_by(2))
                             .map(|pair| (*pair.0, *pair.1));
                     let state = Tabela::from_iter(init_pairs);
 
+                    self.sp = start as isize - 1;
                     self.alloc_push(AmaValue::RegObj(RegObj::new(
                         registo, 
                         state
                     )));
-                    self.sp = start as isize - 1;
                     //Drop values
                     self.values.drain(self.sp as usize + 1..);
                 }

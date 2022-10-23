@@ -73,7 +73,7 @@ pub enum AmaValue<'a> {
     Vector(Vec<Ref<'a>>),
     //TODO: Change this into a Box<str>,
     Str(Cow<'a, String>),
-    Registo(Registo<'a>),
+    Registo(&'a Registo<'a>),
     RegObj(RegObj<'a>),
 }
 
@@ -140,7 +140,7 @@ impl<'a> AmaValue<'a> {
         if let AmaValue::RegObj(val) = self {
             val
         } else {
-            panic!("Value is not a bool")
+            panic!("Value is not a reg_object")
         }
     }
 

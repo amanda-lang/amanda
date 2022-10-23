@@ -2,12 +2,12 @@ use crate::alloc::Ref;
 use crate::values::amatype::Type;
 use crate::values::tabela::Tabela;
 
-type RegField<'a> = (&'a str, Type);
+type RegField = String;
 
 #[derive(Debug)]
 pub struct Registo<'a> {
     pub name: &'a str,
-    pub fields: Vec<RegField<'a>>,
+    pub fields: Vec<RegField>,
 }
 
 #[derive(Debug)]
