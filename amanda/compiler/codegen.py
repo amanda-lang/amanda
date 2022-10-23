@@ -683,6 +683,19 @@ class ByteGen:
             self.gen(element)
         self.append_op(OpCode.BUILD_VEC, len(elements))
 
+    def gen_get(self, node: ast.Get):
+        self.gen(node.target)
+        self.load_name(node.member.lexeme)
+        assert node.parent, "Parent must not be none"
+        if node.child_of(ast.Set):
+            return
+        self.append_op(OpCode.GET_PROP)
+
+    def gen_set(self, node: ast.Set):
+        self.gen(node.target)
+        self.gen(node.expr)
+        self.append_op(OpCode.SET_PROP)
+
     def gen_registo(self, node: ast.Registo):
         name = node.name.lexeme
         self.get_table_index(name, self.NAME_TABLE)
@@ -694,8 +707,3 @@ class ByteGen:
         )
         self.append_op(OpCode.LOAD_REGISTO, len(self.registos) - 1)
         self.set_variable(self.scope_symtab.resolve(name))
-
-    def gen_get(self, node: ast.Get):
-        self.gen(node.target)
-        self.load_name(node.member.lexeme)
-        self.append_op(OpCode.GET_PROP)

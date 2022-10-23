@@ -294,7 +294,7 @@ class IndexSet(Expr):
 
 
 class Set(Expr):
-    def __init__(self, target=None, expr=None):
+    def __init__(self, *, target: Get, expr: Expr):
         super().__init__(expr.token)
         self.target = target
         self.expr = expr

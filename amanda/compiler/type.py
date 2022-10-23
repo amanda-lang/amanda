@@ -137,6 +137,16 @@ class Registo(Type):
     def is_callable(self) -> bool:
         return True
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Type):
+            return False
+        if not self.kind == other.kind:
+            return False
+        return self.name == cast(Registo, other).name
+
+    def __str__(self) -> str:
+        return self.name
+
 
 builtin_types: List[Tuple[str, Type]] = [
     ("int", Type(Kind.TINT)),

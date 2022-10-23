@@ -701,14 +701,14 @@ class Parser:
         if current in compound_operator:
             if not expr.is_assignable():
                 self.error(self.ILLEGAL_ASSIGN)
-            # Create separate tokens
-            token = Token(
-                None, None, line=self.lookahead.line, col=self.lookahead.col
-            )
+            # Create separate
+            line, col = self.lookahead.line, self.lookahead.col
             eq = Token(
                 TT.EQUAL, "=", line=self.lookahead.line, col=self.lookahead.col
             )
-            token.token, token.lexeme = self.compound_operator()
+            token, lexeme = self.compound_operator()
+            token = Token(token, lexeme, line=line, col=col)
+
             self.consume(current)
             if isinstance(expr, ast.Get):
                 expr = ast.Set(target=expr, expr=self.assignment())
