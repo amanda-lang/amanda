@@ -34,6 +34,8 @@ pub enum OpCode {
     BuildStr,
     BuildVec,
     BuildObj,
+    GetProp,
+    SetProp,
     Halt = 255,
 }
 
@@ -72,6 +74,8 @@ impl From<&u8> for OpCode {
             OpCode::BuildStr,
             OpCode::BuildVec,
             OpCode::BuildObj,
+            OpCode::GetProp,
+            OpCode::SetProp,
         ];
         if *number == 0xff {
             OpCode::Halt

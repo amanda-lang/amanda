@@ -24,4 +24,8 @@ impl<'a> RegObj<'a> {
     pub fn get(&self, field: Ref<'a>) -> Ref<'a> {
         *self.state.get(&field).unwrap()
     }
+
+    pub fn set(&mut self, field: Ref<'a>, value: Ref<'a>) {
+        self.state.insert(field, value);
+    }
 }

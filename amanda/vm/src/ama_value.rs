@@ -49,6 +49,17 @@ macro_rules! eq_ops {
     };
 }
 
+macro_rules! is_fn {
+    ($fn_name: ident, $to_match: path) => {
+        pub fn $fn_name(&self) -> bool {
+            if let $to_match(_) = self {
+                true
+            } else {
+                false
+            }
+        }
+    };
+}
 #[derive(Debug)]
 pub enum AmaValue<'a> {
     Int(i64),
@@ -75,14 +86,6 @@ impl<'a> AmaValue<'a> {
             AmaValue::Bool(_) => Type::Bool,
             AmaValue::Vector(_) => Type::Vector,
             _ => unimplemented!("Cannot return type for this value: {:?}", self),
-        }
-    }
-
-    pub fn is_float(&self) -> bool {
-        if let AmaValue::F64(_) = self {
-            true
-        } else {
-            false
         }
     }
 
@@ -125,37 +128,26 @@ impl<'a> AmaValue<'a> {
         }
     }
 
-    pub fn take_func(self) -> AmaFunc<'a> {
-        if let AmaValue::Func(func) = self {
-            func
+    pub fn take_regobj(&self) -> &RegObj<'a> {
+        if let AmaValue::RegObj(val) = self {
+            val
         } else {
-            panic!("Value is not a func")
+            panic!("Value is not a bool")
         }
     }
 
-    pub fn is_str(&self) -> bool {
-        if let AmaValue::Str(_) = self {
-            true
+    pub fn regobj_mut(&mut self) -> &mut RegObj<'a> {
+        if let AmaValue::RegObj(val) = self {
+            val
         } else {
-            false
+            panic!("Value is not a bool")
         }
     }
 
-    pub fn is_bool(&self) -> bool {
-        if let AmaValue::Bool(_) = self {
-            true
-        } else {
-            false
-        }
-    }
-
-    pub fn is_int(&self) -> bool {
-        if let AmaValue::Int(_) = self {
-            true
-        } else {
-            false
-        }
-    }
+    is_fn!(is_float, AmaValue::F64);
+    is_fn!(is_str, AmaValue::Str);
+    is_fn!(is_bool, AmaValue::Bool);
+    is_fn!(is_int, AmaValue::Int);
 
     pub fn vec_index_check(&self, idx: i64) -> Result<(), AmaErr> {
         if idx < 0 {

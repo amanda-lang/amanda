@@ -391,6 +391,19 @@ impl<'a> AmaVM<'a> {
                     //Drop values
                     self.values.drain(self.sp as usize + 1..);
                 }
+                OpCode::GetProp => {
+                    let field = self.op_pop();
+                    let reg_ref = self.op_pop();
+                    let reg_obj = reg_ref.inner().take_regobj();
+                    self.op_push(reg_obj.get(field));
+                }
+                OpCode::SetProp => {
+                    let new_val = self.op_pop();
+                    let field = self.op_pop();
+                    let reg_ref = self.op_pop();
+                    let reg_obj = reg_ref.inner_mut().regobj_mut();
+                    reg_obj.set(field, new_val);
+                }
                 OpCode::Cast => {
                     let arg = self.get_byte();
                     let new_type = self.op_pop().inner().take_type();
