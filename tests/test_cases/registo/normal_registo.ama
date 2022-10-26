@@ -1,0 +1,60 @@
+registo Mensagem
+    sender: texto
+    to: texto
+    corpo: texto
+fim
+
+
+msg: Mensagem = Mensagem(
+    sender: "Marco", 
+    to: "Atila", 
+    corpo: "Tá pico ya"
+)
+
+
+escrevaln(msg.sender)
+escrevaln(msg.to)
+escrevaln(msg.corpo)
+
+msg.sender = "sender"
+escrevaln(msg.sender)
+
+# Nested record
+registo WrappedMessage
+    msg: Mensagem
+fim
+
+wrap_msg: WrappedMessage = WrappedMessage(msg: msg)
+
+
+wrap_msg.msg.sender = "stacks"
+wrap_msg.msg.to = "me"
+
+escrevaln(wrap_msg.msg.sender)
+escrevaln(wrap_msg.msg.to)
+escrevaln(msg.sender)
+escrevaln(msg.to)
+
+#Test having field of type Vec
+registo Lottery
+    numbers: [int]
+fim
+
+loto : Lottery =  Lottery(numbers: [int: 9, 8])
+escrevaln(loto.numbers)
+
+#Test passing registo as function args
+func add_number(loto: Lottery)
+    anexa(loto.numbers, 8)
+fim
+
+add_number(loto)
+escrevaln(loto.numbers)
+
+#Test a vec of registos
+
+lotos: [Lottery] = [Lottery: loto, Lottery(numbers: [int: 1, 2])]
+escrevaln(lotos[0].numbers)
+escrevaln(lotos[1].numbers)
+
+#[output]: Marco Atila Tá pico ya sender stacks me stacks me [9, 8] [9, 8, 8] [9, 8, 8] [1, 2]
