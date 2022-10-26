@@ -1,4 +1,5 @@
 use crate::alloc::Ref;
+use crate::ama_value::AmaValue;
 use crate::values::amatype::Type;
 use crate::values::tabela::Tabela;
 
@@ -27,5 +28,12 @@ impl<'a> RegObj<'a> {
 
     pub fn set(&mut self, field: Ref<'a>, value: Ref<'a>) {
         self.state.insert(field, value);
+    }
+
+    pub fn reg_name(&self) -> &str {
+        match self.registo.inner() {
+            AmaValue::Registo(registo) => registo.name,
+            _ => unreachable!(),
+        }
     }
 }

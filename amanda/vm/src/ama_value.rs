@@ -267,6 +267,9 @@ impl Display for AmaValue<'_> {
                 write!(f, "{}", res)
             }
             AmaValue::None => panic!("None value should not be printed"),
+            AmaValue::RegObj(reg) => {
+                write!(f, "<Instância do tipo {}>", reg.reg_name())
+            }
             _ => unimplemented!(),
         }
     }
