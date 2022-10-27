@@ -1,0 +1,33 @@
+
+registo Mensagem
+    sender: texto
+    to: texto
+    corpo: texto
+fim
+
+
+msg: Mensagem = Mensagem(
+    sender: "Marco", 
+    to: "Atila", 
+    corpo: "Tá pico ya"
+)
+
+
+escrevaln(msg.sender)
+escrevaln(msg.to)
+escrevaln(msg.corpo)
+
+msg.sender = "sender"
+escrevaln(msg.sender)
+
+
+
+
+
+met Mensagem::enviar(alvo): int
+    escrevaln(alvo.sender)
+fim
+
+
+msg.enviar()
+#[output]: Erro: O método 'enviar' do tipo 'Mensagem' não possui a instrução 'retorna'.

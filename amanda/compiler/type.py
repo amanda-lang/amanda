@@ -47,6 +47,9 @@ class Type(Symbol):
     def is_operable(self) -> bool:
         return self.kind != Kind.TVAZIO and self.kind != Kind.TINDEF
 
+    def full_field_path(self, field: str) -> str:
+        return self.name + "::" + field
+
     def check_cast(self, other: Type) -> bool:
         # Allowed conversions:
         # int -> real, bool,real,texto,indef

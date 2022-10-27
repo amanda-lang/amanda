@@ -1,7 +1,7 @@
 import copy
 import keyword
 from os import path
-from typing import Optional, List, cast
+from typing import Optional, List, cast, Tuple
 from amanda.compiler.parse import parse
 from amanda.compiler.tokens import TokenType as TT, Token
 import amanda.compiler.ast as ast
@@ -106,14 +106,16 @@ class Analyzer(ast.Visitor):
     # use the non local stmt to get nonlocal names
     # 3. Local names are depth dependent
     # at level 2 __r10__,__r11__
-    def define_symbol(self, symbol, depth, scope):
+    def define_symbol(
+        self, symbol: symbols.Symbol, depth: int, scope: symbols.Scope
+    ):
         if not self.is_valid_name(symbol.name) or depth >= 1:
             symbol.out_id = f"_r{depth}{scope.count()}_"
         scope.define(symbol.name, symbol)
 
-    def get_type(self, type_node):
+    def get_type(self, type_node) -> Type:
         if not type_node:
-            return self.ctx_scope.resolve("vazio")
+            return cast(Type, self.ctx_scope.resolve("vazio"))
         node_t = type(type_node)
         if node_t == ast.Type or node_t == ast.Variable:
             type_id = (
@@ -124,9 +126,11 @@ class Analyzer(ast.Visitor):
             type_symbol = self.ctx_scope.resolve(type_id)
             if not type_symbol or not type_symbol.is_type():
                 self.error(f"o tipo '{type_id}' não foi declarado")
-            return type_symbol
+            return cast(Type, type_symbol)
         elif type(type_node) == ast.ArrayType:
             return Vector(self.get_type(type_node.element_type))
+        else:
+            return Type(Kind.TUNKNOWN)
 
     def types_match(self, expected: Type, received: Type):
         return expected == received or received.promote_to(expected)
@@ -293,45 +297,84 @@ class Analyzer(ast.Visitor):
         if self.scope_depth == 0:
             symbol.is_global = True
 
-    def visit_functiondecl(self, node):
-        # TODO: Will add closures to make up for lack of local functions
+    def validate_decl_in_scope(
+        self, name: str, local_function_err: str, id_in_use_err: str
+    ):
         if self.scope_depth > 0:
-            self.error(f"As funções só podem ser declaradas no escopo global")
+            self.error(local_function_err)
 
         # Check if id is already in use
-        name = node.name.lexeme
         if self.ctx_scope.get(name):
-            self.error(self.ID_IN_USE, name=name)
+            self.error(id_in_use_err, name=name)
 
+    def validate_num_params(self, node: ast.FunctionDecl):
         # Check that func is within max param number
         if len(node.params) > (2**8) - 1:
-            self.error(f"As funções só podem ter até 255 parâmetros")
+            is_method = node.of_type(ast.MethodDecl)
+            err_msg = (
+                "Os métodos só podem ter até 255 parâmetros"
+                if is_method
+                else f"As funções só podem ter até 255 parâmetros"
+            )
+            self.error(err_msg)
 
+    def make_func_symbol(
+        self, name: str, node: ast.FunctionDecl, symbol: symbols.FunctionSymbol
+    ) -> symbols.Scope:
         function_type = self.get_type(node.func_type)
-
-        # Check if non void function has return
-        symbol = symbols.FunctionSymbol(name, function_type)
+        if node.of_type(ast.MethodDecl):
+            symbol.is_property = True
         symbol.is_global = True
         self.define_symbol(symbol, self.scope_depth, self.ctx_scope)
         scope, symbol.params = self.define_func_scope(name, node.params)
+        return scope
 
-        # Native functions don't have a body, so there's nothing to visit
-        if node.is_native:
-            return
-
+    def validate_return(
+        self, node: ast.FunctionDecl, function_type: Type, no_return_err: str
+    ):
+        # Check if non void function has return
         has_return = self.has_return(node.block)
         if not has_return and function_type.kind != Kind.TVAZIO:
             self.ctx_node = node
-            self.error(f"a função '{name}' não possui a instrução 'retorna'")
+            self.error(no_return_err)
 
+    def check_function_body(
+        self,
+        node: ast.FunctionDecl,
+        symbol: symbols.Symbol,
+        scope: symbols.Scope,
+    ):
         prev_function = self.ctx_func
         self.ctx_func = symbol
 
         self.visit(node.block, scope)
 
         self.ctx_func = prev_function
-
         symbol.scope = scope
+
+    def visit_functiondecl(self, node: ast.FunctionDecl):
+        name = node.name.lexeme
+        self.validate_decl_in_scope(
+            name,
+            f"As funções só podem ser declaradas no escopo global",
+            self.ID_IN_USE,
+        )
+        self.validate_num_params(node)
+
+        function_type = self.get_type(node.func_type)
+        symbol = symbols.FunctionSymbol(name, function_type)
+        scope = self.make_func_symbol(name, node, symbol)
+        # Native functions don't have a body, so there's nothing to visit
+        if node.is_native:
+            return
+
+        self.validate_return(
+            node,
+            function_type,
+            f"a função '{name}' não possui a instrução 'retorna'",
+        )
+
+        self.check_function_body(node, symbol, scope)
 
     def define_func_scope(self, name, params):
         params_dict = {}
@@ -349,6 +392,39 @@ class Analyzer(ast.Visitor):
             self.define_symbol(param, self.scope_depth + 1, scope)
             scope.add_local(param.out_id)
         return (scope, params_dict)
+
+    def visit_methoddecl(self, node: ast.MethodDecl):
+        target_ty = self.get_type(node.target_ty)
+        method_name = node.name.lexeme
+        method_id = target_ty.full_field_path(method_name)
+        method_desc = f"O método '{method_name}' do tipo '{target_ty}'"
+
+        # Check if field exists on target type
+        if target_ty.fields.get(method_name):
+            self.error(
+                f"A propriedade '{method_name}' já foi definida no tipo '{target_ty}'"
+            )
+
+        self.validate_decl_in_scope(
+            method_id,
+            f"Métodos só podem ser declarados no escopo global",
+            f"{method_desc} já foi declarado anteriormente",
+        )
+        return_ty = self.get_type(node.return_ty)
+        symbol = symbols.MethodSym(method_id, target_ty, return_ty, node.params)
+        scope = self.make_func_symbol(method_id, node, symbol)
+        self.validate_return(
+            node,
+            return_ty,
+            f"{method_desc} não possui a instrução 'retorna'",
+        )
+        # add alvo param
+        self.define_symbol(
+            symbols.Symbol("alvo", target_ty), self.scope_depth + 1, scope
+        )
+
+        self.check_function_body(node, symbol, scope)
+        target_ty.fields[method_name] = symbol
 
     def visit_registo(self, node: ast.Registo):
         name = node.name.lexeme
@@ -370,13 +446,15 @@ class Analyzer(ast.Visitor):
         self.define_symbol(registo, self.scope_depth, self.ctx_scope)
         self.ctx_reg = None
 
-    def visit_eu(self, node):
-        if not self.ctx_reg or not self.ctx_func:
+    def visit_alvo(self, node: ast.Alvo):
+        if type(self.ctx_func) is not symbols.MethodSym:
             self.error(
-                "a palavra reservada 'eu' só pode ser usada dentro de um método"
+                "a palavra reservada 'alvo' só pode ser usada dentro de um método"
             )
-        node.eval_type = self.ctx_reg
-        return symbols.VariableSymbol("eu", self.ctx_reg)
+        method_sym = cast(symbols.MethodSym, self.ctx_func)
+
+        node.eval_type = method_sym.target_ty
+        return symbols.VariableSymbol("alvo", node.eval_type)
 
     def visit_block(self, node, scope=None):
         self.enter_scope(scope)
@@ -462,13 +540,19 @@ class Analyzer(ast.Visitor):
                 f"O objecto do tipo '{ty_sym.name}' não possui o atributo {field}"
             )
         # Check if valid use of get
+        # References to methods can only be used in the context of
+        # a call expression
         in_eval_ctx = (
             node.child_of(ast.Expr)
             or node.child_of(ast.Set)
             or node.child_of(ast.Assign)
             or node.child_of(ast.Statement)
         )
-        if in_eval_ctx and not field_sym.can_evaluate():
+        if (
+            in_eval_ctx
+            and not node.child_of(ast.Call)
+            and not field_sym.can_evaluate()
+        ):
             self.error(self.INVALID_REF, name=field_sym.name)
         node.eval_type = field_sym.type
         return field_sym
@@ -799,7 +883,7 @@ class Analyzer(ast.Visitor):
         return sym
 
     def check_vec_op(self, fn, node):
-        self.check_arity(node.fargs, fn, 2)
+        self.check_arity(len(node.fargs), fn, 2, False)
         vec_expr = node.fargs[0]
         value = node.fargs[1]
         self.visit(vec_expr)
@@ -866,7 +950,7 @@ class Analyzer(ast.Visitor):
             node.eval_type = vec_expr.eval_type.element_type
 
         elif fn == BuiltinFn.TAM:
-            self.check_arity(node.fargs, fn, 1)
+            self.check_arity(len(node.fargs), fn, 1, False)
             seq = node.fargs[0]
             self.visit(seq)
 
@@ -884,11 +968,13 @@ class Analyzer(ast.Visitor):
                 f"Code for the builtin '{fn}' has not been implemented"
             )
 
-    def check_arity(self, fargs, name, param_len):
-        arg_len = len(fargs)
-        if arg_len != param_len:
+    def check_arity(self, arg_len: int, name: str, arity: int, is_method: bool):
+        if arg_len != arity:
+            callable_desc = (
+                f"o método {name}" if is_method else f"a função {name}"
+            )
             self.error(
-                f"número incorrecto de argumentos para a função {name}. Esperava {param_len} argumento(s), porém recebeu {arg_len}"
+                f"número incorrecto de argumentos para {callable_desc}. Esperava {arity} argumento(s), porém recebeu {arg_len}"
             )
 
     def validate_call(self, sym: symbols.FunctionSymbol, fargs: List[ast.Expr]):
@@ -902,7 +988,7 @@ class Analyzer(ast.Visitor):
                     f"Funções e métodos não suportam argumentos nomeados"
                 )
             self.visit(arg)
-        self.check_arity(fargs, name, sym.arity())
+        self.check_arity(len(fargs), name, sym.arity(), sym.is_property)
         # Type promotion for parameter
         for arg, param in zip(fargs, sym.params.values()):
             arg.prom_type = arg.eval_type.promote_to(param.type)

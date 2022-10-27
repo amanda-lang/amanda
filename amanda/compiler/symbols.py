@@ -62,6 +62,26 @@ class FunctionSymbol(Symbol):
         return len(self.params)
 
 
+class MethodSym(FunctionSymbol):
+    def __init__(self, name: str, target_ty, return_ty, params):
+        super().__init__(name, return_ty, params)
+        self.target_ty = target_ty
+        self.return_ty = return_ty
+        self.is_property = True
+
+    def __str__(self):
+        params = ",".join(self.params)
+        return (
+            f"<{self.__class__.__name__}: ({self.name},{self.type}) ({params})>"
+        )
+
+    def is_callable(self):
+        return True
+
+    def arity(self):
+        return len(self.params)
+
+
 class Scope:
     def __init__(self, enclosing_scope: Optional[Scope] = None):
         self.symbols: Dict[str, Symbol] = {}
@@ -70,7 +90,7 @@ class Scope:
         # Nesting
         self.locals = {}
 
-    def resolve(self, name):
+    def resolve(self, name: str) -> Optional[Symbol]:
         symbol = self.get(name)
         if not symbol:
             if self.enclosing_scope is not None:

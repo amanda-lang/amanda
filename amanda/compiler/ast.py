@@ -311,8 +311,11 @@ class FunctionDecl(ASTNode):
         self.is_native = False
         self.tag_children()
 
+    def is_method(self) -> bool:
+        return False
 
-class MethodDecl(ASTNode):
+
+class MethodDecl(FunctionDecl):
     def __init__(
         self,
         *,
@@ -322,13 +325,15 @@ class MethodDecl(ASTNode):
         return_ty: Type,
         params: List[Param],
     ):
-        super().__init__(name)
+        super().__init__(
+            name=name, block=block, func_type=return_ty, params=params
+        )
         self.target_ty = target_ty
-        self.name = name
-        self.params = params
         self.return_ty = return_ty
-        self.block = block
         self.tag_children()
+
+    def is_method(self) -> bool:
+        return True
 
 
 class Registo(ASTNode):

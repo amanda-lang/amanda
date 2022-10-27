@@ -1,0 +1,21 @@
+registo Mensagem
+    sender: texto
+    to: texto
+    corpo: texto
+fim
+
+
+msg: Mensagem = Mensagem(
+    sender: "Marco", 
+    to: "Atila", 
+    corpo: "Tá pico ya"
+)
+
+
+met Mensagem::enviar(alvo, a: int)
+    escrevaln(alvo.sender)
+fim
+
+
+msg.enviar()
+#[output]: Erro: número incorrecto de argumentos para o método Mensagem::enviar. Esperava 1 argumento(s), porém recebeu 0.
