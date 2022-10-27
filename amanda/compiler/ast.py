@@ -97,7 +97,7 @@ class Lista(Expr):
         self.tag_children()
 
 
-class Reg(Expr):
+class Alvo(Expr):
     def __init__(self, token):
         super().__init__(token)
 
@@ -312,6 +312,25 @@ class FunctionDecl(ASTNode):
         self.tag_children()
 
 
+class MethodDecl(ASTNode):
+    def __init__(
+        self,
+        *,
+        target_ty: Type,
+        name: Token,
+        block: Block,
+        return_ty: Type,
+        params: List[Param],
+    ):
+        super().__init__(name)
+        self.target_ty = target_ty
+        self.name = name
+        self.params = params
+        self.return_ty = return_ty
+        self.block = block
+        self.tag_children()
+
+
 class Registo(ASTNode):
     def __init__(self, *, name: Token, fields: List[VarDecl]):
         super().__init__(name)
@@ -345,9 +364,13 @@ class Type(ASTNode):
         self.tag_children()
 
 
-@dataclass
-class ArrayType(ASTNode):
+class ArrayType(Type):
     element_type: Type
+
+    def __init__(self, element_type: Type):
+        super().__init__(element_type.name)
+        self.element_type = element_type
+        self.tag_children()
 
 
 # Base class for visitor objects

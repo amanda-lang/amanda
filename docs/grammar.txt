@@ -9,6 +9,7 @@ usa_stmt
 declaration
   | registo_declaration
   | function_declaration
+  | method_declaration
   | stmt
   ;
 
@@ -42,6 +43,14 @@ native_function_decl
 
 function_declaration
   : FUNC (native_function_decl | function_header body FIM)
+  ;
+
+method_declaration
+  : MET method_header body FIM
+  ;
+
+method_header
+  : type DOUBLECOLON identifier LPAR ALVO (COMMA formal_parameter_section)? RPAR (COLON type)
   ;
 
 
@@ -188,9 +197,8 @@ primary
   | LPAR equality RPAR
   | LBRACKET type COLON args? RBRACKET
   | IDENTIFIER 
-  | EU
   | NULO
-  | reg
+  | alvo
   ;
 
 args

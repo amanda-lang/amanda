@@ -388,12 +388,14 @@ class Parser:
     def declaration(self):
         if self.match(TT.FUNC):
             return self.function_decl()
+        elif self.match(TT.MET):
+            return self.method_decl()
         elif self.match(TT.REGISTO):
             return self.registo_decl()
         else:
             return self.statement()
 
-    def type(self):
+    def type(self) -> ast.Type:
         if self.match(TT.IDENTIFIER):
             name = self.consume(TT.IDENTIFIER)
             return ast.Type(name)
@@ -443,6 +445,41 @@ class Parser:
         function.is_native = True
         self.end_stmt()
         return function
+
+    def method_decl(self):
+        self.consume(TT.MET)
+        ty = self.type()
+        self.consume(TT.DOUBLECOLON)
+        name = self.consume(TT.IDENTIFIER, self.EXPECTED_ID.format(symbol="::"))
+        self.consume(TT.LPAR)
+        self.consume(
+            TT.ALVO,
+            "Primeiro parâmetro de um método deve ser a palavra reservada 'alvo'",
+        )
+        params = []
+        if self.match(TT.COMMA):
+            self.consume(TT.COMMA)
+            params = self.formal_params()
+        self.consume(
+            TT.RPAR,
+            "os parâmetros de um método devem estar delimitados por  ')'",
+        )
+        return_ty = None
+        if self.match(TT.COLON):
+            self.consume(TT.COLON)
+            return_ty = self.type()
+        block = self.block()
+        self.consume(
+            TT.FIM,
+            "O corpo de um método deve ser terminado com a directiva 'fim'",
+        )
+        return ast.MethodDecl(
+            target_ty=ty,
+            name=name,
+            params=params,
+            return_ty=return_ty,
+            block=block,
+        )
 
     def function_decl(self):
         self.consume(TT.FUNC)
@@ -959,9 +996,9 @@ class Parser:
             self.consume(TT.LPAR)
             expr = self.equality()
             self.consume(TT.RPAR)
-        elif self.match(TT.REG):
-            expr = ast.Reg(self.lookahead)
-            self.consume(TT.REG)
+        elif self.match(TT.ALVO):
+            expr = ast.Alvo(self.lookahead)
+            self.consume(TT.ALVO)
         else:
             self.error(
                 f"início inválido de expressão: '{self.lookahead.lexeme}'"
