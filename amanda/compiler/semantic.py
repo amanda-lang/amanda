@@ -10,6 +10,7 @@ from amanda.compiler.type import builtin_types, Kind, Type, Vector, Registo
 from amanda.compiler.error import AmandaError
 from amanda.compiler.builtinfn import BUILTINS, BuiltinFn
 from amanda.config import STD_LIB
+from amanda.compiler.transform import transform_node
 
 MAX_AMA_INT = 2**63 - 1
 
@@ -155,79 +156,12 @@ class Analyzer(ast.Visitor):
             return visitor_method(node, args)
         return visitor_method(node)
 
-    def visit_or_transform(self, node):
-        nodeT = type(node)
-        self.visit(node)
-        has_side_fx = (
-            ast.Assign,
-            ast.Call,
-            ast.Set,
-            ast.IndexGet,
-            ast.IndexSet,
-        )
-        # TODO: Actually implement a jump table for escolha
-        if nodeT == ast.Escolha:
-            token = node.token
-            new_token = lambda tt, lexeme: Token(
-                tt, lexeme, token.line, token.col
-            )
-            equality_op = lambda left, right: ast.BinOp(
-                new_token(TT.DOUBLEEQUAL, "=="), left=left, right=right
-            )
-            # check node
-            # transform node into ifs
-            expr = node.expression
-            # let
-            se_node = ast.Se(
-                token, None, None, elsif_branches=[], else_branch=None
-            )
-            if not node.cases and not node.default_case:
-                return None
-            elif not node.cases and node.default_case:
-                se_node.condition = ast.Constant(
-                    new_token(TT.VERDADEIRO, "verdadeiro")
-                )
-                se_node.then_branch = node.default_case
-                return se_node
-            else:
-                first_case = node.cases[0]
-                del node.cases[0]
-                se_node.condition = equality_op(
-                    left=first_case.expression,
-                    right=node.expression,
-                )
-                se_node.then_branch = first_case.block
-                se_node.else_branch = node.default_case
-                for case in node.cases:
-                    se_node.elsif_branches.append(
-                        ast.SenaoSe(
-                            token,
-                            equality_op(
-                                left=case.expression, right=node.expression
-                            ),
-                            case.block,
-                        )
-                    )
-                return se_node
-        # Ignore all unused expressions
-        # WARNING: This might be a nasty bug, please test this
-        # TODO: Implement a proper way to do this
-        elif nodeT not in has_side_fx and isinstance(node, ast.Expr):
-            return None
-        else:
-            return node
-
     def visit_children(self, children):
         none_count = 0
         for i, child in enumerate(children):
-            node = self.visit_or_transform(child)
-            if node == None:
-                none_count += 1
+            self.visit(child)
+            node = transform_node(child)
             children[i] = node
-
-        # TODO: Find a better way to manipulate child list
-        for i in range(none_count):
-            children.remove(None)
 
     def visit_program(self, node):
         # Since each function has it's own local scope,
@@ -851,7 +785,7 @@ class Analyzer(ast.Visitor):
         self.visit(node.arg)
         node.eval_type = node.arg.eval_type
 
-    def visit_call(self, node):
+    def visit_call(self, node: ast.Call):
         callee = node.callee
         calle_type = type(callee)
         if calle_type == ast.Variable:

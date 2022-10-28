@@ -1,10 +1,18 @@
 from __future__ import annotations
-from amanda.compiler.tokens import Token
+from amanda.compiler.tokens import Token, TokenType as TT
 import amanda.compiler.type as types
 from dataclasses import dataclass
-from typing import List, Optional, Type
+from typing import Any, List, Optional, Type as PyTy, TypeVar
+from typing_extensions import TypeGuard
 
 # TODO: Rename fields of some classes
+T = TypeVar("T")
+
+
+def node_of_type(node: ASTNode, ty: PyTy[T]) -> TypeGuard[T]:
+    return isinstance(node, ty)
+
+
 class ASTNode:
     def __init__(self, token: Token):
         self.token = token
@@ -24,7 +32,7 @@ class ASTNode:
         assert self.parent, "parent should not be none"
         return isinstance(self.parent, ty)
 
-    def of_type(self, ty: type) -> bool:
+    def of_type(self, ty: PyTy[T]) -> TypeGuard[T]:
         return isinstance(self, ty)
 
 
@@ -233,10 +241,11 @@ class RangeExpr(ASTNode):
 
 
 class Call(Expr):
-    def __init__(self, callee=None, paren=None, fargs=[]):
+    def __init__(self, callee=None, paren=None, fargs: List[Expr] = []):
         super().__init__(callee.token)
         self.callee = callee
         self.fargs = fargs
+        self.symbol: Any = None
         self.tag_children()
 
     def tag_children(self):
@@ -261,7 +270,7 @@ class NamedArg(Expr):
 
 
 class Get(Expr):
-    def __init__(self, *, target: ASTNode, member: Token):
+    def __init__(self, *, target: Expr, member: Token):
         super().__init__(member)
         self.target = target
         self.member = member
@@ -376,6 +385,11 @@ class ArrayType(Type):
         super().__init__(element_type.name)
         self.element_type = element_type
         self.tag_children()
+
+
+class NoOp(ASTNode):
+    def __init__(self):
+        super().__init__(Token(TT.EOF, "", 0, 0))
 
 
 # Base class for visitor objects

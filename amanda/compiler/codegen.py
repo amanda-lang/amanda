@@ -1,6 +1,6 @@
 import sys
 import pdb
-from typing import List
+from typing import List, cast
 from io import StringIO, BytesIO
 from enum import Enum, auto
 import amanda.compiler.symbols as symbols
@@ -571,7 +571,7 @@ class ByteGen:
         self.patch_label_loc(after_loop)
         self.exit_block()
 
-    def gen_functiondecl(self, node):
+    def gen_functiondecl(self, node: ast.FunctionDecl):
         func_symbol = self.scope_symtab.resolve(node.name.lexeme)
         name = func_symbol.name
         name_idx = self.get_table_index(func_symbol.name, self.NAME_TABLE)
@@ -608,6 +608,9 @@ class ByteGen:
                 "locals": num_locals,
             }
         )
+
+    def gen_methoddecl(self, node: ast.MethodDecl):
+        self.gen_functiondecl(node)
 
     def gen_call(self, node):
         func = node.symbol
@@ -707,3 +710,6 @@ class ByteGen:
         )
         self.append_op(OpCode.LOAD_REGISTO, len(self.registos) - 1)
         self.set_variable(self.scope_symtab.resolve(name))
+
+    def gen_noop(self, node: ast.NoOp):
+        pass
