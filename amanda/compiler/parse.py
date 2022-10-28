@@ -1052,4 +1052,6 @@ class Parser:
 def parse(filename):
     with open(filename, encoding="utf-8") as src_file:
         src = StringIO(src_file.read())
-    return Parser(filename, src).parse()
+    program = Parser(filename, src).parse()
+    program.tag_children()
+    return program

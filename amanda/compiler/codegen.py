@@ -561,7 +561,10 @@ class ByteGen:
         for child in block.children:
             self.gen(child)
         # update: control_var += inc
-        self.gen(range_expr.inc)
+        if not range_expr.inc:
+            self.load_const(1)
+        else:
+            self.gen(range_expr.inc)
         self.load_variable(control_var)
         self.append_op(OpCode.OP_ADD)
         self.set_variable(control_var)
@@ -572,7 +575,7 @@ class ByteGen:
         self.exit_block()
 
     def gen_functiondecl(self, node: ast.FunctionDecl):
-        func_symbol = self.scope_symtab.resolve(node.name.lexeme)
+        func_symbol = node.symbol
         name = func_symbol.name
         name_idx = self.get_table_index(func_symbol.name, self.NAME_TABLE)
         func_end = self.new_label()
@@ -656,6 +659,9 @@ class ByteGen:
     def gen_mostra(self, node):
         self.gen(node.exp)
         self.append_op(OpCode.MOSTRA)
+
+    def gen_alvo(self, node: ast.Alvo):
+        self.load_variable(node.var_symbol)
 
     def gen_indexget(self, node, gen_get=True):
         self.gen(node.target)

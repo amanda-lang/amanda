@@ -10,7 +10,7 @@ from amanda.compiler.type import builtin_types, Kind, Type, Vector, Registo
 from amanda.compiler.error import AmandaError
 from amanda.compiler.builtinfn import BUILTINS, BuiltinFn
 from amanda.config import STD_LIB
-from amanda.compiler.transform import transform_node
+from amanda.compiler.transform import transform
 
 MAX_AMA_INT = 2**63 - 1
 
@@ -157,18 +157,15 @@ class Analyzer(ast.Visitor):
         return visitor_method(node)
 
     def visit_children(self, children):
-        none_count = 0
-        for i, child in enumerate(children):
+        for child in children:
             self.visit(child)
-            node = transform_node(child)
-            children[i] = node
 
     def visit_program(self, node):
         # Since each function has it's own local scope,
         # The top level global scope will have it's own "locals"
         self.visit_children(node.children)
         node.symbols = self.global_scope
-        return node
+        return transform(node)
 
     def load_module(self, module):
         existing_mod = self.imports.get(module.fpath)
@@ -285,6 +282,7 @@ class Analyzer(ast.Visitor):
 
         self.ctx_func = prev_function
         symbol.scope = scope
+        node.symbol = symbol
 
     def visit_functiondecl(self, node: ast.FunctionDecl):
         name = node.name.lexeme
@@ -388,7 +386,9 @@ class Analyzer(ast.Visitor):
         method_sym = cast(symbols.MethodSym, self.ctx_func)
 
         node.eval_type = method_sym.target_ty
-        return symbols.VariableSymbol("alvo", node.eval_type)
+        symbol = symbols.VariableSymbol("alvo", node.eval_type)
+        node.var_symbol = symbol
+        return symbol
 
     def visit_block(self, node, scope=None):
         self.enter_scope(scope)
@@ -762,17 +762,6 @@ class Analyzer(ast.Visitor):
         self.visit(node.start)
         self.visit(node.end)
         if node.inc is not None:
-            self.visit(node.inc)
-        else:
-            # If node has no inc, inc defaults to 1
-            node.inc = ast.Constant(
-                Token(
-                    TT.INTEGER,
-                    lexeme="1",
-                    line=node.token.line,
-                    col=node.token.col,
-                )
-            )
             self.visit(node.inc)
         for node in (node.start, node.end, node.inc):
             # Skip inc node in case it's empty lool

@@ -7,6 +7,8 @@ from typing import Dict
 class TokenType(Enum):
     # Special eof token
     EOF = "_EOF_"
+    # Special token used for program node
+    PROGRAM = "PROGRAM"
     # Enum used to represents all the different
     # tokens in the amanda grammar
 
