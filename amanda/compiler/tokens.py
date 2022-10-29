@@ -7,6 +7,8 @@ from typing import Dict
 class TokenType(Enum):
     # Special eof token
     EOF = "_EOF_"
+    # Special token used for program node
+    PROGRAM = "PROGRAM"
     # Enum used to represents all the different
     # tokens in the amanda grammar
 
@@ -75,11 +77,12 @@ class TokenType(Enum):
     QUEBRA = "QUEBRA"
     USA = "USA"
     COMO = "como"
-    EU = "EU"
-    SUPER = "SUPER"
+    ALVO = "alvo"
+    REGISTO = "registo"
     INC = "INC"
     FIM = "FIM"
     FUNC = "FUNC"
+    MET = "MET"
     NULO = "NULO"
     VAZIO = "VAZIO"
     NATIVA = "NATIVA"

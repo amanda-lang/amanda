@@ -1,0 +1,20 @@
+registo Bar
+    x: texto
+fim
+
+registo Foo
+    bar: Bar
+fim
+
+
+
+foo: Foo = Foo(
+    bar: Bar(
+        x: "good"
+    )
+)
+
+escrevaln(foo.bar.x)
+foo.bar.x = "changed"
+escrevaln(foo.bar.x)
+#[output]: good changed

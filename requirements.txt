@@ -1,3 +1,4 @@
 pyinstaller
 black
-mypy
+pyright
+typing_extensions

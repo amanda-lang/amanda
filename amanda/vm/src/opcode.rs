@@ -4,6 +4,7 @@ use std::convert::From;
 pub enum OpCode {
     Mostra,
     LoadConst,
+    LoadName,
     OpAdd,
     OpMinus,
     OpMul,
@@ -33,14 +34,19 @@ pub enum OpCode {
     Cast,
     BuildStr,
     BuildVec,
+    LoadRegisto,
+    BuildObj,
+    GetProp,
+    SetProp,
     Halt = 255,
 }
 
 impl From<&u8> for OpCode {
     fn from(number: &u8) -> Self {
-        let ops = [
+        let ops: [OpCode; 36] = [
             OpCode::Mostra,
             OpCode::LoadConst,
+            OpCode::LoadName,
             OpCode::OpAdd,
             OpCode::OpMinus,
             OpCode::OpMul,
@@ -70,6 +76,10 @@ impl From<&u8> for OpCode {
             OpCode::Cast,
             OpCode::BuildStr,
             OpCode::BuildVec,
+            OpCode::LoadRegisto,
+            OpCode::BuildObj,
+            OpCode::GetProp,
+            OpCode::SetProp,
         ];
         if *number == 0xff {
             OpCode::Halt

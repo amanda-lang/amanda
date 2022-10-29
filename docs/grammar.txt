@@ -7,18 +7,25 @@ usa_stmt
  ;
 
 declaration
-  | class_declaration
+  | registo_declaration
   | function_declaration
+  | method_declaration
   | stmt
   ;
 
 
-class_declaration
-  : CLASSE IDENTIFIER ( < IDENTIFIER )? class_body FIM
+registo_declaration
+  : REGISTO IDENTIFIER reg_body FIM
   ;
 
-class_body
-  : ( var_declaration | function_declaration | NEWLINE )*
+reg_body
+  : field_declaration*
+  ;
+
+field_declaration
+  : IDENTIFIER COLON type end_stmt
+  | NEWLINE
+  ;
 
 
 type
@@ -36,6 +43,14 @@ native_function_decl
 
 function_declaration
   : FUNC (native_function_decl | function_header body FIM)
+  ;
+
+method_declaration
+  : MET method_header body FIM
+  ;
+
+method_header
+  : type DOUBLECOLON identifier LPAR ALVO (COMMA formal_parameter_section)? RPAR (COLON type)
   ;
 
 
@@ -182,12 +197,16 @@ primary
   | LPAR equality RPAR
   | LBRACKET type COLON args? RBRACKET
   | IDENTIFIER 
-  | EU
   | NULO
+  | alvo
   ;
 
 args
-  : equality (COMMA equality)*
+  : (named_parameter | equality) (COMMA (named_parameter | equality))*
+  ;
+
+named_parameter
+  : IDENTIFIER COLON equality
   ;
 
 index

@@ -8,6 +8,7 @@ mod binload;
 mod builtins;
 mod errors;
 mod opcode;
+mod values;
 mod vm;
 
 const OK: u8 = 0;

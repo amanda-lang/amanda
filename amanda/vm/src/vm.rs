@@ -1,7 +1,10 @@
 use std::fmt::Write;
 use std::borrow::Cow;
 use crate::ama_value;
-use crate::ama_value::{AmaFunc, AmaValue};
+use crate::ama_value::{AmaValue};
+use crate::values::function::{AmaFunc};
+use crate::values::tabela::{Tabela};
+use crate::values::registo::{RegObj};
 use crate::binload::Module;
 use crate::builtins;
 use crate::errors::AmaErr;
@@ -10,6 +13,7 @@ use crate::opcode::OpCode;
 use unicode_segmentation::UnicodeSegmentation;
 use std::collections::HashMap;
 use std::convert::From;
+use std::iter::FromIterator;
 
 const RECURSION_LIMIT: usize = 1000;
 
@@ -160,6 +164,14 @@ impl<'a> AmaVM<'a> {
                 OpCode::LoadConst => {
                     let idx = self.get_u16_arg();
                     self.op_push(self.module.constants[idx as usize]);
+                }
+                OpCode::LoadName => {
+                    let idx = self.get_u16_arg();
+                    self.alloc_push(AmaValue::Str(Cow::Borrowed(&self.module.names[idx as usize])));
+                }
+                OpCode::LoadRegisto => {
+                    let idx = self.get_u16_arg() as usize;
+                    self.alloc_push(AmaValue::Registo(&self.module.registos[idx]))
                 }
                 OpCode::Mostra => println!("{}", self.op_pop().inner()),
                 //Binary Operations
@@ -356,6 +368,48 @@ impl<'a> AmaVM<'a> {
                     self.alloc_push(elements);
                     //Drop values
                     self.values.drain(self.sp as usize + 1..);
+                }
+                OpCode::BuildObj => {
+                    let fields_init = self.get_byte() as isize;
+                    let registo = self.op_pop();
+                    if fields_init == 0 {
+                        self.alloc_push(AmaValue::RegObj(RegObj::new(
+                            registo,
+                            Tabela::default()
+                        )));
+                        self.frames.peek_mut().ip += 1;
+                        continue;
+                    }
+                    let start = (self.sp - ((fields_init * 2) - 1))  as usize;
+                    let build_args = &self.values[start..=self.sp as usize];
+                    let init_pairs = build_args[0..].iter()
+                            .step_by(2)
+                            .zip(build_args[1..]
+                            .iter()
+                            .step_by(2))
+                            .map(|pair| (*pair.0, *pair.1));
+                    let state = Tabela::from_iter(init_pairs);
+
+                    self.sp = start as isize - 1;
+                    self.alloc_push(AmaValue::RegObj(RegObj::new(
+                        registo, 
+                        state
+                    )));
+                    //Drop values
+                    self.values.drain(self.sp as usize + 1..);
+                }
+                OpCode::GetProp => {
+                    let field = self.op_pop();
+                    let reg_ref = self.op_pop();
+                    let reg_obj = reg_ref.inner().take_regobj();
+                    self.op_push(reg_obj.get(field));
+                }
+                OpCode::SetProp => {
+                    let new_val = self.op_pop();
+                    let field = self.op_pop();
+                    let reg_ref = self.op_pop();
+                    let reg_obj = reg_ref.inner_mut().regobj_mut();
+                    reg_obj.set(field, new_val);
                 }
                 OpCode::Cast => {
                     let arg = self.get_byte();

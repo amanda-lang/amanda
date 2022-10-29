@@ -1,10 +1,10 @@
 from __future__ import annotations
-from amanda.compiler.symbols import Symbol
+from amanda.compiler.symbols import Symbol, VariableSymbol
 from enum import auto, IntEnum
 from dataclasses import dataclass
-from typing import cast, List, Tuple, Optional
+from typing import cast, List, Tuple, Dict, Optional
 
-# Describes the kind of a type
+# Tag to indicate which type a Type object represents
 class Kind(IntEnum):
     TINT = 0
     TREAL = auto()
@@ -13,8 +13,11 @@ class Kind(IntEnum):
     TINDEF = auto()
     TVAZIO = auto()
     TVEC = auto()
-    TKLASS = auto()
+    TREGISTO = auto()
     TNULO = auto()
+    # unknown is a type used as a default type value
+    # to avoid setting eval_type to null on ast nodes
+    TUNKNOWN = auto()
 
     def __str__(self) -> str:
         return self.name.lower()[1:]
@@ -44,6 +47,9 @@ class Type(Symbol):
     def is_operable(self) -> bool:
         return self.kind != Kind.TVAZIO and self.kind != Kind.TINDEF
 
+    def full_field_path(self, field: str) -> str:
+        return self.name + "::" + field
+
     def check_cast(self, other: Type) -> bool:
         # Allowed conversions:
         # int -> real, bool,real,texto,indef
@@ -70,9 +76,9 @@ class Type(Symbol):
             Kind.TTEXTO: primitives,
             Kind.TBOOL: (Kind.TTEXTO, Kind.TINDEF),
             Kind.TVEC: (Kind.TINDEF,),
-            Kind.TKLASS: (Kind.TINDEF,),
-            Kind.TNULO: (Kind.TKLASS,),
-            Kind.TINDEF: (*primitives, Kind.TKLASS, Kind.TVEC),
+            Kind.TREGISTO: (Kind.TINDEF,),
+            Kind.TNULO: (Kind.TREGISTO,),
+            Kind.TINDEF: (*primitives, Kind.TREGISTO, Kind.TVEC),
         }
         cast_types = cast_table.get(kind)
 
@@ -91,8 +97,8 @@ class Type(Symbol):
             Kind.TBOOL: (Kind.TINDEF,),
             Kind.TTEXTO: (Kind.TINDEF,),
             Kind.TVEC: (Kind.TINDEF,),
-            Kind.TKLASS: (Kind.TINDEF,),
-            Kind.TNULO: (Kind.TKLASS,),
+            Kind.TREGISTO: (Kind.TINDEF,),
+            Kind.TNULO: (Kind.TREGISTO,),
         }
         auto_cast_types = auto_cast_table.get(kind)
 
@@ -125,8 +131,24 @@ class Vector(Type):
         return self.element_type == other.element_type
 
 
-class Klass(Type):
-    pass
+class Registo(Type):
+    def __init__(self, name: str, fields: Dict[str, Symbol]):
+        super().__init__(Kind.TREGISTO)
+        self.name = name
+        self.fields = fields
+
+    def is_callable(self) -> bool:
+        return True
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Type):
+            return False
+        if not self.kind == other.kind:
+            return False
+        return self.name == cast(Registo, other).name
+
+    def __str__(self) -> str:
+        return self.name
 
 
 builtin_types: List[Tuple[str, Type]] = [

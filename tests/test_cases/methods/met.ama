@@ -1,0 +1,50 @@
+registo Mensagem
+    sender: texto
+    to: texto
+    corpo: texto
+fim
+
+
+msg: Mensagem = Mensagem(
+    sender: "Marco", 
+    to: "Atila", 
+    corpo: "Tá pico ya"
+)
+
+
+escrevaln(msg.sender)
+escrevaln(msg.to)
+escrevaln(msg.corpo)
+
+msg.sender = "sender"
+escrevaln(msg.sender)
+
+
+
+met Mensagem::enviar(alvo)
+    escrevaln(f"Mensagem de: {alvo.sender}")
+    escrevaln(f"Para: {alvo.to}")
+    escrevaln(f"----------------------")
+    escrevaln(alvo.corpo)
+fim
+
+met Mensagem::assinar(alvo, assinatura: texto)
+    alvo.corpo = f"{alvo.corpo}\n{assinatura}"
+    escrevaln(alvo.corpo)
+fim
+
+msg.enviar()
+msg.assinar("John paul")
+
+
+registo Wrapper
+    wrapped: Mensagem
+fim
+
+
+wrapper: Wrapper = Wrapper(wrapped: msg)
+
+
+wrapper.wrapped.assinar("Wrapped")
+
+#[output]: Marco Atila Tá pico ya sender Mensagem de: sender Para: Atila ---------------------- Tá pico ya Tá pico ya John paul Tá pico ya John paul Wrapped

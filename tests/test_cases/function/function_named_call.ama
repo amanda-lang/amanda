@@ -1,0 +1,6 @@
+
+func foo(num: int) fim
+
+
+foo(num: 10)
+#[output]: Erro: Funções e métodos não suportam argumentos nomeados.

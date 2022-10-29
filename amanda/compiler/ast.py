@@ -1,25 +1,63 @@
+from __future__ import annotations
+from amanda.compiler.tokens import Token, TokenType as TT
+import amanda.compiler.type as types
 from dataclasses import dataclass
+from typing import Any, List, Optional, Type as PyTy, TypeVar, Callable, Tuple
+from typing_extensions import TypeGuard
+from abc import abstractmethod
 
 # TODO: Rename fields of some classes
+T = TypeVar("T")
+
+
+def node_of_type(node: ASTNode, ty: PyTy[T]) -> TypeGuard[T]:
+    return isinstance(node, ty)
+
+
 class ASTNode:
-    def __init__(self, token):
+    def __init__(self, token: Token):
         self.token = token
-        self.parent = None
-        self.lineno = token.line
+        self.parent: Optional[ASTNode] = None
+        self.lineno: int = token.line
+
+    def for_each_child(
+        self, f: Callable[[ASTNode, str | Tuple[str, int]], None]
+    ):
+        for attr in self.__dict__:
+            if attr == "parent":
+                continue
+            maybe_node = getattr(self, attr, None)
+            if isinstance(maybe_node, ASTNode):
+                f(maybe_node, attr)
+            elif isinstance(maybe_node, list):
+                nodes = maybe_node
+                for i, node in enumerate(nodes):
+                    if not node_of_type(node, ASTNode):
+                        continue
+                    f(node, (attr, i))
+
+    def _tag(self, node: ASTNode, _: str | Tuple[str, int]):
+        node.parent = self
+        node.tag_children()
 
     def tag_children(self):
-        for attr in self.__dict__:
-            node = getattr(self, attr, None)
-            if isinstance(node, ASTNode):
-                node.parent = self
+        self.for_each_child(self._tag)
 
     def is_assignable(self):
         return False
 
+    def child_of(self, ty: type) -> bool:
+        assert self.parent, "parent should not be none"
+        return isinstance(self.parent, ty)
 
-class Program:
+    def of_type(self, ty: PyTy[T]) -> TypeGuard[T]:
+        return isinstance(self, ty)
+
+
+class Block(ASTNode):
     def __init__(self):
-        self.children = []
+        super().__init__(Token(TT.PROGRAM, "", 0, 0))
+        self.children: List[ASTNode] = []
         self.symbols = None
 
     def add_child(self, node):
@@ -31,18 +69,17 @@ class Usa(ASTNode):
         super().__init__(token)
         self.module = module
         self.alias = alias
-        self.tag_children()
 
 
-class Block(Program):
+class Program(Block):
     pass
 
 
 class Expr(ASTNode):
-    def __init__(self, token=None):
+    def __init__(self, token: Token):
         super().__init__(token)
-        self.eval_type = None
-        self.prom_type = None
+        self.eval_type = types.Type(types.Kind.TUNKNOWN)
+        self.prom_type = types.Type(types.Kind.TUNKNOWN)
 
     def __str__(self):
         return f"{self.token.lexeme}"
@@ -75,7 +112,6 @@ class Converta(Expr):
         super().__init__(token)
         self.target = target
         self.new_type = new_type
-        self.tag_children()
 
 
 class Lista(Expr):
@@ -83,17 +119,12 @@ class Lista(Expr):
         super().__init__(token)
         self.array_type = array_type
         self.expression = expression
-        self.tag_children()
 
 
-class Eu(Expr):
+class Alvo(Expr):
     def __init__(self, token):
         super().__init__(token)
-
-
-class Super(Expr):
-    def __init__(self, token):
-        super().__init__(token)
+        self.var_symbol = None
 
 
 class BinOp(Expr):
@@ -101,23 +132,22 @@ class BinOp(Expr):
         super().__init__(token)
         self.right = right
         self.left = left
-        self.tag_children()
 
 
 class UnaryOp(Expr):
     def __init__(self, token, operand=None):
         super().__init__(token)
         self.operand = operand
-        self.tag_children()
 
 
 class VarDecl(ASTNode):
-    def __init__(self, token, name=None, var_type=None, assign=None):
+    def __init__(
+        self, token: Token, *, name: Token, var_type=None, assign=None
+    ):
         super().__init__(token)
         self.var_type = var_type
         self.assign = assign
         self.name = name
-        self.tag_children()
 
 
 class Assign(Expr):
@@ -125,14 +155,12 @@ class Assign(Expr):
         super().__init__(token)
         self.left = left
         self.right = right
-        self.tag_children()
 
 
 class Statement(ASTNode):
     def __init__(self, token, exp=None):
         super().__init__(token)
         self.exp = exp
-        self.tag_children()
 
 
 class LoopCtlStmt(Statement):
@@ -162,7 +190,6 @@ class Se(ASTNode):
         self.then_branch = then_branch
         self.elsif_branches = elsif_branches
         self.else_branch = else_branch
-        self.tag_children()
 
 
 class SenaoSe(ASTNode):
@@ -170,7 +197,6 @@ class SenaoSe(ASTNode):
         super().__init__(token)
         self.condition = condition
         self.then_branch = then_branch
-        self.tag_children()
 
 
 class Enquanto(ASTNode):
@@ -179,7 +205,6 @@ class Enquanto(ASTNode):
         self.condition = condition
         # TODO: Rename this field to 'block'
         self.statement = statement
-        self.tag_children()
 
 
 class CaseBlock(ASTNode):
@@ -187,7 +212,6 @@ class CaseBlock(ASTNode):
         super().__init__(token)
         self.expression = expression
         self.block = block
-        self.tag_children()
 
 
 class Escolha(ASTNode):
@@ -196,7 +220,6 @@ class Escolha(ASTNode):
         self.expression = expression
         self.cases = cases
         self.default_case = default_case
-        self.tag_children()
 
 
 class Para(ASTNode):
@@ -204,7 +227,6 @@ class Para(ASTNode):
         super().__init__(token)
         self.expression = expression
         self.statement = statement
-        self.tag_children()
 
 
 class ParaExpr(ASTNode):
@@ -212,7 +234,6 @@ class ParaExpr(ASTNode):
         super().__init__(name)
         self.name = name
         self.range_expr = range_expr
-        self.tag_children()
 
 
 class RangeExpr(ASTNode):
@@ -221,15 +242,14 @@ class RangeExpr(ASTNode):
         self.start = start
         self.end = end
         self.inc = inc
-        self.tag_children()
 
 
 class Call(Expr):
-    def __init__(self, callee=None, paren=None, fargs=[]):
-        super().__init__(paren)
+    def __init__(self, callee=None, paren=None, fargs: List[Expr] = []):
+        super().__init__(callee.token)
         self.callee = callee
         self.fargs = fargs
-        self.tag_children()
+        self.symbol: Any = None
 
 
 class ListLiteral(Expr):
@@ -237,15 +257,20 @@ class ListLiteral(Expr):
         super().__init__(token)
         self.list_type = list_type
         self.elements = elements
-        self.tag_children()
+
+
+class NamedArg(Expr):
+    def __init__(self, *, name: Token, arg: Expr):
+        super().__init__(name)
+        self.name = name
+        self.arg = arg
 
 
 class Get(Expr):
-    def __init__(self, target=None, member=None):
+    def __init__(self, *, target: Expr, member: Token):
         super().__init__(member)
         self.target = target
         self.member = member
-        self.tag_children()
 
     def is_assignable(self):
         return True
@@ -256,7 +281,6 @@ class IndexGet(Expr):
         super().__init__(token)
         self.target = target
         self.index = index
-        self.tag_children()
 
     def is_assignable(self):
         return True
@@ -267,18 +291,16 @@ class IndexSet(Expr):
         super().__init__(token)
         self.index = index
         self.value = value
-        self.tag_children()
 
     def is_assignable(self):
         return True
 
 
 class Set(Expr):
-    def __init__(self, target=None, expr=None):
+    def __init__(self, *, target: Get, expr: Expr):
         super().__init__(expr.token)
         self.target = target
         self.expr = expr
-        self.tag_children()
 
 
 class FunctionDecl(ASTNode):
@@ -289,16 +311,37 @@ class FunctionDecl(ASTNode):
         self.func_type = func_type
         self.block = block
         self.is_native = False
-        self.tag_children()
+        self.symbol: Any = None
+
+    def is_method(self) -> bool:
+        return False
 
 
-class ClassDecl(ASTNode):
-    def __init__(self, name=None, superclass=None, body=None):
+class MethodDecl(FunctionDecl):
+    def __init__(
+        self,
+        *,
+        target_ty: Type,
+        name: Token,
+        block: Block,
+        return_ty: Type,
+        params: List[Param],
+    ):
+        super().__init__(
+            name=name, block=block, func_type=return_ty, params=params
+        )
+        self.target_ty = target_ty
+        self.return_ty = return_ty
+
+    def is_method(self) -> bool:
+        return True
+
+
+class Registo(ASTNode):
+    def __init__(self, *, name: Token, fields: List[VarDecl]):
         super().__init__(name)
         self.name = name
-        self.superclass = superclass
-        self.body = body
-        self.tag_children()
+        self.fields = fields
 
 
 class ClassBody(Block):
@@ -316,19 +359,25 @@ class Param(ASTNode):
         super().__init__(name)
         self.param_type = param_type
         self.name = name
-        self.tag_children()
 
 
 class Type(ASTNode):
     def __init__(self, name):
         super().__init__(name)
         self.name = name
-        self.tag_children()
 
 
-@dataclass
-class ArrayType(ASTNode):
+class ArrayType(Type):
     element_type: Type
+
+    def __init__(self, element_type: Type):
+        super().__init__(element_type.name)
+        self.element_type = element_type
+
+
+class NoOp(ASTNode):
+    def __init__(self):
+        super().__init__(Token(TT.EOF, "", 0, 0))
 
 
 # Base class for visitor objects

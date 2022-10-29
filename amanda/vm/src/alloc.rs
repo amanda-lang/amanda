@@ -1,4 +1,6 @@
 use crate::ama_value::AmaValue;
+use crate::opcode::OpCode;
+use std::hash::{Hash, Hasher};
 use std::ptr;
 
 #[derive(Debug)]
@@ -76,5 +78,26 @@ impl<'a> Alloc<'a> {
 
     pub fn null_ref(&self) -> Ref<'a> {
         self.null_ref.unwrap()
+    }
+}
+
+impl<'a> PartialEq for Ref<'a> {
+    fn eq(&self, other: &Self) -> bool {
+        AmaValue::binop(self.inner(), OpCode::OpEq, other.inner())
+            .unwrap()
+            .take_bool()
+    }
+}
+
+impl<'a> Eq for Ref<'a> {}
+
+impl<'a> Hash for Ref<'a> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match self.inner() {
+            AmaValue::Int(int) => int.hash(state),
+            AmaValue::Bool(boolean) => boolean.hash(state),
+            AmaValue::Str(string) => string.hash(state),
+            _ => unimplemented!("Can't hash whatever type was sent in"),
+        };
     }
 }

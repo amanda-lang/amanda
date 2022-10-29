@@ -26,5 +26,6 @@ jobs:
         pip install -r requirements.txt
     - name: Run build
       run: |
+        source env/bin/activate
         env/bin/python3.8 setup.py
         dist/amanda ./examples/hello_world.ama

@@ -1,6 +1,8 @@
 use crate::alloc::{Alloc, Ref};
-use crate::ama_value::{AmaValue, FuncArgs, NativeFunc, Type};
+use crate::ama_value::AmaValue;
 use crate::errors::AmaErr;
+use crate::values::amatype::Type;
+use crate::values::function::{FuncArgs, NativeFunc};
 use std::borrow::Cow;
 use std::io;
 use std::io::Write;

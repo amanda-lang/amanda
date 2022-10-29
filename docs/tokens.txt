@@ -45,14 +45,16 @@ DE : de
 CONTINUA: continua
 quebra: quebra
 FUNC : func
+MET: met
 INC : inc
 FIM : fim
 CLASSE : classe
 VAZIO : vazio
 NULO : nulo
-EU : eu
 USA : usa
 COMO: como
+ALVO: alvo
+REGISTO: registo
 NATIVA: nativa
 
 *OPERANDS*

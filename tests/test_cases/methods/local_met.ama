@@ -1,0 +1,18 @@
+
+registo Mensagem
+    sender: texto
+    to: texto
+    corpo: texto
+fim
+
+
+func foo()
+    met Mensagem::enviar(alvo)
+        escrevaln(alvo.sender)
+        
+
+    fim
+fim
+
+msg.enviar()
+#[output]: Erro: Métodos só podem ser declarados no escopo global.
