@@ -4,7 +4,7 @@ from enum import auto, IntEnum
 from dataclasses import dataclass
 from typing import cast, List, Tuple, Dict, Optional
 
-# Describes the kind of a type
+# Tag to indicate which type a Type object represents
 class Kind(IntEnum):
     TINT = 0
     TREAL = auto()
