@@ -2,6 +2,7 @@ use crate::alloc::Ref;
 use crate::ama_value::AmaValue;
 use crate::values::amatype::Type;
 use rustc_hash::FxHashMap;
+use std::iter::FromIterator;
 
 pub type Tabela<'a> = FxHashMap<AmaValue<'a>, AmaValue<'a>>;
 
@@ -38,7 +39,7 @@ impl<'a> RegObj<'a> {
     }
 
     pub fn get(&self, field: &'a AmaValue<'a>) -> AmaValue<'a> {
-        self.state.get(&field).clone.unwrap()
+        self.state.get(&field).unwrap().clone()
     }
 
     pub fn set(&mut self, field: AmaValue<'a>, value: AmaValue<'a>) {

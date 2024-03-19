@@ -87,7 +87,7 @@ impl<'a> AmaVM<'a> {
             module,
             frames: FrameStack::new(),
             globals: HashMap::with_capacity(builtin_objs.len()), 
-            values: Vec::from([AmaValue::None; DEFAULT_STACK_SIZE]),
+            values: vec![AmaValue::None; DEFAULT_STACK_SIZE],
             alloc, 
             sp: -1,
         };
@@ -155,11 +155,6 @@ impl<'a> AmaVM<'a> {
         self.sp = self.values.len() as isize - 1;
     }
 
-    fn alloc_push(&mut self, value: AmaValue<'a>){
-        let ama_ref = self.alloc.alloc_ref(value);
-        self.op_push(ama_ref);
-    }
-
     fn alloc_ref<V>(&mut self, value: V) -> RcCell<V> {
         self.alloc.alloc_ref(value)
     }
@@ -175,11 +170,11 @@ impl<'a> AmaVM<'a> {
                 }
                 OpCode::LoadName => {
                     let idx = self.get_u16_arg();
-                    self.alloc_push(AmaValue::Str(Cow::Borrowed(&self.module.names[idx as usize])));
+                    self.op_push(AmaValue::Str(Cow::Borrowed(&self.module.names[idx as usize])));
                 }
                 OpCode::LoadRegisto => {
                     let idx = self.get_u16_arg() as usize;
-                    self.alloc_push(AmaValue::Registo(&self.module.registos[idx]))
+                    self.op_push(AmaValue::Registo(&self.module.registos[idx]))
                 }
                 OpCode::Mostra => println!("{}", self.op_pop()),
                 //Binary Operations
@@ -199,12 +194,12 @@ impl<'a> AmaVM<'a> {
                 | OpCode::OpLessEq => {
                     let right = self.op_pop();
                     let left = self.op_pop();
-                    let result = AmaValue::binop(left, OpCode::from(&op), right);
+                    let result = AmaValue::binop(&left, OpCode::from(&op), &right);
 
                     if let Err(msg) = result {
                         return self.panic_and_throw(msg);
                     } else {
-                        self.alloc_push(result.unwrap());
+                        self.op_push(result.unwrap());
                     }
                 }
                 OpCode::OpInvert | OpCode::OpNot => {
@@ -213,13 +208,13 @@ impl<'a> AmaVM<'a> {
                     let op = OpCode::from(&op);
                     if let OpCode::OpInvert = op {
                         match operand {
-                            AmaValue::Int(num) => self.alloc_push(AmaValue::Int(-num)), 
-                            AmaValue::F64(num) => self.alloc_push(AmaValue::F64(-num)), 
+                            AmaValue::Int(num) => self.op_push(AmaValue::Int(-num)), 
+                            AmaValue::F64(num) => self.op_push(AmaValue::F64(-num)), 
                             _ => panic!("Fatal error!"),
                         };
                     } else {
                         if let AmaValue::Bool(val) = operand {
-                            self.alloc_push(AmaValue::Bool(!val));
+                            self.op_push(AmaValue::Bool(!val));
                         } else {
                             panic!("Value should always be a bool");
                         }
@@ -337,7 +332,7 @@ impl<'a> AmaVM<'a> {
                                 self.sp = start as isize - 1;
                             }
                             let result = (native_fn.func)(fn_args, &mut self.alloc);
-                            if let Err(msg) = result {
+                            if let Err(ref msg) = result {
                                 return self.panic_and_throw(msg);
                             }
                             self.op_push(result.unwrap());
@@ -383,10 +378,11 @@ impl<'a> AmaVM<'a> {
                 }
                 OpCode::BuildObj => {
                     let fields_init = self.get_byte() as isize;
-                    let registo = if let self.op_pop() = AmaValue::Registo(reg) { reg } else {
-                        panic!("Expected registo");
-
+                    let registo = match self.op_pop() {
+                        AmaValue::Registo(reg) =>  reg,  
+                        _=> panic!("Expected registo")
                     };
+
                     if fields_init == 0 {
                         self.op_push(AmaValue::RegObj(self.alloc_ref(RegObj::new(
                                 registo
@@ -426,7 +422,7 @@ impl<'a> AmaVM<'a> {
                         if let Err(msg) = cast_res {
                             return self.panic_and_throw(&msg);
                         }
-                        self.alloc_push(cast_res.unwrap());
+                        self.op_push(cast_res.unwrap());
                     } else if arg == 1 {
                         if !ama_value::check_cast(val.get_type(), new_type) {
                             return self.panic_and_throw(&format!(

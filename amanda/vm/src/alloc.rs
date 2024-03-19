@@ -39,7 +39,7 @@ macro_rules! raw_from_box {
 #[derive(Debug)]
 pub struct Alloc<'a> {
     objects: Option<Ref<'a>>,
-    null_ref: Option<Ref<'a>>,
+    null_ref: Option<AmaValue<'a>>,
 }
 
 impl<'a> Alloc<'a> {
@@ -50,7 +50,7 @@ impl<'a> Alloc<'a> {
         };
         //Create a single reference to None to be used
         //by the vm
-        let null_ref = alloc.alloc_ref(AmaValue::None);
+        let null_ref = AmaValue::None;
         alloc.null_ref = Some(null_ref);
         alloc
     }
@@ -60,7 +60,7 @@ impl<'a> Alloc<'a> {
         //unimplemented!()
     }
 
-    pub fn null_ref(&self) -> Ref<'a> {
+    pub fn null_ref(&self) -> AmaValue<'a> {
         self.null_ref.unwrap()
     }
 }

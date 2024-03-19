@@ -13,7 +13,7 @@ use std::fmt::{Display, Formatter, Write};
 use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
-type RcCell<T> = Rc<RefCell<T>>;
+pub type RcCell<T> = Rc<RefCell<T>>;
 
 macro_rules! arith_ops {
     ($res_type: ident, $left: ident, $op:tt, $op_fn: ident, $right: ident) => {
@@ -141,14 +141,6 @@ impl<'a> AmaValue<'a> {
         }
     }
 
-    pub fn regobj_mut(&mut self) -> &mut RegObj<'a> {
-        if let AmaValue::RegObj(val) = self {
-            val
-        } else {
-            panic!("Value is not a reg_object")
-        }
-    }
-
     is_fn!(is_float, AmaValue::F64);
     is_fn!(is_str, AmaValue::Str);
     is_fn!(is_bool, AmaValue::Bool);
@@ -162,7 +154,7 @@ impl<'a> AmaValue<'a> {
         }
         //Check bounds
         let vec = match self {
-            AmaValue::Vector(vec) => vec,
+            AmaValue::Vector(vec) => vec.borrow(),
             _ => unreachable!(),
         };
         if idx as usize >= vec.len() {
@@ -260,21 +252,22 @@ impl Display for AmaValue<'_> {
                 write!(f, "{}", val_str)
             }
             AmaValue::Vector(vec) => {
+                let vec = vec.borrow();
                 let mut res = String::new();
                 write!(res, "[").unwrap();
                 vec.iter().enumerate().for_each(|(i, val)| {
                     if i == vec.len() - 1 {
-                        write!(res, "{}", val.inner()).unwrap();
+                        write!(res, "{}", val).unwrap();
                         return;
                     }
-                    write!(res, "{}, ", val.inner()).unwrap();
+                    write!(res, "{}, ", val).unwrap();
                 });
                 write!(res, "]").unwrap();
                 write!(f, "{}", res)
             }
             AmaValue::None => panic!("None value should not be printed"),
             AmaValue::RegObj(reg) => {
-                write!(f, "<Instância do tipo {}>", reg.reg_name())
+                write!(f, "<Instância do tipo {}>", reg.borrow().reg_name())
             }
             _ => unimplemented!(),
         }
