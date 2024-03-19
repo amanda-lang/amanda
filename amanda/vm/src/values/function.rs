@@ -4,12 +4,12 @@ use std::fmt;
 use std::fmt::Debug;
 use std::fmt::Formatter;
 
-pub type FuncArgs<'a, 'args> = &'args [Ref<'a>];
+pub type FuncArgs<'a, 'args> = &'args [AmaValue<'a>];
 
 #[derive(Clone, Copy)]
 pub struct NativeFunc<'a> {
     pub name: &'a str,
-    pub func: fn(FuncArgs<'a, '_>, &mut Alloc<'a>) -> Result<Ref<'a>, AmaErr>,
+    pub func: fn(FuncArgs<'a, '_>, &mut Alloc<'a>) -> Result<AmaValue<'a>, AmaErr>,
 }
 
 impl<'a> Debug for NativeFunc<'a> {

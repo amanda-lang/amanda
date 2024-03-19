@@ -1,6 +1,5 @@
 use crate::alloc::Ref;
 use crate::ama_value::AmaValue;
-use crate::ama_value::AmaValue;
 use crate::values::amatype::Type;
 use rustc_hash::FxHashMap;
 
@@ -21,12 +20,25 @@ pub struct RegObj<'a> {
 }
 
 impl<'a> RegObj<'a> {
-    pub fn new(registo: &'a Registo<'a>, state: Tabela<'a>) -> RegObj<'a> {
+    pub fn new(registo: &'a Registo<'a>) -> RegObj<'a> {
+        RegObj {
+            registo,
+            state: Tabela::default(),
+        }
+    }
+
+    pub fn with_fields(registo: &'a Registo<'a>, fields: &'a [AmaValue<'a>]) -> RegObj<'a> {
+        let init_pairs = fields[0..]
+            .iter()
+            .step_by(2)
+            .zip(fields[1..].iter().step_by(2))
+            .map(|pair| (*pair.0, *pair.1));
+        let state = Tabela::from_iter(init_pairs);
         RegObj { registo, state }
     }
 
-    pub fn get(&self, field: &'a AmaValue<'a>) -> &'a AmaValue<'a> {
-        self.state.get(&field).unwrap()
+    pub fn get(&self, field: &'a AmaValue<'a>) -> AmaValue<'a> {
+        self.state.get(&field).clone.unwrap()
     }
 
     pub fn set(&mut self, field: AmaValue<'a>, value: AmaValue<'a>) {

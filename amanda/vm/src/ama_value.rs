@@ -10,6 +10,7 @@ use std::convert::From;
 use std::fmt;
 use std::fmt::Debug;
 use std::fmt::{Display, Formatter, Write};
+use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
 type RcCell<T> = Rc<RefCell<T>>;
@@ -76,7 +77,7 @@ pub enum AmaValue<'a> {
     //Heap objects
     Vector(RcCell<Vec<AmaValue<'a>>>),
     //TODO: Change this into a Box<str>,
-    Str(Cow<'a, String>),
+    Str(Cow<'a, str>),
     Registo(&'a Registo<'a>),
     RegObj(RcCell<RegObj<'a>>),
 }
@@ -132,9 +133,9 @@ impl<'a> AmaValue<'a> {
         }
     }
 
-    pub fn take_regobj(&self) -> &RegObj<'a> {
+    pub fn take_regobj(&self) -> RcCell<RegObj<'a>> {
         if let AmaValue::RegObj(val) = self {
-            val
+            Rc::clone(&val)
         } else {
             panic!("Value is not a bool")
         }
@@ -236,8 +237,8 @@ impl Clone for AmaValue<'_> {
             AmaValue::Func(function) => AmaValue::Func(*function),
             AmaValue::NativeFn(func) => AmaValue::NativeFn(*func),
             AmaValue::Type(t) => AmaValue::Type(*t),
-            AmaValue::Vector(vec) => AmaValue::Vector(Rc::clone(vec)),
-            AmaValue::RegObj(obj) => AmaValue::RegObj(Rc::clone(obj)),
+            AmaValue::Vector(ref vec) => AmaValue::Vector(Rc::clone(vec)),
+            AmaValue::RegObj(ref obj) => AmaValue::RegObj(Rc::clone(obj)),
             _ => unimplemented!("Cannot clone value of type"),
         }
     }
