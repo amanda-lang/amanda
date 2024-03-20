@@ -109,27 +109,12 @@ impl<'a> AmaVM<'a> {
 
     fn op_push(&mut self, value: AmaValue<'a>) {
         self.sp += 1;
-        let values_size = self.values.len() as isize;
-        if self.sp == values_size {
-            self.values.push(value);
-        } else if self.sp < values_size {
-            self.values[self.sp as usize] = 
-                value;
-        }
+        self.values.push(value);
     }
 
     fn op_pop(&mut self) -> AmaValue<'a> {
-        let values_size = (self.values.len() - 1) as isize;
-        if self.sp == values_size {
-            self.sp -= 1;
-            self.values.pop().unwrap()
-        } else if self.sp < values_size {
-            let idx = self.sp;
-            self.sp -= 1;
-            self.values[idx as usize]
-        } else {
-            panic!("Undefined VM State. sp larger than values!");
-        }
+        self.sp -= 1;
+        self.values.pop().unwrap()
     }
 
     fn get_byte(&mut self) -> u8 {
@@ -166,7 +151,7 @@ impl<'a> AmaVM<'a> {
             match OpCode::from(&op) {
                 OpCode::LoadConst => {
                     let idx = self.get_u16_arg();
-                    self.op_push(self.module.constants[idx as usize]);
+                    self.op_push(self.module.constants[idx as usize].clone());
                 }
                 OpCode::LoadName => {
                     let idx = self.get_u16_arg();
@@ -227,25 +212,31 @@ impl<'a> AmaVM<'a> {
                     match target {
                         //TODO - Optimization: Check at compile if string is going to get indexed
                         //generate graphemes ahead of time.
-                        AmaValue::Str(string) =>{
+                        AmaValue::Str(Cow::Borrowed(ref string)) =>{
                             if idx < 0 {
                                self.panic_and_throw("Erro de índice inválido. Strings só podem ser indexadas com inteiros positivos")?;
                             }
-                            let real_str = &string as &str;
-                            let user_char = real_str.graphemes(true).nth(idx as usize);
+                            let user_char = string.graphemes(true).nth(idx as usize);
                             if let Some(user_char) = user_char {
-                                if let Cow::Borrowed(b) = string {
-                                    self.op_push(AmaValue::Str(Cow::Borrowed(user_char)));
-                                } else {
-                                    self.op_push(AmaValue::Str(Cow::Owned(String::from(user_char))));
-                                }
+                                self.op_push(AmaValue::Str(Cow::Borrowed(user_char)));
                             } else {
-                                self.panic_and_throw(&format!("Erro de índice inválido. O tamanho da string é {}, mas o índice é {}", real_str.graphemes(true).count(), idx))?;
+                                self.panic_and_throw(&format!("Erro de índice inválido. O tamanho da string é {}, mas o índice é {}", string.graphemes(true).count(), idx))?;
                             }
                         }
-                        AmaValue::Vector(vec) =>{
+                        AmaValue::Str(Cow::Owned(ref string)) =>{
+                            if idx < 0 {
+                               self.panic_and_throw("Erro de índice inválido. Strings só podem ser indexadas com inteiros positivos")?;
+                            }
+                            let user_char = string.graphemes(true).nth(idx as usize);
+                            if let Some(user_char) = user_char {
+                                self.op_push(AmaValue::Str(Cow::Owned(String::from(user_char))));
+                            } else {
+                                self.panic_and_throw(&format!("Erro de índice inválido. O tamanho da string é {}, mas o índice é {}", string.graphemes(true).count(), idx))?;
+                            }
+                        }
+                        AmaValue::Vector(ref vec) =>{
                             match target.vec_index_check(idx){
-                                Ok(_) => self.op_push(vec.borrow()[idx as usize]), 
+                                Ok(_) => self.op_push(vec.borrow()[idx as usize].clone()), 
                                 Err(err) => self.panic_and_throw(&err)?
                             };
                         }
@@ -258,7 +249,7 @@ impl<'a> AmaVM<'a> {
                     let idx = idx_ref.take_int();
                     let target = self.op_pop();
                     match target {
-                        AmaValue::Vector(vec) =>{
+                        AmaValue::Vector(ref vec) =>{
                             match target.vec_index_check(idx){
                                 Ok(_) => vec.borrow_mut()[idx as usize] = value, 
                                 Err(err) => self.panic_and_throw(&err)?
@@ -271,7 +262,7 @@ impl<'a> AmaVM<'a> {
                 OpCode::GetGlobal => {
                     let id_idx = self.get_u16_arg() as usize;
                     let id: &str = &self.module.names[id_idx];
-                    self.op_push(*self.globals.get(id).unwrap());
+                    self.op_push(self.globals.get(id).unwrap().clone());
                 }
                 OpCode::SetGlobal => {
                     let id_idx = self.get_u16_arg() as usize;
@@ -298,7 +289,7 @@ impl<'a> AmaVM<'a> {
                 }
                 OpCode::GetLocal => {
                     let idx = self.get_u16_arg() as usize + self.frames.peek().bp as usize;
-                    self.op_push(self.values[idx]);
+                    self.op_push(self.values[idx].clone());
                 }
                 OpCode::SetLocal => {
                     let idx = self.frames.peek().bp as usize + self.get_u16_arg() as usize;
@@ -365,7 +356,8 @@ impl<'a> AmaVM<'a> {
                 OpCode::BuildVec => {
                     let args = self.get_byte() as isize;
                     if args == 0 {
-                        self.op_push(AmaValue::Vector(self.alloc_ref(Vec::new())));
+                        let alloc_ref =self.alloc_ref(Vec::new());
+                        self.op_push(AmaValue::Vector(alloc_ref));
                         self.frames.peek_mut().ip += 1;
                         continue;
                     }
@@ -384,20 +376,23 @@ impl<'a> AmaVM<'a> {
                     };
 
                     if fields_init == 0 {
-                        self.op_push(AmaValue::RegObj(self.alloc_ref(RegObj::new(
+                        let alloc_ref =  self.alloc_ref(RegObj::new(
                                 registo
-                        ))));
+                        ));
+                        self.op_push(AmaValue::RegObj(alloc_ref));
                         self.frames.peek_mut().ip += 1;
                         continue;
                     }
                     let start = (self.sp - ((fields_init * 2) - 1))  as usize;
-                    let build_args = &self.values[start..=self.sp as usize];
+                    //let build_args = &self.values[start..=self.sp as usize];
+                    let build_args = self.values.drain(start..= self.sp as usize);
                     let reg_obj = RegObj::with_fields(registo, build_args);
 
                     self.sp = start as isize - 1;
-                    self.op_push(AmaValue::RegObj(self.alloc_ref(reg_obj)));
+                    let alloc_ref =  self.alloc_ref(reg_obj);
+                    self.op_push(AmaValue::RegObj(alloc_ref));
                     //Drop values
-                    self.values.drain(self.sp as usize + 1..);
+                    //self.values.drain(self.sp as usize + 1..);
                 }
                 OpCode::GetProp => {
                     let field = self.op_pop();
@@ -408,8 +403,8 @@ impl<'a> AmaVM<'a> {
                 OpCode::SetProp => {
                     let new_val = self.op_pop();
                     let field = self.op_pop();
-                    let reg_ref = self.op_pop();
-                    let reg_obj = reg_ref.take_regobj().borrow_mut();
+                    let reg_ref = self.op_pop().take_regobj();
+                    let mut reg_obj = reg_ref.borrow_mut();
                     reg_obj.set(field, new_val);
                 }
                 OpCode::Cast => {
@@ -431,7 +426,7 @@ impl<'a> AmaVM<'a> {
                                 new_type.name()
                             ));
                         }
-                        self.op_push(val_ref);
+                        self.op_push(val);
                     }
                 }
                 OpCode::Halt => break,
