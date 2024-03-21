@@ -13,14 +13,14 @@ type AmaResult<'a> = Result<AmaValue<'a>, AmaErr>;
 
 /* Builtin functions*/
 fn escrevaln<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
-    let value = args[0];
+    let value = &args[0];
 
     println!("{}", value);
     Ok(AmaValue::None)
 }
 
 fn escreva<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
-    let value = args[0];
+    let value = &args[0];
 
     print!("{}", value);
     io::stdout().flush().unwrap();
@@ -73,7 +73,7 @@ fn leia_real<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a>
 }
 
 fn tam<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
-    let value = args[0];
+    let value = &args[0];
     match value {
         AmaValue::Str(string) => {
             Ok((AmaValue::Int((&string as &str).graphemes(true).count() as i64)))
@@ -84,11 +84,11 @@ fn tam<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
 }
 
 fn txt_contem<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
-    let haystack = args[0];
-    let needle = args[1];
+    let haystack = &args[0];
+    let needle = &args[1];
     match (haystack, needle) {
         (AmaValue::Str(haystack), AmaValue::Str(needle)) => {
-            Ok((AmaValue::Bool((&haystack as &str).contains(&needle as &str))))
+            Ok((AmaValue::Bool((haystack as &str).contains(needle as &str))))
         }
         _ => unreachable!("function called with something of invalid type"),
     }
@@ -135,21 +135,22 @@ fn vec<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
             ));
         }
     }
-    let vec = AmaValue::Vector(alloc.alloc_ref(build_vec(0, n_dims - 1, dims, el_type, alloc)));
+    let built_vec = build_vec(0, n_dims - 1, dims, el_type, alloc);
+    let vec = AmaValue::Vector(alloc.alloc_ref(built_vec));
     Ok((vec))
 }
 
 fn anexa<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
-    let vec = match args[0] {
+    let vec = match &args[0] {
         AmaValue::Vector(vec) => vec,
         _ => unreachable!("Something bad is happening"),
     };
-    vec.borrow_mut().push(args[1]);
+    vec.borrow_mut().push(args[1].clone());
     Ok(AmaValue::None)
 }
 
 fn remova<'a>(args: FuncArgs<'a, '_>, _: &mut Alloc<'a>) -> AmaResult<'a> {
-    let vec = args[0];
+    let vec = &args[0];
     let idx = args[1].take_int();
     vec.vec_index_check(idx)?;
     match vec {

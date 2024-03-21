@@ -231,6 +231,7 @@ impl Clone for AmaValue<'_> {
             AmaValue::Type(t) => AmaValue::Type(*t),
             AmaValue::Vector(ref vec) => AmaValue::Vector(Rc::clone(vec)),
             AmaValue::RegObj(ref obj) => AmaValue::RegObj(Rc::clone(obj)),
+            AmaValue::Registo(reg) => AmaValue::Registo(reg),
             _ => unimplemented!("Cannot clone value of type"),
         }
     }

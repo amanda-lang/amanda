@@ -101,20 +101,31 @@ impl<'a> AmaVM<'a> {
         for (name, func) in builtin_objs{
             vm.globals.insert(name, func);
         }
-        println!("{}", vm.values.len());
-        println!("Size of AmaValue: {}", std::mem::size_of::<AmaValue>());
-        println!("Size of Vec: {}", std::mem::size_of::<Vec<AmaValue>>());
         vm
     }
 
     fn op_push(&mut self, value: AmaValue<'a>) {
         self.sp += 1;
-        self.values.push(value);
+        let values_size = self.values.len() as isize;
+        if self.sp == values_size {
+            self.values.push(value);
+        } else if self.sp < values_size {
+            self.values[self.sp as usize] = value;
+        }
     }
 
     fn op_pop(&mut self) -> AmaValue<'a> {
-        self.sp -= 1;
-        self.values.pop().unwrap()
+        let values_size = (self.values.len() - 1) as isize;
+        if self.sp == values_size {
+            self.sp -= 1;
+            self.values.pop().unwrap()
+        } else if self.sp < values_size {
+            let idx = self.sp;
+            self.sp -= 1;
+            self.values[idx as usize].clone()
+        } else {
+            panic!("Undefined VM State. sp larger than values!");
+        }
     }
 
     fn get_byte(&mut self) -> u8 {

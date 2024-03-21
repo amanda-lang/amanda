@@ -61,6 +61,6 @@ impl<'a> Alloc<'a> {
     }
 
     pub fn null_ref(&self) -> AmaValue<'a> {
-        self.null_ref.unwrap()
+        AmaValue::None
     }
 }

@@ -5,6 +5,7 @@ use std::fmt;
 use std::fmt::Debug;
 use std::fmt::Formatter;
 
+//TODO: Change to Drain iter or something similar
 pub type FuncArgs<'a, 'args> = &'args [AmaValue<'a>];
 
 #[derive(Clone, Copy)]
