@@ -29,14 +29,27 @@ impl<'a> RegObj<'a> {
         }
     }
 
-    pub fn with_fields(registo: &'a Registo<'a>, fields: Drain<'_, AmaValue<'a>>) -> RegObj<'a> {
-        let tabela = Tabela::with_capacity(fields.size_hint());
-        for (i, val) in fields.enumerate {}
+    pub fn with_fields(
+        registo: &'a Registo<'a>,
+        mut fields: Drain<'_, AmaValue<'a>>,
+    ) -> RegObj<'a> {
+        let mut state = Tabela::default();
+        let mut pair = (AmaValue::None, AmaValue::None);
+        loop {
+            let maybe_key = fields.next();
+            if maybe_key.is_none() {
+                break;
+            }
+            let key = maybe_key.expect("Pair starts with key");
+            let value = fields.next().expect("Key always comes with value");
+            state.insert(key, value);
+        }
+        /*
         let init_pairs = fields
             .step_by(2)
             .zip(fields[1..].iter().step_by(2))
             .map(|pair| (pair.0, pair.1));
-        let state = Tabela::from_iter(init_pairs);
+        let state = Tabela::from_iter(init_pairs);*/
         RegObj { registo, state }
     }
 
