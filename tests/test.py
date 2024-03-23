@@ -30,6 +30,9 @@ DIRS = [
     join(TEST_DIR, "vec"),
     join(TEST_DIR, "rt_errors"),
     join(TEST_DIR, "math"),
+    join(TEST_DIR, "registo"),
+    join(TEST_DIR, "set"),
+    join(TEST_DIR, "methods"),
 ]
 
 passed = 0

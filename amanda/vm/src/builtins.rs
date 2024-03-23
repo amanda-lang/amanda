@@ -1,28 +1,30 @@
 use crate::alloc::{Alloc, Ref};
-use crate::ama_value::{AmaValue, FuncArgs, NativeFunc, Type};
+use crate::ama_value::AmaValue;
 use crate::errors::AmaErr;
+use crate::values::amatype::Type;
+use crate::values::function::{FuncArgs, NativeFunc};
 use std::borrow::Cow;
 use std::io;
 use std::io::Write;
 use unicode_segmentation::UnicodeSegmentation;
 
 /*Helpers*/
-type AmaResult<'a> = Result<Ref<'a>, AmaErr>;
+type AmaResult<'a> = Result<AmaValue<'a>, AmaErr>;
 
 /* Builtin functions*/
 fn escrevaln<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
-    let value: &AmaValue = args[0].inner();
+    let value = &args[0];
 
     println!("{}", value);
-    Ok(alloc.null_ref())
+    Ok(AmaValue::None)
 }
 
 fn escreva<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
-    let value: &AmaValue = args[0].inner();
+    let value = &args[0];
 
     print!("{}", value);
     io::stdout().flush().unwrap();
-    Ok(alloc.null_ref())
+    Ok(AmaValue::None)
 }
 
 fn leia<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
@@ -37,18 +39,18 @@ fn leia<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
         "Removing wrong char"
     );
 
-    Ok(alloc.alloc_ref(AmaValue::Str(Cow::Owned(input))))
+    Ok((AmaValue::Str(Cow::Owned(input))))
 }
 
 fn leia_int<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     let input = leia(args, alloc);
     if input.is_ok() {
         //TODO: Propagate possible errors to caller
-        let maybe_int = input.unwrap().inner().take_str().parse::<i64>();
+        let maybe_int = input.unwrap().take_str().parse::<i64>();
         if let Err(_) = maybe_int {
             Err("Valor introduzido não é um inteiro válido".to_string())
         } else {
-            Ok(alloc.alloc_ref(AmaValue::Int(maybe_int.unwrap())))
+            Ok((AmaValue::Int(maybe_int.unwrap())))
         }
     } else {
         unreachable!()
@@ -59,11 +61,11 @@ fn leia_real<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a>
     let input = leia(args, alloc);
     if input.is_ok() {
         //TODO: Propagate possible errors to caller
-        let maybe_double = input.unwrap().inner().take_str().parse::<f64>();
+        let maybe_double = input.unwrap().take_str().parse::<f64>();
         if let Err(_) = maybe_double {
             Err("Valor introduzido não é um número real válido".to_string())
         } else {
-            Ok(alloc.alloc_ref(AmaValue::F64(maybe_double.unwrap())))
+            Ok((AmaValue::F64(maybe_double.unwrap())))
         }
     } else {
         unreachable!()
@@ -71,23 +73,23 @@ fn leia_real<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a>
 }
 
 fn tam<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
-    let value = args[0].inner();
+    let value = &args[0];
     match value {
-        AmaValue::Str(string) => Ok(alloc.alloc_ref(AmaValue::Int(
-            (&string as &str).graphemes(true).count() as i64,
-        ))),
-        AmaValue::Vector(vec) => Ok(alloc.alloc_ref(AmaValue::Int(vec.len() as i64))),
+        AmaValue::Str(string) => {
+            Ok((AmaValue::Int((&string as &str).graphemes(true).count() as i64)))
+        }
+        AmaValue::Vector(vec) => Ok((AmaValue::Int(vec.borrow().len() as i64))),
         _ => unreachable!("function called with something of invalid type"),
     }
 }
 
 fn txt_contem<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
-    let haystack = args[0].inner();
-    let needle = args[1].inner();
+    let haystack = &args[0];
+    let needle = &args[1];
     match (haystack, needle) {
-        (AmaValue::Str(haystack), AmaValue::Str(needle)) => Ok(alloc.alloc_ref(AmaValue::Bool(
-            (&haystack as &str).contains(&needle as &str),
-        ))),
+        (AmaValue::Str(haystack), AmaValue::Str(needle)) => {
+            Ok((AmaValue::Bool((haystack as &str).contains(needle as &str))))
+        }
         _ => unreachable!("function called with something of invalid type"),
     }
 }
@@ -96,17 +98,17 @@ fn txt_contem<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a
 fn build_vec<'a>(
     dim: usize,
     n_dims: usize,
-    dims: &[Ref],
+    dims: &[AmaValue],
     el_type: Type,
     alloc: &mut Alloc<'a>,
-) -> Vec<Ref<'a>> {
-    let size = dims[dim].inner().take_int() as usize;
+) -> Vec<AmaValue<'a>> {
+    let size = dims[dim].take_int() as usize;
     if dim == n_dims {
         match el_type {
-            Type::Int => vec![alloc.alloc_ref(AmaValue::Int(0)); size as usize],
-            Type::Real => vec![alloc.alloc_ref(AmaValue::F64(0.0)); size],
-            Type::Bool => vec![alloc.alloc_ref(AmaValue::Bool(false)); size],
-            Type::Texto => vec![alloc.alloc_ref(AmaValue::Str(Cow::Owned(String::new()))); size],
+            Type::Int => vec![(AmaValue::Int(0)); size as usize],
+            Type::Real => vec![(AmaValue::F64(0.0)); size],
+            Type::Bool => vec![(AmaValue::Bool(false)); size],
+            Type::Texto => vec![(AmaValue::Str(Cow::Owned(String::new()))); size],
             _ => unreachable!("Only primitives types should have this"),
         }
     } else {
@@ -115,107 +117,108 @@ fn build_vec<'a>(
         } else {
             let inner = build_vec(dim + 1, n_dims, dims, el_type, alloc);
             let mut container = Vec::with_capacity(inner.len());
-            container.resize_with(size, || alloc.alloc_ref(AmaValue::Vector(inner.clone())));
+            container.resize_with(size, || (AmaValue::Vector(alloc.alloc_ref(inner.clone()))));
             container
         }
     }
 }
 
 fn vec<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
-    let el_type = args[0].inner().take_type();
+    let el_type = args[0].take_type();
     let dims = &args[1..];
     let n_dims = dims.len();
     for dim in dims {
-        let size = dim.inner().take_int();
+        let size = dim.take_int();
         if size < 0 {
             return Err(String::from(
                 "Dimensões de um vector devem ser especificidas por números inteiros positivos",
             ));
         }
     }
-    let vec = AmaValue::Vector(build_vec(0, n_dims - 1, dims, el_type, alloc));
-    Ok(alloc.alloc_ref(vec))
+    let built_vec = build_vec(0, n_dims - 1, dims, el_type, alloc);
+    let vec = AmaValue::Vector(alloc.alloc_ref(built_vec));
+    Ok((vec))
 }
 
 fn anexa<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
-    let vec = match args[0].inner_mut() {
+    let vec = match &args[0] {
         AmaValue::Vector(vec) => vec,
         _ => unreachable!("Something bad is happening"),
     };
-    vec.push(args[1]);
-    Ok(alloc.null_ref())
+    vec.borrow_mut().push(args[1].clone());
+    Ok(AmaValue::None)
 }
 
 fn remova<'a>(args: FuncArgs<'a, '_>, _: &mut Alloc<'a>) -> AmaResult<'a> {
-    let vec = args[0].inner_mut();
-    let idx = args[1].inner().take_int();
+    let vec = &args[0];
+    let idx = args[1].take_int();
     vec.vec_index_check(idx)?;
     match vec {
-        AmaValue::Vector(vec) => Ok(vec.remove(idx as usize)),
+        AmaValue::Vector(vec) => Ok(vec.borrow_mut().remove(idx as usize)),
         _ => unreachable!("Invalid call!"),
     }
 }
 
 fn abs<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
-    let number = args[0].inner().take_float();
-    Ok(alloc.alloc_ref(AmaValue::F64(number.abs())))
+    let number = args[0].take_float();
+    Ok((AmaValue::F64(number.abs())))
 }
 
 fn expoente<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
-    let base = args[0].inner().take_float();
-    let exp = args[1].inner().take_float();
-    Ok(alloc.alloc_ref(AmaValue::F64(base.powf(exp))))
+    let base = args[0].take_float();
+    let exp = args[1].take_float();
+    Ok((AmaValue::F64(base.powf(exp))))
 }
 
 fn raizqd<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
-    let number = args[0].inner().take_float();
-    Ok(alloc.alloc_ref(AmaValue::F64(number.sqrt())))
+    let number = args[0].take_float();
+    Ok((AmaValue::F64(number.sqrt())))
 }
 
 fn arredonda<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
-    let number = args[0].inner().take_float();
-    Ok(alloc.alloc_ref(AmaValue::Int(number.round() as i64)))
+    let number = args[0].take_float();
+    Ok((AmaValue::Int(number.round() as i64)))
 }
 
 fn piso<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
-    let number = args[0].inner().take_float();
-    Ok(alloc.alloc_ref(AmaValue::Int(number.floor() as i64)))
+    let number = args[0].take_float();
+    Ok((AmaValue::Int(number.floor() as i64)))
 }
 
 fn teto<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
-    let number = args[0].inner().take_float();
-    Ok(alloc.alloc_ref(AmaValue::Int(number.ceil() as i64)))
+    let number = args[0].take_float();
+    Ok((AmaValue::Int(number.ceil() as i64)))
 }
 
 fn sen<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
-    let number = args[0].inner().take_float();
-    Ok(alloc.alloc_ref(AmaValue::F64(number.sin())))
+    let number = args[0].take_float();
+    Ok((AmaValue::F64(number.sin())))
 }
 
 fn cos<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
-    let number = args[0].inner().take_float();
-    Ok(alloc.alloc_ref(AmaValue::F64(number.cos())))
+    let number = args[0].take_float();
+    Ok((AmaValue::F64(number.cos())))
 }
 
 fn tan<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
-    let number = args[0].inner().take_float();
-    Ok(alloc.alloc_ref(AmaValue::F64(number.tan())))
+    let number = args[0].take_float();
+    Ok((AmaValue::F64(number.tan())))
 }
 
 fn log<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
-    let number = args[0].inner().take_float();
-    let base = args[1].inner().take_float();
-    Ok(alloc.alloc_ref(AmaValue::F64(number.log(base))))
+    let number = args[0].take_float();
+    let base = args[1].take_float();
+    Ok((AmaValue::F64(number.log(base))))
 }
 
 fn grausprad<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
-    let degrees = args[0].inner().take_float();
-    Ok(alloc.alloc_ref(AmaValue::F64(degrees.to_radians())))
+    let degrees = args[0].take_float();
+    Ok((AmaValue::F64(degrees.to_radians())))
 }
 
 fn radpgraus<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
-    let rad = args[0].inner().take_float();
-    Ok(alloc.alloc_ref(AmaValue::F64(rad.to_degrees())))
+    let rad = args[0].take_float();
+    Ok((AmaValue::F64(rad.to_degrees())))
 }
 
 #[inline]

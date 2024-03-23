@@ -1,0 +1,5 @@
+
+met Mensagem::enviar(alvo)
+    escrevaln(alvo.sender)
+fim
+#[output]: Erro: o tipo 'Mensagem' não foi declarado.

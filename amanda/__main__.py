@@ -25,9 +25,9 @@ def run_frontend(filename):
         valid_program = Analyzer(filename, Module(filename)).visit_program(
             program
         )
+        return valid_program
     except AmandaError as e:
         throw_error(e)
-    return valid_program
 
 
 def run_file(args):

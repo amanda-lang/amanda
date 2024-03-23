@@ -1,5 +1,7 @@
 use crate::alloc::{Alloc, Ref};
-use crate::ama_value::{AmaFunc, AmaValue};
+use crate::ama_value::AmaValue;
+use crate::values::function::AmaFunc;
+use crate::values::registo::Registo;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::io::Cursor;
@@ -16,11 +18,12 @@ pub enum Const {
 
 #[derive(Debug)]
 pub struct Module<'a> {
-    pub constants: Vec<Ref<'a>>,
+    pub constants: Vec<AmaValue<'a>>,
     pub names: Vec<String>,
     pub code: Vec<u8>,
     pub main: AmaFunc<'a>,
     pub functions: Vec<AmaFunc<'a>>,
+    pub registos: Vec<Registo<'a>>,
     pub src_map: Vec<usize>,
 }
 
@@ -211,6 +214,20 @@ fn doc_into_amafn<'a>(doc: BSONType) -> (String, usize, usize) {
     }
 }
 
+fn doc_into_reg<'a>(doc: BSONType) -> (String, Vec<String>) {
+    if let BSONType::Doc(mut registo) = doc {
+        (
+            bson_take!(BSONType::String, registo.remove("name").unwrap()),
+            bson_take!(BSONType::Array, registo.remove("fields").unwrap())
+                .into_iter()
+                .map(|field| bson_take!(BSONType::String, field))
+                .collect(),
+        )
+    } else {
+        unreachable!("functions should be an array of functions")
+    }
+}
+
 pub fn consume_const<'a>(constant: Const) -> AmaValue<'a> {
     match constant {
         Const::Str(string) => AmaValue::Str(Cow::Owned(string)),
@@ -220,14 +237,14 @@ pub fn consume_const<'a>(constant: Const) -> AmaValue<'a> {
     }
 }
 
-pub fn load_bin<'bin>(amac_bin: &'bin mut [u8], alloc: &mut Alloc<'bin>) -> Module<'bin> {
+pub fn load_bin<'bin>(amac_bin: &'bin mut [u8]) -> Module<'bin> {
     //Skip size bytes
     let mut prog_data = unpack_bson_doc(amac_bin);
     let raw_consts = prog_data.remove("constants").unwrap().take_vec();
     let mut constants = Vec::with_capacity(raw_consts.len());
     raw_consts
         .into_iter()
-        .for_each(|constant| constants.push(alloc.alloc_ref(consume_const(Const::from(constant)))));
+        .for_each(|constant| constants.push(consume_const(Const::from(constant))));
     let names: Vec<String> = prog_data
         .remove("names")
         .unwrap()
@@ -269,6 +286,23 @@ pub fn load_bin<'bin>(amac_bin: &'bin mut [u8], alloc: &mut Alloc<'bin>) -> Modu
             unreachable!("functions should be an array of functions")
         };
 
+    let registos: Vec<Registo> =
+        if let BSONType::Array(registos) = prog_data.remove("registos").unwrap() {
+            registos
+                .into_iter()
+                .map(|func| {
+                    let (name, fields) = doc_into_reg(func);
+                    Registo {
+                        //TODO: Check if i should be leaking memory
+                        name: Box::leak(name.into_boxed_str()),
+                        fields,
+                    }
+                })
+                .collect()
+        } else {
+            unreachable!("registo should be an array of registos")
+        };
+
     Module {
         constants,
         names,
@@ -283,6 +317,7 @@ pub fn load_bin<'bin>(amac_bin: &'bin mut [u8], alloc: &mut Alloc<'bin>) -> Modu
             locals: entry_locals as usize,
         },
         functions,
+        registos,
     }
 }
 

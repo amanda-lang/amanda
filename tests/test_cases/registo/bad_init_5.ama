@@ -1,0 +1,9 @@
+#Type of arg must match type of attribute
+registo Foo
+    a: int
+    b: texto
+
+fim
+
+a: Foo = Foo(a: 0, b: 1)
+#[output]: Erro: argumento nomeado inválido. incompatibilidade de tipos entre o valor do argumento nomeado 'b' e o atributo do registo. 'int' incompatível com 'texto'.

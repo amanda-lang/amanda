@@ -1,0 +1,12 @@
+#All initializers must be named
+
+registo Bar
+    a: int
+    b: texto
+fim
+
+
+
+
+a: Bar = Bar(a: 0, "agya")
+#[output]: Erro: Todos os argumentos do inicializador de um registo devem ser nomeados.

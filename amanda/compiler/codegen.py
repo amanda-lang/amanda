@@ -1,10 +1,10 @@
 import sys
 import pdb
-from typing import List
+from typing import List, cast, Sequence
 from io import StringIO, BytesIO
 from enum import Enum, auto
 import amanda.compiler.symbols as symbols
-from amanda.compiler.type import Type, Kind
+from amanda.compiler.type import Registo, Type, Kind
 import amanda.compiler.ast as ast
 from amanda.compiler.tokens import TokenType as TT
 from amanda.compiler.error import AmandaError, throw_error
@@ -20,6 +20,8 @@ class OpCode(Enum):
     MOSTRA = 0x00
     # Loads the constant at index specified by arg. Constant becomes TOS.
     LOAD_CONST = auto()
+    # Loads the name at index specified by arg. Name becomes TOS.
+    LOAD_NAME = auto()
     # All OP instructions use 1 or 2 on the stack add pop them
     OP_ADD = auto()
     OP_MINUS = auto()
@@ -69,7 +71,18 @@ class OpCode(Enum):
     BUILD_STR = auto()
     # Builds a vec using elements on the stack. 8-bit arg indicates the number of elements
     # on the stack to use.
+    # Builds a vec using elements on the stack. 8-bit arg indicates the number of elements
+    # on the stack to use.
     BUILD_VEC = auto()
+    # Loads a record definition. 16 bit-arg indicates the index of the reg definition.
+    LOAD_REGISTO = auto()
+    # Builds a new instance of a record using arguments on the stack. 8-bit arg indicates the number of fields to initialize.
+    # Expects n + 1 elements on the stack (first one is the Record object of the instance)
+    BUILD_OBJ = auto()
+    # Gets the propery TOS from the record instance TOS - 1.
+    GET_PROP = auto()
+    # Sets property TOS - 1 of the record instance at TOS - 2 to TOS.
+    SET_PROP = auto()
     # Stops execution of the VM. Must always be added to stop execution of the vm
     HALT = 0xFF
 
@@ -78,21 +91,24 @@ class OpCode(Enum):
         # uses
         num_ops = len(list(OpCode))
         assert (
-            num_ops == 32
+            num_ops == 37
         ), f"Please update the size of ops after adding a new Op. New size: {num_ops}"
         if self in (
             OpCode.CALL_FUNCTION,
             OpCode.CAST,
             OpCode.BUILD_STR,
             OpCode.BUILD_VEC,
+            OpCode.BUILD_OBJ,
         ):
             return OP_SIZE * 2
         elif self in (
             OpCode.LOAD_CONST,
+            OpCode.LOAD_NAME,
             OpCode.SET_LOCAL,
             OpCode.GET_LOCAL,
             OpCode.GET_GLOBAL,
             OpCode.SET_GLOBAL,
+            OpCode.LOAD_REGISTO,
         ):
             return OP_SIZE * 3
         elif self in (
@@ -107,6 +123,9 @@ class OpCode(Enum):
         return str(self.value)
 
 
+Instruction = tuple[OpCode, tuple[int, ...]]
+
+
 class ByteGen:
     """
     Converts an amanda AST into executable bytecode instructions.
@@ -116,21 +135,24 @@ class ByteGen:
     NAME_TABLE = 1
 
     def __init__(self):
-        self.depth = -1
-        self.ama_lineno = 1  # tracks lineno in input amanda src
-        self.program_symtab = None
-        self.scope_symtab = None
-        self.func_locals = {}
-        self.const_table = {}
+        self.depth: int = -1
+        self.ama_lineno: int = 1  # tracks lineno in input amanda src
+        self.program_symtab: symbols.Scope = None  # type: ignore
+        self.scope_symtab: symbols.Scope = None  # type: ignore
+        self.func_locals: dict[str, int] = {}
+        self.const_table: dict[str, int] = {}
         self.names = {}
         self.labels = {}
-        self.ops = []
+        self.ops: list[Instruction] = []
         self.funcs = []
-        self.ip = 0  # Current bytecode offset
-        self.lineno = -1
-        self.ctx_loop_start = -1
-        self.ctx_loop_exit = -1
-        self.src_map = {}  # Maps source lines to bytecode offset
+        self.registos = []
+        self.ip: int = 0  # Current bytecode offset
+        self.lineno: int = -1
+        self.ctx_loop_start: int = -1
+        self.ctx_loop_exit: int = -1
+        self.src_map: dict[
+            int, list[int]
+        ] = {}  # Maps source lines to bytecode offset
 
     def compile(self, program) -> bytes:
         """Compiles an amanda ast into bytecode ops.
@@ -181,24 +203,25 @@ class ByteGen:
             "names": list(self.names.keys()),
             "ops": code,
             "functions": self.funcs,
+            "registos": self.registos,
             "src_map": src_map,
         }
 
         return bindump.dumps(module)
 
-    def new_label(self) -> str:
+    def new_label(self) -> int:
         idx = len(self.labels)
         self.labels[idx] = self.ip  # Placeholder value
         return idx
 
-    def patch_label_loc(self, label) -> str:
-        if self.ip > (2 ** 64) - 1:
+    def patch_label_loc(self, label):
+        if self.ip > (2**64) - 1:
             raise Exception(
                 f"Address of jump ({self.ip}) is too large to be supported by the vm"
             )
         self.labels[label] = self.ip
 
-    def append_op(self, op, *args):
+    def append_op(self, op: OpCode, *args: int):
         if self.lineno in self.src_map:
             offsets = self.src_map[self.lineno]
             if len(offsets) < 2:
@@ -213,6 +236,11 @@ class ByteGen:
     def load_const(self, const):
         self.append_op(
             OpCode.LOAD_CONST, self.get_table_index(const, self.CONST_TABLE)
+        )
+
+    def load_name(self, name: str):
+        self.append_op(
+            OpCode.LOAD_NAME, self.get_table_index(name, self.NAME_TABLE)
         )
 
     def format_u64_arg(self, arg) -> List[int]:
@@ -289,7 +317,7 @@ class ByteGen:
         str_buffer.close()
         return string
 
-    def gen(self, node, args=None):
+    def gen(self, node: ast.ASTNode, args=None):
         node_class = type(node).__name__.lower()
         method_name = f"gen_{node_class}"
         gen_method = getattr(self, method_name, self.bad_gen)
@@ -315,7 +343,7 @@ class ByteGen:
             self.gen(child)
         self.exit_block()
 
-    def get_table_index(self, item, table):
+    def get_table_index(self, item: str, table):
         # TODO: Make load const instruction use 64 bit arg
         tab = self.const_table if table == self.CONST_TABLE else self.names
         if item in tab:
@@ -324,24 +352,24 @@ class ByteGen:
             idx = len(tab)
             tab[item] = idx
         assert (
-            idx < (2 ** 16) - 1
+            idx < (2**16) - 1
         ), f"Too many items in a single table for the current file."
         return idx
 
-    def gen_constant(self, node):
+    def gen_constant(self, node: ast.Constant):
         literal = str(node.token.lexeme)
         idx = self.get_table_index(literal, self.CONST_TABLE)
         self.append_op(OpCode.LOAD_CONST, idx)
         self.gen_auto_cast(node.prom_type)
 
-    def load_variable(self, symbol):
+    def load_variable(self, symbol: symbols.Symbol):
         name = symbol.name
         if symbol.is_global:
             self.append_op(OpCode.GET_GLOBAL, self.names[name])
         else:
             self.append_op(OpCode.GET_LOCAL, self.func_locals[symbol.out_id])
 
-    def gen_variable(self, node):
+    def gen_variable(self, node: ast.Variable):
         name = node.token.lexeme
         symbol = node.var_symbol
         # TODO: Make sure that every identifier goes through
@@ -375,7 +403,7 @@ class ByteGen:
             self.append_op(OpCode.LOAD_CONST, init_idx)
             self.set_variable(symbol)
 
-    def set_variable(self, symbol):
+    def set_variable(self, symbol: symbols.Symbol):
         name = symbol.name
         if symbol.is_global:
             var_idx = self.get_table_index(name, self.NAME_TABLE)
@@ -538,7 +566,10 @@ class ByteGen:
         for child in block.children:
             self.gen(child)
         # update: control_var += inc
-        self.gen(range_expr.inc)
+        if not range_expr.inc:
+            self.load_const(1)
+        else:
+            self.gen(range_expr.inc)
         self.load_variable(control_var)
         self.append_op(OpCode.OP_ADD)
         self.set_variable(control_var)
@@ -547,10 +578,9 @@ class ByteGen:
         # END LOOP
         self.patch_label_loc(after_loop)
         self.exit_block()
-        # raise NotImplementedError()
 
-    def gen_functiondecl(self, node):
-        func_symbol = self.scope_symtab.resolve(node.name.lexeme)
+    def gen_functiondecl(self, node: ast.FunctionDecl):
+        func_symbol = node.symbol
         name = func_symbol.name
         name_idx = self.get_table_index(func_symbol.name, self.NAME_TABLE)
         func_end = self.new_label()
@@ -587,14 +617,24 @@ class ByteGen:
             }
         )
 
+    def gen_methoddecl(self, node: ast.MethodDecl):
+        self.gen_functiondecl(node)
+
     def gen_call(self, node):
         func = node.symbol
         # Push and store params
         for arg in node.fargs:
             self.gen(arg)
         self.gen(node.callee)
-        self.append_op(OpCode.CALL_FUNCTION, len(node.fargs))
+        if func.is_type():
+            self.append_op(OpCode.BUILD_OBJ, len(node.fargs))
+        else:
+            self.append_op(OpCode.CALL_FUNCTION, len(node.fargs))
         self.gen_auto_cast(node.prom_type)
+
+    def gen_namedarg(self, node: ast.NamedArg):
+        self.load_name(node.name.lexeme)
+        self.gen(node.arg)
 
     def gen_retorna(self, node):
         if node.exp:
@@ -625,6 +665,9 @@ class ByteGen:
         self.gen(node.exp)
         self.append_op(OpCode.MOSTRA)
 
+    def gen_alvo(self, node: ast.Alvo):
+        self.load_variable(node.var_symbol)
+
     def gen_indexget(self, node, gen_get=True):
         self.gen(node.target)
         self.gen(node.index)
@@ -653,3 +696,31 @@ class ByteGen:
         for element in elements:
             self.gen(element)
         self.append_op(OpCode.BUILD_VEC, len(elements))
+
+    def gen_get(self, node: ast.Get):
+        self.gen(node.target)
+        self.load_name(node.member.lexeme)
+        assert node.parent, "Parent must not be none"
+        if node.child_of(ast.Set):
+            return
+        self.append_op(OpCode.GET_PROP)
+
+    def gen_set(self, node: ast.Set):
+        self.gen(node.target)
+        self.gen(node.expr)
+        self.append_op(OpCode.SET_PROP)
+
+    def gen_registo(self, node: ast.Registo):
+        name = node.name.lexeme
+        self.get_table_index(name, self.NAME_TABLE)
+        self.registos.append(
+            {
+                "name": name,
+                "fields": list(map(lambda prop: prop.name.lexeme, node.fields)),
+            }
+        )
+        self.append_op(OpCode.LOAD_REGISTO, len(self.registos) - 1)
+        self.set_variable(self.scope_symtab.resolve(name))
+
+    def gen_noop(self, node: ast.NoOp):
+        pass

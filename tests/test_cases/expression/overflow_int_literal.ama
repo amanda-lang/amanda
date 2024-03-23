@@ -1,0 +1,3 @@
+a: int = 9223372036854775808
+escrevaln(a)
+#[output]: Erro: Número inteiro demasiado grande. Só pode usar números inteiros iguais ou menores que '9223372036854775807'.

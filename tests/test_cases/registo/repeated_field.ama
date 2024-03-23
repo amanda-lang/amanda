@@ -1,0 +1,6 @@
+registo Foo
+    a: int
+    b: int
+    a: int
+fim
+#[output]: Erro: O atributo 'a' já foi declarado neste registo.

@@ -1,0 +1,3 @@
+a: int = 9223372036854775807
+escrevaln(a * 2)
+#[output]: Erro na linha 2: Erro ao realizar operação aritmética. Resultado fora do intervalo de inteiros representáveis.

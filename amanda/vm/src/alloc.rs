@@ -1,5 +1,9 @@
-use crate::ama_value::AmaValue;
+use crate::ama_value::{AmaValue, RcCell};
+use crate::opcode::OpCode;
+use std::cell::RefCell;
+use std::hash::{Hash, Hasher};
 use std::ptr;
+use std::rc::Rc;
 
 #[derive(Debug)]
 struct InnerRef<'a> {
@@ -35,7 +39,7 @@ macro_rules! raw_from_box {
 #[derive(Debug)]
 pub struct Alloc<'a> {
     objects: Option<Ref<'a>>,
-    null_ref: Option<Ref<'a>>,
+    null_ref: Option<AmaValue<'a>>,
 }
 
 impl<'a> Alloc<'a> {
@@ -46,35 +50,17 @@ impl<'a> Alloc<'a> {
         };
         //Create a single reference to None to be used
         //by the vm
-        let null_ref = alloc.alloc_ref(AmaValue::None);
+        let null_ref = AmaValue::None;
         alloc.null_ref = Some(null_ref);
         alloc
     }
 
-    pub fn alloc_ref(&mut self, value: AmaValue<'a>) -> Ref<'a> {
-        if let AmaValue::None = value {
-            debug_assert!(
-                self.null_ref.is_none(),
-                "Do not allocate a new None reference, use the one returned from Alloc::null_ref()"
-            );
-        }
-        let value_alloc = raw_from_box!(value);
-        let ama_ref = Ref(raw_from_box!(InnerRef {
-            inner: value_alloc,
-            next: ptr::null(),
-        }));
-        if let Some(ref object) = self.objects {
-            //SAFETY: Pointer obtained from box
-            unsafe { &mut *ama_ref.0 }.next = object.0;
-            self.objects = Some(ama_ref);
-        } else {
-            self.objects = Some(ama_ref);
-        }
-        ama_ref
+    pub fn alloc_ref<T>(&mut self, value: T) -> RcCell<T> {
+        Rc::new(RefCell::new(value))
         //unimplemented!()
     }
 
-    pub fn null_ref(&self) -> Ref<'a> {
-        self.null_ref.unwrap()
+    pub fn null_ref(&self) -> AmaValue<'a> {
+        AmaValue::None
     }
 }

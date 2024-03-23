@@ -1,0 +1,23 @@
+
+registo Mensagem
+    sender: texto
+    to: texto
+    corpo: texto
+fim
+
+
+msg: Mensagem = Mensagem(
+    sender: "Marco", 
+    to: "Atila", 
+    corpo: "Tá pico ya"
+)
+
+
+met Mensagem::corpo(alvo)
+    escrevaln(alvo.sender)
+fim
+
+
+
+msg.enviar()
+#[output]: Erro: A propriedade 'corpo' já foi definida no tipo 'Mensagem'.

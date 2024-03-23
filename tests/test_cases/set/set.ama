@@ -1,0 +1,17 @@
+registo Mensagem
+    sender: texto
+    to: texto
+    corpo: texto
+fim
+
+
+msg: Mensagem = Mensagem(
+    sender: "Marco", 
+    to: "Atila", 
+    corpo: "Tá pico ya"
+)
+escrevaln(msg.sender)
+
+msg.sender = "Kiole"
+escrevaln(msg.sender)
+#[output]: Marco Kiole
