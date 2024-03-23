@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Optional, Dict, TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from amanda.compiler.type import Type
     from amanda.compiler.ast import Program
 
 
@@ -15,7 +16,7 @@ class Module:
 
 
 class Symbol:
-    def __init__(self, name: str, sym_type):
+    def __init__(self, name: str, sym_type: Type):
         self.name = name
         self.out_id = name  # symbol id in compiled source program
         self.type = sym_type
@@ -36,7 +37,7 @@ class Symbol:
 
 
 class VariableSymbol(Symbol):
-    def __init__(self, name: str, var_type):
+    def __init__(self, name: str, var_type: Type):
         super().__init__(name, var_type)
 
     def can_evaluate(self):
@@ -44,10 +45,11 @@ class VariableSymbol(Symbol):
 
 
 class FunctionSymbol(Symbol):
-    def __init__(self, name, func_type, params={}):
+    def __init__(self, name: str, func_type: Type, entrypoint=False, params={}):
         super().__init__(name, func_type)
         self.params = params  # dict of symbols
         self.scope = None
+        self.entrypoint = entrypoint
 
     def __str__(self):
         params = ",".join(self.params)
@@ -63,7 +65,7 @@ class FunctionSymbol(Symbol):
 
 
 class MethodSym(FunctionSymbol):
-    def __init__(self, name: str, target_ty, return_ty, params):
+    def __init__(self, name: str, target_ty: Type, return_ty: Type, params):
         super().__init__(name, return_ty, params)
         self.target_ty = target_ty
         self.return_ty = return_ty
@@ -112,7 +114,7 @@ class Scope:
             return -1
         return depth
 
-    def add_local(self, name):
+    def add_local(self, name: str):
         if name in self.locals:
             return
         idx = len(self.locals)
