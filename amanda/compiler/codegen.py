@@ -1,6 +1,6 @@
 import sys
 import pdb
-from typing import List, cast
+from typing import List, cast, Sequence
 from io import StringIO, BytesIO
 from enum import Enum, auto
 import amanda.compiler.symbols as symbols
@@ -123,6 +123,9 @@ class OpCode(Enum):
         return str(self.value)
 
 
+Instruction = tuple[OpCode, tuple[int, ...]]
+
+
 class ByteGen:
     """
     Converts an amanda AST into executable bytecode instructions.
@@ -132,22 +135,24 @@ class ByteGen:
     NAME_TABLE = 1
 
     def __init__(self):
-        self.depth = -1
-        self.ama_lineno = 1  # tracks lineno in input amanda src
-        self.program_symtab = None
-        self.scope_symtab = None
-        self.func_locals = {}
-        self.const_table = {}
+        self.depth: int = -1
+        self.ama_lineno: int = 1  # tracks lineno in input amanda src
+        self.program_symtab: symbols.Scope = None  # type: ignore
+        self.scope_symtab: symbols.Scope = None  # type: ignore
+        self.func_locals: dict[str, int] = {}
+        self.const_table: dict[str, int] = {}
         self.names = {}
         self.labels = {}
-        self.ops = []
+        self.ops: list[Instruction] = []
         self.funcs = []
         self.registos = []
-        self.ip = 0  # Current bytecode offset
-        self.lineno = -1
-        self.ctx_loop_start = -1
-        self.ctx_loop_exit = -1
-        self.src_map = {}  # Maps source lines to bytecode offset
+        self.ip: int = 0  # Current bytecode offset
+        self.lineno: int = -1
+        self.ctx_loop_start: int = -1
+        self.ctx_loop_exit: int = -1
+        self.src_map: dict[
+            int, list[int]
+        ] = {}  # Maps source lines to bytecode offset
 
     def compile(self, program) -> bytes:
         """Compiles an amanda ast into bytecode ops.
@@ -216,7 +221,7 @@ class ByteGen:
             )
         self.labels[label] = self.ip
 
-    def append_op(self, op, *args):
+    def append_op(self, op: OpCode, *args: int):
         if self.lineno in self.src_map:
             offsets = self.src_map[self.lineno]
             if len(offsets) < 2:
@@ -312,7 +317,7 @@ class ByteGen:
         str_buffer.close()
         return string
 
-    def gen(self, node, args=None):
+    def gen(self, node: ast.ASTNode, args=None):
         node_class = type(node).__name__.lower()
         method_name = f"gen_{node_class}"
         gen_method = getattr(self, method_name, self.bad_gen)
@@ -351,20 +356,20 @@ class ByteGen:
         ), f"Too many items in a single table for the current file."
         return idx
 
-    def gen_constant(self, node):
+    def gen_constant(self, node: ast.Constant):
         literal = str(node.token.lexeme)
         idx = self.get_table_index(literal, self.CONST_TABLE)
         self.append_op(OpCode.LOAD_CONST, idx)
         self.gen_auto_cast(node.prom_type)
 
-    def load_variable(self, symbol):
+    def load_variable(self, symbol: symbols.Symbol):
         name = symbol.name
         if symbol.is_global:
             self.append_op(OpCode.GET_GLOBAL, self.names[name])
         else:
             self.append_op(OpCode.GET_LOCAL, self.func_locals[symbol.out_id])
 
-    def gen_variable(self, node):
+    def gen_variable(self, node: ast.Variable):
         name = node.token.lexeme
         symbol = node.var_symbol
         # TODO: Make sure that every identifier goes through

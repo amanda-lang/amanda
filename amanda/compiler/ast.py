@@ -2,12 +2,25 @@ from __future__ import annotations
 from amanda.compiler.tokens import Token, TokenType as TT
 import amanda.compiler.type as types
 from dataclasses import dataclass
-from typing import Any, List, Optional, Type as PyTy, TypeVar, Callable, Tuple
+from typing import (
+    Any,
+    List,
+    Optional,
+    Type as PyTy,
+    TypeVar,
+    Callable,
+    Tuple,
+    TYPE_CHECKING,
+)
 from typing_extensions import TypeGuard
 from abc import abstractmethod
 
+if TYPE_CHECKING:
+    import amanda.compiler.symbols as symbols
+
 # TODO: Rename fields of some classes
 T = TypeVar("T")
+ChildAttr = str | Tuple[str, int]
 
 
 def node_of_type(node: ASTNode, ty: PyTy[T]) -> TypeGuard[T]:
@@ -20,9 +33,7 @@ class ASTNode:
         self.parent: Optional[ASTNode] = None
         self.lineno: int = token.line
 
-    def for_each_child(
-        self, f: Callable[[ASTNode, str | Tuple[str, int]], None]
-    ):
+    def for_each_child(self, f: Callable[[ASTNode, ChildAttr], None]):
         for attr in self.__dict__:
             if attr == "parent":
                 continue
@@ -55,9 +66,9 @@ class ASTNode:
 
 
 class Block(ASTNode):
-    def __init__(self):
+    def __init__(self, children: list[ASTNode] | None = None):
         super().__init__(Token(TT.PROGRAM, "", 0, 0))
-        self.children: List[ASTNode] = []
+        self.children: List[ASTNode] = children if children else []
         self.symbols = None
 
     def add_child(self, node):
@@ -72,14 +83,15 @@ class Usa(ASTNode):
 
 
 class Program(Block):
+
     pass
 
 
 class Expr(ASTNode):
     def __init__(self, token: Token):
         super().__init__(token)
-        self.eval_type = types.Type(types.Kind.TUNKNOWN)
-        self.prom_type = types.Type(types.Kind.TUNKNOWN)
+        self.eval_type: types.Type = types.Type(types.Kind.TUNKNOWN)
+        self.prom_type: types.Type | None = types.Type(types.Kind.TUNKNOWN)
 
     def __str__(self):
         return f"{self.token.lexeme}"
@@ -91,7 +103,7 @@ class Constant(Expr):
 
 
 class FmtStr(Expr):
-    def __init__(self, token, parts):
+    def __init__(self, token: Token, parts: list[Expr]):
         super().__init__(token)
         self.parts = parts
 
@@ -99,16 +111,14 @@ class FmtStr(Expr):
 class Variable(Expr):
     def __init__(self, token):
         super().__init__(token)
-        self.var_symbol = (
-            None  # Symbol will contain extra info for python code gen phase
-        )
+        self.var_symbol: types.VariableSymbol = None  # type: ignore Symbol will contain extra info for python code gen phase
 
     def is_assignable(self):
         return True
 
 
 class Converta(Expr):
-    def __init__(self, token, target, new_type):
+    def __init__(self, token: Token, target: Expr, new_type: Type):
         super().__init__(token)
         self.target = target
         self.new_type = new_type
@@ -128,10 +138,14 @@ class Alvo(Expr):
 
 
 class BinOp(Expr):
-    def __init__(self, token, left=None, right=None):
+    def __init__(
+        self, token, left=None, right=None, ty: types.Type | None = None
+    ):
         super().__init__(token)
         self.right = right
         self.left = left
+        if ty:
+            self.eval_type = ty
 
 
 class UnaryOp(Expr):
@@ -153,12 +167,12 @@ class VarDecl(ASTNode):
 class Assign(Expr):
     def __init__(self, token, left=None, right=None):
         super().__init__(token)
-        self.left = left
-        self.right = right
+        self.left: Variable = left  # type: ignore
+        self.right: Expr = right  # type: ignore
 
 
 class Statement(ASTNode):
-    def __init__(self, token, exp=None):
+    def __init__(self, token: Token, exp: Expr | None = None):
         super().__init__(token)
         self.exp = exp
 
@@ -304,14 +318,21 @@ class Set(Expr):
 
 
 class FunctionDecl(ASTNode):
-    def __init__(self, name=None, block=None, func_type=None, params=[]):
+    def __init__(
+        self,
+        *,
+        name: Token,
+        params: list[Param],
+        block: Block | None = None,
+        func_type: Type | None,
+    ):
         super().__init__(name)
-        self.name = name
+        self.name: Token = name
         self.params = params
         self.func_type = func_type
         self.block = block
         self.is_native = False
-        self.symbol: Any = None
+        self.symbol: symbols.FunctionSymbol = None  # type: ignore (going to be set later)
 
     def is_method(self) -> bool:
         return False
@@ -344,16 +365,6 @@ class Registo(ASTNode):
         self.fields = fields
 
 
-class ClassBody(Block):
-    """Specialized block class for Amanda class declarations.
-    It allows for names to be used before their declarations."""
-
-    def __init__(self):
-        # Indicates if name resolution pass has occurred
-        super().__init__()
-        self.resolved = False
-
-
 class Param(ASTNode):
     def __init__(self, param_type=None, name=None):
         super().__init__(name)
@@ -362,7 +373,7 @@ class Param(ASTNode):
 
 
 class Type(ASTNode):
-    def __init__(self, name):
+    def __init__(self, name: Token):
         super().__init__(name)
         self.name = name
 

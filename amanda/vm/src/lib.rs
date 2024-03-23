@@ -23,7 +23,7 @@ pub extern "C" fn run_module(bin_module: *mut u8, size: u32) -> u8 {
     };
 
     let mut alloc = Alloc::new();
-    let mut ama_module = binload::load_bin(module, &mut alloc);
+    let mut ama_module = binload::load_bin(module);
     let mut vm = AmaVM::new(&mut ama_module, alloc);
     if let Err(err) = vm.run() {
         eprint!("{}", err);

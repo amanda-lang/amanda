@@ -5,10 +5,15 @@ use crate::values::amatype::Type;
 use crate::values::function::{AmaFunc, NativeFunc};
 use crate::values::registo::{RegObj, Registo};
 use std::borrow::Cow;
+use std::cell::RefCell;
 use std::convert::From;
 use std::fmt;
 use std::fmt::Debug;
 use std::fmt::{Display, Formatter, Write};
+use std::hash::{Hash, Hasher};
+use std::rc::Rc;
+
+pub type RcCell<T> = Rc<RefCell<T>>;
 
 macro_rules! arith_ops {
     ($res_type: ident, $left: ident, $op:tt, $op_fn: ident, $right: ident) => {
@@ -70,11 +75,11 @@ pub enum AmaValue<'a> {
     Type(Type),
     None,
     //Heap objects
-    Vector(Vec<Ref<'a>>),
+    Vector(RcCell<Vec<AmaValue<'a>>>),
     //TODO: Change this into a Box<str>,
-    Str(Cow<'a, String>),
+    Str(Cow<'a, str>),
     Registo(&'a Registo<'a>),
-    RegObj(RegObj<'a>),
+    RegObj(RcCell<RegObj<'a>>),
 }
 
 impl<'a> AmaValue<'a> {
@@ -128,19 +133,11 @@ impl<'a> AmaValue<'a> {
         }
     }
 
-    pub fn take_regobj(&self) -> &RegObj<'a> {
+    pub fn take_regobj(&self) -> RcCell<RegObj<'a>> {
         if let AmaValue::RegObj(val) = self {
-            val
+            Rc::clone(&val)
         } else {
             panic!("Value is not a bool")
-        }
-    }
-
-    pub fn regobj_mut(&mut self) -> &mut RegObj<'a> {
-        if let AmaValue::RegObj(val) = self {
-            val
-        } else {
-            panic!("Value is not a reg_object")
         }
     }
 
@@ -157,7 +154,7 @@ impl<'a> AmaValue<'a> {
         }
         //Check bounds
         let vec = match self {
-            AmaValue::Vector(vec) => vec,
+            AmaValue::Vector(vec) => vec.borrow(),
             _ => unreachable!(),
         };
         if idx as usize >= vec.len() {
@@ -232,7 +229,9 @@ impl Clone for AmaValue<'_> {
             AmaValue::Func(function) => AmaValue::Func(*function),
             AmaValue::NativeFn(func) => AmaValue::NativeFn(*func),
             AmaValue::Type(t) => AmaValue::Type(*t),
-            AmaValue::Vector(vec) => AmaValue::Vector(vec.clone()),
+            AmaValue::Vector(ref vec) => AmaValue::Vector(Rc::clone(vec)),
+            AmaValue::RegObj(ref obj) => AmaValue::RegObj(Rc::clone(obj)),
+            AmaValue::Registo(reg) => AmaValue::Registo(reg),
             _ => unimplemented!("Cannot clone value of type"),
         }
     }
@@ -254,21 +253,22 @@ impl Display for AmaValue<'_> {
                 write!(f, "{}", val_str)
             }
             AmaValue::Vector(vec) => {
+                let vec = vec.borrow();
                 let mut res = String::new();
                 write!(res, "[").unwrap();
                 vec.iter().enumerate().for_each(|(i, val)| {
                     if i == vec.len() - 1 {
-                        write!(res, "{}", val.inner()).unwrap();
+                        write!(res, "{}", val).unwrap();
                         return;
                     }
-                    write!(res, "{}, ", val.inner()).unwrap();
+                    write!(res, "{}, ", val).unwrap();
                 });
                 write!(res, "]").unwrap();
                 write!(f, "{}", res)
             }
             AmaValue::None => panic!("None value should not be printed"),
             AmaValue::RegObj(reg) => {
-                write!(f, "<Instância do tipo {}>", reg.reg_name())
+                write!(f, "<Instância do tipo {}>", reg.borrow().reg_name())
             }
             _ => unimplemented!(),
         }
@@ -327,6 +327,27 @@ pub fn cast<'a>(value: &AmaValue, target: Type) -> Result<AmaValue<'a>, String> 
             ),
         },
         _ => unreachable!("Fraudulent cast!"),
+    }
+}
+
+impl<'a> PartialEq for AmaValue<'a> {
+    fn eq(&self, other: &Self) -> bool {
+        AmaValue::binop(self, OpCode::OpEq, other)
+            .unwrap()
+            .take_bool()
+    }
+}
+
+impl<'a> Eq for AmaValue<'a> {}
+
+impl<'a> Hash for AmaValue<'a> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match self {
+            AmaValue::Int(int) => int.hash(state),
+            AmaValue::Bool(boolean) => boolean.hash(state),
+            AmaValue::Str(string) => string.hash(state),
+            _ => unimplemented!("Can't hash whatever type was sent in"),
+        };
     }
 }
 

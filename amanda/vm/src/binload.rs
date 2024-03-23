@@ -18,7 +18,7 @@ pub enum Const {
 
 #[derive(Debug)]
 pub struct Module<'a> {
-    pub constants: Vec<Ref<'a>>,
+    pub constants: Vec<AmaValue<'a>>,
     pub names: Vec<String>,
     pub code: Vec<u8>,
     pub main: AmaFunc<'a>,
@@ -237,14 +237,14 @@ pub fn consume_const<'a>(constant: Const) -> AmaValue<'a> {
     }
 }
 
-pub fn load_bin<'bin>(amac_bin: &'bin mut [u8], alloc: &mut Alloc<'bin>) -> Module<'bin> {
+pub fn load_bin<'bin>(amac_bin: &'bin mut [u8]) -> Module<'bin> {
     //Skip size bytes
     let mut prog_data = unpack_bson_doc(amac_bin);
     let raw_consts = prog_data.remove("constants").unwrap().take_vec();
     let mut constants = Vec::with_capacity(raw_consts.len());
     raw_consts
         .into_iter()
-        .for_each(|constant| constants.push(alloc.alloc_ref(consume_const(Const::from(constant)))));
+        .for_each(|constant| constants.push(consume_const(Const::from(constant))));
     let names: Vec<String> = prog_data
         .remove("names")
         .unwrap()

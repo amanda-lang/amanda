@@ -1,10 +1,9 @@
 use std::fmt::Write;
 use std::borrow::Cow;
 use crate::ama_value;
-use crate::ama_value::{AmaValue};
+use crate::ama_value::{AmaValue, RcCell};
 use crate::values::function::{AmaFunc};
-use crate::values::tabela::{Tabela};
-use crate::values::registo::{RegObj};
+use crate::values::registo::{Tabela, RegObj};
 use crate::binload::Module;
 use crate::builtins;
 use crate::errors::AmaErr;
@@ -16,6 +15,7 @@ use std::convert::From;
 use std::iter::FromIterator;
 
 const RECURSION_LIMIT: usize = 1000;
+const DEFAULT_STACK_SIZE: usize = 256;
 
 #[derive(Debug)]
 struct FrameStack<'a> {
@@ -64,8 +64,8 @@ impl<'a> FrameStack<'a> {
 pub struct AmaVM<'a> {
     module: &'a Module<'a>,
     frames: FrameStack<'a>,
-    globals: HashMap<&'a str, Ref<'a>>,
-    values: Vec<Ref<'a>>,
+    globals: HashMap<&'a str, AmaValue<'a>>,
+    values: Vec<AmaValue<'a>>,
     alloc: Alloc<'a>, 
     sp: isize,
 }
@@ -87,7 +87,7 @@ impl<'a> AmaVM<'a> {
             module,
             frames: FrameStack::new(),
             globals: HashMap::with_capacity(builtin_objs.len()), 
-            values: vec![alloc.null_ref(); module.main.locals.into()],
+            values: vec![AmaValue::None; DEFAULT_STACK_SIZE],
             alloc, 
             sp: -1,
         };
@@ -96,15 +96,15 @@ impl<'a> AmaVM<'a> {
         vm.frames.peek_mut().bp = if vm.sp > -1 { 0 } else { -1 };
 
         for func in module.functions.iter() {
-            vm.globals.insert(func.name, vm.alloc.alloc_ref(AmaValue::Func(*func)));
+            vm.globals.insert(func.name, AmaValue::Func(*func));
         }
         for (name, func) in builtin_objs{
-            vm.globals.insert(name, vm.alloc.alloc_ref(func));
+            vm.globals.insert(name, func);
         }
         vm
     }
 
-    fn op_push(&mut self, value: Ref<'a>) {
+    fn op_push(&mut self, value: AmaValue<'a>) {
         self.sp += 1;
         let values_size = self.values.len() as isize;
         if self.sp == values_size {
@@ -114,7 +114,7 @@ impl<'a> AmaVM<'a> {
         }
     }
 
-    fn op_pop(&mut self) -> Ref<'a> {
+    fn op_pop(&mut self) -> AmaValue<'a> {
         let values_size = (self.values.len() - 1) as isize;
         if self.sp == values_size {
             self.sp -= 1;
@@ -122,7 +122,7 @@ impl<'a> AmaVM<'a> {
         } else if self.sp < values_size {
             let idx = self.sp;
             self.sp -= 1;
-            self.values[idx as usize]
+            self.values[idx as usize].clone()
         } else {
             panic!("Undefined VM State. sp larger than values!");
         }
@@ -147,13 +147,12 @@ impl<'a> AmaVM<'a> {
 
     fn reserve_stack_space(&mut self, size: usize) {
         let new_len = self.values.len() + size;
-        self.values.resize(new_len, self.alloc.null_ref());
+        self.values.resize(new_len, AmaValue::None);
         self.sp = self.values.len() as isize - 1;
     }
 
-    fn alloc_push(&mut self, value: AmaValue<'a>){
-        let ama_ref = self.alloc.alloc_ref(value);
-        self.op_push(ama_ref);
+    fn alloc_ref<V>(&mut self, value: V) -> RcCell<V> {
+        self.alloc.alloc_ref(value)
     }
 
     pub fn run(&mut self) -> Result<(), AmaErr> {
@@ -163,17 +162,17 @@ impl<'a> AmaVM<'a> {
             match OpCode::from(&op) {
                 OpCode::LoadConst => {
                     let idx = self.get_u16_arg();
-                    self.op_push(self.module.constants[idx as usize]);
+                    self.op_push(self.module.constants[idx as usize].clone());
                 }
                 OpCode::LoadName => {
                     let idx = self.get_u16_arg();
-                    self.alloc_push(AmaValue::Str(Cow::Borrowed(&self.module.names[idx as usize])));
+                    self.op_push(AmaValue::Str(Cow::Borrowed(&self.module.names[idx as usize])));
                 }
                 OpCode::LoadRegisto => {
                     let idx = self.get_u16_arg() as usize;
-                    self.alloc_push(AmaValue::Registo(&self.module.registos[idx]))
+                    self.op_push(AmaValue::Registo(&self.module.registos[idx]))
                 }
-                OpCode::Mostra => println!("{}", self.op_pop().inner()),
+                OpCode::Mostra => println!("{}", self.op_pop()),
                 //Binary Operations
                 OpCode::OpAdd
                 | OpCode::OpMinus
@@ -191,27 +190,27 @@ impl<'a> AmaVM<'a> {
                 | OpCode::OpLessEq => {
                     let right = self.op_pop();
                     let left = self.op_pop();
-                    let result = AmaValue::binop(left.inner(), OpCode::from(&op), right.inner());
+                    let result = AmaValue::binop(&left, OpCode::from(&op), &right);
 
                     if let Err(msg) = result {
                         return self.panic_and_throw(msg);
                     } else {
-                        self.alloc_push(result.unwrap());
+                        self.op_push(result.unwrap());
                     }
                 }
                 OpCode::OpInvert | OpCode::OpNot => {
                     let op_ref = self.op_pop();
-                    let operand = op_ref.inner();
+                    let operand = op_ref;
                     let op = OpCode::from(&op);
                     if let OpCode::OpInvert = op {
                         match operand {
-                            AmaValue::Int(num) => self.alloc_push(AmaValue::Int(-num)), 
-                            AmaValue::F64(num) => self.alloc_push(AmaValue::F64(-num)), 
+                            AmaValue::Int(num) => self.op_push(AmaValue::Int(-num)), 
+                            AmaValue::F64(num) => self.op_push(AmaValue::F64(-num)), 
                             _ => panic!("Fatal error!"),
                         };
                     } else {
                         if let AmaValue::Bool(val) = operand {
-                            self.alloc_push(AmaValue::Bool(!val));
+                            self.op_push(AmaValue::Bool(!val));
                         } else {
                             panic!("Value should always be a bool");
                         }
@@ -219,26 +218,36 @@ impl<'a> AmaVM<'a> {
                 }
                 OpCode::OpIndexGet => {
                     let idx_ref = self.op_pop();
-                    let idx = idx_ref.inner().take_int();
+                    let idx = idx_ref.take_int();
                     let target = self.op_pop();
-                    match target.inner() {
-                        //TODO - Optimization: Maybe should implement some kind of cache for the grapheme clusters  
-                        // to avoid repeatedly calling iterator
-                        AmaValue::Str(string) =>{
+                    match target {
+                        //TODO - Optimization: Check at compile if string is going to get indexed
+                        //generate graphemes ahead of time.
+                        AmaValue::Str(Cow::Borrowed(ref string)) =>{
                             if idx < 0 {
                                self.panic_and_throw("Erro de índice inválido. Strings só podem ser indexadas com inteiros positivos")?;
                             }
-                            let real_str = &string as &str;
-                            let user_char = real_str.graphemes(true).nth(idx as usize);
+                            let user_char = string.graphemes(true).nth(idx as usize);
                             if let Some(user_char) = user_char {
-                                self.alloc_push(AmaValue::Str(Cow::Owned(String::from(user_char))));
+                                self.op_push(AmaValue::Str(Cow::Borrowed(user_char)));
                             } else {
-                                self.panic_and_throw(&format!("Erro de índice inválido. O tamanho da string é {}, mas o índice é {}", real_str.graphemes(true).count(), idx))?;
+                                self.panic_and_throw(&format!("Erro de índice inválido. O tamanho da string é {}, mas o índice é {}", string.graphemes(true).count(), idx))?;
                             }
                         }
-                        AmaValue::Vector(vec) =>{
-                            match target.inner().vec_index_check(idx){
-                                Ok(_) => self.op_push(vec[idx as usize]), 
+                        AmaValue::Str(Cow::Owned(ref string)) =>{
+                            if idx < 0 {
+                               self.panic_and_throw("Erro de índice inválido. Strings só podem ser indexadas com inteiros positivos")?;
+                            }
+                            let user_char = string.graphemes(true).nth(idx as usize);
+                            if let Some(user_char) = user_char {
+                                self.op_push(AmaValue::Str(Cow::Owned(String::from(user_char))));
+                            } else {
+                                self.panic_and_throw(&format!("Erro de índice inválido. O tamanho da string é {}, mas o índice é {}", string.graphemes(true).count(), idx))?;
+                            }
+                        }
+                        AmaValue::Vector(ref vec) =>{
+                            match target.vec_index_check(idx){
+                                Ok(_) => self.op_push(vec.borrow()[idx as usize].clone()), 
                                 Err(err) => self.panic_and_throw(&err)?
                             };
                         }
@@ -248,12 +257,12 @@ impl<'a> AmaVM<'a> {
                 OpCode::OpIndexSet => {
                     let value = self.op_pop();
                     let idx_ref = self.op_pop();
-                    let idx = idx_ref.inner().take_int();
+                    let idx = idx_ref.take_int();
                     let target = self.op_pop();
-                    match target.inner_mut() {
-                        AmaValue::Vector(vec) =>{
-                            match target.inner().vec_index_check(idx){
-                                Ok(_) => vec[idx as usize] = value, 
+                    match target {
+                        AmaValue::Vector(ref vec) =>{
+                            match target.vec_index_check(idx){
+                                Ok(_) => vec.borrow_mut()[idx as usize] = value, 
                                 Err(err) => self.panic_and_throw(&err)?
                             };
                         }
@@ -264,7 +273,7 @@ impl<'a> AmaVM<'a> {
                 OpCode::GetGlobal => {
                     let id_idx = self.get_u16_arg() as usize;
                     let id: &str = &self.module.names[id_idx];
-                    self.op_push(*self.globals.get(id).unwrap());
+                    self.op_push(self.globals.get(id).unwrap().clone());
                 }
                 OpCode::SetGlobal => {
                     let id_idx = self.get_u16_arg() as usize;
@@ -284,14 +293,14 @@ impl<'a> AmaVM<'a> {
                      * */
                     let addr = self.get_u64_arg() as usize;
                     let value = self.op_pop();
-                    if let AmaValue::Bool(false) = value.inner() {
+                    if let AmaValue::Bool(false) = value {
                         self.frames.peek_mut().ip = addr;
                         continue;
                     }
                 }
                 OpCode::GetLocal => {
                     let idx = self.get_u16_arg() as usize + self.frames.peek().bp as usize;
-                    self.op_push(self.values[idx]);
+                    self.op_push(self.values[idx].clone());
                 }
                 OpCode::SetLocal => {
                     let idx = self.frames.peek().bp as usize + self.get_u16_arg() as usize;
@@ -300,7 +309,7 @@ impl<'a> AmaVM<'a> {
                 OpCode::CallFunction => {
                     let args = self.get_byte() as isize;
                     let fn_val = self.op_pop();
-                    match fn_val.inner() {
+                    match fn_val {
                         AmaValue::Func(mut func) => {
                             if args > 0 {
                                 func.bp = self.sp - (args - 1);
@@ -318,15 +327,15 @@ impl<'a> AmaVM<'a> {
                             continue;
                         }
                         AmaValue::NativeFn(native_fn) => {
-                            let mut fn_args: &[Ref] = &[];
+                            let mut fn_args: &[AmaValue] = &[];
                             if args > 0 {
                                 let start = (self.sp - (args - 1)) as usize;
                                 fn_args = &self.values[start..=self.sp as usize];
                                 self.sp = start as isize - 1;
                             }
                             let result = (native_fn.func)(fn_args, &mut self.alloc);
-                            if let Err(msg) = result {
-                                return self.panic_and_throw(&msg);
+                            if let Err(ref msg) = result {
+                                return self.panic_and_throw(msg);
                             }
                             self.op_push(result.unwrap());
                             //Drop values
@@ -348,80 +357,78 @@ impl<'a> AmaVM<'a> {
                     let start = (self.sp - (num_parts - 1)) as usize;
                     let mut built_str = String::new();
                     for i in start..=self.sp as usize {
-                        write!(built_str, "{}", self.values[i].inner()).unwrap();
+                        write!(built_str, "{}", self.values[i]).unwrap();
                     }
                     //Drop values
                     self.sp = start as isize - 1;
                     self.values.drain((self.sp + 1) as usize..);
-                    self.alloc_push(AmaValue::Str(Cow::Owned(built_str)));
+                    self.op_push(AmaValue::Str(Cow::Owned(built_str)));
                 }
                 OpCode::BuildVec => {
                     let args = self.get_byte() as isize;
                     if args == 0 {
-                        self.alloc_push(AmaValue::Vector(Vec::new()));
+                        let alloc_ref =self.alloc_ref(Vec::new());
+                        self.op_push(AmaValue::Vector(alloc_ref));
                         self.frames.peek_mut().ip += 1;
                         continue;
                     }
                     let start = (self.sp - (args - 1)) as usize;
-                    let elements = AmaValue::Vector(Vec::from(&self.values[start..=self.sp as usize]));
+                    let elements = AmaValue::Vector(self.alloc_ref(Vec::from(&self.values[start..=self.sp as usize])));
                     self.sp = start as isize - 1;
-                    self.alloc_push(elements);
+                    self.op_push(elements);
                     //Drop values
                     self.values.drain(self.sp as usize + 1..);
                 }
                 OpCode::BuildObj => {
                     let fields_init = self.get_byte() as isize;
-                    let registo = self.op_pop();
+                    let registo = match self.op_pop() {
+                        AmaValue::Registo(reg) =>  reg,  
+                        _=> panic!("Expected registo")
+                    };
+
                     if fields_init == 0 {
-                        self.alloc_push(AmaValue::RegObj(RegObj::new(
-                            registo,
-                            Tabela::default()
-                        )));
+                        let alloc_ref =  self.alloc_ref(RegObj::new(
+                                registo
+                        ));
+                        self.op_push(AmaValue::RegObj(alloc_ref));
                         self.frames.peek_mut().ip += 1;
                         continue;
                     }
                     let start = (self.sp - ((fields_init * 2) - 1))  as usize;
-                    let build_args = &self.values[start..=self.sp as usize];
-                    let init_pairs = build_args[0..].iter()
-                            .step_by(2)
-                            .zip(build_args[1..]
-                            .iter()
-                            .step_by(2))
-                            .map(|pair| (*pair.0, *pair.1));
-                    let state = Tabela::from_iter(init_pairs);
+                    //let build_args = &self.values[start..=self.sp as usize];
+                    let build_args = self.values.drain(start..= self.sp as usize);
+                    let reg_obj = RegObj::with_fields(registo, build_args);
 
                     self.sp = start as isize - 1;
-                    self.alloc_push(AmaValue::RegObj(RegObj::new(
-                        registo, 
-                        state
-                    )));
+                    let alloc_ref =  self.alloc_ref(reg_obj);
+                    self.op_push(AmaValue::RegObj(alloc_ref));
                     //Drop values
-                    self.values.drain(self.sp as usize + 1..);
+                    //self.values.drain(self.sp as usize + 1..);
                 }
                 OpCode::GetProp => {
                     let field = self.op_pop();
                     let reg_ref = self.op_pop();
-                    let reg_obj = reg_ref.inner().take_regobj();
-                    self.op_push(reg_obj.get(field));
+                    let reg_obj = reg_ref.take_regobj();
+                    self.op_push(reg_obj.borrow().get(&field));
                 }
                 OpCode::SetProp => {
                     let new_val = self.op_pop();
                     let field = self.op_pop();
-                    let reg_ref = self.op_pop();
-                    let reg_obj = reg_ref.inner_mut().regobj_mut();
+                    let reg_ref = self.op_pop().take_regobj();
+                    let mut reg_obj = reg_ref.borrow_mut();
                     reg_obj.set(field, new_val);
                 }
                 OpCode::Cast => {
                     let arg = self.get_byte();
-                    let new_type = self.op_pop().inner().take_type();
+                    let new_type = self.op_pop().take_type();
                     let val_ref = self.op_pop();
-                    let val = val_ref.inner();
+                    let val = val_ref;
                     if arg == 0 {
-                        let cast_res = ama_value::cast(val, new_type);
+                        let cast_res = ama_value::cast(&val, new_type);
                         if let Err(msg) = cast_res {
                             return self.panic_and_throw(&msg);
                         }
-                        self.alloc_push(cast_res.unwrap());
+                        self.op_push(cast_res.unwrap());
                     } else if arg == 1 {
                         if !ama_value::check_cast(val.get_type(), new_type) {
                             return self.panic_and_throw(&format!(
@@ -430,7 +437,7 @@ impl<'a> AmaVM<'a> {
                                 new_type.name()
                             ));
                         }
-                        self.op_push(val_ref);
+                        self.op_push(val);
                     }
                 }
                 OpCode::Halt => break,
