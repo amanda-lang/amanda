@@ -10,22 +10,22 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python 3.8
+    - name: Set up Python 3.10
       uses: actions/setup-python@v2
       with:
-        python-version: 3.8
+        python-version: 3.10
     - name: Set up Rust
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
     - name: Install dependencies
       run: |
-        python3.8 -m venv env
+        python3.10 -m venv env
         source env/bin/activate
         pip install --upgrade pip
         pip install -r requirements.txt
     - name: Run build
       run: |
         source env/bin/activate
-        env/bin/python3.8 setup.py
+        env/bin/python3.10 setup.py
         dist/amanda ./examples/hello_world.ama
