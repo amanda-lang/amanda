@@ -29,8 +29,8 @@ field_declaration
 
 
 type
-  :  IDENTIFIER 
-  | LBRACKET type RBRACKET
+  :  IDENTIFIER QMARK? 
+  | LBRACKET type RBRACKET QMARK?
   ;
 
 function_header

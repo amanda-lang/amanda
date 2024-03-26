@@ -43,6 +43,7 @@ class TokenType(Enum):
     LBRACKET = "["
     RBRACKET = "]"
     COLON = ":"
+    QMARK = "?"
     DOUBLECOLON = "::"
     NEWLINE = "\\n"
 

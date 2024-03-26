@@ -76,6 +76,7 @@ RBRACE : }
 LBRACKET : [
 RBRACKET : ]
 COLON : ":"
+QMARK : "?"
 DOUBLECOLON: "::"
 NEWLINE : "\n"
 COMMENTS: "#"

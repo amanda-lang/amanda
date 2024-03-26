@@ -22,7 +22,7 @@ class Lexer:
         self.line = 1
         self.pos = 1
         self.current_token = None
-        self.current_char = None
+        self.current_char: str = None  # type: ignore
         self.src = src  # A file object
 
     def set_src(self, src):
@@ -30,7 +30,7 @@ class Lexer:
         self.line = 1
         self.pos = 1
         self.current_token = None
-        self.current_char = None
+        self.current_char = None  # type: ignore
 
     def advance(self):
         if self.current_char == Lexer.EOF:
@@ -219,6 +219,9 @@ class Lexer:
         elif self.current_char == "{":
             self.advance()
             return Token(TT.LBRACE, char, self.line, self.pos)
+        elif self.current_char == "?":
+            self.advance()
+            return Token(TT.QMARK, char, self.line, self.pos)
         elif self.current_char == "}":
             self.advance()
             return Token(TT.RBRACE, char, self.line, self.pos)
@@ -276,6 +279,7 @@ class Lexer:
             "[",
             "]",
             ":",
+            "?",
         ):
             return self.delimeters()
         if self.current_char == Lexer.EOF:
@@ -395,15 +399,22 @@ class Parser:
         else:
             return self.statement()
 
+    def _is_maybe_type(self) -> bool:
+        nullable = False
+        if self.match(TT.QMARK):
+            nullable = True
+            self.consume(TT.QMARK)
+        return nullable
+
     def type(self) -> ast.Type:
         if self.match(TT.IDENTIFIER):
             name = self.consume(TT.IDENTIFIER)
-            return ast.Type(name)
+            return ast.Type(name, self._is_maybe_type())
         elif self.match(TT.LBRACKET):
             self.consume(TT.LBRACKET)
             el_type = self.type()
             self.consume(TT.RBRACKET)
-            return ast.ArrayType(el_type)
+            return ast.ArrayType(el_type, self._is_maybe_type())
         else:
             self.error(
                 "Tipo inválido. Esperava um identificador ou a descrição de um vector"

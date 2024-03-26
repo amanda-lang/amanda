@@ -310,7 +310,7 @@ class LexerTestCase(unittest.TestCase):
         )
 
     def test_delimeters(self):
-        self.buffer.write(". , ; ) ( { } [ ] : .. ::")
+        self.buffer.write(". , ; ) ( { } [ ] : .. :: ?")
         self.buffer.seek(0)
 
         token = self.lexer.get_token()
@@ -363,6 +363,10 @@ class LexerTestCase(unittest.TestCase):
             token.lexeme, "::", msg="DOUBLECOLON value test Failed"
         )
 
+        token = self.lexer.get_token()
+        self.assertEqual(token.token, TokenType.QMARK, msg="QMARK Test Failed")
+        self.assertEqual(token.lexeme, "?", msg="QMARK value test Failed")
+
     def test_line_count(self):
         self.buffer.write("\n\n\n\n\n")
         self.buffer.seek(0)
@@ -370,7 +374,7 @@ class LexerTestCase(unittest.TestCase):
         token = self.lexer.get_token()
         while token.token != Lexer.EOF:
             token = self.lexer.get_token()
-        self.assertEqual(self.lexer.line, 6)
+        self.assertEqual(self.lexer.line, 5)
         self.assertEqual(self.lexer.pos, 1)
 
     def test_token_line(self):

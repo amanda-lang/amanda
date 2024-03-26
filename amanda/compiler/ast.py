@@ -372,17 +372,22 @@ class Param(ASTNode):
         self.name = name
 
 
+@dataclass
 class Type(ASTNode):
-    def __init__(self, name: Token):
+    name: Token
+    maybe_ty: bool
+
+    def __init__(self, name: Token, maybe_ty: bool):
         super().__init__(name)
         self.name = name
+        self.maybe_ty = maybe_ty
 
 
 class ArrayType(Type):
     element_type: Type
 
-    def __init__(self, element_type: Type):
-        super().__init__(element_type.name)
+    def __init__(self, element_type: Type, maybe_ty: bool):
+        super().__init__(element_type.name, maybe_ty)
         self.element_type = element_type
 
 
@@ -393,7 +398,6 @@ class NoOp(ASTNode):
 
 # Base class for visitor objects
 class Visitor:
-
     """Dispatcher method that chooses the correct
     return visiting method"""
 
