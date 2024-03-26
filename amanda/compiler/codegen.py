@@ -150,9 +150,9 @@ class ByteGen:
         self.lineno: int = -1
         self.ctx_loop_start: int = -1
         self.ctx_loop_exit: int = -1
-        self.src_map: dict[
-            int, list[int]
-        ] = {}  # Maps source lines to bytecode offset
+        self.src_map: dict[int, list[int]] = (
+            {}
+        )  # Maps source lines to bytecode offset
 
     def compile(self, program) -> bytes:
         """Compiles an amanda ast into bytecode ops.

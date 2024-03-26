@@ -4,6 +4,7 @@ from enum import auto, IntEnum
 from dataclasses import dataclass
 from typing import cast, List, Tuple, Dict, Optional
 
+
 # Tag to indicate which type a Type object represents
 class Kind(IntEnum):
     TINT = 0
@@ -136,6 +137,7 @@ class Registo(Type):
         super().__init__(Kind.TREGISTO)
         self.name = name
         self.fields = fields
+        self.methods: dict[str, Symbol] = {}
 
     def is_callable(self) -> bool:
         return True

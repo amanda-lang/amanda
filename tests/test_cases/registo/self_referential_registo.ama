@@ -10,7 +10,7 @@ fim
 
 
 met ListaLigada::ad_no(alvo, valor : int)
-    novo : No = No(valor: valor, proximo: nulo)
+    novo : No = No(valor, nulo)
 
     se alvo.cabeca == nulo entao
         alvo.cabeca = novo
@@ -31,7 +31,7 @@ met ListaLigada::imprimir(alvo)
     fim
 fim
 
-l : ListaLigada = ListaLigada(cabeca: nulo)
+l : ListaLigada = ListaLigada(nulo)
 l.ad_no(1)
 l.ad_no(2)
 l.ad_no(3)

@@ -326,13 +326,15 @@ class Analyzer(ast.Visitor):
         return (scope, params_dict)
 
     def visit_methoddecl(self, node: ast.MethodDecl):
-        target_ty = self.get_type(node.target_ty)
+        target_ty: Registo = self.get_type(node.target_ty)
         method_name = node.name.lexeme
         method_id = target_ty.full_field_path(method_name)
         method_desc = f"O método '{method_name}' do tipo '{target_ty}'"
 
         # Check if field exists on target type
-        if target_ty.fields.get(method_name):
+        if target_ty.fields.get(method_name) or target_ty.methods.get(
+            method_name
+        ):
             self.error(
                 f"A propriedade '{method_name}' já foi definida no tipo '{target_ty}'"
             )
@@ -356,7 +358,7 @@ class Analyzer(ast.Visitor):
         )
 
         self.check_function_body(node, symbol, scope)
-        target_ty.fields[method_name] = symbol
+        target_ty.methods[method_name] = symbol
 
     def visit_registo(self, node: ast.Registo):
         name = node.name.lexeme
@@ -365,6 +367,7 @@ class Analyzer(ast.Visitor):
             self.error(self.ID_IN_USE, name=name)
 
         registo = Registo(name, reg_scope.symbols)
+        self.define_symbol(registo, self.scope_depth, self.ctx_scope)
         self.ctx_reg = registo
         self.enter_scope(reg_scope)
 
@@ -466,9 +469,9 @@ class Analyzer(ast.Visitor):
         self.visit(target)
         if target.eval_type.kind != Kind.TREGISTO:
             self.error("Tipos primitivos não possuem atributos")
-        ty_sym: Registo = target.eval_type
+        ty_sym: Registo = target.eval_type  # type: ignore
         field = node.member.lexeme
-        field_sym = ty_sym.fields.get(field)
+        field_sym = ty_sym.fields.get(field, ty_sym.methods.get(field))
         if not field_sym:
             self.error(
                 f"O objecto do tipo '{ty_sym.name}' não possui o atributo {field}"
@@ -922,6 +925,7 @@ class Analyzer(ast.Visitor):
 
     def validate_initializer(self, sym: Registo, fargs: List[ast.NamedArg]):
         # Check call arity
+
         if len(fargs) != len(sym.fields):
             self.error(
                 f"número incorrecto de argumentos para o inicializador do registo '{sym.name}'. Esperava {len(sym.fields)} argumento(s), porém recebeu {len(fargs)}"
