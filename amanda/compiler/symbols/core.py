@@ -1,44 +1,13 @@
 from __future__ import annotations
-from amanda.compiler.tokens import TokenType as TT
 from dataclasses import dataclass
 from typing import Optional, Dict, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from amanda.compiler.type import Type
-    from amanda.compiler.ast import Program
-
-
-@dataclass
-class Module:
-    fpath: str
-    ast: Optional[Program] = None
-    loaded: bool = False
-
-
-class Symbol:
-    def __init__(self, name: str, sym_type: Type):
-        self.name = name
-        self.out_id = name  # symbol id in compiled source program
-        self.type = sym_type
-        self.is_property = False  # Avoid this repitition
-        self.is_global = False
-
-    def __str__(self):
-        return f"<{self.__class__.__name__} ({self.name},{self.out_id},{self.type})>"
-
-    def can_evaluate(self) -> bool:
-        return False
-
-    def is_type(self) -> bool:
-        return False
-
-    def is_callable(self) -> bool:
-        return False
+from .symbols import Symbol
 
 
 class VariableSymbol(Symbol):
     def __init__(self, name: str, var_type: Type):
-        super().__init__(name, var_type)
+        super().__init__(name)
+        self.type = var_type
 
     def can_evaluate(self):
         return True
@@ -52,7 +21,7 @@ class FunctionSymbol(Symbol):
         params: dict[str, VariableSymbol] = {},
         entrypoint=False,
     ):
-        super().__init__(name, func_type)
+        super().__init__(name)
         self.params = params  # dict of symbols
         self.scope = None
         self.entrypoint = entrypoint

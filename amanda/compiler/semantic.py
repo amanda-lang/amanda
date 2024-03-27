@@ -279,14 +279,13 @@ class Analyzer(ast.Visitor):
 
     def make_func_symbol(
         self, name: str, node: ast.FunctionDecl, symbol: symbols.FunctionSymbol
-    ) -> symbols.Scope:
+    ) -> tuple[symbols.Scope, dict[str, symbols.VariableSymbol]]:
         function_type = self.get_type(node.func_type)
         if node.of_type(ast.MethodDecl):
             symbol.is_property = True
         symbol.is_global = True
         self.define_symbol(symbol, self.scope_depth, self.ctx_scope)
-        scope, symbol.params = self.define_func_scope(name, node.params)
-        return scope
+        return self.define_func_scope(name, node.params)
 
     def validate_return(
         self, node: ast.FunctionDecl, function_type: Type, no_return_err: str
@@ -323,7 +322,7 @@ class Analyzer(ast.Visitor):
 
         function_type = self.get_type(node.func_type)
         symbol = symbols.FunctionSymbol(name, function_type)
-        scope = self.make_func_symbol(name, node, symbol)
+        scope, _ = self.make_func_symbol(name, node, symbol)
         # Native functions don't have a body, so there's nothing to visit
         if node.is_native:
             return
@@ -354,7 +353,7 @@ class Analyzer(ast.Visitor):
         return (scope, params_dict)
 
     def visit_methoddecl(self, node: ast.MethodDecl):
-        target_ty: Registo = self.get_type(node.target_ty)
+        target_ty = self.get_type(node.target_ty)
         method_name = node.name.lexeme
         method_id = target_ty.full_field_path(method_name)
         method_desc = f"O método '{method_name}' do tipo '{target_ty}'"
@@ -373,8 +372,9 @@ class Analyzer(ast.Visitor):
             f"{method_desc} já foi declarado anteriormente",
         )
         return_ty = self.get_type(node.return_ty)
-        symbol = symbols.MethodSym(method_id, target_ty, return_ty, node.params)
-        scope = self.make_func_symbol(method_id, node, symbol)
+        symbol = symbols.MethodSym(method_id, target_ty, return_ty)
+        scope, params = self.make_func_symbol(method_id, node, symbol)
+        symbol.params = params
         self.validate_return(
             node,
             return_ty,
@@ -492,18 +492,27 @@ class Analyzer(ast.Visitor):
         assert node.var_symbol
         return sym
 
+    def _bad_prop_err(self, ty: Type, field: str):
+        if not ty.is_primitive():
+            self.error(
+                f"O objecto do tipo '{ty.name}' não possui o atributo '{field}'"
+            )
+        self.error(f"O tipo '{ty.name}' não possui o método '{field}'")
+
     def visit_get(self, node: ast.Get):
         target = node.target
+        ty_sym = target.eval_type  # type: ignore
         self.visit(target)
-        if target.eval_type.kind != Kind.TREGISTO:
-            self.error("Tipos primitivos não possuem atributos")
-        ty_sym: Registo = target.eval_type  # type: ignore
+        if (
+            not target.eval_type.supports_fields()
+            and not target.eval_type.supports_methods()
+        ):
+            self.error("O Tipo '{ty_sym.name}' nenhum atributo ou método")
+        ty_sym = target.eval_type  # type: ignore
         field = node.member.lexeme
-        field_sym = ty_sym.fields.get(field, ty_sym.methods.get(field))
+        field_sym = ty_sym.get_property(field)
         if not field_sym:
-            self.error(
-                f"O objecto do tipo '{ty_sym.name}' não possui o atributo {field}"
-            )
+            self._bad_prop_err(ty_sym, field)
         # Check if valid use of get
         # References to methods can only be used in the context of
         # a call expression

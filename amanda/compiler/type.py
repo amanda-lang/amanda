@@ -1,5 +1,5 @@
 from __future__ import annotations
-from amanda.compiler.symbols import Symbol, VariableSymbol
+from amanda.compiler.symbols import Symbol, VariableSymbol, MethodSym
 from enum import auto, IntEnum, Enum
 from dataclasses import dataclass
 from typing import cast, List, Tuple, Dict, Optional
@@ -31,7 +31,12 @@ class Kind(IntEnum):
 
 @dataclass
 class Type(Symbol):
-    def __init__(self, kind: Kind, zero_initialized: bool = False):
+    def __init__(
+        self,
+        kind: Kind,
+        zero_initialized: bool = False,
+        is_generic: bool = False,
+    ):
         super().__init__(str(kind), None)
         self.zero_initialized = zero_initialized
         self.kind = kind
@@ -47,6 +52,9 @@ class Type(Symbol):
 
     def is_type(self) -> bool:
         return True
+
+    def is_generic(self) -> bool:
+        return False
 
     def __str__(self) -> str:
         return str(self.kind)
@@ -122,6 +130,29 @@ class Type(Symbol):
 
         return other
 
+    def supports_fields(self) -> bool:
+        return False
+
+    def supports_methods(self) -> bool:
+        return True
+
+    def get_property(self, prop: str) -> Symbol | None:
+        pass
+
+    def is_primitive(self) -> bool:
+        return self.kind in (
+            Kind.TINT,
+            Kind.TTEXTO,
+            Kind.TBOOL,
+            Kind.TREAL,
+            Kind.TINDEF,
+        )
+
+    def bind(self, **ty_args: dict[str, Type]) -> ConstructedTy:
+        raise NotImplementedError(
+            "Bind must be implemented for types that support generics"
+        )
+
 
 class Vector(Type):
     def __init__(self, element_type: Type):
@@ -147,14 +178,33 @@ class Vector(Type):
 
 
 class Registo(Type):
-    def __init__(self, name: str, fields: Dict[str, Symbol]):
+    def __init__(
+        self,
+        name: str,
+        fields: Dict[str, Symbol],
+        ty_params: set[str] | None = None,
+    ):
         super().__init__(Kind.TREGISTO)
         self.name = name
         self.fields = fields
         self.methods: dict[str, Symbol] = {}
+        self.ty_params: set[str] | None = ty_params
 
     def is_callable(self) -> bool:
         return True
+
+    def is_generic(self) -> bool:
+        return self.ty_params is not None
+
+    def bind(self, **ty_args) -> ConstructedTy:
+        if self.ty_params is None:
+            raise NotImplementedError(
+                "Cannot bind type params of non generic Registo"
+            )
+        for ty_arg in ty_args:
+            if ty_arg not in self.ty_params:
+                raise ValueError(f"Invalid type argument: {ty_arg}")
+        return ConstructedTy(self, ty_args)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Type):
@@ -166,10 +216,16 @@ class Registo(Type):
     def __str__(self) -> str:
         return self.name
 
+    def get_property(self, prop) -> Symbol | None:
+        return self.fields.get(prop, self.methods.get(prop))
+
+    def supports_fields(self) -> bool:
+        return True
+
 
 @dataclass
 class ConstructedTy(Type):
-    generic_ty: GenericTy
+    generic_ty: Type
     bound_ty_args: dict[str, Type]
 
     def __init__(self, generic_ty, bound_ty_args):
@@ -200,29 +256,6 @@ class ConstructedTy(Type):
         return self.name
 
 
-class GenericTy(Type):
-    def __init__(self, name: str, ty_params: set[str]):
-        super().__init__(Kind.TTalvez)
-        self.name: str = name
-        self.ty_params: set[str] = ty_params
-
-    def bind(self, **ty_args) -> ConstructedTy:
-        for ty_arg, ty in ty_args.items():
-            if ty_arg not in self.ty_params:
-                raise ValueError(f"Invalid type argument: {ty_arg}")
-        return ConstructedTy(self, ty_args)
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Type):
-            return False
-        if not self.kind == other.kind:
-            return False
-        return self.name == other.name
-
-    def __str__(self) -> str:
-        return self.name
-
-
 class Builtins(Enum):
     Int = Type(Kind.TINT)
     Real = Type(Kind.TREAL)
@@ -231,7 +264,21 @@ class Builtins(Enum):
     Vazio = Type(Kind.TVAZIO)
     Indef = Type(Kind.TINDEF)
     Nulo = Type(Kind.TNULO)
-    Talvez = GenericTy(str(Kind.TTalvez), {"T"})
+    Talvez = Registo(
+        str(Kind.TTalvez),
+        fields={
+            "valor": VariableSymbol("valor", TypeParam("T")),
+        },
+        ty_params={"T"},
+    )
+
+
+Builtins.Talvez.value.fields["valor_ou"] = MethodSym(
+    "valor_ou",
+    Builtins.Talvez.value,
+    TypeParam("T"),
+    params={"padrao": VariableSymbol("padrao", TypeParam("T"))},
+)
 
 
 builtin_types: List[Tuple[str, Type]] = [
