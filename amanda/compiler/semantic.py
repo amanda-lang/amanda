@@ -147,8 +147,11 @@ class Analyzer(ast.Visitor):
             return cast(Type, type_symbol)
         elif type(type_node) == ast.ArrayType:
             vec_ty = Vector(self.get_type(type_node.element_type))
-            if type_node.maybe_ty:
-                return Builtins.Talvez.value.bind(T=vec_ty)
+            return (
+                Builtins.Talvez.value.bind(T=vec_ty)
+                if type_node.maybe_ty
+                else vec_ty
+            )
         else:
             return Type(Kind.TUNKNOWN)
 

@@ -20,6 +20,7 @@ class Kind(IntEnum):
     # to avoid setting eval_type to null on ast nodes
     TUNKNOWN = auto()
     TGENERIC = auto()
+    # Special type to represent nullable values
     TTalvez = auto()
 
     def __str__(self) -> str:
@@ -103,22 +104,19 @@ class Type(Symbol):
             Kind.TTEXTO: (Kind.TINDEF,),
             Kind.TVEC: (Kind.TINDEF,),
             Kind.TREGISTO: (Kind.TINDEF,),
-            Kind.TNULO: (Kind.TREGISTO,),
+            Kind.TNULO: (Kind.TTalvez,),
         }
         auto_cast_types = auto_cast_table.get(kind)
 
         if not auto_cast_types or other_kind not in auto_cast_types:
-            print(f"in here: {self} -> {other}")
-            # If not of type maybe, return
+            # If not of type Talvez, return
             if other_kind != Kind.TTalvez or not isinstance(
                 other, ConstructedTy
             ):
-                print("1st bail")
                 return None
 
             inner_ty = other.bound_ty_args["T"]
             if inner_ty != self and not self.promote_to(inner_ty):
-                print("2nd bail")
                 return None
 
         return other
