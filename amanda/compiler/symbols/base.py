@@ -1,10 +1,8 @@
 from __future__ import annotations
 from abc import abstractmethod, ABC
-from amanda.compiler.tokens import TokenType as TT
 from dataclasses import dataclass
 from typing import Any
 
-from enum import auto, IntEnum, Enum
 from dataclasses import dataclass
 
 
@@ -90,8 +88,8 @@ class Typed(Symbol):
     @abstractmethod
     def can_evaluate(self) -> bool: ...
 
-    @abstractmethod
-    def is_type(self) -> bool: ...
+    def is_type(self) -> bool:
+        return False
 
     @abstractmethod
     def is_callable(self) -> bool: ...

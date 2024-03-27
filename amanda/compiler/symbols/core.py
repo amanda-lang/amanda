@@ -1,19 +1,21 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Optional, Dict, TYPE_CHECKING
-from .symbols import Symbol
+from typing import Optional, Dict, cast
+from amanda.compiler.symbols.base import Symbol, Typed, Type
 
 
-class VariableSymbol(Symbol):
+class VariableSymbol(Typed):
     def __init__(self, name: str, var_type: Type):
-        super().__init__(name)
-        self.type = var_type
+        super().__init__(name, var_type)
 
     def can_evaluate(self):
         return True
 
+    def is_callable(self):
+        return False
 
-class FunctionSymbol(Symbol):
+
+class FunctionSymbol(Typed):
     def __init__(
         self,
         name: str,
@@ -21,7 +23,7 @@ class FunctionSymbol(Symbol):
         params: dict[str, VariableSymbol] = {},
         entrypoint=False,
     ):
-        super().__init__(name)
+        super().__init__(name, func_type)
         self.params = params  # dict of symbols
         self.scope = None
         self.entrypoint = entrypoint
@@ -31,6 +33,9 @@ class FunctionSymbol(Symbol):
         return (
             f"<{self.__class__.__name__}: ({self.name},{self.type}) ({params})>"
         )
+
+    def can_evaluate(self):
+        return False
 
     def is_callable(self):
         return True
@@ -58,12 +63,6 @@ class MethodSym(FunctionSymbol):
             f"<{self.__class__.__name__}: ({self.name},{self.type}) ({params})>"
         )
 
-    def is_callable(self):
-        return True
-
-    def arity(self):
-        return len(self.params)
-
 
 class Scope:
     def __init__(self, enclosing_scope: Optional[Scope] = None):
@@ -81,6 +80,10 @@ class Scope:
             else:
                 return None
         return symbol
+
+    def resolve_typed(self, name: str) -> Optional[Typed]:
+        sym = self.resolve(name)
+        return cast(Typed, sym)
 
     def resolve_scope(self, name: str, depth: int) -> int:
         symbol = self.get(name)
@@ -103,6 +106,9 @@ class Scope:
 
     def get(self, name: str) -> Optional[Symbol]:
         return self.symbols.get(name)
+
+    def get_typed(self, name: str) -> Optional[Typed]:
+        return cast(Typed, self.symbols.get(name))
 
     def define(self, name: str, symbol: Symbol):
         self.symbols[name] = symbol
