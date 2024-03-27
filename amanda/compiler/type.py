@@ -1,6 +1,6 @@
 from __future__ import annotations
 from amanda.compiler.symbols import Symbol, VariableSymbol
-from enum import auto, IntEnum
+from enum import auto, IntEnum, Enum
 from dataclasses import dataclass
 from typing import cast, List, Tuple, Dict, Optional
 
@@ -19,6 +19,7 @@ class Kind(IntEnum):
     # unknown is a type used as a default type value
     # to avoid setting eval_type to null on ast nodes
     TUNKNOWN = auto()
+    TGENERIC = auto()
 
     def __str__(self) -> str:
         return self.name.lower()[1:]
@@ -151,6 +152,64 @@ class Registo(Type):
 
     def __str__(self) -> str:
         return self.name
+
+
+@dataclass
+class ConstructedTy(Type):
+    generic_ty: GenericTy
+    bound_ty_args: dict[str, Type]
+
+    def __init__(self, generic_ty, bound_ty_args):
+        super().__init__(Kind.TGENERIC)
+        self.generic_ty = generic_ty
+        self.bound_ty_args = bound_ty_args
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, ConstructedTy):
+            return False
+        if self.kind != other.kind:
+            return False
+        if self.generic_ty != other.generic_ty:
+            return False
+        # Compare bound type arguments
+        return self.name == other.name
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class GenericTy(Type):
+    def __init__(self, name: str, ty_params: set[str]):
+        super().__init__(Kind.TGENERIC)
+        self.name: str = name
+        self.ty_params: set[str] = ty_params
+
+    def bind(self, **ty_args) -> ConstructedTy:
+        for ty_arg, ty in ty_args.items():
+            if ty_arg not in self.ty_params:
+                raise ValueError(f"Invalid type argument: {ty_arg}")
+        return ConstructedTy(self, ty_args)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Type):
+            return False
+        if not self.kind == other.kind:
+            return False
+        return self.name == other.name
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class Builtins(Enum):
+    Int = Type(Kind.TINT)
+    Real = Type(Kind.TREAL)
+    Bool = Type(Kind.TBOOL)
+    Texto = Type(Kind.TTEXTO)
+    Vazio = Type(Kind.TVAZIO)
+    Indef = Type(Kind.TINDEF)
+    Nulo = Type(Kind.TNULO)
+    Talvez = GenericTy("Talvez", {"T"})
 
 
 builtin_types: List[Tuple[str, Type]] = [

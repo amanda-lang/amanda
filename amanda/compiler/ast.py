@@ -366,7 +366,7 @@ class Registo(ASTNode):
 
 
 class Param(ASTNode):
-    def __init__(self, param_type=None, name=None):
+    def __init__(self, param_type: Type = None, name: Token = None):  # type: ignore
         super().__init__(name)
         self.param_type = param_type
         self.name = name

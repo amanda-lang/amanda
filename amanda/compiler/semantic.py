@@ -6,11 +6,19 @@ from amanda.compiler.parse import parse
 from amanda.compiler.tokens import TokenType as TT, Token
 import amanda.compiler.ast as ast
 import amanda.compiler.symbols as symbols
-from amanda.compiler.type import builtin_types, Kind, Type, Vector, Registo
+from amanda.compiler.type import (
+    builtin_types,
+    Kind,
+    Type,
+    Vector,
+    Registo,
+    Builtins,
+)
 from amanda.compiler.error import AmandaError
 from amanda.compiler.builtinfn import BUILTINS, BuiltinFn
 from amanda.config import STD_LIB
 from amanda.compiler.transform import transform
+
 
 MAX_AMA_INT = 2**63 - 1
 
@@ -114,22 +122,33 @@ class Analyzer(ast.Visitor):
             symbol.out_id = f"_r{depth}{scope.count()}_"
         scope.define(symbol.name, symbol)
 
-    def get_type(self, type_node) -> Type:
+    def get_type_sym_or_err(self, type_id: str) -> symbols.Symbol:
+        type_symbol = self.ctx_scope.resolve(type_id)
+        if not type_symbol or not type_symbol.is_type():
+            self.error(f"o tipo '{type_id}' não foi declarado")
+        return type_symbol  # type: ignore
+
+    def get_type_variable(self, ty_node: ast.Variable) -> Type:
+        type_id = ty_node.token.lexeme
+        type_symbol = self.get_type_sym_or_err(type_id)
+        return cast(Type, type_symbol)
+
+    def get_type(self, type_node: ast.Type) -> Type:
         if not type_node:
             return cast(Type, self.ctx_scope.resolve("vazio"))
         node_t = type(type_node)
-        if node_t == ast.Type or node_t == ast.Variable:
-            type_id = (
-                type_node.name.lexeme
-                if node_t == ast.Type
-                else type_node.token.lexeme
-            )
-            type_symbol = self.ctx_scope.resolve(type_id)
-            if not type_symbol or not type_symbol.is_type():
-                self.error(f"o tipo '{type_id}' não foi declarado")
+        if node_t == ast.Variable:
+            return self.get_type_variable(type_node)  # type: ignore
+        elif node_t == ast.Type:
+            type_id = type_node.name.lexeme
+            type_symbol = self.get_type_sym_or_err(type_id)
+            if type_node.maybe_ty:
+                return Builtins.Talvez.value.bind(T=type_symbol)
             return cast(Type, type_symbol)
         elif type(type_node) == ast.ArrayType:
-            return Vector(self.get_type(type_node.element_type))
+            vec_ty = Vector(self.get_type(type_node.element_type))
+            if type_node.maybe_ty:
+                return Builtins.Talvez.value.bind(T=vec_ty)
         else:
             return Type(Kind.TUNKNOWN)
 
