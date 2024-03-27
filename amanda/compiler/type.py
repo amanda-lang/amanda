@@ -31,8 +31,9 @@ class Kind(IntEnum):
 
 @dataclass
 class Type(Symbol):
-    def __init__(self, kind: Kind):
+    def __init__(self, kind: Kind, zero_initialized: bool = False):
         super().__init__(str(kind), None)
+        self.zero_initialized = zero_initialized
         self.kind = kind
         self.is_global = True
 
@@ -234,10 +235,10 @@ class Builtins(Enum):
 
 
 builtin_types: List[Tuple[str, Type]] = [
-    ("int", Type(Kind.TINT)),
-    ("real", Type(Kind.TREAL)),
-    ("bool", Type(Kind.TBOOL)),
-    ("texto", Type(Kind.TTEXTO)),
+    ("int", Type(Kind.TINT, True)),
+    ("real", Type(Kind.TREAL, True)),
+    ("bool", Type(Kind.TBOOL, True)),
+    ("texto", Type(Kind.TTEXTO, True)),
     ("vazio", Type(Kind.TVAZIO)),
     ("indef", Type(Kind.TINDEF)),
     ("nulo", Type(Kind.TNULO)),

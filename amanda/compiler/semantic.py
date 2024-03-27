@@ -241,7 +241,13 @@ class Analyzer(ast.Visitor):
         self.define_symbol(symbol, self.scope_depth, self.ctx_scope)
         node.var_type = var_type
         assign = node.assign
-        if assign is not None:
+        if not assign:
+            # If we are not analyzing a registo declaration, all non primitive types must be initialized
+            if self.ctx_reg is None and not var_type.zero_initialized:
+                self.error(
+                    "Erro de inicialização. Variáveis de tipos não primitivos devem ser inicializadas"
+                )
+        else:
             if assign.right.token.lexeme == name:
                 self.error(
                     f"Erro ao inicializar variável. Não pode referenciar uma variável durante a sua declaração"

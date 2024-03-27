@@ -1,0 +1,10 @@
+registo Foo
+    baz: int
+fim
+
+
+bar: Foo
+
+
+
+#[output]: Erro: Erro de inicialização. Variáveis de tipos não primitivos devem ser inicializadas.
