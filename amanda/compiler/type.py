@@ -20,8 +20,11 @@ class Kind(IntEnum):
     # to avoid setting eval_type to null on ast nodes
     TUNKNOWN = auto()
     TGENERIC = auto()
+    TTalvez = auto()
 
     def __str__(self) -> str:
+        if self == Kind.TTalvez:
+            return "Talvez"
         return self.name.lower()[1:]
 
 
@@ -105,7 +108,18 @@ class Type(Symbol):
         auto_cast_types = auto_cast_table.get(kind)
 
         if not auto_cast_types or other_kind not in auto_cast_types:
-            return None
+            print(f"in here: {self} -> {other}")
+            # If not of type maybe, return
+            if other_kind != Kind.TTalvez or not isinstance(
+                other, ConstructedTy
+            ):
+                print("1st bail")
+                return None
+
+            inner_ty = other.bound_ty_args["T"]
+            if inner_ty != self and not self.promote_to(inner_ty):
+                print("2nd bail")
+                return None
 
         return other
 
@@ -121,7 +135,7 @@ class Vector(Type):
 
         el_type = cast(Vector, self).element_type
         while el_type.kind != Kind.TVEC:
-            subtype = cast(Vector, el_type).element_type
+            el_type = cast(Vector, el_type).element_type
         return el_type
 
     def __str__(self) -> str:
@@ -160,7 +174,7 @@ class ConstructedTy(Type):
     bound_ty_args: dict[str, Type]
 
     def __init__(self, generic_ty, bound_ty_args):
-        super().__init__(Kind.TGENERIC)
+        super().__init__(generic_ty.kind)
         self.generic_ty = generic_ty
         self.bound_ty_args = bound_ty_args
 
@@ -172,15 +186,24 @@ class ConstructedTy(Type):
         if self.generic_ty != other.generic_ty:
             return False
         # Compare bound type arguments
-        return self.name == other.name
+        for ty_param, ty_arg in self.bound_ty_args.items():
+            other_ty_arg = other.bound_ty_args.get(ty_param)
+            if not other_ty_arg:
+                return False
+            if other_ty_arg != ty_arg:
+                return False
+        return True
 
     def __str__(self) -> str:
+        if self.name == str(Kind.TTalvez):
+            ty_arg = self.bound_ty_args["T"]
+            return f"{ty_arg}?"
         return self.name
 
 
 class GenericTy(Type):
     def __init__(self, name: str, ty_params: set[str]):
-        super().__init__(Kind.TGENERIC)
+        super().__init__(Kind.TTalvez)
         self.name: str = name
         self.ty_params: set[str] = ty_params
 
@@ -209,7 +232,7 @@ class Builtins(Enum):
     Vazio = Type(Kind.TVAZIO)
     Indef = Type(Kind.TINDEF)
     Nulo = Type(Kind.TNULO)
-    Talvez = GenericTy("Talvez", {"T"})
+    Talvez = GenericTy(str(Kind.TTalvez), {"T"})
 
 
 builtin_types: List[Tuple[str, Type]] = [
