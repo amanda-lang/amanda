@@ -84,7 +84,7 @@ class Type(Symbol):
             Kind.TBOOL: (Kind.TTEXTO, Kind.TINDEF),
             Kind.TVEC: (Kind.TINDEF,),
             Kind.TREGISTO: (Kind.TINDEF,),
-            Kind.TNULO: (Kind.TREGISTO,),
+            Kind.TNULO: (Kind.TTalvez,),
             Kind.TINDEF: (*primitives, Kind.TREGISTO, Kind.TVEC),
         }
         cast_types = cast_table.get(kind)

@@ -159,9 +159,9 @@ class VarDecl(ASTNode):
         self, token: Token, *, name: Token, var_type=None, assign=None
     ):
         super().__init__(token)
-        self.var_type = var_type
-        self.assign = assign
-        self.name = name
+        self.var_type: Type = var_type  # type: ignore
+        self.assign: Assign | None = assign
+        self.name: Token = name
 
 
 class Assign(Expr):

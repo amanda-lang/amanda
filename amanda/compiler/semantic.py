@@ -228,7 +228,7 @@ class Analyzer(ast.Visitor):
         module = symbols.Module(mod_path)
         self.load_module(module)
 
-    def visit_vardecl(self, node):
+    def visit_vardecl(self, node: ast.VarDecl):
         name = node.name.lexeme
         in_use = self.ctx_scope.get(name)
         if in_use and not self.ctx_reg:
