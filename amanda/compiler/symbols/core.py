@@ -1,7 +1,14 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Optional, Dict, cast
+from typing import Optional, Dict, cast, Any
 from amanda.compiler.symbols.base import Symbol, TypeVar, Typed, Type
+
+
+@dataclass
+class Module:
+    fpath: str
+    ast: Any = None
+    loaded: bool = False
 
 
 class VariableSymbol(Typed):

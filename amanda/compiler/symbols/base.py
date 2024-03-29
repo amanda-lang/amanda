@@ -6,13 +6,6 @@ from typing import Any
 from dataclasses import dataclass
 
 
-@dataclass
-class Module:
-    fpath: str
-    ast: Any = None
-    loaded: bool = False
-
-
 class Symbol(ABC):
     def __init__(self, name: str):
         self.name = name
@@ -98,6 +91,19 @@ class Type(Symbol):
 
     def supports_methods(self) -> bool:
         return True
+
+    @abstractmethod
+    def supports_index_get(self) -> bool: ...
+
+    @abstractmethod
+    def supports_index_set(self) -> bool: ...
+
+    def index_item_ty(self) -> Type | None:
+        if not self.supports_index_get():
+            return None
+        raise NotImplementedError(
+            "Method must be overriden for classes that support index get"
+        )
 
     def get_property(self, prop: str) -> Symbol | None:
         pass

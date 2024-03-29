@@ -156,6 +156,15 @@ class Vector(Type):
             el_type = cast(Vector, el_type).element_type
         return el_type
 
+    def supports_index_get(self) -> bool:
+        return True
+
+    def supports_index_set(self) -> bool:
+        return True
+
+    def index_item_ty(self) -> Type:
+        return self.element_type
+
     def __str__(self) -> str:
         return f"[{str(self.element_type)}]"
 
@@ -195,6 +204,12 @@ class Registo(Type):
 
     def is_callable(self) -> bool:
         return True
+
+    def supports_index_get(self) -> bool:
+        return False
+
+    def supports_index_set(self) -> bool:
+        return False
 
     def is_generic(self) -> bool:
         return self.ty_params is not None

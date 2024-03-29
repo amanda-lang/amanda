@@ -1,6 +1,6 @@
 from __future__ import annotations
 from amanda.compiler.tokens import Token, TokenType as TT
-import amanda.compiler.type as types
+import amanda.compiler.types.core as types
 from dataclasses import dataclass
 from typing import (
     Any,
@@ -14,9 +14,7 @@ from typing import (
 )
 from typing_extensions import TypeGuard
 from abc import abstractmethod
-
-if TYPE_CHECKING:
-    import amanda.compiler.symbols as symbols
+import amanda.compiler.symbols.core as symbols
 
 # TODO: Rename fields of some classes
 T = TypeVar("T")
@@ -149,7 +147,7 @@ class BinOp(Expr):
 
 
 class UnaryOp(Expr):
-    def __init__(self, token, operand=None):
+    def __init__(self, token: Token, *, operand: Expr):
         super().__init__(token)
         self.operand = operand
 
@@ -237,21 +235,21 @@ class Escolha(ASTNode):
 
 
 class Para(ASTNode):
-    def __init__(self, token, expression=None, statement=None):
+    def __init__(self, token, expression: ParaExpr, statement: Block):
         super().__init__(token)
         self.expression = expression
         self.statement = statement
 
 
 class ParaExpr(ASTNode):
-    def __init__(self, name=None, range_expr=None):
+    def __init__(self, name: Token, range_expr: RangeExpr):
         super().__init__(name)
         self.name = name
         self.range_expr = range_expr
 
 
 class RangeExpr(ASTNode):
-    def __init__(self, token, start=None, end=None, inc=None):
+    def __init__(self, token: Token, start: Expr, end: Expr, inc: Expr):
         super().__init__(token)
         self.start = start
         self.end = end
@@ -259,7 +257,7 @@ class RangeExpr(ASTNode):
 
 
 class Call(Expr):
-    def __init__(self, callee=None, paren=None, fargs: List[Expr] = []):
+    def __init__(self,*, callee: Expr, paren: Token, fargs: List[Expr])
         super().__init__(callee.token)
         self.callee = callee
         self.fargs = fargs
@@ -332,7 +330,7 @@ class FunctionDecl(ASTNode):
         self.func_type = func_type
         self.block = block
         self.is_native = False
-        self.symbol: symbols.FunctionSymbol = None  # type: ignore (going to be set later)
+        self.symbol: symbols.FunctionSymbol = None  # type: ignore
 
     def is_method(self) -> bool:
         return False
