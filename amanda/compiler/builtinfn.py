@@ -1,7 +1,4 @@
-import amanda.compiler.symbols as symbols
-from amanda.compiler.type import Kind, Type
 import enum
-import pathlib
 
 
 class BuiltinFn(enum.Enum):

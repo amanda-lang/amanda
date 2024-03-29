@@ -2,7 +2,7 @@ import sys
 import pdb
 from io import StringIO
 import amanda.compiler.symbols as symbols
-from amanda.compiler.type import Type, Kind
+from amanda.compiler.types.core import Type, Types
 import amanda.compiler.ast as ast
 from amanda.compiler.error import AmandaError, throw_error
 
@@ -22,7 +22,7 @@ class Generator:
         self.line_info = {}  # Maps py_fileno to ama_fileno
 
     def generate_code(self, program):
-        """ Method that begins compilation of amanda source."""
+        """Method that begins compilation of amanda source."""
         self.program_symtab = self.scope_symtab = program.symbols
         py_code = self.gen(program)
         return (py_code, self.line_info)
@@ -281,9 +281,9 @@ class Generator:
     def gen_expression(self, expression, prom_type):
         if prom_type == None:
             return expression
-        if prom_type.otype == Kind.TINDEF:
+        if prom_type.otype == Types.TINDEF:
             return f"indef({expression})"
-        elif prom_type.otype == Kind.TREAL:
+        elif prom_type.otype == Types.TREAL:
             return f"float({expression})"
         else:
             return expression
@@ -376,7 +376,7 @@ class Generator:
 
     def gen_mostra(self, node):
         expression = self.gen(node.exp)
-        if node.exp.eval_type.otype == Kind.TVAZIO:
+        if node.exp.eval_type.otype == Types.TVAZIO:
             expression = "vazio"
         return f"printc({expression})"
 
@@ -396,7 +396,7 @@ class Generator:
         self.line_info = {}  # Maps py_fileno to ama_fileno
 
     def generate_code(self, program):
-        """ Method that begins compilation of amanda source."""
+        """Method that begins compilation of amanda source."""
         self.program_symtab = self.scope_symtab = program.symbols
         py_code = self.gen(program)
         return (py_code, self.line_info)
@@ -655,9 +655,9 @@ class Generator:
     def gen_expression(self, expression, prom_type):
         if prom_type == None:
             return expression
-        if prom_type.otype == Kind.TINDEF:
+        if prom_type.otype == Types.TINDEF:
             return f"indef({expression})"
-        elif prom_type.otype == Kind.TREAL:
+        elif prom_type.otype == Types.TREAL:
             return f"float({expression})"
         else:
             return expression
@@ -750,6 +750,6 @@ class Generator:
 
     def gen_mostra(self, node):
         expression = self.gen(node.exp)
-        if node.exp.eval_type.otype == Kind.TVAZIO:
+        if node.exp.eval_type.otype == Types.TVAZIO:
             expression = "vazio"
         return f"printc({expression})"

@@ -16,4 +16,4 @@ para i de 0..4 faca
 fim
 
 
-#[output]: Erro: atribuição inválida. incompatibilidade entre os operandos da atribuição: 'int' e 'real'.
+#[output]: Erro: Atribuição inválida. incompatibilidade entre os operandos da atribuição: 'int' e 'real'.

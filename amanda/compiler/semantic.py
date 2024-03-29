@@ -3,6 +3,7 @@ import keyword
 from os import path
 from typing import Optional, List, cast, Tuple
 from amanda.compiler.parse import parse
+from amanda.compiler.symbols.base import Typed
 from amanda.compiler.tokens import TokenType as TT, Token
 import amanda.compiler.ast as ast
 import amanda.compiler.symbols.core as symbols
@@ -277,7 +278,9 @@ class Analyzer(ast.Visitor):
             symbol.is_property = True
         symbol.is_global = True
         self.define_symbol(symbol, self.scope_depth, self.ctx_scope)
-        return self.define_func_scope(name, node.params)
+        scope, params = self.define_func_scope(name, node.params)
+        symbol.params = params
+        return (scope, params)
 
     def validate_return(
         self, node: ast.FunctionDecl, function_type: Type, no_return_err: str
@@ -558,9 +561,10 @@ class Analyzer(ast.Visitor):
         if not t_type.supports_index_get():
             self.error(f"O valor do tipo '{t_type}' não contém índices")
 
-        if t_type.index_item_ty() != index.eval_type:
+        index_ty = t_type.index_ty()
+        if t_type.index_ty() != index.eval_type:
             self.error(
-                f"Índices para valores do tipo '{t_type}' devem ser do tipo '{index.eval_type}'"
+                f"Índices para valores do tipo '{t_type}' devem ser do tipo '{index_ty}'"
             )
 
         node.eval_type = t_type.index_item_ty()
@@ -809,7 +813,7 @@ class Analyzer(ast.Visitor):
             # Skip inc node in case it's empty lool
             if not enode:
                 continue
-            if node.eval_type != Builtins.Int:
+            if enode.eval_type != Builtins.Int:
                 self.error("os parâmetros de uma série devem ser do tipo 'int'")
 
     def visit_namedarg(self, node: ast.NamedArg):
@@ -819,9 +823,10 @@ class Analyzer(ast.Visitor):
     def visit_call(self, node: ast.Call):
         callee = node.callee
         calle_type = type(callee)
-        sym = self.ctx_scope.resolve(name)
+        sym: Typed
         if calle_type == ast.Variable:
             name = callee.token.lexeme
+            sym = self.ctx_scope.resolve_typed(name)
             if not sym:
                 # TODO: Use the default error message for this
                 self.error(
@@ -836,6 +841,7 @@ class Analyzer(ast.Visitor):
                 else f"o símbolo '{node.callee.token.lexeme}' não é invocável"
             )
             self.error(message)
+            return
         if sym.name in BUILTINS:
             self.builtin_call(BUILTINS[sym.name], node)
         elif isinstance(sym, Registo):
@@ -855,7 +861,7 @@ class Analyzer(ast.Visitor):
         self.visit(value)
 
         vec_t = vec_expr.eval_type
-        if vec_t.tag != Types.TVEC:
+        if not isinstance(vec_t, Vector):
             self.error(f"O argumento 1 da função '{fn}' deve ser um vector")
 
     # Validates call to builtin functions
@@ -903,12 +909,12 @@ class Analyzer(ast.Visitor):
                     f"incompatibilidade de tipos entre o tipo dos elementos da lista e o valor a anexar: '{el_type}' != '{val_t}'"
                 )
             value.prom_type = val_t.promote_to(el_type)
-            node.eval_type = self.global_scope.resolve("vazio")
+            node.eval_type = cast(Type, self.global_scope.resolve("vazio"))
         elif fn == BuiltinFn.REMOVA:
             vec_expr = node.fargs[0]
             index = node.fargs[1]
             self.check_vec_op(fn, node)
-            if index.eval_type.tag != Types.TINT:
+            if index.eval_type != Builtins.Int:
                 self.error(
                     "O argumento 2 da função 'remova' deve ser um número inteiro"
                 )
@@ -919,8 +925,7 @@ class Analyzer(ast.Visitor):
             seq = node.fargs[0]
             self.visit(seq)
 
-            SEQ_TYPES = (Types.TTEXTO, Types.TVEC)
-            if seq.eval_type.tag not in SEQ_TYPES:
+            if not seq.eval_type.supports_tam():
                 self.error(
                     "O argumento 1 da função 'tam' deve ser do tipo 'texto' ou do tipo 'vector'"
                 )

@@ -98,9 +98,15 @@ class Type(Symbol):
     @abstractmethod
     def supports_index_set(self) -> bool: ...
 
-    def index_item_ty(self) -> Type | None:
-        if not self.supports_index_get():
-            return None
+    @abstractmethod
+    def supports_tam(self) -> bool: ...
+
+    def index_ty(self) -> Type:
+        raise NotImplementedError(
+            "Method must be overriden for classes that support index get"
+        )
+
+    def index_item_ty(self) -> Type:
         raise NotImplementedError(
             "Method must be overriden for classes that support index get"
         )
@@ -134,6 +140,15 @@ class TypeVar(Type):
         return self.name
 
     def is_primitive(self) -> bool:
+        return False
+
+    def supports_index_get(self) -> bool:
+        return False
+
+    def supports_tam(self) -> bool:
+        return False
+
+    def supports_index_set(self) -> bool:
         return False
 
     def promotion_to(self, other: Type) -> Type | None:

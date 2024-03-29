@@ -115,8 +115,6 @@ class Primitive(Type):
             Types.TREAL: (Types.TINDEF,),
             Types.TBOOL: (Types.TINDEF,),
             Types.TTEXTO: (Types.TINDEF,),
-            Types.TVEC: (Types.TINDEF,),
-            Types.TREGISTO: (Types.TINDEF,),
         }
         auto_cast_types = auto_cast_table.get(tag)
 
@@ -124,8 +122,27 @@ class Primitive(Type):
             return None
         return other
 
+    def supports_index_get(self) -> bool:
+        return self.tag == Types.TTEXTO
+
+    def supports_tam(self) -> bool:
+        return self.tag == Types.TTEXTO
+
+    def supports_index_set(self) -> bool:
+        return False
+
+    def index_ty(self) -> Type:
+        if self.tag == Types.TTEXTO:
+            return Primitive(Types.TINT, True)
+        raise NotImplementedError("Invalid case.")
+
+    def index_item_ty(self) -> Type:
+        if self.tag == Types.TTEXTO:
+            return Primitive(Types.TTEXTO, True)
+        raise NotImplementedError("Invalid case.")
+
     def get_property(self, prop: str) -> Symbol | None:
-        pass
+        return None
 
     def is_primitive(self) -> bool:
         return self.tag in (
@@ -161,6 +178,12 @@ class Vector(Type):
 
     def supports_index_set(self) -> bool:
         return True
+
+    def supports_tam(self) -> bool:
+        return True
+
+    def index_ty(self) -> Type:
+        return Primitive(Types.TINT, True)
 
     def index_item_ty(self) -> Type:
         return self.element_type
@@ -209,6 +232,9 @@ class Registo(Type):
         return False
 
     def supports_index_set(self) -> bool:
+        return False
+
+    def supports_tam(self) -> bool:
         return False
 
     def is_generic(self) -> bool:

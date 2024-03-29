@@ -1,10 +1,11 @@
 import sys
-import pdb
 from typing import List, cast, Sequence
 from io import StringIO, BytesIO
 from enum import Enum, auto
-import amanda.compiler.symbols as symbols
-from amanda.compiler.type import Registo, Type, Kind
+from amanda.compiler.symbols.base import Symbol
+import amanda.compiler.symbols.core as symbols
+from amanda.compiler.types.builtins import Builtins
+from amanda.compiler.types.core import Primitive, Type
 import amanda.compiler.ast as ast
 from amanda.compiler.tokens import TokenType as TT
 from amanda.compiler.error import AmandaError, throw_error
@@ -166,7 +167,7 @@ class ByteGen:
         sym_types = (
             symbols.VariableSymbol,
             symbols.FunctionSymbol,
-            Type,
+            Primitive,
         )
         for name, symbol in program.symbols.symbols.items():
             if type(symbol) in sym_types:
@@ -362,7 +363,7 @@ class ByteGen:
         self.append_op(OpCode.LOAD_CONST, idx)
         self.gen_auto_cast(node.prom_type)
 
-    def load_variable(self, symbol: symbols.Symbol):
+    def load_variable(self, symbol: Symbol):
         name = symbol.name
         if symbol.is_global:
             self.append_op(OpCode.GET_GLOBAL, self.names[name])
@@ -403,7 +404,7 @@ class ByteGen:
             self.append_op(OpCode.LOAD_CONST, init_idx)
             self.set_variable(symbol)
 
-    def set_variable(self, symbol: symbols.Symbol):
+    def set_variable(self, symbol: Symbol):
         name = symbol.name
         if symbol.is_global:
             var_idx = self.get_table_index(name, self.NAME_TABLE)
@@ -643,26 +644,26 @@ class ByteGen:
             self.load_const("falso")
         self.append_op(OpCode.RETURN)
 
-    def gen_converta(self, node):
+    def gen_converta(self, node: ast.Converta):
         target_t = node.target.eval_type
         new_t = node.eval_type
         self.gen(node.target)
         # Converting to same type, can ignore this
         # TODO: Do this in sem analysis
-        if new_t.kind == target_t.kind or new_t.kind == Kind.TINDEF:
+        if new_t == target_t or new_t == Builtins.Indef:
             return
         self.load_variable(new_t)
-        arg = 0 if target_t.kind != Kind.TINDEF else 1
+        arg = 0 if target_t != Builtins.Indef else 1
         self.append_op(OpCode.CAST, arg)
 
-    def gen_auto_cast(self, prom_type):
-        if not prom_type or prom_type.kind != Kind.TREAL:
+    def gen_auto_cast(self, prom_type: Type):
+        if not prom_type or prom_type != Builtins.Real:
             return
         self.load_variable(prom_type)
         self.append_op(OpCode.CAST, 0)
 
-    def gen_mostra(self, node):
-        self.gen(node.exp)
+    def gen_mostra(self, node: ast.Mostra):
+        self.gen(cast(ast.Expr, node.exp))
         self.append_op(OpCode.MOSTRA)
 
     def gen_alvo(self, node: ast.Alvo):

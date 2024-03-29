@@ -1,2 +1,2 @@
 escrevaln("a"[""])
-#[output]: Erro: Índices para valores do tipo 'texto' devem ser inteiros.
+#[output]: Erro: Índices para valores do tipo 'texto' devem ser do tipo 'int'.

@@ -1,6 +1,7 @@
 from __future__ import annotations
 from amanda.compiler.tokens import Token, TokenType as TT
 import amanda.compiler.types.core as types
+from amanda.compiler.types.builtins import Builtins
 from dataclasses import dataclass
 from typing import (
     Any,
@@ -88,8 +89,8 @@ class Program(Block):
 class Expr(ASTNode):
     def __init__(self, token: Token):
         super().__init__(token)
-        self.eval_type: types.Type = types.Type(types.Kind.TUNKNOWN)
-        self.prom_type: types.Type | None = types.Type(types.Kind.TUNKNOWN)
+        self.eval_type: types.Type = Builtins.Unknown
+        self.prom_type: types.Type = Builtins.Unknown
 
     def __str__(self):
         return f"{self.token.lexeme}"
@@ -257,7 +258,9 @@ class RangeExpr(ASTNode):
 
 
 class Call(Expr):
-    def __init__(self,*, callee: Expr, paren: Token, fargs: List[Expr])
+    def __init__(
+        self, *, callee: Expr, paren: Token | None = None, fargs: List[Expr]
+    ):
         super().__init__(callee.token)
         self.callee = callee
         self.fargs = fargs

@@ -2,12 +2,10 @@ from dataclasses import dataclass
 import amanda.compiler.ast as ast
 from amanda.compiler.tokens import TokenType as TT, Token
 from amanda.compiler.ast import node_of_type
-from amanda.compiler.symbols import MethodSym, VariableSymbol
-from amanda.compiler import symbols
-from amanda.compiler.type import Type, Kind
-import pprint
+from amanda.compiler.symbols.core import MethodSym, VariableSymbol
+from amanda.compiler.types.builtins import Builtins
 
-from typing import cast, Union, Tuple, Optional, Callable
+from typing import cast, Callable
 
 
 def var_node(name: str, tok: Token) -> ast.Variable:
@@ -52,7 +50,7 @@ class ASTTransformer:
     def empty_transform(self, node: ast.ASTNode, loc: ast.ChildAttr):
         self.transform(node)
 
-    def general_transform(self, node: ast.ASTNode) -> Optional[ast.ASTNode]:
+    def general_transform(self, node: ast.ASTNode) -> ast.ASTNode | None:
         node.for_each_child(self.empty_transform)
         if node.of_type(ast.Converta):
             return node
@@ -64,7 +62,7 @@ class ASTTransformer:
             new_token(TT.DOUBLEEQUAL, "=="),
             left=left,
             right=right,
-            ty=Type(Kind.TBOOL),
+            ty=Builtins.Bool,
         )
         # check node
         # transform node into ifs
