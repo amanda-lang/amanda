@@ -1,8 +1,9 @@
 from __future__ import annotations
 from enum import auto, IntEnum, Enum
 from dataclasses import dataclass
-from typing import Mapping
-from amanda.compiler.symbols.base import Symbol, Type
+from typing import Mapping, cast
+from amanda.compiler.symbols.base import Symbol, Type, Typed
+from amanda.compiler.symbols.core import VariableSymbol, MethodSym
 
 
 # Enum of types that are "known" to the compiler and may have
@@ -183,13 +184,13 @@ class Registo(Type):
     def __init__(
         self,
         name: str,
-        fields: dict[str, Symbol],
+        fields: dict[str, VariableSymbol],
         ty_params: set[str] | None = None,
     ):
         super().__init__(name)
         self.name = name
         self.fields = fields
-        self.methods: dict[str, Symbol] = {}
+        self.methods: dict[str, MethodSym] = {}
         self.ty_params: set[str] | None = ty_params
 
     def is_callable(self) -> bool:
@@ -223,6 +224,7 @@ class Registo(Type):
         return self.name
 
     def get_property(self, prop) -> Symbol | None:
+
         return self.fields.get(prop, self.methods.get(prop))
 
     def supports_fields(self) -> bool:
@@ -291,44 +293,14 @@ class ConstructedTy(Type):
     def is_generic(self) -> bool:
         return False
 
+    def get_property(self, prop) -> Symbol | None:
+        prop = self.generic_ty.get_property(prop)
+        return (
+            prop if not prop else cast(Typed, prop).bind(**self.bound_ty_args)
+        )
+
     def __str__(self) -> str:
         if self.name == str(Types.TOpcao):
             ty_arg = self.bound_ty_args["T"]
             return f"{ty_arg}?"
         return self.name
-
-
-class Builtins:
-    Int = Primitive(Types.TINT, True)
-    Real = Primitive(Types.TREAL, True)
-    Bool = Primitive(Types.TBOOL, True)
-    Texto = Primitive(Types.TTEXTO, True)
-    Vazio = Primitive(Types.TVAZIO, False)
-    Indef = Primitive(Types.TINDEF, False)
-    Nulo = Primitive(Types.TNULO, False)
-    Talvez = Registo(
-        str(Types.TOpcao),
-        fields={
-            "valor": VariableSymbol("valor", TypeParam("T")),
-        },
-        ty_params={"T"},
-    )
-
-
-Builtins.Talvez.fields["valor_ou"] = MethodSym(
-    "valor_ou",
-    Builtins.Talvez.value,
-    TypeParam("T"),
-    params={"padrao": VariableSymbol("padrao", TypeParam("T"))},
-)
-
-
-builtin_types: List[Tuple[str, Type]] = [
-    ("int", Type(Types.TINT, True)),
-    ("real", Type(Types.TREAL, True)),
-    ("bool", Type(Types.TBOOL, True)),
-    ("texto", Type(Types.TTEXTO, True)),
-    ("vazio", Type(Types.TVAZIO)),
-    ("indef", Type(Types.TINDEF)),
-    ("nulo", Type(Types.TNULO)),
-]

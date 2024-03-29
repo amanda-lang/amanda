@@ -59,6 +59,9 @@ class Type(Symbol):
     @abstractmethod
     def supports_fields(self) -> bool: ...
 
+    def is_type_var(self) -> bool:
+        return False
+
     def is_numeric(self) -> bool:
         return False
 
@@ -105,6 +108,38 @@ class Type(Symbol):
         )
 
 
+@dataclass
+class TypeVar(Type):
+    constraints: list
+
+    def __init__(self, name: str):
+        super().__init__(name)
+        self.zero_initialized = False
+        self.is_global = False
+        self.constraints = []
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, TypeVar) and self.name == other.name
+
+    def is_generic(self) -> bool:
+        return False
+
+    def __str__(self) -> str:
+        return self.name
+
+    def is_primitive(self) -> bool:
+        return False
+
+    def promotion_to(self, other: Type) -> Type | None:
+        return None
+
+    def supports_fields(self) -> bool:
+        return False
+
+    def is_type_var(self) -> bool:
+        return True
+
+
 class Typed(Symbol):
     def __init__(self, name: str, ty: Type):
         super().__init__(name)
@@ -118,6 +153,9 @@ class Typed(Symbol):
 
     @abstractmethod
     def is_callable(self) -> bool: ...
+
+    @abstractmethod
+    def bind(self, **ty_args: Type) -> Typed: ...
 
     def __str__(self):
         return f"<{self.__class__.__name__} ({self.name},{self.out_id},{self.type})>"

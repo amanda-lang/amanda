@@ -1,7 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional, Dict, cast
-from amanda.compiler.symbols.base import Symbol, Typed, Type
+from amanda.compiler.symbols.base import Symbol, TypeVar, Typed, Type
 
 
 class VariableSymbol(Typed):
@@ -13,6 +13,11 @@ class VariableSymbol(Typed):
 
     def is_callable(self):
         return False
+
+    def bind(self, **ty_args: Type) -> Typed:
+        if not self.type.is_type_var():
+            return self
+        return VariableSymbol(self.name, ty_args[self.type.name])
 
 
 class FunctionSymbol(Typed):
@@ -27,6 +32,7 @@ class FunctionSymbol(Typed):
         self.params = params  # dict of symbols
         self.scope = None
         self.entrypoint = entrypoint
+        self._has_generic_params_cached: bool | None = None
 
     def __str__(self):
         params = ",".join(self.params)
@@ -43,11 +49,36 @@ class FunctionSymbol(Typed):
     def arity(self):
         return len(self.params)
 
+    def has_generic_params(self):
+        if self._has_generic_params_cached is not None:
+            return self._has_generic_params_cached
+        self._has_generic_params_cached = any(
+            map(lambda p: p.type.is_type_var(), self.params.values())
+        )
+        return self._has_generic_params_cached
+
+    def bind(self, **ty_args: Type) -> Typed:
+        if not self.has_generic_params() and not self.type.is_type_var():
+            return self
+
+        params = self.params
+        if self.has_generic_params:
+            params = {
+                param: cast(VariableSymbol, value.bind(**ty_args))
+                for param, value in self.params.items()
+            }
+        return_ty = self.type
+        if self.type.is_type_var():
+            return_ty = ty_args[self.type.name]
+
+        return FunctionSymbol(self.name, return_ty, params)
+
 
 class MethodSym(FunctionSymbol):
     def __init__(
         self,
         name: str,
+        *,
         target_ty: Type,
         return_ty: Type,
         params: dict[str, VariableSymbol] = {},
@@ -61,6 +92,15 @@ class MethodSym(FunctionSymbol):
         params = ",".join(self.params)
         return (
             f"<{self.__class__.__name__}: ({self.name},{self.type}) ({params})>"
+        )
+
+    def bind(self, **ty_args: Type) -> Typed:
+        new_fn = cast(FunctionSymbol, super().bind(**ty_args))
+        return MethodSym(
+            self.name,
+            target_ty=self.target_ty,
+            return_ty=new_fn.type,
+            params=new_fn.params,
         )
 
 

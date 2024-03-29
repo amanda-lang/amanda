@@ -11,7 +11,7 @@ class Builtins:
     Vazio = Primitive(Types.TVAZIO, False)
     Indef = Primitive(Types.TINDEF, False)
     Nulo = Primitive(Types.TNULO, False)
-    Talvez = Registo(
+    Opcao = Registo(
         str(Types.TOpcao),
         fields={
             "valor": VariableSymbol("valor", TypeParam("T")),
@@ -20,9 +20,9 @@ class Builtins:
     )
 
 
-Builtins.Talvez.fields["valor_ou"] = MethodSym(
+Builtins.Opcao.methods["valor_ou"] = MethodSym(
     "valor_ou",
-    Builtins.Talvez,
+    Builtins.Opcao,
     TypeParam("T"),
     params={"padrao": VariableSymbol("padrao", TypeParam("T"))},
 )
@@ -36,4 +36,5 @@ builtin_types: list[tuple[str, Type]] = [
     ("vazio", Builtins.Vazio),
     ("indef", Builtins.Indef),
     ("nulo", Builtins.Nulo),
+    ("Opcao", Builtins.Opcao),
 ]
