@@ -45,34 +45,59 @@ class Type(Symbol):
     def __eq__(self, other: object) -> bool: ...
 
     @abstractmethod
-    def is_numeric(self) -> bool: ...
-
-    def is_type(self) -> bool:
-        return True
-
-    @abstractmethod
     def is_generic(self) -> bool: ...
 
     @abstractmethod
     def __str__(self) -> str: ...
 
     @abstractmethod
-    def is_operable(self) -> bool: ...
+    def is_primitive(self) -> bool: ...
+
+    @abstractmethod
+    def promotion_to(self, other: Type) -> Type | None: ...
+
+    @abstractmethod
+    def supports_fields(self) -> bool: ...
+
+    def is_numeric(self) -> bool:
+        return False
+
+    def is_type(self) -> bool:
+        return True
+
+    def can_evaluate(self) -> bool:
+        return False
+
+    def is_callable(self) -> bool:
+        return False
+
+    def is_operable(self) -> bool:
+        return False
+
+    def cast_to(self, other: Type) -> bool:
+        return False
+
+    def cast_from(self, other: Type) -> bool:
+        return False
+
+    def promotion_from(self, other: Type) -> Type | None:
+        return None
 
     def full_field_path(self, field: str) -> str:
         return self.name + "::" + field
 
-    @abstractmethod
-    def supports_fields(self) -> bool: ...
+    def check_cast(self, other: Type) -> bool:
+        return self.cast_to(other) or other.cast_from(self)
+
+    def promote_to(self, other: Type) -> Type | None:
+        result = self.promotion_to(other)
+        return result if result else other.promotion_from(self)
 
     def supports_methods(self) -> bool:
         return True
 
     def get_property(self, prop: str) -> Symbol | None:
         pass
-
-    @abstractmethod
-    def is_primitive(self) -> bool: ...
 
     def bind(self, **ty_args: dict[str, Type]) -> Type:
         raise NotImplementedError(
