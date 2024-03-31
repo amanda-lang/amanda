@@ -41,6 +41,7 @@ class TokenType(Enum):
     RBRACE = "}"
     LBRACKET = "["
     RBRACKET = "]"
+    AT = "@"
     COLON = ":"
     QMARK = "?"
     DOUBLECOLON = "::"

@@ -1,7 +1,7 @@
 import os
 import copy
 from io import StringIO
-from typing import List, Union
+from typing import List, NoReturn, Union
 from amanda.compiler.tokens import TokenType as TT, is_ambiguous_char
 from amanda.compiler.tokens import Token
 from amanda.compiler.tokens import KEYWORDS as TK_KEYWORDS
@@ -284,7 +284,7 @@ class Parser:
                 f"era esperado o símbolo '{expected.value}',porém recebeu o símbolo '{self.lookahead.lexeme}'"
             )
 
-    def error(self, message, line=None):
+    def error(self, message, line=None) -> NoReturn:
         err_line = self.lookahead.line
         if line:
             err_line = line
@@ -357,12 +357,21 @@ class Parser:
             body.add_child(child)
 
     def declaration(self):
+        annotations = None
+        if self.match(TT.AT):
+            annotations = self.annotations()
+            self.skip_newlines()
+            if self.lookahead.token not in (TT.FUNC, TT.MET, TT.REGISTO):
+                self.error(
+                    "As anotações devem ser seguidas de uma função, método ou registo"
+                )
+
         if self.match(TT.FUNC):
-            return self.function_decl()
+            return self.function_decl(annotations)
         elif self.match(TT.MET):
-            return self.method_decl()
+            return self.method_decl(annotations)
         elif self.match(TT.REGISTO):
-            return self.registo_decl()
+            return self.registo_decl(annotations)
         else:
             return self.statement()
 
@@ -424,7 +433,7 @@ class Parser:
         self.end_stmt()
         return function
 
-    def method_decl(self):
+    def method_decl(self, annotations: list[ast.Annotation] | None):
         self.consume(TT.MET)
         ty = self.type()
         self.consume(TT.DOUBLECOLON)
@@ -455,30 +464,34 @@ class Parser:
             target_ty=ty,
             name=name,
             params=params,
+            annotations=annotations,
             return_ty=return_ty,
             block=block,
         )
 
-    def function_decl(self):
+    def function_decl(
+        self, annotations: list[ast.Annotation] | None
+    ) -> ast.FunctionDecl:
         self.consume(TT.FUNC)
         if self.match(TT.NATIVA):
             return self.native_func_decl()
         function = self.function_header()
         function.block = self.block()
+        function.annotations = annotations
         self.consume(
             TT.FIM,
             "O corpo de uma função deve ser terminado com a directiva 'fim'",
         )
         return function
 
-    def registo_decl(self):
+    def registo_decl(self, annotations: list[ast.Annotation] | None):
         self.consume(TT.REGISTO)
         name = self.consume(TT.IDENTIFIER)
         fields = self.registo_body()
         self.consume(
             TT.FIM, "O corpo de um registo deve ser terminado com o símbolo fim"
         )
-        return ast.Registo(name=name, fields=fields)
+        return ast.Registo(name=name, fields=fields, annotations=annotations)
 
     def registo_body(self) -> List[ast.VarDecl]:
         fields = []
@@ -806,6 +819,34 @@ class Parser:
             op = self.mult_operator()
             node = ast.BinOp(op, left=node, right=self.unary())
         return node
+
+    def annotations(self) -> list[ast.Annotation] | None:
+        annotations = []
+        while self.match(TT.AT):
+            self.consume(TT.AT)
+            annotation_name = self.consume(TT.IDENTIFIER).lexeme
+            attrs = {}
+            if not self.match(TT.LPAR):
+                annotations.append(ast.Annotation(annotation_name, attrs))
+                continue
+            self.consume(TT.LPAR)
+            if self.match(TT.RPAR):
+                self.error(
+                    f"A anotação {annotation_name} deve especificar atributos. Caso não possua atributos, remova os parênteses"
+                )
+            while not self.match(TT.RPAR):
+                attr = self.consume(
+                    TT.IDENTIFIER, "Esperava-se o nome do atributo da anotação"
+                )
+                self.consume(TT.EQUAL)
+                value = self.consume(TT.STRING)
+                attrs[attr.lexeme] = value.lexeme
+                if self.match(TT.COMMA):
+                    self.consume(TT.COMMA)
+            self.consume(TT.RPAR)
+            annotations.append(ast.Annotation(annotation_name, attrs))
+
+        return annotations
 
     def unary(self):
         current = self.lookahead.token

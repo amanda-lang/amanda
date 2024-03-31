@@ -26,6 +26,12 @@ def node_of_type(node: ASTNode, ty: PyTy[T]) -> TypeGuard[T]:
     return isinstance(node, ty)
 
 
+@dataclass
+class Annotation:
+    name: str
+    attrs: dict[str, str]
+
+
 class ASTNode:
     def __init__(self, token: Token):
         self.token = token
@@ -326,6 +332,7 @@ class FunctionDecl(ASTNode):
         name: Token,
         params: list[Param],
         block: Block | None = None,
+        annotations: list[Annotation] | None = None,
         func_type: Type | None,
     ):
         super().__init__(name)
@@ -334,6 +341,7 @@ class FunctionDecl(ASTNode):
         self.func_type = func_type
         self.block = block
         self.is_native = False
+        self.annotations = annotations
         self.symbol: symbols.FunctionSymbol = None  # type: ignore
 
     def is_method(self) -> bool:
@@ -349,6 +357,7 @@ class MethodDecl(FunctionDecl):
         block: Block,
         return_ty: Type,
         params: List[Param],
+        annotations: list[Annotation] | None,
     ):
         super().__init__(
             name=name, block=block, func_type=return_ty, params=params
@@ -361,10 +370,17 @@ class MethodDecl(FunctionDecl):
 
 
 class Registo(ASTNode):
-    def __init__(self, *, name: Token, fields: List[VarDecl]):
+    def __init__(
+        self,
+        *,
+        name: Token,
+        fields: List[VarDecl],
+        annotations: list[Annotation] | None = None,
+    ):
         super().__init__(name)
         self.name = name
         self.fields = fields
+        self.annotations = annotations
 
 
 class Param(ASTNode):
