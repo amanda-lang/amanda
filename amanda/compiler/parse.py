@@ -217,47 +217,6 @@ class Lexer:
             case _:
                 return self.error(self.INVALID_SYMBOL, symbol=self.current_char)
 
-        if self.current_char == ")":
-            self.advance()
-            return Token(TT.RPAR, char, self.line, self.pos)
-        elif self.current_char == "(":
-            self.advance()
-            return Token(TT.LPAR, char, self.line, self.pos)
-        elif self.current_char == ".":
-            if self.lookahead() == ".":
-                self.advance()
-                self.advance()
-                return Token(TT.DDOT, "..", self.line, self.pos - 1)
-            self.advance()
-            return Token(TT.DOT, char, self.line, self.pos)
-        elif self.current_char == ";":
-            self.advance()
-            return Token(TT.SEMI, char, self.line, self.pos)
-        elif self.current_char == ",":
-            self.advance()
-            return Token(TT.COMMA, char, self.line, self.pos)
-        elif self.current_char == "{":
-            self.advance()
-            return Token(TT.LBRACE, char, self.line, self.pos)
-        elif self.current_char == "?":
-            self.advance()
-            return Token(TT.QMARK, char, self.line, self.pos)
-        elif self.current_char == "}":
-            self.advance()
-            return Token(TT.RBRACE, char, self.line, self.pos)
-        elif self.current_char == "[":
-            self.advance()
-            return Token(TT.LBRACKET, char, self.line, self.pos)
-        elif self.current_char == "]":
-            self.advance()
-            return Token(TT.RBRACKET, char, self.line, self.pos)
-        elif self.current_char == ":":
-            self.advance()
-            if self.current_char == ":":
-                self.advance()
-                return Token(TT.DOUBLECOLON, "::", self.line, self.pos - 1)
-            return Token(TT.COLON, char, self.line, self.pos)
-
     def format_str(self):
         self.advance()
         str_lit = self.string()
