@@ -2,7 +2,7 @@ import os
 import copy
 from io import StringIO
 from typing import List, Union
-from amanda.compiler.tokens import TokenType as TT
+from amanda.compiler.tokens import TokenType as TT, is_ambiguous_char
 from amanda.compiler.tokens import Token
 from amanda.compiler.tokens import KEYWORDS as TK_KEYWORDS
 from amanda.compiler.error import AmandaError
@@ -195,8 +195,28 @@ class Lexer:
             TT.IDENTIFIER, result, self.line, self.pos - (len(result) + 1)
         )
 
-    def delimeters(self):
+    def delimeters(self) -> Token | None:
         char = self.current_char
+
+        match (is_ambiguous_char(char), char, self.lookahead()):
+            case (True, char, lookahead):
+                combined = char + lookahead
+                tok = Token.from_char(combined, self.line, self.pos)
+                if tok:
+                    self.advance()
+                    self.advance()
+                    return tok
+                else:
+                    tok = Token.from_char(char, self.line, self.pos)
+                    self.advance()
+                    return tok
+            case (False, char, lookahead):
+                tok = Token.from_char(char, self.line, self.pos)
+                self.advance()
+                return tok
+            case _:
+                return self.error(self.INVALID_SYMBOL, symbol=self.current_char)
+
         if self.current_char == ")":
             self.advance()
             return Token(TT.RPAR, char, self.line, self.pos)
@@ -268,19 +288,7 @@ class Lexer:
             if self.current_char == "f" and self.lookahead() in ('"', "'"):
                 return self.format_str()
             return self.identifier()
-        if self.current_char in (
-            "(",
-            ")",
-            ".",
-            ";",
-            ",",
-            "{",
-            "}",
-            "[",
-            "]",
-            ":",
-            "?",
-        ):
+        if self.current_char in Token.TOKENS:
             return self.delimeters()
         if self.current_char == Lexer.EOF:
             return Token(Lexer.EOF, "", line=self.line, col=self.pos)
