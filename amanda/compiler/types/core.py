@@ -270,11 +270,17 @@ class Registo(Type):
         return False
 
     def binop(self, op: TT, rhs: Type) -> Type | None:
-        if not isinstance(rhs, Registo):
-            return None
-
-        if op == TT.DOUBLEEQUAL or TT.NOTEQUAL:
-            return Primitive(Types.TBOOL, zero_initialized=True)
+        match (self, op, rhs):
+            case [_, (TT.DOUBLEEQUAL | TT.NOTEQUAL), Registo()]:
+                return Primitive(Types.TBOOL, zero_initialized=True)
+            case [
+                Registo(name="Opcao"),
+                (TT.DOUBLEEQUAL | TT.NOTEQUAL),
+                Primitive(tag=Types.TNULO),
+            ]:
+                return Primitive(Types.TBOOL, zero_initialized=True)
+            case _:
+                return None
 
     def unaryop(self, op: TT) -> Type | None:
         return None
@@ -368,10 +374,9 @@ class ConstructedTy(Type):
         return other if other.tag in (Types.TINDEF,) else None
 
     def binop(self, op: TT, rhs: Type) -> Type | None:
-        if not isinstance(rhs, ConstructedTy):
-            return None
-
-        return self.generic_ty.binop(op, rhs.generic_ty)
+        return self.generic_ty.binop(
+            op, rhs.generic_ty if isinstance(rhs, ConstructedTy) else rhs
+        )
 
     def promotion_from(self, other: Type) -> Type | None:
         # If not of type Talvez, return

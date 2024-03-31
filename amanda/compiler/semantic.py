@@ -606,10 +606,8 @@ class Analyzer(ast.Visitor):
         # Evaluate type of binary
         # arithmetic operation
         operator = node.token
-        lhs.prom_type = lhs.eval_type.promote_to(rhs.eval_type)
-        rhs.prom_type = rhs.eval_type.promote_to(lhs.eval_type)
-        lhs_ty = lhs.eval_type if not lhs.prom_type else lhs.prom_type
-        rhs_ty = rhs.eval_type if not rhs.prom_type else rhs.prom_type
+        lhs_ty = lhs.eval_type
+        rhs_ty = rhs.eval_type
 
         result = lhs_ty.binop(operator.token, rhs_ty)
         if not result:
@@ -618,6 +616,8 @@ class Analyzer(ast.Visitor):
                 f"os tipos '{lhs.eval_type}' e '{rhs.eval_type}' não suportam operações com o operador '{operator.lexeme}'"
             )
         node.eval_type = result
+        lhs.prom_type = lhs.eval_type.promote_to(rhs.eval_type)
+        rhs.prom_type = rhs.eval_type.promote_to(lhs.eval_type)
 
     def visit_unaryop(self, node: ast.UnaryOp):
         operand = self.visit(node.operand)
