@@ -5,6 +5,8 @@ from typing import Any
 
 from dataclasses import dataclass
 
+from amanda.compiler.tokens import TokenType
+
 
 class Symbol(ABC):
     def __init__(self, name: str):
@@ -51,6 +53,12 @@ class Type(Symbol):
 
     @abstractmethod
     def supports_fields(self) -> bool: ...
+
+    @abstractmethod
+    def binop(self, op: TokenType, rhs: Type) -> Type | None: ...
+
+    @abstractmethod
+    def unaryop(self, op: TokenType) -> Type | None: ...
 
     def is_type_var(self) -> bool:
         return False
@@ -135,6 +143,12 @@ class TypeVar(Type):
 
     def is_generic(self) -> bool:
         return False
+
+    def binop(self, op: TokenType, rhs: Type) -> Type | None:
+        return None
+
+    def unaryop(self, op: TokenType) -> Type | None:
+        return None
 
     def __str__(self) -> str:
         return self.name

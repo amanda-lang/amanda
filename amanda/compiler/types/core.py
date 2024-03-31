@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Mapping, cast
 from amanda.compiler.symbols.base import Symbol, Type, Typed
 from amanda.compiler.symbols.core import VariableSymbol, MethodSym
+from amanda.compiler.tokens import TokenType as TT
 
 
 # Enum of types that are "known" to the compiler and may have
@@ -103,6 +104,22 @@ class Primitive(Type):
 
         return cast_types is not None and other_tag in cast_types
 
+    def binop(self, op: TT, rhs: Type) -> Type | None:
+        import amanda.compiler.ops as ops
+
+        return ops.primitive_binop(self, op, rhs)
+
+    def unaryop(self, op: TT) -> Type | None:
+        match op:
+            case TT.PLUS | TT.MINUS:
+                if self.tag != Types.TINT and self.tag != Types.TREAL:
+                    return None
+                return self
+            case TT.NAO:
+                return self if self.tag == Types.TBOOL else None
+            case _:
+                return None
+
     def promotion_to(self, other: Type) -> Type | None:
         if not isinstance(other, Primitive):
             return None
@@ -173,6 +190,12 @@ class Vector(Type):
             el_type = cast(Vector, el_type).element_type
         return el_type
 
+    def binop(self, op: TT, rhs: Type) -> Type | None:
+        return None
+
+    def unaryop(self, op: TT) -> Type | None:
+        return None
+
     def supports_index_get(self) -> bool:
         return True
 
@@ -228,6 +251,9 @@ class Registo(Type):
     def is_callable(self) -> bool:
         return True
 
+    def _is_opcao(self) -> bool:
+        return self.name == str(Types.TOpcao)
+
     def supports_index_get(self) -> bool:
         return False
 
@@ -242,6 +268,16 @@ class Registo(Type):
 
     def is_primitive(self) -> bool:
         return False
+
+    def binop(self, op: TT, rhs: Type) -> Type | None:
+        if not isinstance(rhs, Registo):
+            return None
+
+        if op == TT.DOUBLEEQUAL or TT.NOTEQUAL:
+            return Primitive(Types.TBOOL, zero_initialized=True)
+
+    def unaryop(self, op: TT) -> Type | None:
+        return None
 
     def promotion_to(self, other: Type) -> Type | None:
         if not isinstance(other, Primitive):
@@ -300,11 +336,27 @@ class ConstructedTy(Type):
     def is_primitive(self) -> bool:
         return False
 
+    def is_operable(self) -> bool:
+        return self.generic_ty.is_operable()
+
+    def supports_index_get(self) -> bool:
+        return self.generic_ty.supports_index_get()
+
+    def supports_index_set(self) -> bool:
+        return self.generic_ty.supports_index_set()
+
+    def supports_tam(self) -> bool:
+        return self.generic_ty.supports_tam()
+
+    def unaryop(self, op: TT) -> Type | None:
+        return self.generic_ty.unaryop(op)
+
+    def _is_opcao(self) -> bool:
+        return self.generic_ty.name == str(Types.TOpcao)
+
     def cast_from(self, other: Type) -> bool:
         # Only Constructed generic we know of is "Opcao". Ignore the rest
-        if not isinstance(other, Primitive) or self.generic_ty.name != str(
-            Types.TOpcao
-        ):
+        if not isinstance(other, Primitive) or not self._is_opcao():
             return False
 
         inner_ty = self.bound_ty_args["T"]
@@ -314,6 +366,12 @@ class ConstructedTy(Type):
         if not isinstance(other, Primitive):
             return None
         return other if other.tag in (Types.TINDEF,) else None
+
+    def binop(self, op: TT, rhs: Type) -> Type | None:
+        if not isinstance(rhs, ConstructedTy):
+            return None
+
+        return self.generic_ty.binop(op, rhs.generic_ty)
 
     def promotion_from(self, other: Type) -> Type | None:
         # If not of type Talvez, return

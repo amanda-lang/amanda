@@ -90,7 +90,7 @@ class Expr(ASTNode):
     def __init__(self, token: Token):
         super().__init__(token)
         self.eval_type: types.Type = Builtins.Unknown
-        self.prom_type: types.Type = Builtins.Unknown
+        self.prom_type: types.Type | None = Builtins.Unknown
 
     def __str__(self):
         return f"{self.token.lexeme}"
@@ -138,11 +138,12 @@ class Alvo(Expr):
 
 class BinOp(Expr):
     def __init__(
-        self, token, left=None, right=None, ty: types.Type | None = None
+        self, token, *, left: Expr, right: Expr, ty: types.Type | None = None
     ):
         super().__init__(token)
         self.right = right
         self.left = left
+        self.eval_type = Builtins.Unknown
         if ty:
             self.eval_type = ty
 

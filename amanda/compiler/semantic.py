@@ -1,7 +1,7 @@
 import copy
 import keyword
 from os import path
-from typing import Optional, List, cast, Tuple
+from typing import NoReturn, Optional, List, cast, Tuple
 from amanda.compiler.parse import parse
 from amanda.compiler.symbols.base import Typed
 from amanda.compiler.tokens import TokenType as TT, Token
@@ -89,7 +89,7 @@ class Analyzer(ast.Visitor):
             f"Have not defined method for this node type: {type(node)} {node.__dict__}"
         )
 
-    def error(self, code, **kwargs):
+    def error(self, code, **kwargs) -> NoReturn:
         message = code.format(**kwargs)
         raise AmandaError.common_error(
             self.ctx_module.fpath, message, self.ctx_node.token.line
@@ -598,7 +598,7 @@ class Analyzer(ast.Visitor):
             self.error(err_msg)
         node.eval_type = new_type
 
-    def visit_binop(self, node):
+    def visit_binop(self, node: ast.BinOp):
         ls = self.visit(node.left)
         rs = self.visit(node.right)
         lhs = node.left
@@ -606,65 +606,18 @@ class Analyzer(ast.Visitor):
         # Evaluate type of binary
         # arithmetic operation
         operator = node.token
-        result = self.get_binop_result(
-            lhs.eval_type, operator.token, rhs.eval_type
-        )
+        lhs.prom_type = lhs.eval_type.promote_to(rhs.eval_type)
+        rhs.prom_type = rhs.eval_type.promote_to(lhs.eval_type)
+        lhs_ty = lhs.eval_type if not lhs.prom_type else lhs.prom_type
+        rhs_ty = rhs.eval_type if not rhs.prom_type else rhs.prom_type
+
+        result = lhs_ty.binop(operator.token, rhs_ty)
         if not result:
             self.ctx_node = node
             self.error(
                 f"os tipos '{lhs.eval_type}' e '{rhs.eval_type}' não suportam operações com o operador '{operator.lexeme}'"
             )
         node.eval_type = result
-        lhs.prom_type = lhs.eval_type.promote_to(rhs.eval_type)
-        rhs.prom_type = rhs.eval_type.promote_to(lhs.eval_type)
-
-    def get_binop_result(self, lhs_type: Type, op: TT, rhs_type: Type):
-        # Get result type of a binary operation based on
-        # on operator and operand type
-        scope = self.ctx_scope
-        if not lhs_type.is_operable() or not rhs_type.is_operable():
-            return None
-
-        if not isinstance(lhs_type, Primitive) or not isinstance(
-            rhs_type, Primitive
-        ):
-            return None
-
-        if op in (
-            TT.PLUS,
-            TT.MINUS,
-            TT.STAR,
-            TT.SLASH,
-            TT.DOUBLESLASH,
-            TT.MODULO,
-        ):
-            if lhs_type.is_numeric() and rhs_type.is_numeric():
-                return (
-                    scope.resolve("int")
-                    if lhs_type.tag == Types.TINT
-                    and rhs_type.tag == Types.TINT
-                    and op != TT.SLASH
-                    else scope.resolve("real")
-                )
-
-        elif op in (TT.GREATER, TT.LESS, TT.GREATEREQ, TT.LESSEQ):
-            if lhs_type.is_numeric() and rhs_type.is_numeric():
-                return scope.resolve("bool")
-
-        elif op in (TT.DOUBLEEQUAL, TT.NOTEQUAL):
-            if (
-                (lhs_type.is_numeric() and rhs_type.is_numeric())
-                or lhs_type == rhs_type
-                or lhs_type.promote_to(rhs_type) != None
-                or rhs_type.promote_to(lhs_type) != None
-            ):
-                return scope.resolve("bool")
-
-        elif op in (TT.E, TT.OU):
-            if lhs_type.tag == Types.TBOOL and rhs_type.tag == Types.TBOOL:
-                return scope.resolve("bool")
-
-        return None
 
     def visit_unaryop(self, node: ast.UnaryOp):
         operand = self.visit(node.operand)
@@ -673,14 +626,11 @@ class Analyzer(ast.Visitor):
         lexeme = node.token.lexeme
         op_type = node.operand.eval_type
         bad_uop = f"o operador unário {lexeme} não pode ser usado com o tipo '{op_type}' "
-        if operator in (TT.PLUS, TT.MINUS):
-            if op_type.tag != Types.TINT and op_type.tag != Types.TREAL:
-                self.ctx_node = node
-                self.error(bad_uop)
-        elif operator == TT.NAO:
-            if op_type.tag != Types.TBOOL:
-                self.error(bad_uop)
-        node.eval_type = op_type
+        uop_result = op_type.unaryop(operator)
+        if not uop_result:
+            self.ctx_node = node
+            self.error(bad_uop)
+        node.eval_type = uop_result
 
     def visit_assign(self, node: ast.Assign):
         lhs = node.left
