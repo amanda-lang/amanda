@@ -12,6 +12,7 @@ use crate::opcode::OpCode;
 use unicode_segmentation::UnicodeSegmentation;
 use std::collections::HashMap;
 use std::convert::From;
+use std::mem;
 use std::iter::FromIterator;
 
 const RECURSION_LIMIT: usize = 1000;
@@ -122,7 +123,7 @@ impl<'a> AmaVM<'a> {
         } else if self.sp < values_size {
             let idx = self.sp;
             self.sp -= 1;
-            self.values[idx as usize].clone()
+            mem::replace(&mut self.values[idx as usize], AmaValue::None)
         } else {
             panic!("Undefined VM State. sp larger than values!");
         }
