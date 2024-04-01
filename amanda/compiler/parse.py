@@ -385,7 +385,8 @@ class Parser:
     def type(self) -> ast.Type:
         if self.match(TT.IDENTIFIER):
             name = self.consume(TT.IDENTIFIER)
-            return ast.Type(name, self._is_maybe_type())
+            generic_args = self.generic_args()
+            return ast.Type(name, self._is_maybe_type(), generic_args)
         elif self.match(TT.LBRACKET):
             self.consume(TT.LBRACKET)
             el_type = self.type()
@@ -435,6 +436,7 @@ class Parser:
 
     def method_decl(self, annotations: list[ast.Annotation] | None):
         self.consume(TT.MET)
+        generic_params = self.generic_params()
         ty = self.type()
         self.consume(TT.DOUBLECOLON)
         name = self.consume(TT.IDENTIFIER, self.EXPECTED_ID.format(symbol="::"))
@@ -467,6 +469,7 @@ class Parser:
             annotations=annotations,
             return_ty=return_ty,
             block=block,
+            generic_params=generic_params,
         )
 
     def function_decl(
@@ -484,14 +487,58 @@ class Parser:
         )
         return function
 
+    def generic_args(self) -> list[ast.GenericArg] | None:
+        args = []
+        if self.match(TT.LBRACKET):
+            self.consume(TT.LBRACKET)
+            if self.match(TT.RBRACKET):
+                self.error(
+                    "Pelo menos 1 parâmetro genérico deve ser especificado."
+                )
+
+            while not self.match(TT.RBRACKET):
+                ty = self.type()
+                args.append(ast.GenericArg(ty))
+                if self.match(TT.COMMA):
+                    self.consume(TT.COMMA)
+            self.consume(TT.RBRACKET)
+            return args
+        else:
+            return None
+
+    def generic_params(self) -> list[ast.GenericParam] | None:
+        params = []
+        if self.match(TT.LBRACKET):
+            self.consume(TT.LBRACKET)
+            if self.match(TT.RBRACKET):
+                self.error(
+                    "Pelo menos 1 parâmetro genérico deve ser especificado."
+                )
+
+            while not self.match(TT.RBRACKET):
+                idt = self.consume(TT.IDENTIFIER)
+                params.append(ast.GenericParam(idt))
+                if self.match(TT.COMMA):
+                    self.consume(TT.COMMA)
+            self.consume(TT.RBRACKET)
+            return params
+        else:
+            return None
+
     def registo_decl(self, annotations: list[ast.Annotation] | None):
         self.consume(TT.REGISTO)
         name = self.consume(TT.IDENTIFIER)
+        generic_params = self.generic_params()
         fields = self.registo_body()
         self.consume(
             TT.FIM, "O corpo de um registo deve ser terminado com o símbolo fim"
         )
-        return ast.Registo(name=name, fields=fields, annotations=annotations)
+        return ast.Registo(
+            name=name,
+            generic_params=generic_params,
+            fields=fields,
+            annotations=annotations,
+        )
 
     def registo_body(self) -> List[ast.VarDecl]:
         fields = []

@@ -44,13 +44,11 @@ func nativa grausprad(valor: real): real
 func nativa radpgraus(valor: real): real
 
 
-
-
 @embutido(item = "Opcao")
-registo Opcao[T, R]
-   #valor: T
+registo Opcao[T]
+   valor: T
 fim
 
 @embutido
-met[T, R] Opcao[T, R]::valor_ou(padrao: T): T fim
+met[T] Opcao[T]::valor_ou(alvo, padrao: T): T fim
 

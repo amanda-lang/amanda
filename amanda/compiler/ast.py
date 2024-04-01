@@ -358,10 +358,13 @@ class MethodDecl(FunctionDecl):
         return_ty: Type,
         params: List[Param],
         annotations: list[Annotation] | None,
+        generic_params: list[GenericParam] | None,
     ):
         super().__init__(
             name=name, block=block, func_type=return_ty, params=params
         )
+        self.annotations = annotations
+        self.generic_params = generic_params
         self.target_ty = target_ty
         self.return_ty = return_ty
 
@@ -376,11 +379,31 @@ class Registo(ASTNode):
         name: Token,
         fields: List[VarDecl],
         annotations: list[Annotation] | None = None,
+        generic_params: list[GenericParam] | None,
     ):
         super().__init__(name)
         self.name = name
         self.fields = fields
         self.annotations = annotations
+        self.generic_params = generic_params
+
+
+class GenericParam(ASTNode):
+    def __init__(
+        self,
+        name: Token,
+    ):
+        super().__init__(name)
+        self.name = name
+
+
+class GenericArg(ASTNode):
+    def __init__(
+        self,
+        arg: Type,
+    ):
+        super().__init__(arg.token)
+        self.arg = arg
 
 
 class Param(ASTNode):
@@ -393,19 +416,21 @@ class Param(ASTNode):
 @dataclass
 class Type(ASTNode):
     name: Token
+    generic_args: list[GenericArg] | None
     maybe_ty: bool
 
-    def __init__(self, name: Token, maybe_ty: bool):
+    def __init__(self, name: Token, maybe_ty: bool, generic_args):
         super().__init__(name)
         self.name = name
         self.maybe_ty = maybe_ty
+        self.generic_args = generic_args
 
 
 class ArrayType(Type):
     element_type: Type
 
     def __init__(self, element_type: Type, maybe_ty: bool):
-        super().__init__(element_type.name, maybe_ty)
+        super().__init__(element_type.name, maybe_ty, None)
         self.element_type = element_type
 
 

@@ -1,6 +1,7 @@
+from typing import ClassVar, cast
 from amanda.compiler.types.core import Primitive, Registo, Types
 from amanda.compiler.symbols.base import Type, TypeVar
-from amanda.compiler.symbols.core import VariableSymbol, MethodSym
+from amanda.compiler.symbols.core import Scope, VariableSymbol, MethodSym
 
 
 class Builtins:
@@ -12,21 +13,20 @@ class Builtins:
     Indef = Primitive(Types.TINDEF, False)
     Nulo = Primitive(Types.TNULO, False)
     Unknown = Primitive(Types.TUNKNOWN, False)
-    Opcao = Registo(
-        str(Types.TOpcao),
-        fields={
-            "valor": VariableSymbol("valor", TypeVar("T")),
-        },
-        ty_params={"T"},
-    )
 
 
-Builtins.Opcao.methods["valor_ou"] = MethodSym(
-    "valor_ou",
-    target_ty=Builtins.Opcao,
-    return_ty=TypeVar("T"),
-    params={"padrao": VariableSymbol("padrao", TypeVar("T"))},
-)
+class SrcBuiltins:
+    Opcao: ClassVar[Registo]
+
+    @classmethod
+    def init_embutidos(cls, global_ctx: Scope):
+        """
+        Initialize builtins declared in code.
+        """
+
+        cls.Opcao = cast(Registo, global_ctx.symbols["Opcao"])
+        assert cls.Opcao.ty_params, "Opcao should have a single type param"
+        assert cls.Opcao.ty_params == 1, "Opcao should have a single type param"
 
 
 builtin_types: list[tuple[str, Type]] = [
@@ -37,5 +37,4 @@ builtin_types: list[tuple[str, Type]] = [
     ("vazio", Builtins.Vazio),
     ("indef", Builtins.Indef),
     ("nulo", Builtins.Nulo),
-    ("Opcao", Builtins.Opcao),
 ]

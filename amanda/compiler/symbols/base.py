@@ -1,19 +1,25 @@
 from __future__ import annotations
 from abc import abstractmethod, ABC
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from dataclasses import dataclass
 
 from amanda.compiler.tokens import TokenType
 
+if TYPE_CHECKING:
+    from amanda.compiler.ast import Annotation
+
 
 class Symbol(ABC):
-    def __init__(self, name: str):
+    def __init__(self, name: str, annotations: list[Annotation] | None = None):
         self.name = name
         self.out_id = name  # symbol id in compiled source program
         self.is_property = False  # Avoid this repitition
         self.is_global = False
+        self.annotations: list[Annotation] = (
+            annotations if annotations is not None else []
+        )
 
     @abstractmethod
     def can_evaluate(self) -> bool: ...
@@ -23,6 +29,14 @@ class Symbol(ABC):
 
     @abstractmethod
     def is_callable(self) -> bool: ...
+
+    def set_annotations(self, annotations: list[Annotation] | None):
+        self.annotations: list[Annotation] = (
+            annotations if annotations is not None else []
+        )
+
+    def is_builtin(self) -> bool:
+        return any(map(lambda s: s.name == "embutido", self.annotations))
 
 
 @dataclass
@@ -130,6 +144,7 @@ class Type(Symbol):
 
 @dataclass
 class TypeVar(Type):
+    name: str
     constraints: list
 
     def __init__(self, name: str):
@@ -140,6 +155,9 @@ class TypeVar(Type):
 
     def __eq__(self, other: object) -> bool:
         return isinstance(other, TypeVar) and self.name == other.name
+
+    def __hash__(self):
+        return hash(self.name)
 
     def is_generic(self) -> bool:
         return False

@@ -2,7 +2,7 @@ from __future__ import annotations
 from enum import auto, IntEnum, Enum
 from dataclasses import dataclass
 from typing import Mapping, cast
-from amanda.compiler.symbols.base import Symbol, Type, Typed
+from amanda.compiler.symbols.base import Symbol, Type, TypeVar, Typed
 from amanda.compiler.symbols.core import VariableSymbol, MethodSym
 from amanda.compiler.tokens import TokenType as TT
 
@@ -240,13 +240,14 @@ class Registo(Type):
         self,
         name: str,
         fields: dict[str, VariableSymbol],
-        ty_params: set[str] | None = None,
+        ty_params: set[TypeVar] | None = None,
     ):
         super().__init__(name)
         self.name = name
         self.fields = fields
         self.methods: dict[str, MethodSym] = {}
-        self.ty_params: set[str] | None = ty_params
+        self.ty_params: set[TypeVar] = ty_params if ty_params else set()
+        self._ty_names = set(map(lambda t: t.name, self.ty_params))
 
     def is_callable(self) -> bool:
         return True
@@ -296,7 +297,7 @@ class Registo(Type):
                 "Cannot bind type params of non generic Registo"
             )
         for ty_arg in ty_args:
-            if ty_arg not in self.ty_params:
+            if ty_arg not in self._ty_names:
                 raise ValueError(f"Invalid type argument: {ty_arg}")
         return ConstructedTy(self, ty_args)
 

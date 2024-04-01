@@ -1,13 +1,13 @@
 import copy
 import keyword
 from os import path
-from typing import NoReturn, Optional, List, cast, Tuple
+from typing import Iterable, NoReturn, Optional, List, cast, Tuple
 from amanda.compiler.parse import parse
-from amanda.compiler.symbols.base import Typed
+from amanda.compiler.symbols.base import TypeVar, Typed
 from amanda.compiler.tokens import TokenType as TT, Token
 import amanda.compiler.ast as ast
 import amanda.compiler.symbols.core as symbols
-from amanda.compiler.types.builtins import builtin_types, Builtins
+from amanda.compiler.types.builtins import SrcBuiltins, builtin_types, Builtins
 from amanda.compiler.types.core import Primitive, Type, Types, Vector, Registo
 from amanda.compiler.error import AmandaError
 from amanda.compiler.builtinfn import BUILTINS, BuiltinFn
@@ -38,6 +38,8 @@ class Analyzer(ast.Visitor):
         self.imports = {}
         # Module currently being executed
         self.ctx_module = module
+        # Scope used primarily to store generic types
+        self.ty_ctx: symbols.Scope = symbols.Scope()
 
         # Initialize builtin types
         for type_id, sym in builtin_types:
@@ -46,6 +48,7 @@ class Analyzer(ast.Visitor):
         # Load builtin module
         module = symbols.Module(path.join(STD_LIB, "embutidos.ama"))
         self.load_module(module)
+        SrcBuiltins.init_embutidos(self.global_scope)
 
     # Helper methods
     def has_return(self, node):
@@ -119,6 +122,10 @@ class Analyzer(ast.Visitor):
 
     def get_type_sym_or_err(self, type_id: str) -> Type:
         type_symbol = self.ctx_scope.resolve(type_id)
+        # Attempt to get from ty_ctx
+        if not type_symbol:
+            type_symbol = self.ty_ctx.resolve(type_id)
+
         if not type_symbol or not type_symbol.is_type():
             self.error(f"o tipo '{type_id}' não foi declarado")
         return type_symbol  # type: ignore
@@ -128,9 +135,15 @@ class Analyzer(ast.Visitor):
         type_symbol = self.get_type_sym_or_err(type_id)
         return cast(Type, type_symbol)
 
+    def get_generic_args(
+        self, args: Iterable[tuple[TypeVar, ast.GenericArg]]
+    ) -> dict[str, Type]:
+        return {t_var.name: self.get_type(t_arg.arg) for t_var, t_arg in args}
+
     def get_type(self, type_node: ast.Type) -> Type:
         if not type_node:
             return cast(Type, self.ctx_scope.resolve("vazio"))
+
         node_t = type(type_node)
         if node_t == ast.Variable:
             return self.get_type_variable(type_node)  # type: ignore
@@ -138,12 +151,30 @@ class Analyzer(ast.Visitor):
             type_id = type_node.name.lexeme
             type_symbol = self.get_type_sym_or_err(type_id)
             if type_node.maybe_ty:
-                return Builtins.Opcao.bind(T=type_symbol)
+                return SrcBuiltins.Opcao.bind(T=type_symbol)
+            if type_node.generic_args and len(type_node.generic_args):
+                generic_args = type_node.generic_args
+                # Sort out generics
+                if not type_symbol.is_generic():
+                    self.error(
+                        f"O tipo '{type_id}' não espera receber nenhum argumento de tipo genérico."
+                    )
+                reg = cast(Registo, type_symbol)
+                if len(reg.ty_params) != len(generic_args):
+                    self.error(
+                        f"O tipo '{type_id}' esperava receber {len(reg.ty_params)} argumento de tipo, mas recebeu {len(generic_args)}"
+                    )
+                generic_args = self.get_generic_args(
+                    zip(reg.ty_params, generic_args)
+                )
+                return reg.bind(**generic_args)
             return cast(Type, type_symbol)
         elif type(type_node) == ast.ArrayType:
             vec_ty = Vector(self.get_type(type_node.element_type))
             return (
-                Builtins.Opcao.bind(T=vec_ty) if type_node.maybe_ty else vec_ty
+                SrcBuiltins.Opcao.bind(T=vec_ty)
+                if type_node.maybe_ty
+                else vec_ty
             )
         else:
             return Builtins.Unknown
@@ -157,9 +188,15 @@ class Analyzer(ast.Visitor):
             scope = symbols.Scope(self.ctx_scope)
         self.ctx_scope = scope
 
+    def enter_ty_ctx(self, scope: symbols.Scope):
+        self.ty_ctx = scope
+
     def leave_scope(self):
         self.ctx_scope = cast(symbols.Scope, self.ctx_scope).enclosing_scope
         self.scope_depth -= 1
+
+    def leave_ty_ctx(self):
+        self.ty_ctx = self.ty_ctx.enclosing_scope
 
     # Visitor methods
     def visit(self, node: ast.ASTNode, args=None):
@@ -348,11 +385,17 @@ class Analyzer(ast.Visitor):
         return (scope, params_dict)
 
     def visit_methoddecl(self, node: ast.MethodDecl):
+        # TODO: Remove hack of pushing generic scope onto the scope stack!
+        # Create generic scope if needed
+        generic_params = self.get_generic_params(node)
+        ty_ctx = self.get_generic_ty_ctx(generic_params)
+        self.enter_ty_ctx(ty_ctx)
+
+        # Checking target type
         target_ty = self.get_type(node.target_ty)
         method_name = node.name.lexeme
         method_id = target_ty.full_field_path(method_name)
         method_desc = f"O método '{method_name}' do tipo '{target_ty}'"
-
         # Check if field exists on target type
         if target_ty.get_property(method_name):
             self.error(
@@ -364,27 +407,55 @@ class Analyzer(ast.Visitor):
             f"Métodos só podem ser declarados no escopo global",
             f"{method_desc} já foi declarado anteriormente",
         )
+        # Checking return type
         return_ty = self.get_type(node.return_ty)
         symbol = symbols.MethodSym(
             method_id, target_ty=target_ty, return_ty=return_ty
         )
+        symbol.set_annotations(node.annotations)
+
         scope, params = self.make_func_symbol(method_id, node, symbol)
         symbol.params = params
-        self.validate_return(
-            node,
-            return_ty,
-            f"{method_desc} não possui a instrução 'retorna'",
-        )
+
         # add alvo param
         self.define_symbol(
             symbols.VariableSymbol("alvo", target_ty),
             self.scope_depth + 1,
             scope,
         )
-
-        self.check_function_body(node, symbol, scope)
-        # TODO: change the way this works
+        for param in generic_params:
+            scope.define(
+                param.name,
+                param,
+            )
+        # Body of builtin methods are not checked
+        if not symbol.is_builtin():
+            self.validate_return(
+                node,
+                return_ty,
+                f"{method_desc} não possui a instrução 'retorna'",
+            )
+            self.check_function_body(node, symbol, scope)
+        # TODO: Refactor method definitions to not rely on the underlying type
         target_ty.methods[method_name] = symbol
+        self.leave_ty_ctx()
+
+    def get_generic_params(
+        self, node: ast.Registo | ast.MethodDecl
+    ) -> set[TypeVar]:
+        # TODO: Notify in case of duplicate generic param
+        # TODO: Make sure to throw an error for unused generic params
+        return (
+            set(map(lambda t: TypeVar(t.name.lexeme), node.generic_params))
+            if node.generic_params
+            else set()
+        )
+
+    def get_generic_ty_ctx(self, params: set[TypeVar]) -> symbols.Scope:
+        ctx = symbols.Scope(self.ty_ctx)
+        for param in params:
+            ctx.define(param.name, param)
+        return ctx
 
     def visit_registo(self, node: ast.Registo):
         name = node.name.lexeme
@@ -392,8 +463,13 @@ class Analyzer(ast.Visitor):
         if cast(symbols.Scope, self.ctx_scope).get(name):
             self.error(self.ID_IN_USE, name=name)
 
+        generic_params = self.get_generic_params(node)
+        self.enter_ty_ctx(self.get_generic_ty_ctx(generic_params))
+
         registo = Registo(
-            name, cast(dict[str, symbols.VariableSymbol], reg_scope.symbols)
+            name,
+            cast(dict[str, symbols.VariableSymbol], reg_scope.symbols),
+            ty_params=generic_params,
         )
         self.define_symbol(registo, self.scope_depth, self.ctx_scope)
         self.ctx_reg = registo
@@ -407,6 +483,7 @@ class Analyzer(ast.Visitor):
 
         self.leave_scope()
         self.define_symbol(registo, self.scope_depth, self.ctx_scope)
+        self.leave_ty_ctx()
         self.ctx_reg = None
 
     def visit_alvo(self, node: ast.Alvo):
