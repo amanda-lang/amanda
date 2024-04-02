@@ -325,6 +325,13 @@ class Set(Expr):
         self.expr = expr
 
 
+class Unwrap(Expr):
+    def __init__(self, *, option: Expr, default_val: Expr | None):
+        super().__init__(option.token)
+        self.option = option
+        self.default_val = default_val
+
+
 class FunctionDecl(ASTNode):
     def __init__(
         self,

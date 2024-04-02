@@ -3,7 +3,7 @@ import amanda.compiler.ast as ast
 from amanda.compiler.tokens import TokenType as TT, Token
 from amanda.compiler.ast import node_of_type
 from amanda.compiler.symbols.core import MethodSym, VariableSymbol
-from amanda.compiler.types.builtins import Builtins
+from amanda.compiler.types.builtins import Builtins, SrcBuiltins
 
 from typing import cast, Callable
 
@@ -112,6 +112,15 @@ class ASTTransformer:
         call_node = ast.Call(callee=var, fargs=node.fargs)
         call_node.symbol = method_sym
         return call_node
+
+    def transform_get(self, node: ast.Get):
+        self.transform(node.target)
+        return (
+            ast.Unwrap(option=node.target, default_val=None)
+            if node.target.eval_type.is_constructed_from(SrcBuiltins.Opcao)
+            and node.member.lexeme == "valor"
+            else node
+        )
 
     def transform_program(self, node: ast.Program) -> ast.Program:
 

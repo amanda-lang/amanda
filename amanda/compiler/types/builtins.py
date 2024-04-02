@@ -16,6 +16,10 @@ class Builtins:
 
 
 class SrcBuiltins:
+    """
+    Builtins declared in code
+    """
+
     Opcao: ClassVar[Registo]
 
     @classmethod

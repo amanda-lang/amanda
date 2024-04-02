@@ -343,6 +343,9 @@ class ConstructedTy(Type):
                 return False
         return True
 
+    def is_constructed_from(self, generic_ty: Type) -> bool:
+        return self.generic_ty == generic_ty
+
     def supports_fields(self) -> bool:
         return self.generic_ty.supports_fields()
 

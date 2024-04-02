@@ -104,6 +104,9 @@ class Type(Symbol):
     def is_operable(self) -> bool:
         return False
 
+    def is_constructed_from(self, generic_ty: Type) -> bool:
+        return False
+
     def cast_to(self, other: Type) -> bool:
         return False
 
@@ -175,7 +178,6 @@ class TypeVar(Type):
         raise NotImplementedError(
             "Type var does not support method definitions"
         )
-        pass
 
     def __str__(self) -> str:
         return self.name
