@@ -415,7 +415,7 @@ class Analyzer(ast.Visitor):
         # Checking return type
         return_ty = self.get_type(node.return_ty)
         symbol = symbols.MethodSym(
-            method_id, target_ty=target_ty, return_ty=return_ty
+            method_name, target_ty=target_ty, return_ty=return_ty
         )
         symbol.set_annotations(node.annotations)
 
@@ -596,6 +596,7 @@ class Analyzer(ast.Visitor):
         ty_sym = target.eval_type  # type: ignore
         field = node.member.lexeme
         field_sym = cast(Typed, ty_sym.get_property(field))
+
         if field_sym is None:
             self._bad_prop_err(ty_sym, field)
             return
