@@ -113,8 +113,9 @@ class MethodSym(FunctionSymbol):
 
 class Scope:
     def __init__(self, enclosing_scope: Optional[Scope] = None):
-        self.symbols: Dict[str, Symbol] = {}
+        self.symbols: dict[str, Symbol] = {}
         self.enclosing_scope = enclosing_scope
+        self.methods: dict[str, dict[str, MethodSym]] = {}
         # Field is set only on the first scope of a scope
         # Nesting
         self.locals = {}

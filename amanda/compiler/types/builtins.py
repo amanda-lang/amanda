@@ -26,7 +26,9 @@ class SrcBuiltins:
 
         cls.Opcao = cast(Registo, global_ctx.symbols["Opcao"])
         assert cls.Opcao.ty_params, "Opcao should have a single type param"
-        assert cls.Opcao.ty_params == 1, "Opcao should have a single type param"
+        assert (
+            len(cls.Opcao.ty_params) == 1
+        ), "Opcao should have a single type param."
 
 
 builtin_types: list[tuple[str, Type]] = [

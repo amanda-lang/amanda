@@ -167,6 +167,11 @@ class Analyzer(ast.Visitor):
                 generic_args = self.get_generic_args(
                     zip(reg.ty_params, generic_args)
                 )
+                # If all type arguments are type vars, return the generic type.
+                if all(
+                    map(lambda x: isinstance(x, TypeVar), generic_args.values())
+                ):
+                    return reg
                 return reg.bind(**generic_args)
             return cast(Type, type_symbol)
         elif type(type_node) == ast.ArrayType:
@@ -437,7 +442,7 @@ class Analyzer(ast.Visitor):
             )
             self.check_function_body(node, symbol, scope)
         # TODO: Refactor method definitions to not rely on the underlying type
-        target_ty.methods[method_name] = symbol
+        target_ty.define_method(symbol)
         self.leave_ty_ctx()
 
     def get_generic_params(
@@ -590,10 +595,11 @@ class Analyzer(ast.Visitor):
             self.error("O Tipo '{ty_sym.name}' nenhum atributo ou método")
         ty_sym = target.eval_type  # type: ignore
         field = node.member.lexeme
-        field_sym = ty_sym.get_property(field)
+        field_sym = cast(Typed, ty_sym.get_property(field))
         if field_sym is None:
             self._bad_prop_err(ty_sym, field)
             return
+        # TODO: Add specific node for method call
         # Check if valid use of get
         # References to methods can only be used in the context of
         # a call expression

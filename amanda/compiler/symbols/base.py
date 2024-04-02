@@ -74,6 +74,18 @@ class Type(Symbol):
     @abstractmethod
     def unaryop(self, op: TokenType) -> Type | None: ...
 
+    @abstractmethod
+    def supports_index_get(self) -> bool: ...
+
+    @abstractmethod
+    def supports_index_set(self) -> bool: ...
+
+    @abstractmethod
+    def supports_tam(self) -> bool: ...
+
+    @abstractmethod
+    def define_method(self, method: Symbol): ...
+
     def is_type_var(self) -> bool:
         return False
 
@@ -113,15 +125,6 @@ class Type(Symbol):
 
     def supports_methods(self) -> bool:
         return True
-
-    @abstractmethod
-    def supports_index_get(self) -> bool: ...
-
-    @abstractmethod
-    def supports_index_set(self) -> bool: ...
-
-    @abstractmethod
-    def supports_tam(self) -> bool: ...
 
     def index_ty(self) -> Type:
         raise NotImplementedError(
@@ -167,6 +170,12 @@ class TypeVar(Type):
 
     def unaryop(self, op: TokenType) -> Type | None:
         return None
+
+    def define_method(self, method: Symbol):
+        raise NotImplementedError(
+            "Type var does not support method definitions"
+        )
+        pass
 
     def __str__(self) -> str:
         return self.name

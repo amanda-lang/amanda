@@ -53,14 +53,14 @@ class Primitive(Type):
     def is_generic(self) -> bool:
         return False
 
+    def define_method(self, method: Symbol):
+        raise NotImplementedError("TODO: implement method for primitives")
+
     def __str__(self) -> str:
         return str(self.tag)
 
     def is_operable(self) -> bool:
         return self.tag != Types.TVAZIO and self.tag != Types.TINDEF
-
-    def full_field_path(self, field: str) -> str:
-        return self.name + "::" + field
 
     def supports_fields(self) -> bool:
         return False
@@ -226,6 +226,10 @@ class Vector(Type):
     def is_primitive(self) -> bool:
         return False
 
+    def define_method(self, method: Symbol):
+        raise NotImplementedError("Do not know what I have to do here")
+        # self.methods[method.name] = cast(MethodSym, method)
+
     def promotion_to(self, other: Type) -> Type | None:
         if not isinstance(other, Primitive):
             return None
@@ -308,8 +312,10 @@ class Registo(Type):
         return self.name
 
     def get_property(self, prop) -> Symbol | None:
-
         return self.fields.get(prop, self.methods.get(prop))
+
+    def define_method(self, method: Symbol):
+        self.methods[method.name] = cast(MethodSym, method)
 
     def supports_fields(self) -> bool:
         return True
@@ -360,6 +366,9 @@ class ConstructedTy(Type):
 
     def _is_opcao(self) -> bool:
         return self.generic_ty.name == str(Types.TOpcao)
+
+    def define_method(self, method: Symbol):
+        self.generic_ty.define_method(method)
 
     def cast_from(self, other: Type) -> bool:
         # Only Constructed generic we know of is "Opcao". Ignore the rest
