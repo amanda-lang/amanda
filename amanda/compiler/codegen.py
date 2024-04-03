@@ -87,6 +87,9 @@ class OpCode(Enum):
     # Checks if value at TOS is null. if it is, either panic or return the value TOS - 1.
     # 8-bit arg indicates whether to panic in case of null or to use the 8-bit arg at TOS - 1
     OP_UNWRAP = auto()
+    # Checks if value at TOS is null. if it is, pushes 'true', else, pushes false
+    # 8-bit arg indicates whether to panic in case of null or to use the 8-bit arg at TOS - 1
+    OP_ISNULL = auto()
     # Stops execution of the VM. Must always be added to stop execution of the vm
     HALT = 0xFF
 
@@ -95,7 +98,7 @@ class OpCode(Enum):
         # uses
         num_ops = len(list(OpCode))
         assert (
-            num_ops == 38
+            num_ops == 39
         ), f"Please update the size of ops after adding a new Op. New size: {num_ops}"
         if self in (
             OpCode.CALL_FUNCTION,
@@ -450,7 +453,7 @@ class ByteGen:
             )
         self.gen_auto_cast(node.prom_type)
 
-    def gen_binop(self, node):
+    def gen_binop(self, node: ast.BinOp):
         self.gen(node.left)
         self.gen(node.right)
         operator = node.token.token
@@ -471,9 +474,22 @@ class ByteGen:
         elif operator == TT.OU:
             self.append_op(OpCode.OP_OR)
         elif operator == TT.DOUBLEEQUAL:
-            self.append_op(OpCode.OP_EQ)
+            if (
+                node.left.eval_type == Builtins.Nulo
+                or node.right.eval_type == Builtins.Nulo
+            ):
+                self.append_op(OpCode.OP_ISNULL)
+            else:
+                self.append_op(OpCode.OP_EQ)
         elif operator == TT.NOTEQUAL:
-            self.append_op(OpCode.OP_NOTEQ)
+            if (
+                node.left.eval_type == Builtins.Nulo
+                or node.right.eval_type == Builtins.Nulo
+            ):
+                self.append_op(OpCode.OP_ISNULL)
+                self.append_op(OpCode.OP_NOT)
+            else:
+                self.append_op(OpCode.OP_NOTEQ)
         elif operator == TT.GREATER:
             self.append_op(OpCode.OP_GREATER)
         elif operator == TT.GREATEREQ:

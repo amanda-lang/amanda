@@ -175,22 +175,6 @@ impl<'a> AmaValue<'a> {
     }
 
     pub fn binop(left: &Self, op: OpCode, right: &Self) -> Result<Self, &'a str> {
-        //None comparisons
-        let none_ops = match (left, op, right) {
-            (AmaValue::None, OpCode::OpEq, AmaValue::None) => Some(AmaValue::Bool(true)),
-            (AmaValue::None, OpCode::OpEq, _) | (_, OpCode::OpEq, AmaValue::None) => {
-                Some(AmaValue::Bool(false))
-            }
-            (AmaValue::None, OpCode::OpNotEq, AmaValue::None) => Some(AmaValue::Bool(false)),
-            (AmaValue::None, OpCode::OpNotEq, _) | (_, OpCode::OpNotEq, AmaValue::None) => {
-                Some(AmaValue::Bool(true))
-            }
-            (_, _, _) => None,
-        };
-
-        if none_ops.is_some() {
-            return Ok(none_ops.unwrap());
-        }
         let res_type = if left.is_float() || right.is_float() {
             Type::Real
         } else if left.is_int() && right.is_int() {

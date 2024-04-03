@@ -199,6 +199,10 @@ impl<'a> AmaVM<'a> {
                         self.op_push(result.unwrap());
                     }
                 }
+                OpCode::IsNull => {
+                    let is_null = self.op_pop().is_none();
+                    self.op_push(AmaValue::Bool(is_null));
+                }
                 OpCode::OpInvert | OpCode::OpNot => {
                     let op_ref = self.op_pop();
                     let operand = op_ref;
