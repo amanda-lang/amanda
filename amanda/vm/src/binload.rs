@@ -14,6 +14,7 @@ pub enum Const {
     Int(i64),
     Double(f64),
     Bool(bool),
+    None,
 }
 
 #[derive(Debug)]
@@ -54,6 +55,9 @@ impl<'a> FromStr for Const {
         if constant == "verdadeiro" || constant == "falso" {
             let bool_val = if constant == "falso" { false } else { true };
             return Ok(Const::Bool(bool_val));
+        }
+        if constant == "nulo" {
+            return Ok(Const::None);
         }
         let maybe_int = constant.parse::<i64>();
         let maybe_float = constant.parse::<f64>();
@@ -234,6 +238,7 @@ pub fn consume_const<'a>(constant: Const) -> AmaValue<'a> {
         Const::Int(int) => AmaValue::Int(int),
         Const::Double(real) => AmaValue::F64(real),
         Const::Bool(boolean) => AmaValue::Bool(boolean),
+        Const::None => AmaValue::None,
     }
 }
 

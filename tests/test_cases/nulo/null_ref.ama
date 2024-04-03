@@ -6,4 +6,4 @@ fim
 a : A? = nulo
 mostra a.valor.head
 
-#[output]:Erro: Não pode aceder uma referência nula.
+#[output]: Erro na linha 7: Não pode aceder uma referência nula.

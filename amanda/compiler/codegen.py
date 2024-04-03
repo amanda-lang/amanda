@@ -84,6 +84,9 @@ class OpCode(Enum):
     GET_PROP = auto()
     # Sets property TOS - 1 of the record instance at TOS - 2 to TOS.
     SET_PROP = auto()
+    # Checks if value at TOS is null. if it is, either panic or return the value TOS - 1.
+    # 8-bit arg indicates whether to panic in case of null or to use the 8-bit arg at TOS - 1
+    OP_UNWRAP = auto()
     # Stops execution of the VM. Must always be added to stop execution of the vm
     HALT = 0xFF
 
@@ -92,7 +95,7 @@ class OpCode(Enum):
         # uses
         num_ops = len(list(OpCode))
         assert (
-            num_ops == 37
+            num_ops == 38
         ), f"Please update the size of ops after adding a new Op. New size: {num_ops}"
         if self in (
             OpCode.CALL_FUNCTION,
@@ -100,6 +103,7 @@ class OpCode(Enum):
             OpCode.BUILD_STR,
             OpCode.BUILD_VEC,
             OpCode.BUILD_OBJ,
+            OpCode.OP_UNWRAP,
         ):
             return OP_SIZE * 2
         elif self in (
@@ -710,6 +714,12 @@ class ByteGen:
         self.gen(node.target)
         self.gen(node.expr)
         self.append_op(OpCode.SET_PROP)
+
+    def gen_unwrap(self, node: ast.Unwrap):
+        self.gen(node.option)
+        if node.default_val:
+            self.gen(node.default_val)
+        self.append_op(OpCode.OP_UNWRAP, 0 if not node.default_val else 1)
 
     def gen_registo(self, node: ast.Registo):
         name = node.name.lexeme
