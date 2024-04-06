@@ -1,0 +1,5 @@
+a: int? = 1
+mostra nulo == nulo
+mostra a == nulo
+mostra a != nulo
+#[output]: verdadeiro falso verdadeiro

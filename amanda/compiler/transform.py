@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import amanda.compiler.ast as ast
+from amanda.compiler.symbols.base import Type
 from amanda.compiler.tokens import TokenType as TT, Token
 from amanda.compiler.ast import node_of_type
 from amanda.compiler.symbols.core import MethodSym, VariableSymbol
@@ -98,9 +99,22 @@ class ASTTransformer:
                 )
             return se_node
 
+    def _is_option(self, ty: Type) -> bool:
+        return ty.is_constructed_from(SrcBuiltins.Opcao)
+
     def transform_call(self, node: ast.Call):
+        self.transform(node.callee)
+        for farg in node.fargs:
+            self.transform(farg)
         if not node.symbol.is_property:
             return node
+        callee = node.callee
+        if (
+            isinstance(callee, ast.Get)
+            and self._is_option(callee.target.eval_type)
+            and callee.member.lexeme == "valor_ou"
+        ):
+            return ast.Unwrap(option=callee.target, default_val=node.fargs[0])
         method_sym = cast(MethodSym, node.symbol)
         instance = cast(ast.Get, node.callee).target
         method_sym.params = {

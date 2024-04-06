@@ -291,9 +291,20 @@ class Registo(Type):
         return None
 
     def promotion_to(self, other: Type) -> Type | None:
-        if not isinstance(other, Primitive):
+        if not isinstance(other, Primitive) and not isinstance(
+            other, ConstructedTy
+        ):
             return None
-        return other if other.tag in (Types.TINDEF,) else None
+
+        if isinstance(other, ConstructedTy) and other.name == str(Types.TOpcao):
+            if other.generic_ty == self:
+                return other
+
+        return (
+            other
+            if isinstance(other, Primitive) and other.tag in (Types.TINDEF,)
+            else None
+        )
 
     def bind(self, **ty_args: Type) -> ConstructedTy:
         if self.ty_params is None:
@@ -393,17 +404,18 @@ class ConstructedTy(Type):
 
     def promotion_from(self, other: Type) -> Type | None:
         # If not of type Talvez, return
-        if not isinstance(other, Primitive) or self.generic_ty.name != str(
+        if not isinstance(other, Primitive) and self.generic_ty.name != str(
             Types.TOpcao
         ):
             return None
 
         inner_ty = self.bound_ty_args["T"]
+
         return (
             self
             if inner_ty == other
             or other.promote_to(inner_ty)
-            or other.tag == Types.TNULO
+            or (isinstance(other, Primitive) and other.tag == Types.TNULO)
             else None
         )
 

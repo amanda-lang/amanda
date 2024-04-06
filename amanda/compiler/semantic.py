@@ -578,11 +578,12 @@ class Analyzer(ast.Visitor):
         return sym
 
     def _bad_prop_err(self, ty: Type, field: str):
+        # TODO: Add context to bad prop error on Option types
         if not ty.is_primitive():
             self.error(
-                f"O objecto do tipo '{ty.name}' não possui o atributo '{field}'"
+                f"O objecto do tipo '{ty}' não possui o atributo '{field}'"
             )
-        self.error(f"O tipo '{ty.name}' não possui o método '{field}'")
+        self.error(f"O tipo '{ty}' não possui o método '{field}'")
 
     def visit_get(self, node: ast.Get):
         target = node.target
@@ -629,7 +630,7 @@ class Analyzer(ast.Visitor):
         if not self.types_match(target.eval_type, expr.eval_type):
             self.ctx_node = node
             self.error(
-                f"atribuição inválida. incompatibilidade entre os operandos da atribuição: '{target.eval_type.name}' e '{expr.eval_type.name}'"
+                f"atribuição inválida. incompatibilidade entre os operandos da atribuição: '{target.eval_type}' e '{expr.eval_type}'"
             )
         node.eval_type = target.eval_type
 

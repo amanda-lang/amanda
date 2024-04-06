@@ -1,0 +1,16 @@
+a: int? = 0
+b: int = 1
+
+#To get the value, .valor field must be used
+a1: int = a.valor # If a were 'nulo', then the runtime would have stopped.
+
+escrevaln(a1 + b)
+
+a = nulo
+
+# You can also specify a default value in case value is nulo 
+c: int = a.valor_ou(0) # if a is nulo, c will be 0, otherwise c will be the non null value wrapped in a.
+
+escrevaln(c)
+
+#[output]: 1 0

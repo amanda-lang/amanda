@@ -454,9 +454,30 @@ class ByteGen:
         self.gen_auto_cast(node.prom_type)
 
     def gen_binop(self, node: ast.BinOp):
+        operator = node.token.token
+        match (node.left.eval_type, operator, node.right.eval_type):
+            case (Builtins.Nulo, TT.DOUBLEEQUAL, _):
+                self.gen(node.right)
+                self.append_op(OpCode.OP_ISNULL)
+                return
+            case (_, TT.DOUBLEEQUAL, Builtins.Nulo):
+                self.gen(node.left)
+                self.append_op(OpCode.OP_ISNULL)
+                return
+            case (Builtins.Nulo, TT.NOTEQUAL, _):
+                self.gen(node.right)
+                self.append_op(OpCode.OP_ISNULL)
+                self.append_op(OpCode.OP_NOT)
+                return
+
+            case (_, TT.NOTEQUAL, Builtins.Nulo):
+                self.gen(node.left)
+                self.append_op(OpCode.OP_ISNULL)
+                self.append_op(OpCode.OP_NOT)
+                return
+
         self.gen(node.left)
         self.gen(node.right)
-        operator = node.token.token
         if operator == TT.PLUS:
             self.append_op(OpCode.OP_ADD)
         elif operator == TT.MINUS:
@@ -474,22 +495,9 @@ class ByteGen:
         elif operator == TT.OU:
             self.append_op(OpCode.OP_OR)
         elif operator == TT.DOUBLEEQUAL:
-            if (
-                node.left.eval_type == Builtins.Nulo
-                or node.right.eval_type == Builtins.Nulo
-            ):
-                self.append_op(OpCode.OP_ISNULL)
-            else:
-                self.append_op(OpCode.OP_EQ)
+            self.append_op(OpCode.OP_EQ)
         elif operator == TT.NOTEQUAL:
-            if (
-                node.left.eval_type == Builtins.Nulo
-                or node.right.eval_type == Builtins.Nulo
-            ):
-                self.append_op(OpCode.OP_ISNULL)
-                self.append_op(OpCode.OP_NOT)
-            else:
-                self.append_op(OpCode.OP_NOTEQ)
+            self.append_op(OpCode.OP_NOTEQ)
         elif operator == TT.GREATER:
             self.append_op(OpCode.OP_GREATER)
         elif operator == TT.GREATEREQ:
