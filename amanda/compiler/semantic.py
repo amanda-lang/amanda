@@ -401,10 +401,14 @@ class Analyzer(ast.Visitor):
         method_name = node.name.lexeme
         method_id = target_ty.full_field_path(method_name)
         method_desc = f"O método '{method_name}' do tipo '{target_ty}'"
+
         # Check if field exists on target type
-        if target_ty.get_property(method_name):
+        method_sym = target_ty.get_property(method_name)
+        if method_sym:
             self.error(
-                f"A propriedade '{method_name}' já foi definida no tipo '{target_ty}'"
+                f"{method_desc} já foi declarado anteriormente"
+                if method_sym.is_callable()
+                else f"A propriedade '{method_name}' já foi definida no tipo '{target_ty}'"
             )
 
         self.validate_decl_in_scope(
