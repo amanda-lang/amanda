@@ -33,6 +33,7 @@ DIRS = [
     join(TEST_DIR, "registo"),
     join(TEST_DIR, "set"),
     join(TEST_DIR, "methods"),
+    join(TEST_DIR, "nulo"),
 ]
 
 passed = 0

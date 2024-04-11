@@ -1,9 +1,10 @@
-classe A
+registo A
 fim
 
-a : A = nulo
+a : A? = nulo
 mostra a
 mostra a == nulo
 mostra nulo == nulo
+mostra nulo != nulo
 
-#[output]:nulo verdadeiro verdadeiro
+#[output]:nulo verdadeiro verdadeiro falso

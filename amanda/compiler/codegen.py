@@ -1,10 +1,11 @@
 import sys
-import pdb
 from typing import List, cast, Sequence
 from io import StringIO, BytesIO
 from enum import Enum, auto
-import amanda.compiler.symbols as symbols
-from amanda.compiler.type import Registo, Type, Kind
+from amanda.compiler.symbols.base import Symbol
+import amanda.compiler.symbols.core as symbols
+from amanda.compiler.types.builtins import Builtins
+from amanda.compiler.types.core import Primitive, Type
 import amanda.compiler.ast as ast
 from amanda.compiler.tokens import TokenType as TT
 from amanda.compiler.error import AmandaError, throw_error
@@ -83,6 +84,12 @@ class OpCode(Enum):
     GET_PROP = auto()
     # Sets property TOS - 1 of the record instance at TOS - 2 to TOS.
     SET_PROP = auto()
+    # Checks if value at TOS is null. if it is, either panic or return the value TOS - 1.
+    # 8-bit arg indicates whether to panic in case of null or to use the 8-bit arg at TOS - 1
+    OP_UNWRAP = auto()
+    # Checks if value at TOS is null. if it is, pushes 'true', else, pushes false
+    # 8-bit arg indicates whether to panic in case of null or to use the 8-bit arg at TOS - 1
+    OP_ISNULL = auto()
     # Stops execution of the VM. Must always be added to stop execution of the vm
     HALT = 0xFF
 
@@ -91,7 +98,7 @@ class OpCode(Enum):
         # uses
         num_ops = len(list(OpCode))
         assert (
-            num_ops == 37
+            num_ops == 39
         ), f"Please update the size of ops after adding a new Op. New size: {num_ops}"
         if self in (
             OpCode.CALL_FUNCTION,
@@ -99,6 +106,7 @@ class OpCode(Enum):
             OpCode.BUILD_STR,
             OpCode.BUILD_VEC,
             OpCode.BUILD_OBJ,
+            OpCode.OP_UNWRAP,
         ):
             return OP_SIZE * 2
         elif self in (
@@ -150,9 +158,9 @@ class ByteGen:
         self.lineno: int = -1
         self.ctx_loop_start: int = -1
         self.ctx_loop_exit: int = -1
-        self.src_map: dict[
-            int, list[int]
-        ] = {}  # Maps source lines to bytecode offset
+        self.src_map: dict[int, list[int]] = (
+            {}
+        )  # Maps source lines to bytecode offset
 
     def compile(self, program) -> bytes:
         """Compiles an amanda ast into bytecode ops.
@@ -166,7 +174,7 @@ class ByteGen:
         sym_types = (
             symbols.VariableSymbol,
             symbols.FunctionSymbol,
-            Type,
+            Primitive,
         )
         for name, symbol in program.symbols.symbols.items():
             if type(symbol) in sym_types:
@@ -362,7 +370,7 @@ class ByteGen:
         self.append_op(OpCode.LOAD_CONST, idx)
         self.gen_auto_cast(node.prom_type)
 
-    def load_variable(self, symbol: symbols.Symbol):
+    def load_variable(self, symbol: Symbol):
         name = symbol.name
         if symbol.is_global:
             self.append_op(OpCode.GET_GLOBAL, self.names[name])
@@ -403,7 +411,7 @@ class ByteGen:
             self.append_op(OpCode.LOAD_CONST, init_idx)
             self.set_variable(symbol)
 
-    def set_variable(self, symbol: symbols.Symbol):
+    def set_variable(self, symbol: Symbol):
         name = symbol.name
         if symbol.is_global:
             var_idx = self.get_table_index(name, self.NAME_TABLE)
@@ -445,10 +453,31 @@ class ByteGen:
             )
         self.gen_auto_cast(node.prom_type)
 
-    def gen_binop(self, node):
+    def gen_binop(self, node: ast.BinOp):
+        operator = node.token.token
+        match (node.left.eval_type, operator, node.right.eval_type):
+            case (Builtins.Nulo, TT.DOUBLEEQUAL, _):
+                self.gen(node.right)
+                self.append_op(OpCode.OP_ISNULL)
+                return
+            case (_, TT.DOUBLEEQUAL, Builtins.Nulo):
+                self.gen(node.left)
+                self.append_op(OpCode.OP_ISNULL)
+                return
+            case (Builtins.Nulo, TT.NOTEQUAL, _):
+                self.gen(node.right)
+                self.append_op(OpCode.OP_ISNULL)
+                self.append_op(OpCode.OP_NOT)
+                return
+
+            case (_, TT.NOTEQUAL, Builtins.Nulo):
+                self.gen(node.left)
+                self.append_op(OpCode.OP_ISNULL)
+                self.append_op(OpCode.OP_NOT)
+                return
+
         self.gen(node.left)
         self.gen(node.right)
-        operator = node.token.token
         if operator == TT.PLUS:
             self.append_op(OpCode.OP_ADD)
         elif operator == TT.MINUS:
@@ -643,26 +672,26 @@ class ByteGen:
             self.load_const("falso")
         self.append_op(OpCode.RETURN)
 
-    def gen_converta(self, node):
+    def gen_converta(self, node: ast.Converta):
         target_t = node.target.eval_type
         new_t = node.eval_type
         self.gen(node.target)
         # Converting to same type, can ignore this
         # TODO: Do this in sem analysis
-        if new_t.kind == target_t.kind or new_t.kind == Kind.TINDEF:
+        if new_t == target_t or new_t == Builtins.Indef:
             return
         self.load_variable(new_t)
-        arg = 0 if target_t.kind != Kind.TINDEF else 1
+        arg = 0 if target_t != Builtins.Indef else 1
         self.append_op(OpCode.CAST, arg)
 
-    def gen_auto_cast(self, prom_type):
-        if not prom_type or prom_type.kind != Kind.TREAL:
+    def gen_auto_cast(self, prom_type: Type):
+        if not prom_type or prom_type != Builtins.Real:
             return
         self.load_variable(prom_type)
         self.append_op(OpCode.CAST, 0)
 
-    def gen_mostra(self, node):
-        self.gen(node.exp)
+    def gen_mostra(self, node: ast.Mostra):
+        self.gen(cast(ast.Expr, node.exp))
         self.append_op(OpCode.MOSTRA)
 
     def gen_alvo(self, node: ast.Alvo):
@@ -709,6 +738,12 @@ class ByteGen:
         self.gen(node.target)
         self.gen(node.expr)
         self.append_op(OpCode.SET_PROP)
+
+    def gen_unwrap(self, node: ast.Unwrap):
+        self.gen(node.option)
+        if node.default_val:
+            self.gen(node.default_val)
+        self.append_op(OpCode.OP_UNWRAP, 0 if not node.default_val else 1)
 
     def gen_registo(self, node: ast.Registo):
         name = node.name.lexeme

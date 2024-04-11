@@ -70,12 +70,14 @@ RPAR : )
 DOT : .
 DDOT : ..
 SEMI : ;
+AT: @
 COMMA : ,
 LBRACE : {
 RBRACE : }
 LBRACKET : [
 RBRACKET : ]
 COLON : ":"
+QMARK : "?"
 DOUBLECOLON: "::"
 NEWLINE : "\n"
 COMMENTS: "#"

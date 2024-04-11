@@ -12,6 +12,7 @@ use crate::opcode::OpCode;
 use unicode_segmentation::UnicodeSegmentation;
 use std::collections::HashMap;
 use std::convert::From;
+use std::mem;
 use std::iter::FromIterator;
 
 const RECURSION_LIMIT: usize = 1000;
@@ -122,7 +123,7 @@ impl<'a> AmaVM<'a> {
         } else if self.sp < values_size {
             let idx = self.sp;
             self.sp -= 1;
-            self.values[idx as usize].clone()
+            mem::replace(&mut self.values[idx as usize], AmaValue::None)
         } else {
             panic!("Undefined VM State. sp larger than values!");
         }
@@ -197,6 +198,10 @@ impl<'a> AmaVM<'a> {
                     } else {
                         self.op_push(result.unwrap());
                     }
+                }
+                OpCode::IsNull => {
+                    let is_null = self.op_pop().is_none();
+                    self.op_push(AmaValue::Bool(is_null));
                 }
                 OpCode::OpInvert | OpCode::OpNot => {
                     let op_ref = self.op_pop();
@@ -417,6 +422,26 @@ impl<'a> AmaVM<'a> {
                     let reg_ref = self.op_pop().take_regobj();
                     let mut reg_obj = reg_ref.borrow_mut();
                     reg_obj.set(field, new_val);
+                }
+                OpCode::Unwrap => {
+                    let has_default = self.get_byte() == 1;
+                    let args = if has_default {
+                        (Some(self.op_pop()), self.op_pop())
+                    } else {
+                        (None, self.op_pop())
+                    };
+
+                    match (has_default, &args.1) {
+                        (true, AmaValue::None) => {
+                            self.op_push(args.0.unwrap());
+                        }, 
+                        (false, AmaValue::None) => {
+                            self.panic_and_throw("Não pode aceder uma referência nula")? ;
+                        }, 
+                        (_, _) => {
+                            self.op_push(args.1);
+                        }
+                    }
                 }
                 OpCode::Cast => {
                     let arg = self.get_byte();

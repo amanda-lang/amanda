@@ -5,7 +5,7 @@ import os
 import sys
 import subprocess
 from os import path
-from amanda.compiler.symbols import Module
+from amanda.compiler.symbols.core import Module
 from amanda.compiler.error import AmandaError, handle_exception, throw_error
 from amanda.compiler.parse import parse
 from amanda.compiler.compile import Generator

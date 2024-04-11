@@ -1,16 +1,19 @@
 import copy
 import keyword
 from os import path
-from typing import Optional, List, cast, Tuple
+from typing import Iterable, NoReturn, Optional, List, cast, Tuple
 from amanda.compiler.parse import parse
+from amanda.compiler.symbols.base import TypeVar, Typed
 from amanda.compiler.tokens import TokenType as TT, Token
 import amanda.compiler.ast as ast
-import amanda.compiler.symbols as symbols
-from amanda.compiler.type import builtin_types, Kind, Type, Vector, Registo
+import amanda.compiler.symbols.core as symbols
+from amanda.compiler.types.builtins import SrcBuiltins, builtin_types, Builtins
+from amanda.compiler.types.core import Primitive, Type, Types, Vector, Registo
 from amanda.compiler.error import AmandaError
 from amanda.compiler.builtinfn import BUILTINS, BuiltinFn
 from amanda.config import STD_LIB
 from amanda.compiler.transform import transform
+
 
 MAX_AMA_INT = 2**63 - 1
 
@@ -35,6 +38,8 @@ class Analyzer(ast.Visitor):
         self.imports = {}
         # Module currently being executed
         self.ctx_module = module
+        # Scope used primarily to store generic types
+        self.ty_ctx: symbols.Scope = symbols.Scope()
 
         # Initialize builtin types
         for type_id, sym in builtin_types:
@@ -43,6 +48,7 @@ class Analyzer(ast.Visitor):
         # Load builtin module
         module = symbols.Module(path.join(STD_LIB, "embutidos.ama"))
         self.load_module(module)
+        SrcBuiltins.init_embutidos(self.global_scope)
 
     # Helper methods
     def has_return(self, node):
@@ -86,7 +92,7 @@ class Analyzer(ast.Visitor):
             f"Have not defined method for this node type: {type(node)} {node.__dict__}"
         )
 
-    def error(self, code, **kwargs):
+    def error(self, code, **kwargs) -> NoReturn:
         message = code.format(**kwargs)
         raise AmandaError.common_error(
             self.ctx_module.fpath, message, self.ctx_node.token.line
@@ -114,24 +120,69 @@ class Analyzer(ast.Visitor):
             symbol.out_id = f"_r{depth}{scope.count()}_"
         scope.define(symbol.name, symbol)
 
-    def get_type(self, type_node) -> Type:
+    def get_type_sym_or_err(self, type_id: str) -> Type:
+        type_symbol = self.ctx_scope.resolve(type_id)
+        # Attempt to get from ty_ctx
+        if not type_symbol:
+            type_symbol = self.ty_ctx.resolve(type_id)
+
+        if not type_symbol or not type_symbol.is_type():
+            self.error(f"o tipo '{type_id}' não foi declarado")
+        return type_symbol  # type: ignore
+
+    def get_type_variable(self, ty_node: ast.Variable) -> Type:
+        type_id = ty_node.token.lexeme
+        type_symbol = self.get_type_sym_or_err(type_id)
+        return cast(Type, type_symbol)
+
+    def get_generic_args(
+        self, args: Iterable[tuple[TypeVar, ast.GenericArg]]
+    ) -> dict[str, Type]:
+        return {t_var.name: self.get_type(t_arg.arg) for t_var, t_arg in args}
+
+    def get_type(self, type_node: ast.Type) -> Type:
         if not type_node:
             return cast(Type, self.ctx_scope.resolve("vazio"))
+
         node_t = type(type_node)
-        if node_t == ast.Type or node_t == ast.Variable:
-            type_id = (
-                type_node.name.lexeme
-                if node_t == ast.Type
-                else type_node.token.lexeme
-            )
-            type_symbol = self.ctx_scope.resolve(type_id)
-            if not type_symbol or not type_symbol.is_type():
-                self.error(f"o tipo '{type_id}' não foi declarado")
+        if node_t == ast.Variable:
+            return self.get_type_variable(type_node)  # type: ignore
+        elif node_t == ast.Type:
+            type_id = type_node.name.lexeme
+            type_symbol = self.get_type_sym_or_err(type_id)
+            if type_node.maybe_ty:
+                return SrcBuiltins.Opcao.bind(T=type_symbol)
+            if type_node.generic_args and len(type_node.generic_args):
+                generic_args = type_node.generic_args
+                # Sort out generics
+                if not type_symbol.is_generic():
+                    self.error(
+                        f"O tipo '{type_id}' não espera receber nenhum argumento de tipo genérico."
+                    )
+                reg = cast(Registo, type_symbol)
+                if len(reg.ty_params) != len(generic_args):
+                    self.error(
+                        f"O tipo '{type_id}' esperava receber {len(reg.ty_params)} argumento de tipo, mas recebeu {len(generic_args)}"
+                    )
+                generic_args = self.get_generic_args(
+                    zip(reg.ty_params, generic_args)
+                )
+                # If all type arguments are type vars, return the generic type.
+                if all(
+                    map(lambda x: isinstance(x, TypeVar), generic_args.values())
+                ):
+                    return reg
+                return reg.bind(**generic_args)
             return cast(Type, type_symbol)
         elif type(type_node) == ast.ArrayType:
-            return Vector(self.get_type(type_node.element_type))
+            vec_ty = Vector(self.get_type(type_node.element_type))
+            return (
+                SrcBuiltins.Opcao.bind(T=vec_ty)
+                if type_node.maybe_ty
+                else vec_ty
+            )
         else:
-            return Type(Kind.TUNKNOWN)
+            return Builtins.Unknown
 
     def types_match(self, expected: Type, received: Type):
         return expected == received or received.promote_to(expected)
@@ -142,12 +193,18 @@ class Analyzer(ast.Visitor):
             scope = symbols.Scope(self.ctx_scope)
         self.ctx_scope = scope
 
+    def enter_ty_ctx(self, scope: symbols.Scope):
+        self.ty_ctx = scope
+
     def leave_scope(self):
         self.ctx_scope = cast(symbols.Scope, self.ctx_scope).enclosing_scope
         self.scope_depth -= 1
 
+    def leave_ty_ctx(self):
+        self.ty_ctx = self.ty_ctx.enclosing_scope
+
     # Visitor methods
-    def visit(self, node, args=None):
+    def visit(self, node: ast.ASTNode, args=None):
         node_class = type(node).__name__.lower()
         method_name = f"visit_{node_class}"
         visitor_method = getattr(self, method_name, self.general_visit)
@@ -160,7 +217,7 @@ class Analyzer(ast.Visitor):
         for child in children:
             self.visit(child)
 
-    def visit_program(self, node):
+    def visit_program(self, node: ast.Program):
         # Since each function has it's own local scope,
         # The top level global scope will have it's own "locals"
         self.visit_children(node.children)
@@ -188,7 +245,7 @@ class Analyzer(ast.Visitor):
         module.loaded = True
         self.ctx_module = prev_module
 
-    def visit_usa(self, node):
+    def visit_usa(self, node: ast.Usa):
         fpath = node.module.lexeme.replace("'", "").replace('"', "")
         # Check if path refers to a valid file
         head, tail = path.split(fpath)
@@ -206,7 +263,7 @@ class Analyzer(ast.Visitor):
         module = symbols.Module(mod_path)
         self.load_module(module)
 
-    def visit_vardecl(self, node):
+    def visit_vardecl(self, node: ast.VarDecl):
         name = node.name.lexeme
         in_use = self.ctx_scope.get(name)
         if in_use and not self.ctx_reg:
@@ -217,9 +274,15 @@ class Analyzer(ast.Visitor):
         var_type = self.get_type(node.var_type)
         symbol = symbols.VariableSymbol(name, var_type)
         self.define_symbol(symbol, self.scope_depth, self.ctx_scope)
-        node.var_type = var_type
+        node.var_type = var_type  # type: ignore
         assign = node.assign
-        if assign is not None:
+        if not assign:
+            # If we are not analyzing a registo declaration, all non primitive types must be initialized
+            if self.ctx_reg is None and not var_type.zero_initialized:
+                self.error(
+                    "Erro de inicialização. Variáveis de tipos não primitivos devem ser inicializadas"
+                )
+        else:
             if assign.right.token.lexeme == name:
                 self.error(
                     f"Erro ao inicializar variável. Não pode referenciar uma variável durante a sua declaração"
@@ -251,28 +314,29 @@ class Analyzer(ast.Visitor):
 
     def make_func_symbol(
         self, name: str, node: ast.FunctionDecl, symbol: symbols.FunctionSymbol
-    ) -> symbols.Scope:
+    ) -> tuple[symbols.Scope, dict[str, symbols.VariableSymbol]]:
         function_type = self.get_type(node.func_type)
         if node.of_type(ast.MethodDecl):
             symbol.is_property = True
         symbol.is_global = True
         self.define_symbol(symbol, self.scope_depth, self.ctx_scope)
-        scope, symbol.params = self.define_func_scope(name, node.params)
-        return scope
+        scope, params = self.define_func_scope(name, node.params)
+        symbol.params = params
+        return (scope, params)
 
     def validate_return(
         self, node: ast.FunctionDecl, function_type: Type, no_return_err: str
     ):
         # Check if non void function has return
         has_return = self.has_return(node.block)
-        if not has_return and function_type.kind != Kind.TVAZIO:
+        if not has_return and function_type != Builtins.Vazio:
             self.ctx_node = node
             self.error(no_return_err)
 
     def check_function_body(
         self,
         node: ast.FunctionDecl,
-        symbol: symbols.Symbol,
+        symbol: symbols.FunctionSymbol,
         scope: symbols.Scope,
     ):
         prev_function = self.ctx_func
@@ -295,7 +359,7 @@ class Analyzer(ast.Visitor):
 
         function_type = self.get_type(node.func_type)
         symbol = symbols.FunctionSymbol(name, function_type)
-        scope = self.make_func_symbol(name, node, symbol)
+        scope, _ = self.make_func_symbol(name, node, symbol)
         # Native functions don't have a body, so there's nothing to visit
         if node.is_native:
             return
@@ -308,7 +372,7 @@ class Analyzer(ast.Visitor):
 
         self.check_function_body(node, symbol, scope)
 
-    def define_func_scope(self, name, params):
+    def define_func_scope(self, name: str, params: list[ast.Param]):
         params_dict = {}
         klass = self.ctx_reg
         for param in params:
@@ -326,15 +390,25 @@ class Analyzer(ast.Visitor):
         return (scope, params_dict)
 
     def visit_methoddecl(self, node: ast.MethodDecl):
+        # TODO: Remove hack of pushing generic scope onto the scope stack!
+        # Create generic scope if needed
+        generic_params = self.get_generic_params(node)
+        ty_ctx = self.get_generic_ty_ctx(generic_params)
+        self.enter_ty_ctx(ty_ctx)
+
+        # Checking target type
         target_ty = self.get_type(node.target_ty)
         method_name = node.name.lexeme
         method_id = target_ty.full_field_path(method_name)
         method_desc = f"O método '{method_name}' do tipo '{target_ty}'"
 
         # Check if field exists on target type
-        if target_ty.fields.get(method_name):
+        method_sym = target_ty.get_property(method_name)
+        if method_sym:
             self.error(
-                f"A propriedade '{method_name}' já foi definida no tipo '{target_ty}'"
+                f"{method_desc} já foi declarado anteriormente"
+                if method_sym.is_callable()
+                else f"A propriedade '{method_name}' já foi definida no tipo '{target_ty}'"
             )
 
         self.validate_decl_in_scope(
@@ -342,21 +416,55 @@ class Analyzer(ast.Visitor):
             f"Métodos só podem ser declarados no escopo global",
             f"{method_desc} já foi declarado anteriormente",
         )
+        # Checking return type
         return_ty = self.get_type(node.return_ty)
-        symbol = symbols.MethodSym(method_id, target_ty, return_ty, node.params)
-        scope = self.make_func_symbol(method_id, node, symbol)
-        self.validate_return(
-            node,
-            return_ty,
-            f"{method_desc} não possui a instrução 'retorna'",
+        symbol = symbols.MethodSym(
+            method_name, target_ty=target_ty, return_ty=return_ty
         )
+        symbol.set_annotations(node.annotations)
+
+        scope, params = self.make_func_symbol(method_id, node, symbol)
+        symbol.params = params
+
         # add alvo param
         self.define_symbol(
-            symbols.Symbol("alvo", target_ty), self.scope_depth + 1, scope
+            symbols.VariableSymbol("alvo", target_ty),
+            self.scope_depth + 1,
+            scope,
+        )
+        for param in generic_params:
+            scope.define(
+                param.name,
+                param,
+            )
+        # Body of builtin methods are not checked
+        if not symbol.is_builtin():
+            self.validate_return(
+                node,
+                return_ty,
+                f"{method_desc} não possui a instrução 'retorna'",
+            )
+            self.check_function_body(node, symbol, scope)
+        # TODO: Refactor method definitions to not rely on the underlying type
+        target_ty.define_method(symbol)
+        self.leave_ty_ctx()
+
+    def get_generic_params(
+        self, node: ast.Registo | ast.MethodDecl
+    ) -> set[TypeVar]:
+        # TODO: Notify in case of duplicate generic param
+        # TODO: Make sure to throw an error for unused generic params
+        return (
+            set(map(lambda t: TypeVar(t.name.lexeme), node.generic_params))
+            if node.generic_params
+            else set()
         )
 
-        self.check_function_body(node, symbol, scope)
-        target_ty.fields[method_name] = symbol
+    def get_generic_ty_ctx(self, params: set[TypeVar]) -> symbols.Scope:
+        ctx = symbols.Scope(self.ty_ctx)
+        for param in params:
+            ctx.define(param.name, param)
+        return ctx
 
     def visit_registo(self, node: ast.Registo):
         name = node.name.lexeme
@@ -364,7 +472,15 @@ class Analyzer(ast.Visitor):
         if cast(symbols.Scope, self.ctx_scope).get(name):
             self.error(self.ID_IN_USE, name=name)
 
-        registo = Registo(name, reg_scope.symbols)
+        generic_params = self.get_generic_params(node)
+        self.enter_ty_ctx(self.get_generic_ty_ctx(generic_params))
+
+        registo = Registo(
+            name,
+            cast(dict[str, symbols.VariableSymbol], reg_scope.symbols),
+            ty_params=generic_params,
+        )
+        self.define_symbol(registo, self.scope_depth, self.ctx_scope)
         self.ctx_reg = registo
         self.enter_scope(reg_scope)
 
@@ -376,6 +492,7 @@ class Analyzer(ast.Visitor):
 
         self.leave_scope()
         self.define_symbol(registo, self.scope_depth, self.ctx_scope)
+        self.leave_ty_ctx()
         self.ctx_reg = None
 
     def visit_alvo(self, node: ast.Alvo):
@@ -425,13 +542,13 @@ class Analyzer(ast.Visitor):
                     f"Número inteiro demasiado grande. Só pode usar números inteiros iguais ou menores que '{MAX_AMA_INT}'"
                 )
         elif constant == TT.REAL:
-            node.eval_type = scope.resolve("real")
+            node.eval_type = Builtins.Real
         elif constant == TT.STRING:
-            node.eval_type = scope.resolve("texto")
+            node.eval_type = Builtins.Texto
         elif constant in (TT.VERDADEIRO, TT.FALSO):
-            node.eval_type = scope.resolve("bool")
+            node.eval_type = Builtins.Bool
         elif constant == TT.NULO:
-            node.eval_type = scope.resolve("nulo")
+            node.eval_type = Builtins.Nulo
 
     def visit_listliteral(self, node):
         elements = node.elements
@@ -451,7 +568,10 @@ class Analyzer(ast.Visitor):
     # TODO: Rename this to 'name' or 'identifier'
     def visit_variable(self, node):
         name = node.token.lexeme
-        sym = self.ctx_scope.resolve(name)
+        sym = cast(
+            symbols.Typed,
+            cast(symbols.Scope, self.ctx_scope).resolve_typed(name),
+        )
         if not sym:
             self.error(f"o identificador '{name}' não foi declarado")
         elif not sym.can_evaluate():
@@ -461,18 +581,31 @@ class Analyzer(ast.Visitor):
         assert node.var_symbol
         return sym
 
+    def _bad_prop_err(self, ty: Type, field: str):
+        # TODO: Add context to bad prop error on Option types
+        if not ty.is_primitive():
+            self.error(
+                f"O objecto do tipo '{ty}' não possui o atributo '{field}'"
+            )
+        self.error(f"O tipo '{ty}' não possui o método '{field}'")
+
     def visit_get(self, node: ast.Get):
         target = node.target
+        ty_sym = target.eval_type  # type: ignore
         self.visit(target)
-        if target.eval_type.kind != Kind.TREGISTO:
-            self.error("Tipos primitivos não possuem atributos")
-        ty_sym: Registo = target.eval_type
+        if (
+            not target.eval_type.supports_fields()
+            and not target.eval_type.supports_methods()
+        ):
+            self.error("O Tipo '{ty_sym.name}' nenhum atributo ou método")
+        ty_sym = target.eval_type  # type: ignore
         field = node.member.lexeme
-        field_sym = ty_sym.fields.get(field)
-        if not field_sym:
-            self.error(
-                f"O objecto do tipo '{ty_sym.name}' não possui o atributo {field}"
-            )
+        field_sym = cast(Typed, ty_sym.get_property(field))
+
+        if field_sym is None:
+            self._bad_prop_err(ty_sym, field)
+            return
+        # TODO: Add specific node for method call
         # Check if valid use of get
         # References to methods can only be used in the context of
         # a call expression
@@ -501,50 +634,47 @@ class Analyzer(ast.Visitor):
         if not self.types_match(target.eval_type, expr.eval_type):
             self.ctx_node = node
             self.error(
-                f"atribuição inválida. incompatibilidade entre os operandos da atribuição: '{target.eval_type.name}' e '{expr.eval_type.name}'"
+                f"atribuição inválida. incompatibilidade entre os operandos da atribuição: '{target.eval_type}' e '{expr.eval_type}'"
             )
         node.eval_type = target.eval_type
 
-    def visit_indexget(self, node):
+    def visit_indexget(self, node: ast.IndexGet):
         # Check if index is int
         target = node.target
         self.visit(target)
-        t_type = target.eval_type
+        t_type: Type = target.eval_type
 
         index = node.index
         self.visit(index)
 
-        str_or_list = (Kind.TVEC, Kind.TTEXTO)
-        if t_type.kind in str_or_list and index.eval_type.kind != Kind.TINT:
-            self.error(
-                f"Índices para valores do tipo '{t_type}' devem ser inteiros"
-            )
-
-        if t_type.kind not in str_or_list:
+        if not t_type.supports_index_get():
             self.error(f"O valor do tipo '{t_type}' não contém índices")
 
-        if t_type.kind == Kind.TVEC:
-            node.eval_type = t_type.element_type
-        elif t_type.kind == Kind.TTEXTO:
-            node.eval_type = t_type
-        else:
-            raise NotImplementedError(
-                f"Index eval not implemented for '{t_type}'"
+        index_ty = t_type.index_ty()
+        if t_type.index_ty() != index.eval_type:
+            self.error(
+                f"Índices para valores do tipo '{t_type}' devem ser do tipo '{index_ty}'"
             )
+
+        node.eval_type = t_type.index_item_ty()
 
     def visit_indexset(self, node):
         index = node.index
         value = node.value
         self.visit(index)
-        if index.eval_type.kind == Kind.TTEXTO:
-            self.error(
-                f"As strings não podem ser modificadas por meio de índices"
-            )
+        idx_ty = index.eval_type
+        if not idx_ty.supports_index_set():
+            if idx_ty.tag == Types.TTEXTO:
+                self.error(
+                    f"As strings não podem ser modificadas por meio de índices"
+                    if idx_ty.tag == Types.TTEXTO
+                    else f"Itens do tipo '{idx_ty}' não podem ser modificadas por meio de índices"
+                )
         self.visit(value)
         if not self.types_match(index.eval_type, value.eval_type):
             self.ctx_node = node
             self.error(
-                f"atribuição inválida. incompatibilidade entre os operandos da atribuição: '{index.eval_type}' e '{value.eval_type}'"
+                f"Atribuição inválida. incompatibilidade entre os operandos da atribuição: '{index.eval_type}' e '{value.eval_type}'"
             )
         node.eval_type = index.eval_type
 
@@ -557,7 +687,7 @@ class Analyzer(ast.Visitor):
             self.error(err_msg)
         node.eval_type = new_type
 
-    def visit_binop(self, node):
+    def visit_binop(self, node: ast.BinOp):
         ls = self.visit(node.left)
         rs = self.visit(node.right)
         lhs = node.left
@@ -565,9 +695,10 @@ class Analyzer(ast.Visitor):
         # Evaluate type of binary
         # arithmetic operation
         operator = node.token
-        result = self.get_binop_result(
-            lhs.eval_type, operator.token, rhs.eval_type
-        )
+        lhs_ty = lhs.eval_type
+        rhs_ty = rhs.eval_type
+
+        result = lhs_ty.binop(operator.token, rhs_ty)
         if not result:
             self.ctx_node = node
             self.error(
@@ -577,64 +708,18 @@ class Analyzer(ast.Visitor):
         lhs.prom_type = lhs.eval_type.promote_to(rhs.eval_type)
         rhs.prom_type = rhs.eval_type.promote_to(lhs.eval_type)
 
-    def get_binop_result(self, lhs_type, op, rhs_type):
-        # Get result type of a binary operation based on
-        # on operator and operand type
-        scope = self.ctx_scope
-        if not lhs_type.is_operable() or not rhs_type.is_operable():
-            return None
-
-        if op in (
-            TT.PLUS,
-            TT.MINUS,
-            TT.STAR,
-            TT.SLASH,
-            TT.DOUBLESLASH,
-            TT.MODULO,
-        ):
-            if lhs_type.is_numeric() and rhs_type.is_numeric():
-                return (
-                    scope.resolve("int")
-                    if lhs_type.kind == Kind.TINT
-                    and rhs_type.kind == Kind.TINT
-                    and op != TT.SLASH
-                    else scope.resolve("real")
-                )
-
-        elif op in (TT.GREATER, TT.LESS, TT.GREATEREQ, TT.LESSEQ):
-            if lhs_type.is_numeric() and rhs_type.is_numeric():
-                return scope.resolve("bool")
-
-        elif op in (TT.DOUBLEEQUAL, TT.NOTEQUAL):
-            if (
-                (lhs_type.is_numeric() and rhs_type.is_numeric())
-                or lhs_type == rhs_type
-                or lhs_type.promote_to(rhs_type) != None
-                or rhs_type.promote_to(lhs_type) != None
-            ):
-                return scope.resolve("bool")
-
-        elif op in (TT.E, TT.OU):
-            if lhs_type.kind == Kind.TBOOL and rhs_type.kind == Kind.TBOOL:
-                return scope.resolve("bool")
-
-        return None
-
-    def visit_unaryop(self, node):
+    def visit_unaryop(self, node: ast.UnaryOp):
         operand = self.visit(node.operand)
         # Check if operand is a get node that can not be evaluated
         operator = node.token.token
         lexeme = node.token.lexeme
         op_type = node.operand.eval_type
         bad_uop = f"o operador unário {lexeme} não pode ser usado com o tipo '{op_type}' "
-        if operator in (TT.PLUS, TT.MINUS):
-            if op_type.kind != Kind.TINT and op_type.kind != Kind.TREAL:
-                self.ctx_node = node
-                self.error(bad_uop)
-        elif operator == TT.NAO:
-            if op_type.kind != Kind.TBOOL:
-                self.error(bad_uop)
-        node.eval_type = op_type
+        uop_result = op_type.unaryop(operator)
+        if not uop_result:
+            self.ctx_node = node
+            self.error(bad_uop)
+        node.eval_type = uop_result
 
     def visit_assign(self, node: ast.Assign):
         lhs = node.left
@@ -665,17 +750,17 @@ class Analyzer(ast.Visitor):
                 f"A directiva '{token.lexeme}' só pode ser usada dentro de uma estrutura de repetição"
             )
 
-    def visit_retorna(self, node):
+    def visit_retorna(self, node: ast.Retorna):
         if not self.ctx_func:
             self.ctx_node = node
             self.error(
                 f"A directiva 'retorna' só pode ser usada dentro de uma função"
             )
-        func_type = self.ctx_func.type
+        func_type: Type = self.ctx_func.type
         expr = node.exp
-        if self.ctx_func.type.kind == Kind.TVAZIO and expr != None:
+        if func_type == Builtins.Vazio and expr != None:
             self.error("Não pode retornar um valor de uma função vazia")
-        elif self.ctx_func.type.kind != Kind.TVAZIO and expr is None:
+        elif func_type != Builtins.Vazio and expr is None:
             self.error(
                 "A instrução de retorno vazia só pode ser usada dentro de uma função vazia"
             )
@@ -690,17 +775,17 @@ class Analyzer(ast.Visitor):
                 f"expressão de retorno inválida. O tipo do valor de retorno é incompatível com o tipo de retorno da função"
             )
 
-    def visit_senaose(self, node):
+    def visit_senaose(self, node: ast.SenaoSe):
         self.visit(node.condition)
-        if node.condition.eval_type.kind != Kind.TBOOL:
+        if node.condition.eval_type != Builtins.Bool:
             self.error(
                 f"a condição da instrução 'senaose' deve ser um valor lógico"
             )
         self.visit(node.then_branch)
 
-    def visit_se(self, node):
+    def visit_se(self, node: ast.Se):
         self.visit(node.condition)
-        if node.condition.eval_type.kind != Kind.TBOOL:
+        if node.condition.eval_type.tag != Types.TBOOL:
             self.error(f"a condição da instrução 'se' deve ser um valor lógico")
         self.visit(node.then_branch)
         elsif_branches = node.elsif_branches
@@ -709,11 +794,11 @@ class Analyzer(ast.Visitor):
         if node.else_branch:
             self.visit(node.else_branch)
 
-    def visit_escolha(self, node):
+    def visit_escolha(self, node: ast.Escolha):
         expr = node.expression
         self.visit(expr)
         expr_type = expr.eval_type
-        if expr_type.kind not in (Kind.TINT, Kind.TTEXTO):
+        if expr_type.tag not in (Types.TINT, Types.TTEXTO):
             self.error(
                 f"A directiva escolha só pode ser usada para avaliar números inteiros e strings"
             )
@@ -729,9 +814,9 @@ class Analyzer(ast.Visitor):
         if default_case:
             self.visit(default_case)
 
-    def visit_enquanto(self, node):
+    def visit_enquanto(self, node: ast.Enquanto):
         self.visit(node.condition)
-        if node.condition.eval_type.kind != Kind.TBOOL:
+        if node.condition.eval_type.tag != Types.TBOOL:
             self.ctx_node = node
             self.error(
                 f"a condição da instrução 'enquanto' deve ser um valor lógico"
@@ -745,7 +830,7 @@ class Analyzer(ast.Visitor):
         self.in_loop = in_loop_state
 
     # TODO: Figure out what to do with this guy
-    def visit_para(self, node):
+    def visit_para(self, node: ast.Para):
         self.visit(node.expression)
         # Define control variable for loop
         name = node.expression.name.lexeme
@@ -754,20 +839,20 @@ class Analyzer(ast.Visitor):
         self.define_symbol(sym, self.scope_depth + 1, scope)
         self.visit(node.statement, scope)
 
-    def visit_paraexpr(self, node):
+    def visit_paraexpr(self, node: ast.ParaExpr):
         # self.visit(node.name)
         self.visit(node.range_expr)
 
-    def visit_rangeexpr(self, node):
+    def visit_rangeexpr(self, node: ast.RangeExpr):
         self.visit(node.start)
         self.visit(node.end)
         if node.inc is not None:
             self.visit(node.inc)
-        for node in (node.start, node.end, node.inc):
+        for enode in (node.start, node.end, node.inc):
             # Skip inc node in case it's empty lool
-            if not node:
+            if not enode:
                 continue
-            if node.eval_type.kind != Kind.TINT:
+            if enode.eval_type != Builtins.Int:
                 self.error("os parâmetros de uma série devem ser do tipo 'int'")
 
     def visit_namedarg(self, node: ast.NamedArg):
@@ -777,9 +862,10 @@ class Analyzer(ast.Visitor):
     def visit_call(self, node: ast.Call):
         callee = node.callee
         calle_type = type(callee)
+        sym: Typed
         if calle_type == ast.Variable:
             name = callee.token.lexeme
-            sym = self.ctx_scope.resolve(name)
+            sym = self.ctx_scope.resolve_typed(name)
             if not sym:
                 # TODO: Use the default error message for this
                 self.error(
@@ -794,6 +880,7 @@ class Analyzer(ast.Visitor):
                 else f"o símbolo '{node.callee.token.lexeme}' não é invocável"
             )
             self.error(message)
+            return
         if sym.name in BUILTINS:
             self.builtin_call(BUILTINS[sym.name], node)
         elif isinstance(sym, Registo):
@@ -813,11 +900,11 @@ class Analyzer(ast.Visitor):
         self.visit(value)
 
         vec_t = vec_expr.eval_type
-        if vec_t.kind != Kind.TVEC:
+        if not isinstance(vec_t, Vector):
             self.error(f"O argumento 1 da função '{fn}' deve ser um vector")
 
     # Validates call to builtin functions
-    def builtin_call(self, fn, node):
+    def builtin_call(self, fn: BuiltinFn, node: ast.Call):
         # TODO: Change this into an actual ast node cause it uses
         # special syntax
         if fn == BuiltinFn.VEC:
@@ -833,12 +920,12 @@ class Analyzer(ast.Visitor):
             # Is size given valid?
             for arg in node.fargs[1:]:
                 self.visit(arg)
-                if arg.eval_type.kind != Kind.TINT:
+                if arg.eval_type.tag != Types.TINT:
                     self.error(
                         "Os tamanhos de um vector devem ser representado por inteiros"
                     )
 
-            type_node = node.fargs[0]
+            type_node = cast(ast.Type, node.fargs[0])
             el_type = self.get_type(type_node)  # Attempt to get type
             # Is arg 1 a vector type?
             if type(el_type) == Vector:
@@ -861,12 +948,12 @@ class Analyzer(ast.Visitor):
                     f"incompatibilidade de tipos entre o tipo dos elementos da lista e o valor a anexar: '{el_type}' != '{val_t}'"
                 )
             value.prom_type = val_t.promote_to(el_type)
-            node.eval_type = self.global_scope.resolve("vazio")
+            node.eval_type = cast(Type, self.global_scope.resolve("vazio"))
         elif fn == BuiltinFn.REMOVA:
             vec_expr = node.fargs[0]
             index = node.fargs[1]
             self.check_vec_op(fn, node)
-            if index.eval_type.kind != Kind.TINT:
+            if index.eval_type != Builtins.Int:
                 self.error(
                     "O argumento 2 da função 'remova' deve ser um número inteiro"
                 )
@@ -877,8 +964,7 @@ class Analyzer(ast.Visitor):
             seq = node.fargs[0]
             self.visit(seq)
 
-            SEQ_TYPES = (Kind.TTEXTO, Kind.TVEC)
-            if seq.eval_type.kind not in SEQ_TYPES:
+            if not seq.eval_type.supports_tam():
                 self.error(
                     "O argumento 1 da função 'tam' deve ser do tipo 'texto' ou do tipo 'vector'"
                 )
@@ -891,8 +977,17 @@ class Analyzer(ast.Visitor):
                 f"Code for the builtin '{fn}' has not been implemented"
             )
 
-    def check_arity(self, arg_len: int, name: str, arity: int, is_method: bool):
+    def check_arity(
+        self,
+        arg_len: int,
+        name: str,
+        arity: int,
+        is_method: bool,
+        symbol: symbols.FunctionSymbol | None = None,
+    ):
         if arg_len != arity:
+            if isinstance(symbol, symbols.MethodSym):
+                name = symbol.target_ty.full_field_path(symbol.name)
             callable_desc = (
                 f"o método {name}" if is_method else f"a função {name}"
             )
@@ -911,7 +1006,9 @@ class Analyzer(ast.Visitor):
                     f"Funções e métodos não suportam argumentos nomeados"
                 )
             self.visit(arg)
-        self.check_arity(len(fargs), name, sym.arity(), sym.is_property)
+        self.check_arity(
+            len(fargs), name, sym.arity(), sym.is_property, symbol=sym
+        )
         # Type promotion for parameter
         for arg, param in zip(fargs, sym.params.values()):
             arg.prom_type = arg.eval_type.promote_to(param.type)
@@ -922,6 +1019,7 @@ class Analyzer(ast.Visitor):
 
     def validate_initializer(self, sym: Registo, fargs: List[ast.NamedArg]):
         # Check call arity
+
         if len(fargs) != len(sym.fields):
             self.error(
                 f"número incorrecto de argumentos para o inicializador do registo '{sym.name}'. Esperava {len(sym.fields)} argumento(s), porém recebeu {len(fargs)}"

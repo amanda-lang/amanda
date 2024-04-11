@@ -9,6 +9,7 @@ func nativa leia_real(mensagem: texto): real
 
 
 # Funções de saída
+
 func nativa escreva(item: indef)
 func nativa escrevaln(item: indef)
 
@@ -41,3 +42,13 @@ func nativa tan(valor: real): real
 func nativa log(valor: real, base: real): real
 func nativa grausprad(valor: real): real
 func nativa radpgraus(valor: real): real
+
+
+@embutido(item = "Opcao")
+registo Opcao[T]
+   valor: T
+fim
+
+@embutido
+met[T] Opcao[T]::valor_ou(alvo, padrao: T): T fim
+

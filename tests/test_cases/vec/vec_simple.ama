@@ -1,9 +1,7 @@
 # Isto é uma var que guarda uma vec
-minha_lista : [int]
+minha_lista : [int] = vec(int, 4)
 
 #Para criar um vec use a 'função' vec
-
-minha_lista = vec(int,4) # tipo e o tamanho
 
 # Preencher o vec usando índices
 

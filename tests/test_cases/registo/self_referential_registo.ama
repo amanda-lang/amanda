@@ -1,33 +1,36 @@
 registo No
     valor : int
-    proximo : No
+    proximo : No?
 fim
 
 
 registo ListaLigada
-    cabeca : No
+    cabeca : No?
 fim
 
 
 met ListaLigada::ad_no(alvo, valor : int)
-    novo : No = No(valor: valor, proximo: nulo)
+    novo : No = No(
+        valor: valor, 
+        proximo: nulo
+    )
 
     se alvo.cabeca == nulo entao
         alvo.cabeca = novo
     senao
-        ultimo : No = alvo.cabeca
+        ultimo : No = alvo.cabeca.valor
         enquanto ultimo.proximo != nulo faca
-            ultimo = ultimo.proximo
+            ultimo = ultimo.proximo.valor
         fim
         ultimo.proximo = novo
     fim
 fim
 
 met ListaLigada::imprimir(alvo)
-    node : No = alvo.cabeca
+    node : No? = alvo.cabeca
     enquanto node != nulo faca
-        mostra node.valor
-        node = node.proximo
+        escrevaln(node.valor.valor)
+        node = node.valor.proximo
     fim
 fim
 

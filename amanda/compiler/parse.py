@@ -1,8 +1,8 @@
 import os
 import copy
 from io import StringIO
-from typing import List, Union
-from amanda.compiler.tokens import TokenType as TT
+from typing import List, NoReturn, Union
+from amanda.compiler.tokens import TokenType as TT, is_ambiguous_char
 from amanda.compiler.tokens import Token
 from amanda.compiler.tokens import KEYWORDS as TK_KEYWORDS
 from amanda.compiler.error import AmandaError
@@ -22,7 +22,7 @@ class Lexer:
         self.line = 1
         self.pos = 1
         self.current_token = None
-        self.current_char = None
+        self.current_char: str = None  # type: ignore
         self.src = src  # A file object
 
     def set_src(self, src):
@@ -30,7 +30,7 @@ class Lexer:
         self.line = 1
         self.pos = 1
         self.current_token = None
-        self.current_char = None
+        self.current_char = None  # type: ignore
 
     def advance(self):
         if self.current_char == Lexer.EOF:
@@ -195,45 +195,27 @@ class Lexer:
             TT.IDENTIFIER, result, self.line, self.pos - (len(result) + 1)
         )
 
-    def delimeters(self):
+    def delimeters(self) -> Token | None:
         char = self.current_char
-        if self.current_char == ")":
-            self.advance()
-            return Token(TT.RPAR, char, self.line, self.pos)
-        elif self.current_char == "(":
-            self.advance()
-            return Token(TT.LPAR, char, self.line, self.pos)
-        elif self.current_char == ".":
-            if self.lookahead() == ".":
+
+        match (is_ambiguous_char(char), char, self.lookahead()):
+            case (True, char, lookahead):
+                combined = char + lookahead
+                tok = Token.from_char(combined, self.line, self.pos)
+                if tok:
+                    self.advance()
+                    self.advance()
+                    return tok
+                else:
+                    tok = Token.from_char(char, self.line, self.pos)
+                    self.advance()
+                    return tok
+            case (False, char, lookahead):
+                tok = Token.from_char(char, self.line, self.pos)
                 self.advance()
-                self.advance()
-                return Token(TT.DDOT, "..", self.line, self.pos - 1)
-            self.advance()
-            return Token(TT.DOT, char, self.line, self.pos)
-        elif self.current_char == ";":
-            self.advance()
-            return Token(TT.SEMI, char, self.line, self.pos)
-        elif self.current_char == ",":
-            self.advance()
-            return Token(TT.COMMA, char, self.line, self.pos)
-        elif self.current_char == "{":
-            self.advance()
-            return Token(TT.LBRACE, char, self.line, self.pos)
-        elif self.current_char == "}":
-            self.advance()
-            return Token(TT.RBRACE, char, self.line, self.pos)
-        elif self.current_char == "[":
-            self.advance()
-            return Token(TT.LBRACKET, char, self.line, self.pos)
-        elif self.current_char == "]":
-            self.advance()
-            return Token(TT.RBRACKET, char, self.line, self.pos)
-        elif self.current_char == ":":
-            self.advance()
-            if self.current_char == ":":
-                self.advance()
-                return Token(TT.DOUBLECOLON, "::", self.line, self.pos - 1)
-            return Token(TT.COLON, char, self.line, self.pos)
+                return tok
+            case _:
+                return self.error(self.INVALID_SYMBOL, symbol=self.current_char)
 
     def format_str(self):
         self.advance()
@@ -265,18 +247,7 @@ class Lexer:
             if self.current_char == "f" and self.lookahead() in ('"', "'"):
                 return self.format_str()
             return self.identifier()
-        if self.current_char in (
-            "(",
-            ")",
-            ".",
-            ";",
-            ",",
-            "{",
-            "}",
-            "[",
-            "]",
-            ":",
-        ):
+        if self.current_char in Token.TOKENS:
             return self.delimeters()
         if self.current_char == Lexer.EOF:
             return Token(Lexer.EOF, "", line=self.line, col=self.pos)
@@ -313,7 +284,7 @@ class Parser:
                 f"era esperado o símbolo '{expected.value}',porém recebeu o símbolo '{self.lookahead.lexeme}'"
             )
 
-    def error(self, message, line=None):
+    def error(self, message, line=None) -> NoReturn:
         err_line = self.lookahead.line
         if line:
             err_line = line
@@ -386,24 +357,41 @@ class Parser:
             body.add_child(child)
 
     def declaration(self):
+        annotations = None
+        if self.match(TT.AT):
+            annotations = self.annotations()
+            self.skip_newlines()
+            if self.lookahead.token not in (TT.FUNC, TT.MET, TT.REGISTO):
+                self.error(
+                    "As anotações devem ser seguidas de uma função, método ou registo"
+                )
+
         if self.match(TT.FUNC):
-            return self.function_decl()
+            return self.function_decl(annotations)
         elif self.match(TT.MET):
-            return self.method_decl()
+            return self.method_decl(annotations)
         elif self.match(TT.REGISTO):
-            return self.registo_decl()
+            return self.registo_decl(annotations)
         else:
             return self.statement()
+
+    def _is_maybe_type(self) -> bool:
+        nullable = False
+        if self.match(TT.QMARK):
+            nullable = True
+            self.consume(TT.QMARK)
+        return nullable
 
     def type(self) -> ast.Type:
         if self.match(TT.IDENTIFIER):
             name = self.consume(TT.IDENTIFIER)
-            return ast.Type(name)
+            generic_args = self.generic_args()
+            return ast.Type(name, self._is_maybe_type(), generic_args)
         elif self.match(TT.LBRACKET):
             self.consume(TT.LBRACKET)
             el_type = self.type()
             self.consume(TT.RBRACKET)
-            return ast.ArrayType(el_type)
+            return ast.ArrayType(el_type, self._is_maybe_type())
         else:
             self.error(
                 "Tipo inválido. Esperava um identificador ou a descrição de um vector"
@@ -446,8 +434,9 @@ class Parser:
         self.end_stmt()
         return function
 
-    def method_decl(self):
+    def method_decl(self, annotations: list[ast.Annotation] | None):
         self.consume(TT.MET)
+        generic_params = self.generic_params()
         ty = self.type()
         self.consume(TT.DOUBLECOLON)
         name = self.consume(TT.IDENTIFIER, self.EXPECTED_ID.format(symbol="::"))
@@ -477,30 +466,79 @@ class Parser:
             target_ty=ty,
             name=name,
             params=params,
+            annotations=annotations,
             return_ty=return_ty,
             block=block,
+            generic_params=generic_params,
         )
 
-    def function_decl(self):
+    def function_decl(
+        self, annotations: list[ast.Annotation] | None
+    ) -> ast.FunctionDecl:
         self.consume(TT.FUNC)
         if self.match(TT.NATIVA):
             return self.native_func_decl()
         function = self.function_header()
         function.block = self.block()
+        function.annotations = annotations
         self.consume(
             TT.FIM,
             "O corpo de uma função deve ser terminado com a directiva 'fim'",
         )
         return function
 
-    def registo_decl(self):
+    def generic_args(self) -> list[ast.GenericArg] | None:
+        args = []
+        if self.match(TT.LBRACKET):
+            self.consume(TT.LBRACKET)
+            if self.match(TT.RBRACKET):
+                self.error(
+                    "Pelo menos 1 parâmetro genérico deve ser especificado."
+                )
+
+            while not self.match(TT.RBRACKET):
+                ty = self.type()
+                args.append(ast.GenericArg(ty))
+                if self.match(TT.COMMA):
+                    self.consume(TT.COMMA)
+            self.consume(TT.RBRACKET)
+            return args
+        else:
+            return None
+
+    def generic_params(self) -> list[ast.GenericParam] | None:
+        params = []
+        if self.match(TT.LBRACKET):
+            self.consume(TT.LBRACKET)
+            if self.match(TT.RBRACKET):
+                self.error(
+                    "Pelo menos 1 parâmetro genérico deve ser especificado."
+                )
+
+            while not self.match(TT.RBRACKET):
+                idt = self.consume(TT.IDENTIFIER)
+                params.append(ast.GenericParam(idt))
+                if self.match(TT.COMMA):
+                    self.consume(TT.COMMA)
+            self.consume(TT.RBRACKET)
+            return params
+        else:
+            return None
+
+    def registo_decl(self, annotations: list[ast.Annotation] | None):
         self.consume(TT.REGISTO)
         name = self.consume(TT.IDENTIFIER)
+        generic_params = self.generic_params()
         fields = self.registo_body()
         self.consume(
             TT.FIM, "O corpo de um registo deve ser terminado com o símbolo fim"
         )
-        return ast.Registo(name=name, fields=fields)
+        return ast.Registo(
+            name=name,
+            generic_params=generic_params,
+            fields=fields,
+            annotations=annotations,
+        )
 
     def registo_body(self) -> List[ast.VarDecl]:
         fields = []
@@ -828,6 +866,34 @@ class Parser:
             op = self.mult_operator()
             node = ast.BinOp(op, left=node, right=self.unary())
         return node
+
+    def annotations(self) -> list[ast.Annotation] | None:
+        annotations = []
+        while self.match(TT.AT):
+            self.consume(TT.AT)
+            annotation_name = self.consume(TT.IDENTIFIER).lexeme
+            attrs = {}
+            if not self.match(TT.LPAR):
+                annotations.append(ast.Annotation(annotation_name, attrs))
+                continue
+            self.consume(TT.LPAR)
+            if self.match(TT.RPAR):
+                self.error(
+                    f"A anotação {annotation_name} deve especificar atributos. Caso não possua atributos, remova os parênteses"
+                )
+            while not self.match(TT.RPAR):
+                attr = self.consume(
+                    TT.IDENTIFIER, "Esperava-se o nome do atributo da anotação"
+                )
+                self.consume(TT.EQUAL)
+                value = self.consume(TT.STRING)
+                attrs[attr.lexeme] = value.lexeme
+                if self.match(TT.COMMA):
+                    self.consume(TT.COMMA)
+            self.consume(TT.RPAR)
+            annotations.append(ast.Annotation(annotation_name, attrs))
+
+        return annotations
 
     def unary(self):
         current = self.lookahead.token

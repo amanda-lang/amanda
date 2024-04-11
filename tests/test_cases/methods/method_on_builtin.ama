@@ -1,0 +1,8 @@
+met texto::contem(alvo, agulha: texto): bool
+    retorna txt_contem(alvo, agulha)
+fim
+
+
+
+escrevaln("hello".contem("a"))
+#[output]: falso

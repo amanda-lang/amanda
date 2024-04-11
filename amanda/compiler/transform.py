@@ -1,13 +1,12 @@
 from dataclasses import dataclass
 import amanda.compiler.ast as ast
+from amanda.compiler.symbols.base import Type
 from amanda.compiler.tokens import TokenType as TT, Token
 from amanda.compiler.ast import node_of_type
-from amanda.compiler.symbols import MethodSym, VariableSymbol
-from amanda.compiler import symbols
-from amanda.compiler.type import Type, Kind
-import pprint
+from amanda.compiler.symbols.core import MethodSym, VariableSymbol
+from amanda.compiler.types.builtins import Builtins, SrcBuiltins
 
-from typing import cast, Union, Tuple, Optional, Callable
+from typing import cast, Callable
 
 
 def var_node(name: str, tok: Token) -> ast.Variable:
@@ -52,7 +51,7 @@ class ASTTransformer:
     def empty_transform(self, node: ast.ASTNode, loc: ast.ChildAttr):
         self.transform(node)
 
-    def general_transform(self, node: ast.ASTNode) -> Optional[ast.ASTNode]:
+    def general_transform(self, node: ast.ASTNode) -> ast.ASTNode | None:
         node.for_each_child(self.empty_transform)
         if node.of_type(ast.Converta):
             return node
@@ -64,7 +63,7 @@ class ASTTransformer:
             new_token(TT.DOUBLEEQUAL, "=="),
             left=left,
             right=right,
-            ty=Type(Kind.TBOOL),
+            ty=Builtins.Bool,
         )
         # check node
         # transform node into ifs
@@ -100,9 +99,22 @@ class ASTTransformer:
                 )
             return se_node
 
+    def _is_option(self, ty: Type) -> bool:
+        return ty.is_constructed_from(SrcBuiltins.Opcao)
+
     def transform_call(self, node: ast.Call):
+        self.transform(node.callee)
+        for farg in node.fargs:
+            self.transform(farg)
         if not node.symbol.is_property:
             return node
+        callee = node.callee
+        if (
+            isinstance(callee, ast.Get)
+            and self._is_option(callee.target.eval_type)
+            and callee.member.lexeme == "valor_ou"
+        ):
+            return ast.Unwrap(option=callee.target, default_val=node.fargs[0])
         method_sym = cast(MethodSym, node.symbol)
         instance = cast(ast.Get, node.callee).target
         method_sym.params = {
@@ -114,6 +126,15 @@ class ASTTransformer:
         call_node = ast.Call(callee=var, fargs=node.fargs)
         call_node.symbol = method_sym
         return call_node
+
+    def transform_get(self, node: ast.Get):
+        self.transform(node.target)
+        return (
+            ast.Unwrap(option=node.target, default_val=None)
+            if node.target.eval_type.is_constructed_from(SrcBuiltins.Opcao)
+            and node.member.lexeme == "valor"
+            else node
+        )
 
     def transform_program(self, node: ast.Program) -> ast.Program:
 

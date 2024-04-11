@@ -1,7 +1,7 @@
 from __future__ import annotations
 from enum import Enum
 from dataclasses import dataclass
-from typing import Dict
+from typing import ClassVar, Dict
 
 
 class TokenType(Enum):
@@ -11,7 +11,6 @@ class TokenType(Enum):
     PROGRAM = "PROGRAM"
     # Enum used to represents all the different
     # tokens in the amanda grammar
-
     # ARIT OPERATORS
     PLUS = "+"
     MINUS = "-"
@@ -31,7 +30,7 @@ class TokenType(Enum):
     FORMAT_STR = "cadeia formatada"
     IDENTIFIER = "identificador"
 
-    # GENERAL P
+    # DELIMETERS
     LPAR = "("
     RPAR = ")"
     DOT = "."
@@ -42,7 +41,9 @@ class TokenType(Enum):
     RBRACE = "}"
     LBRACKET = "["
     RBRACKET = "]"
+    AT = "@"
     COLON = ":"
+    QMARK = "?"
     DOUBLECOLON = "::"
     NEWLINE = "\\n"
 
@@ -89,12 +90,34 @@ class TokenType(Enum):
     CLASSE = "CLASSE"
 
 
+def build_tokens_dict() -> Dict[str, TokenType]:
+    """Build a dictionary of reserved keywords."""
+    tt_list = list(TokenType)
+    start_index = tt_list.index(TokenType.LPAR)
+    end_index = tt_list.index(TokenType.NEWLINE)
+
+    return {
+        token_type.value.lower(): token_type
+        for token_type in tt_list[start_index : end_index + 1]
+    }
+
+
 @dataclass
 class Token:
     token: TokenType
     lexeme: str
     line: int = 0
     col: int = 0
+    TOKENS: ClassVar[dict[str, TokenType]] = build_tokens_dict()
+
+    @classmethod
+    def from_char(cls, char: str, line: int, col: int) -> Token | None:
+
+        return (
+            Token(Token.TOKENS[char], char, line, col)
+            if char in Token.TOKENS
+            else None
+        )
 
     def __str__(self) -> str:
         return "<Type: %s, Lexeme: %s Line:%s>" % (
@@ -114,6 +137,10 @@ def build_reserved_keywords() -> Dict[str, Token]:
         for token_type in tt_list[start_index : end_index + 1]
     }
     return reserved_keywords
+
+
+def is_ambiguous_char(char: str) -> bool:
+    return char in (".", ":")
 
 
 KEYWORDS = build_reserved_keywords()

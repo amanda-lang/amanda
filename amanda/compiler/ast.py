@@ -1,6 +1,7 @@
 from __future__ import annotations
 from amanda.compiler.tokens import Token, TokenType as TT
-import amanda.compiler.type as types
+import amanda.compiler.types.core as types
+from amanda.compiler.types.builtins import Builtins
 from dataclasses import dataclass
 from typing import (
     Any,
@@ -14,9 +15,7 @@ from typing import (
 )
 from typing_extensions import TypeGuard
 from abc import abstractmethod
-
-if TYPE_CHECKING:
-    import amanda.compiler.symbols as symbols
+import amanda.compiler.symbols.core as symbols
 
 # TODO: Rename fields of some classes
 T = TypeVar("T")
@@ -25,6 +24,12 @@ ChildAttr = str | Tuple[str, int]
 
 def node_of_type(node: ASTNode, ty: PyTy[T]) -> TypeGuard[T]:
     return isinstance(node, ty)
+
+
+@dataclass
+class Annotation:
+    name: str
+    attrs: dict[str, str]
 
 
 class ASTNode:
@@ -90,8 +95,8 @@ class Program(Block):
 class Expr(ASTNode):
     def __init__(self, token: Token):
         super().__init__(token)
-        self.eval_type: types.Type = types.Type(types.Kind.TUNKNOWN)
-        self.prom_type: types.Type | None = types.Type(types.Kind.TUNKNOWN)
+        self.eval_type: types.Type = Builtins.Unknown
+        self.prom_type: types.Type | None = Builtins.Unknown
 
     def __str__(self):
         return f"{self.token.lexeme}"
@@ -139,17 +144,18 @@ class Alvo(Expr):
 
 class BinOp(Expr):
     def __init__(
-        self, token, left=None, right=None, ty: types.Type | None = None
+        self, token, *, left: Expr, right: Expr, ty: types.Type | None = None
     ):
         super().__init__(token)
         self.right = right
         self.left = left
+        self.eval_type = Builtins.Unknown
         if ty:
             self.eval_type = ty
 
 
 class UnaryOp(Expr):
-    def __init__(self, token, operand=None):
+    def __init__(self, token: Token, *, operand: Expr):
         super().__init__(token)
         self.operand = operand
 
@@ -159,9 +165,9 @@ class VarDecl(ASTNode):
         self, token: Token, *, name: Token, var_type=None, assign=None
     ):
         super().__init__(token)
-        self.var_type = var_type
-        self.assign = assign
-        self.name = name
+        self.var_type: Type = var_type  # type: ignore
+        self.assign: Assign | None = assign
+        self.name: Token = name
 
 
 class Assign(Expr):
@@ -237,21 +243,21 @@ class Escolha(ASTNode):
 
 
 class Para(ASTNode):
-    def __init__(self, token, expression=None, statement=None):
+    def __init__(self, token, expression: ParaExpr, statement: Block):
         super().__init__(token)
         self.expression = expression
         self.statement = statement
 
 
 class ParaExpr(ASTNode):
-    def __init__(self, name=None, range_expr=None):
+    def __init__(self, name: Token, range_expr: RangeExpr):
         super().__init__(name)
         self.name = name
         self.range_expr = range_expr
 
 
 class RangeExpr(ASTNode):
-    def __init__(self, token, start=None, end=None, inc=None):
+    def __init__(self, token: Token, start: Expr, end: Expr, inc: Expr):
         super().__init__(token)
         self.start = start
         self.end = end
@@ -259,7 +265,9 @@ class RangeExpr(ASTNode):
 
 
 class Call(Expr):
-    def __init__(self, callee=None, paren=None, fargs: List[Expr] = []):
+    def __init__(
+        self, *, callee: Expr, paren: Token | None = None, fargs: List[Expr]
+    ):
         super().__init__(callee.token)
         self.callee = callee
         self.fargs = fargs
@@ -317,6 +325,13 @@ class Set(Expr):
         self.expr = expr
 
 
+class Unwrap(Expr):
+    def __init__(self, *, option: Expr, default_val: Expr | None):
+        super().__init__(option.token)
+        self.option = option
+        self.default_val = default_val
+
+
 class FunctionDecl(ASTNode):
     def __init__(
         self,
@@ -324,6 +339,7 @@ class FunctionDecl(ASTNode):
         name: Token,
         params: list[Param],
         block: Block | None = None,
+        annotations: list[Annotation] | None = None,
         func_type: Type | None,
     ):
         super().__init__(name)
@@ -332,7 +348,8 @@ class FunctionDecl(ASTNode):
         self.func_type = func_type
         self.block = block
         self.is_native = False
-        self.symbol: symbols.FunctionSymbol = None  # type: ignore (going to be set later)
+        self.annotations = annotations
+        self.symbol: symbols.FunctionSymbol = None  # type: ignore
 
     def is_method(self) -> bool:
         return False
@@ -347,10 +364,14 @@ class MethodDecl(FunctionDecl):
         block: Block,
         return_ty: Type,
         params: List[Param],
+        annotations: list[Annotation] | None,
+        generic_params: list[GenericParam] | None,
     ):
         super().__init__(
             name=name, block=block, func_type=return_ty, params=params
         )
+        self.annotations = annotations
+        self.generic_params = generic_params
         self.target_ty = target_ty
         self.return_ty = return_ty
 
@@ -359,30 +380,64 @@ class MethodDecl(FunctionDecl):
 
 
 class Registo(ASTNode):
-    def __init__(self, *, name: Token, fields: List[VarDecl]):
+    def __init__(
+        self,
+        *,
+        name: Token,
+        fields: List[VarDecl],
+        annotations: list[Annotation] | None = None,
+        generic_params: list[GenericParam] | None,
+    ):
         super().__init__(name)
         self.name = name
         self.fields = fields
+        self.annotations = annotations
+        self.generic_params = generic_params
+
+
+class GenericParam(ASTNode):
+    def __init__(
+        self,
+        name: Token,
+    ):
+        super().__init__(name)
+        self.name = name
+
+
+class GenericArg(ASTNode):
+    def __init__(
+        self,
+        arg: Type,
+    ):
+        super().__init__(arg.token)
+        self.arg = arg
 
 
 class Param(ASTNode):
-    def __init__(self, param_type=None, name=None):
+    def __init__(self, param_type: Type = None, name: Token = None):  # type: ignore
         super().__init__(name)
         self.param_type = param_type
         self.name = name
 
 
+@dataclass
 class Type(ASTNode):
-    def __init__(self, name: Token):
+    name: Token
+    generic_args: list[GenericArg] | None
+    maybe_ty: bool
+
+    def __init__(self, name: Token, maybe_ty: bool, generic_args):
         super().__init__(name)
         self.name = name
+        self.maybe_ty = maybe_ty
+        self.generic_args = generic_args
 
 
 class ArrayType(Type):
     element_type: Type
 
-    def __init__(self, element_type: Type):
-        super().__init__(element_type.name)
+    def __init__(self, element_type: Type, maybe_ty: bool):
+        super().__init__(element_type.name, maybe_ty, None)
         self.element_type = element_type
 
 
@@ -393,7 +448,6 @@ class NoOp(ASTNode):
 
 # Base class for visitor objects
 class Visitor:
-
     """Dispatcher method that chooses the correct
     return visiting method"""
 

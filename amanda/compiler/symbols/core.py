@@ -1,55 +1,45 @@
 from __future__ import annotations
-from amanda.compiler.tokens import TokenType as TT
 from dataclasses import dataclass
-from typing import Optional, Dict, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from amanda.compiler.type import Type
-    from amanda.compiler.ast import Program
+from typing import Optional, Dict, cast, Any
+from amanda.compiler.symbols.base import Symbol, TypeVar, Typed, Type
 
 
 @dataclass
 class Module:
     fpath: str
-    ast: Optional[Program] = None
+    ast: Any = None
     loaded: bool = False
 
 
-class Symbol:
-    def __init__(self, name: str, sym_type: Type):
-        self.name = name
-        self.out_id = name  # symbol id in compiled source program
-        self.type = sym_type
-        self.is_property = False  # Avoid this repitition
-        self.is_global = False
-
-    def __str__(self):
-        return f"<{self.__class__.__name__} ({self.name},{self.out_id},{self.type})>"
-
-    def can_evaluate(self) -> bool:
-        return False
-
-    def is_type(self) -> bool:
-        return False
-
-    def is_callable(self) -> bool:
-        return False
-
-
-class VariableSymbol(Symbol):
+class VariableSymbol(Typed):
     def __init__(self, name: str, var_type: Type):
         super().__init__(name, var_type)
 
     def can_evaluate(self):
         return True
 
+    def is_callable(self):
+        return False
 
-class FunctionSymbol(Symbol):
-    def __init__(self, name: str, func_type: Type, entrypoint=False, params={}):
+    def bind(self, **ty_args: Type) -> Typed:
+        if not self.type.is_type_var():
+            return self
+        return VariableSymbol(self.name, ty_args[self.type.name])
+
+
+class FunctionSymbol(Typed):
+    def __init__(
+        self,
+        name: str,
+        func_type: Type,
+        params: dict[str, VariableSymbol] = {},
+        entrypoint=False,
+    ):
         super().__init__(name, func_type)
         self.params = params  # dict of symbols
         self.scope = None
         self.entrypoint = entrypoint
+        self._has_generic_params_cached: bool | None = None
 
     def __str__(self):
         params = ",".join(self.params)
@@ -57,16 +47,50 @@ class FunctionSymbol(Symbol):
             f"<{self.__class__.__name__}: ({self.name},{self.type}) ({params})>"
         )
 
+    def can_evaluate(self):
+        return False
+
     def is_callable(self):
         return True
 
     def arity(self):
         return len(self.params)
 
+    def has_generic_params(self):
+        if self._has_generic_params_cached is not None:
+            return self._has_generic_params_cached
+        self._has_generic_params_cached = any(
+            map(lambda p: p.type.is_type_var(), self.params.values())
+        )
+        return self._has_generic_params_cached
+
+    def bind(self, **ty_args: Type) -> Typed:
+        if not self.has_generic_params() and not self.type.is_type_var():
+            return self
+
+        params = self.params
+        if self.has_generic_params:
+            params = {
+                param: cast(VariableSymbol, value.bind(**ty_args))
+                for param, value in self.params.items()
+            }
+        return_ty = self.type
+        if self.type.is_type_var():
+            return_ty = ty_args[self.type.name]
+
+        return FunctionSymbol(self.name, return_ty, params)
+
 
 class MethodSym(FunctionSymbol):
-    def __init__(self, name: str, target_ty: Type, return_ty: Type, params):
-        super().__init__(name, return_ty, params)
+    def __init__(
+        self,
+        name: str,
+        *,
+        target_ty: Type,
+        return_ty: Type,
+        params: dict[str, VariableSymbol] = {},
+    ):
+        super().__init__(name, return_ty, params=params)
         self.target_ty = target_ty
         self.return_ty = return_ty
         self.is_property = True
@@ -77,17 +101,21 @@ class MethodSym(FunctionSymbol):
             f"<{self.__class__.__name__}: ({self.name},{self.type}) ({params})>"
         )
 
-    def is_callable(self):
-        return True
-
-    def arity(self):
-        return len(self.params)
+    def bind(self, **ty_args: Type) -> Typed:
+        new_fn = cast(FunctionSymbol, super().bind(**ty_args))
+        return MethodSym(
+            self.name,
+            target_ty=self.target_ty,
+            return_ty=new_fn.type,
+            params=new_fn.params,
+        )
 
 
 class Scope:
     def __init__(self, enclosing_scope: Optional[Scope] = None):
-        self.symbols: Dict[str, Symbol] = {}
+        self.symbols: dict[str, Symbol] = {}
         self.enclosing_scope = enclosing_scope
+        self.methods: dict[str, dict[str, MethodSym]] = {}
         # Field is set only on the first scope of a scope
         # Nesting
         self.locals = {}
@@ -100,6 +128,10 @@ class Scope:
             else:
                 return None
         return symbol
+
+    def resolve_typed(self, name: str) -> Optional[Typed]:
+        sym = self.resolve(name)
+        return cast(Typed, sym)
 
     def resolve_scope(self, name: str, depth: int) -> int:
         symbol = self.get(name)
@@ -122,6 +154,9 @@ class Scope:
 
     def get(self, name: str) -> Optional[Symbol]:
         return self.symbols.get(name)
+
+    def get_typed(self, name: str) -> Optional[Typed]:
+        return cast(Typed, self.symbols.get(name))
 
     def define(self, name: str, symbol: Symbol):
         self.symbols[name] = symbol
