@@ -149,13 +149,17 @@ class Primitive(Type):
         return False
 
     def index_ty(self) -> Type:
+        from amanda.compiler.types.builtins import Builtins
+
         if self.tag == Types.TTEXTO:
-            return Primitive(Types.TINT, True)
+            return Builtins.Int
         raise NotImplementedError("Invalid case.")
 
     def index_item_ty(self) -> Type:
+        from amanda.compiler.types.builtins import Builtins
+
         if self.tag == Types.TTEXTO:
-            return Primitive(Types.TTEXTO, True)
+            return Builtins.Texto
         raise NotImplementedError("Invalid case.")
 
     def get_property(self, prop: str) -> Symbol | None:
@@ -206,7 +210,9 @@ class Vector(Type):
         return True
 
     def index_ty(self) -> Type:
-        return Primitive(Types.TINT, True)
+        from amanda.compiler.types.builtins import Builtins
+
+        return Builtins.Int
 
     def index_item_ty(self) -> Type:
         return self.element_type
@@ -275,15 +281,13 @@ class Registo(Type):
         return False
 
     def binop(self, op: TT, rhs: Type) -> Type | None:
+        from amanda.compiler.types.builtins import Builtins
+
         match (self, op, rhs):
             case [_, (TT.DOUBLEEQUAL | TT.NOTEQUAL), Registo()]:
-                return Primitive(Types.TBOOL, zero_initialized=True)
-            case [
-                Registo(name="Opcao"),
-                (TT.DOUBLEEQUAL | TT.NOTEQUAL),
-                Primitive(tag=Types.TNULO),
-            ]:
-                return Primitive(Types.TBOOL, zero_initialized=True)
+                return Builtins.Bool
+            case [Registo(name="Opcao"), (TT.DOUBLEEQUAL | TT.NOTEQUAL), _]:
+                return Builtins.Bool
             case _:
                 return None
 
