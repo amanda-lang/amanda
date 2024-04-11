@@ -1,7 +1,7 @@
 from __future__ import annotations
 from enum import auto, IntEnum, Enum
 from dataclasses import dataclass
-from typing import Mapping, cast
+from typing import Mapping, cast, ClassVar
 from amanda.compiler.symbols.base import Symbol, Type, TypeVar, Typed
 from amanda.compiler.symbols.core import VariableSymbol, MethodSym
 from amanda.compiler.tokens import TokenType as TT
@@ -34,6 +34,8 @@ class Types(IntEnum):
 
 @dataclass
 class Primitive(Type):
+    methods: ClassVar[dict[Types, dict[str, MethodSym]]] = {}
+
     def __init__(self, tag: Types, zero_initialized: bool):
         super().__init__(str(tag), zero_initialized=zero_initialized)
         self.tag = tag
@@ -54,7 +56,12 @@ class Primitive(Type):
         return False
 
     def define_method(self, method: Symbol):
-        raise NotImplementedError("TODO: implement method for primitives")
+        Primitive.methods.setdefault(self.tag, {})[method.name] = cast(
+            MethodSym, method
+        )
+
+    def get_property(self, prop: str) -> Symbol | None:
+        return Primitive.methods.get(self.tag, {}).get(prop)
 
     def __str__(self) -> str:
         return str(self.tag)
@@ -161,9 +168,6 @@ class Primitive(Type):
         if self.tag == Types.TTEXTO:
             return Builtins.Texto
         raise NotImplementedError("Invalid case.")
-
-    def get_property(self, prop: str) -> Symbol | None:
-        return None
 
     def is_primitive(self) -> bool:
         return self.tag in (

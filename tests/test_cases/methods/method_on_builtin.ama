@@ -5,4 +5,4 @@ fim
 
 
 escrevaln("hello".contem("a"))
-#[output]: verdadeiro
+#[output]: falso
