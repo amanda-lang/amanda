@@ -977,8 +977,17 @@ class Analyzer(ast.Visitor):
                 f"Code for the builtin '{fn}' has not been implemented"
             )
 
-    def check_arity(self, arg_len: int, name: str, arity: int, is_method: bool):
+    def check_arity(
+        self,
+        arg_len: int,
+        name: str,
+        arity: int,
+        is_method: bool,
+        symbol: symbols.FunctionSymbol | None = None,
+    ):
         if arg_len != arity:
+            if isinstance(symbol, symbols.MethodSym):
+                name = symbol.target_ty.full_field_path(symbol.name)
             callable_desc = (
                 f"o método {name}" if is_method else f"a função {name}"
             )
@@ -997,7 +1006,9 @@ class Analyzer(ast.Visitor):
                     f"Funções e métodos não suportam argumentos nomeados"
                 )
             self.visit(arg)
-        self.check_arity(len(fargs), name, sym.arity(), sym.is_property)
+        self.check_arity(
+            len(fargs), name, sym.arity(), sym.is_property, symbol=sym
+        )
         # Type promotion for parameter
         for arg, param in zip(fargs, sym.params.values()):
             arg.prom_type = arg.eval_type.promote_to(param.type)
