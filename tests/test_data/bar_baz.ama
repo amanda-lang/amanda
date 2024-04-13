@@ -1,0 +1,7 @@
+func baz()
+    escrevaln("baz")
+fim
+
+func bar()
+    escrevaln("bar")
+fim

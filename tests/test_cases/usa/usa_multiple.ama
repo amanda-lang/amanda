@@ -1,0 +1,8 @@
+#Imports 'abs' and 'raiz' from 'std/mat' module
+usa "tests/test_data/baz_bar"::[bar, baz]
+usa "/mat"::[abs, raiz]
+
+baz()
+bar()
+
+#[output]:bar baz

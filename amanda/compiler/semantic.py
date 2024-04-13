@@ -1,4 +1,3 @@
-import copy
 import keyword
 from os import path
 from typing import Iterable, NoReturn, Optional, List, cast, Tuple
