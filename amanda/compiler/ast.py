@@ -81,10 +81,17 @@ class Block(ASTNode):
 
 
 class Usa(ASTNode):
-    def __init__(self, token, *, module="", alias=None):
+    def __init__(
+        self, token: Token, *, module: Token, alias: Token | None = None
+    ):
         super().__init__(token)
         self.module = module
         self.alias = alias
+
+
+class ItemUsa(ASTNode):
+    def __init__(self, token: Token, *, module: Token, idents: list[str]):
+        pass
 
 
 class Program(Block):

@@ -205,9 +205,10 @@ class TypeVar(Type):
 
 
 class Typed(Symbol):
-    def __init__(self, name: str, ty: Type):
+    def __init__(self, name: str, ty: Type, module: Module):
         super().__init__(name)
         self.type = ty
+        self.module = module
 
     @abstractmethod
     def can_evaluate(self) -> bool: ...

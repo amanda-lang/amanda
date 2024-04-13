@@ -195,7 +195,7 @@ class Lexer:
             TT.IDENTIFIER, result, self.line, self.pos - (len(result) + 1)
         )
 
-    def delimeters(self) -> Token | None:
+    def common_toks(self) -> Token | None:
         char = self.current_char
 
         match (is_ambiguous_char(char), char, self.lookahead()):
@@ -233,24 +233,22 @@ class Lexer:
             # EOF
             self.advance()
             return Token(Lexer.EOF, "", line=self.line, col=self.pos - 1)
-        if self.current_char == "\n":
+        elif self.current_char == "\n":
             return self.newline()
-        if self.current_char in ("+", "-", "*", "/", "%"):
-            return self.arit_operators()
-        if self.current_char in ("<", ">", "!", "="):
-            return self.comparison_operators()
-        if self.current_char.isdigit():
-            return self.number()
-        if self.current_char == "'" or self.current_char == '"':
+        elif self.current_char == "'" or self.current_char == '"':
             return self.string()
-        if self.current_char.isalpha() or self.current_char == "_":
+        elif self.current_char.isalpha() or self.current_char == "_":
             if self.current_char == "f" and self.lookahead() in ('"', "'"):
                 return self.format_str()
             return self.identifier()
-        if self.current_char in Token.TOKENS:
-            return self.delimeters()
-        if self.current_char == Lexer.EOF:
+        elif self.current_char.isdigit():
+            return self.number()
+        elif self.current_char == Lexer.EOF:
             return Token(Lexer.EOF, "", line=self.line, col=self.pos)
+        tok = self.common_toks()
+        if tok:
+            return tok
+
         self.error(self.INVALID_SYMBOL, symbol=self.current_char)
 
 
@@ -323,11 +321,26 @@ class Parser:
         token = self.consume(TT.USA)
         module = self.consume(TT.STRING)
         alias = None
-        if self.match(TT.COMO):
-            self.consume(TT.COMO)
+        if not self.match(TT.ARROW):
+            self.end_stmt()
+            return ast.Usa(token, module=module, alias=alias)
+        self.consume(TT.ARROW)
+        if self.match(TT.IDENTIFIER):
             alias = self.consume(TT.IDENTIFIER)
-        self.end_stmt()
-        return ast.Usa(token, module=module, alias=alias)
+            return ast.Usa(token, module=module, alias=alias)
+        elif self.match(TT.LBRACE):
+            self.consume(TT.LBRACE)
+            idents: list[str] = []
+            idents.append(self.consume(TT.IDENTIFIER).lexeme)
+            while self.match(TT.COMMA):
+                self.consume(TT.COMMA)
+                idents.append(self.consume(TT.IDENTIFIER).lexeme)
+            self.consume(TT.RBRACE)
+            return ast.ItemUsa(token, module, idents)
+        else:
+            self.error(
+                "Instrução 'usa' inválida. Esperava-se um identificador ou uma lista de identificadores"
+            )
 
     def block(self):
         block = ast.Block()

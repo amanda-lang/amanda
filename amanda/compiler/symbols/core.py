@@ -1,19 +1,29 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional, Dict, cast, Any
+from amanda.compiler.module import Module
 from amanda.compiler.symbols.base import Symbol, TypeVar, Typed, Type
 
 
-@dataclass
-class Module:
-    fpath: str
-    ast: Any = None
-    loaded: bool = False
+class ModuleSym(Symbol):
+    def __init__(self, name: str, module: Module):
+        super().__init__(name)
+        self.name = name
+        self.module = module
+
+    def can_evaluate(self) -> bool:
+        return False
+
+    def is_type(self) -> bool:
+        return False
+
+    def is_callable(self) -> bool:
+        return False
 
 
 class VariableSymbol(Typed):
-    def __init__(self, name: str, var_type: Type):
-        super().__init__(name, var_type)
+    def __init__(self, name: str, var_type: Type, module: Module):
+        super().__init__(name, var_type, module)
 
     def can_evaluate(self):
         return True
@@ -24,7 +34,7 @@ class VariableSymbol(Typed):
     def bind(self, **ty_args: Type) -> Typed:
         if not self.type.is_type_var():
             return self
-        return VariableSymbol(self.name, ty_args[self.type.name])
+        return VariableSymbol(self.name, ty_args[self.type.name], self.module)
 
 
 class FunctionSymbol(Typed):
@@ -32,10 +42,11 @@ class FunctionSymbol(Typed):
         self,
         name: str,
         func_type: Type,
+        module: Module,
         params: dict[str, VariableSymbol] = {},
         entrypoint=False,
     ):
-        super().__init__(name, func_type)
+        super().__init__(name, func_type, module)
         self.params = params  # dict of symbols
         self.scope = None
         self.entrypoint = entrypoint
@@ -88,9 +99,10 @@ class MethodSym(FunctionSymbol):
         *,
         target_ty: Type,
         return_ty: Type,
+        module: Module,
         params: dict[str, VariableSymbol] = {},
     ):
-        super().__init__(name, return_ty, params=params)
+        super().__init__(name, return_ty, module, params=params)
         self.target_ty = target_ty
         self.return_ty = return_ty
         self.is_property = True
@@ -107,6 +119,7 @@ class MethodSym(FunctionSymbol):
             self.name,
             target_ty=self.target_ty,
             return_ty=new_fn.type,
+            module=self.module,
             params=new_fn.params,
         )
 

@@ -3,7 +3,15 @@ program
  ;
 
 usa_stmt
- : USA STRING (COMO IDENTIFIER)? end_stmt
+ : USA STRING (scoped_usa | item_usa)? end_stmt
+ ;
+
+scoped_usa
+ : ARROW IDENTIFIER
+ ;
+
+item_usa
+ : ARROW LBRACKET IDENTIFIER+ RBRACKET
  ;
 
 

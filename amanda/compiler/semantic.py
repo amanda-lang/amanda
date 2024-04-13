@@ -1,6 +1,7 @@
 import keyword
 from os import path
 from typing import Iterable, NoReturn, Optional, List, cast, Tuple
+from amanda.compiler.module import Module
 from amanda.compiler.parse import parse
 from amanda.compiler.symbols.base import TypeVar, Typed
 from amanda.compiler.tokens import TokenType as TT, Token
@@ -23,7 +24,7 @@ class Analyzer(ast.Visitor):
     ID_IN_USE = "O identificador '{name}' já foi declarado neste escopo"
     INVALID_REF = "o identificador '{name}' não é uma referência válida"
 
-    def __init__(self, filename, module):
+    def __init__(self, filename: str, module: Module):
         # Relative path to the file being run
         self.filename = filename
         # Just to have quick access to things like types and e.t.c
@@ -36,7 +37,7 @@ class Analyzer(ast.Visitor):
         self.in_loop = False
         self.imports = {}
         # Module currently being executed
-        self.ctx_module = module
+        self.ctx_module: Module = module
         # Scope used primarily to store generic types
         self.ty_ctx: symbols.Scope = symbols.Scope()
 
@@ -45,7 +46,7 @@ class Analyzer(ast.Visitor):
             self.global_scope.define(type_id, sym)
 
         # Load builtin module
-        module = symbols.Module(path.join(STD_LIB, "embutidos.ama"))
+        module = Module(path.join(STD_LIB, "embutidos.ama"))
         self.load_module(module)
         SrcBuiltins.init_embutidos(self.global_scope)
 
@@ -223,7 +224,7 @@ class Analyzer(ast.Visitor):
         node.symbols = self.global_scope
         return transform(node)
 
-    def load_module(self, module):
+    def load_module(self, module: Module, alias: str | None = None):
         existing_mod = self.imports.get(module.fpath)
         # Module has already been loaded
         if existing_mod and existing_mod.loaded:
@@ -232,17 +233,24 @@ class Analyzer(ast.Visitor):
         # A cycle occurs when a previously seen module
         # is seen again, but it is not loaded yet
         if existing_mod and not existing_mod.loaded:
-            self.error(f"Erro ao importar módulo. inclusão cíclica detectada")
+            self.error(
+                f"Erro ao importar o módulo '{module.fpath}'. inclusão cíclica detectada"
+            )
 
-        prev_module = self.ctx_module
-        self.ctx_module = module
         self.imports[module.fpath] = module
-
         # TODO: Handle errors while loading another module
-        module.ast = self.visit_program(parse(module.fpath))
-
+        if alias:
+            analyzer = Analyzer(module.fpath, module)
+            analyzer.imports = self.imports
+            module.ast = analyzer.visit_program(parse(module.fpath))
+            self.assert_can_use_ident(self.ctx_node, alias)
+            self.global_scope.define(alias, symbols.ModuleSym(alias, module))
+        else:
+            prev_module = self.ctx_module
+            self.ctx_module = module
+            module.ast = self.visit_program(parse(module.fpath))
+            self.ctx_module = prev_module
         module.loaded = True
-        self.ctx_module = prev_module
 
     def visit_usa(self, node: ast.Usa):
         fpath = node.module.lexeme.replace("'", "").replace('"', "")
@@ -259,19 +267,22 @@ class Analyzer(ast.Visitor):
             self.error(err_msg)
 
         mod_path = path.abspath(fpath)
-        module = symbols.Module(mod_path)
-        self.load_module(module)
+        module = Module(mod_path)
+        self.load_module(module, node.alias.lexeme if node.alias else None)
 
-    def visit_vardecl(self, node: ast.VarDecl):
-        name = node.name.lexeme
+    def assert_can_use_ident(self, node: ast.ASTNode, name: str):
         in_use = self.ctx_scope.get(name)
         if in_use and not self.ctx_reg:
             self.error(self.ID_IN_USE, name=name)
         elif in_use and self.ctx_reg:
             self.ctx_node = node
             self.error(f"O atributo '{name}' já foi declarado neste registo")
+
+    def visit_vardecl(self, node: ast.VarDecl):
+        name = node.name.lexeme
+        self.assert_can_use_ident(node, name)
         var_type = self.get_type(node.var_type)
-        symbol = symbols.VariableSymbol(name, var_type)
+        symbol = symbols.VariableSymbol(name, var_type, self.ctx_module)
         self.define_symbol(symbol, self.scope_depth, self.ctx_scope)
         node.var_type = var_type  # type: ignore
         assign = node.assign
@@ -357,7 +368,7 @@ class Analyzer(ast.Visitor):
         self.validate_num_params(node)
 
         function_type = self.get_type(node.func_type)
-        symbol = symbols.FunctionSymbol(name, function_type)
+        symbol = symbols.FunctionSymbol(name, function_type, self.ctx_module)
         scope, _ = self.make_func_symbol(name, node, symbol)
         # Native functions don't have a body, so there's nothing to visit
         if node.is_native:
@@ -418,7 +429,10 @@ class Analyzer(ast.Visitor):
         # Checking return type
         return_ty = self.get_type(node.return_ty)
         symbol = symbols.MethodSym(
-            method_name, target_ty=target_ty, return_ty=return_ty
+            method_name,
+            target_ty=target_ty,
+            return_ty=return_ty,
+            module=self.ctx_module,
         )
         symbol.set_annotations(node.annotations)
 
@@ -427,7 +441,7 @@ class Analyzer(ast.Visitor):
 
         # add alvo param
         self.define_symbol(
-            symbols.VariableSymbol("alvo", target_ty),
+            symbols.VariableSymbol("alvo", target_ty, self.ctx_module),
             self.scope_depth + 1,
             scope,
         )
@@ -502,7 +516,7 @@ class Analyzer(ast.Visitor):
         method_sym = cast(symbols.MethodSym, self.ctx_func)
 
         node.eval_type = method_sym.target_ty
-        symbol = symbols.VariableSymbol("alvo", node.eval_type)
+        symbol = symbols.VariableSymbol("alvo", node.eval_type, self.ctx_module)
         node.var_symbol = symbol
         return symbol
 
@@ -515,7 +529,7 @@ class Analyzer(ast.Visitor):
     def visit_param(self, node):
         name = node.name.lexeme
         var_type = self.get_type(node.param_type)
-        return symbols.VariableSymbol(name, var_type)
+        return symbols.VariableSymbol(name, var_type, self.ctx_module)
 
     def visit_fmtstr(self, node):
         txt_type = self.global_scope.resolve("texto")
@@ -574,6 +588,7 @@ class Analyzer(ast.Visitor):
         if not sym:
             self.error(f"o identificador '{name}' não foi declarado")
         elif not sym.can_evaluate():
+            self.ctx_node = node
             self.error(self.INVALID_REF, name=name)
         node.eval_type = sym.type
         node.var_symbol = sym

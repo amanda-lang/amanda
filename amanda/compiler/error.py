@@ -74,6 +74,7 @@ def throw_error(err: AmandaError) -> None:
                 context = line.strip()
                 break
     # Line should always be valid because it came from file
+    print("FNAME: ", filename)
     assert context is not None, "Context should always be a line from the file"
 
     sys.stderr.write(fmt_error(context, err))
