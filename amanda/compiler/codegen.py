@@ -9,7 +9,7 @@ from amanda.compiler.types.core import Primitive, Type
 import amanda.compiler.ast as ast
 from amanda.compiler.tokens import TokenType as TT
 from amanda.compiler.error import AmandaError, throw_error
-from amanda.compiler import bindump
+from amanda.compiler import Module, bindump
 import struct
 
 
@@ -161,8 +161,9 @@ class ByteGen:
         self.src_map: dict[int, list[int]] = (
             {}
         )  # Maps source lines to bytecode offset
+        self.imports: dict[str, int] = {}
 
-    def compile(self, program) -> bytes:
+    def compile(self, program: ast.Module, imports: dict[str, Module]) -> bytes:
         """Compiles an amanda ast into bytecode ops.
         Returns a serialized object that contains the bytecode and
         other info used at runtime.

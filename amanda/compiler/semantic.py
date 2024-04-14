@@ -224,7 +224,7 @@ class Analyzer(ast.Visitor):
         for child in children:
             self.visit(child)
 
-    def visit_program(self, node: ast.Program):
+    def visit_module(self, node: ast.Module):
         # Since each function has it's own local scope,
         # The top level global scope will have it's own "locals"
         self.visit_children(node.children)
@@ -251,13 +251,13 @@ class Analyzer(ast.Visitor):
         if alias:
             analyzer = Analyzer(module.fpath, module)
             analyzer.imports = self.imports
-            module.ast = analyzer.visit_program(parse(module.fpath))
+            module.ast = analyzer.visit_module(parse(module.fpath))
             self.assert_can_use_ident(self.ctx_node, alias)
             self.global_scope.define(
                 alias, symbols.VariableSymbol(alias, ModuleTy(module), module)
             )
         else:
-            module.ast = self.visit_program(parse(module.fpath))
+            module.ast = self.visit_module(parse(module.fpath))
         module.loaded = True
         self.ctx_module = prev_module
 

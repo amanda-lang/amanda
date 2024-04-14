@@ -280,10 +280,10 @@ pub fn load_bin<'bin>(amac_bin: &'bin mut [u8]) -> Module<'bin> {
                         //TODO: Check if i should be leaking memory
                         name: Box::leak(name.into_boxed_str()),
                         bp: -1,
-                        start_ip: start_ip,
+                        start_ip,
                         last_i: start_ip,
                         ip: start_ip,
-                        locals: locals,
+                        locals,
                     }
                 })
                 .collect()

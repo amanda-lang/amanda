@@ -22,7 +22,7 @@ def write_file(name, code):
 def run_frontend(filename):
     try:
         program = parse(filename)
-        valid_program = Analyzer(filename, Module(filename)).visit_program(
+        valid_program = Analyzer(filename, Module(filename)).visit_module(
             program
         )
         return valid_program
@@ -32,7 +32,7 @@ def run_frontend(filename):
 
 def run_file(args):
     compiler = ByteGen()
-    bin_obj = compiler.compile(run_frontend(args.file))
+    bin_obj = compiler.compile(run_frontend(args.file), {})
 
     if args.debug:
         write_file("debug.amasm", compiler.make_debug_asm())

@@ -80,6 +80,15 @@ class Block(ASTNode):
         self.children.append(node)
 
 
+@dataclass
+class Module(Block):
+    annotations: list[Annotation] | None = None
+
+    def __init__(self, children: list[ASTNode] | None = None, annotations=None):
+        super().__init__(children)
+        self.annotations = annotations
+
+
 class Usa(ASTNode):
     def __init__(
         self, token: Token, *, module: Token, alias: Token | None = None
@@ -90,13 +99,10 @@ class Usa(ASTNode):
 
 
 class ItemUsa(ASTNode):
-    def __init__(self, token: Token, *, module: Token, idents: list[str]):
-        pass
-
-
-class Program(Block):
-
-    pass
+    def __init__(self, token: Token, module: Token, idents: list[str]):
+        super().__init__(token)
+        self.module = module
+        self.idents = idents
 
 
 class Expr(ASTNode):

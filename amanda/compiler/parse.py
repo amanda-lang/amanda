@@ -298,24 +298,35 @@ class Parser:
         return self.lookahead.token == token
 
     def parse(self):
-        return self.program()
+        return self.module()
 
-    def program(self):
-        program = ast.Program()
+    def module(self):
+        module = ast.Module()
         imports = []
+        mod_annotations = []
         self.skip_newlines()
+        while self.match(TT.DOUBLEAT):
+            mod_annotations.append(self.module_annotation())
         while self.match(TT.USA):
             imports.append(self.usa_stmt())
             self.skip_newlines()
 
-        self.append_child(program, imports)
+        self.append_child(module, imports)
+        module.annotations = mod_annotations
         while not self.match(Lexer.EOF):
             if self.match(TT.NEWLINE):
                 self.consume(TT.NEWLINE)
             else:
                 child = self.declaration()
-                self.append_child(program, child)
-        return program
+                self.append_child(module, child)
+        return module
+
+    def module_annotation(self) -> list[ast.Annotation]:
+        annotations = []
+        while self.match(TT.DOUBLEAT):
+            self.consume(TT.DOUBLEAT)
+            annotations.append(self.annotation_body())
+        return annotations
 
     def usa_stmt(self):
         token = self.consume(TT.USA)
@@ -880,32 +891,33 @@ class Parser:
             node = ast.BinOp(op, left=node, right=self.unary())
         return node
 
+    def annotation_body(self) -> ast.Annotation:
+        annotation_name = self.consume(TT.IDENTIFIER).lexeme
+        attrs = {}
+        if not self.match(TT.LPAR):
+            return ast.Annotation(annotation_name, attrs)
+        self.consume(TT.LPAR)
+        if self.match(TT.RPAR):
+            self.error(
+                f"A anotação {annotation_name} deve especificar atributos. Caso não possua atributos, remova os parênteses"
+            )
+        while not self.match(TT.RPAR):
+            attr = self.consume(
+                TT.IDENTIFIER, "Esperava-se o nome do atributo da anotação"
+            )
+            self.consume(TT.EQUAL)
+            value = self.consume(TT.STRING)
+            attrs[attr.lexeme] = value.lexeme
+            if self.match(TT.COMMA):
+                self.consume(TT.COMMA)
+        self.consume(TT.RPAR)
+        return ast.Annotation(annotation_name, attrs)
+
     def annotations(self) -> list[ast.Annotation] | None:
         annotations = []
         while self.match(TT.AT):
             self.consume(TT.AT)
-            annotation_name = self.consume(TT.IDENTIFIER).lexeme
-            attrs = {}
-            if not self.match(TT.LPAR):
-                annotations.append(ast.Annotation(annotation_name, attrs))
-                continue
-            self.consume(TT.LPAR)
-            if self.match(TT.RPAR):
-                self.error(
-                    f"A anotação {annotation_name} deve especificar atributos. Caso não possua atributos, remova os parênteses"
-                )
-            while not self.match(TT.RPAR):
-                attr = self.consume(
-                    TT.IDENTIFIER, "Esperava-se o nome do atributo da anotação"
-                )
-                self.consume(TT.EQUAL)
-                value = self.consume(TT.STRING)
-                attrs[attr.lexeme] = value.lexeme
-                if self.match(TT.COMMA):
-                    self.consume(TT.COMMA)
-            self.consume(TT.RPAR)
-            annotations.append(ast.Annotation(annotation_name, attrs))
-
+            annotations.append(self.annotation_body())
         return annotations
 
     def unary(self):
@@ -1131,6 +1143,6 @@ class Parser:
 def parse(filename):
     with open(filename, encoding="utf-8") as src_file:
         src = StringIO(src_file.read())
-    program = Parser(filename, src).parse()
-    program.tag_children()
-    return program
+    module = Parser(filename, src).parse()
+    module.tag_children()
+    return module

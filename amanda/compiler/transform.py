@@ -139,7 +139,7 @@ class ASTTransformer:
             else node
         )
 
-    def transform_program(self, node: ast.Program) -> ast.Program:
+    def transform_module(self, node: ast.Module) -> ast.Module:
 
         for child in node.children:
             self.transform(child)
@@ -147,5 +147,5 @@ class ASTTransformer:
         return node
 
 
-def transform(program: ast.Program, module: Module) -> ast.Program:
-    return ASTTransformer(module).transform_program(program)
+def transform(ast: ast.Module, module: Module) -> ast.Module:
+    return ASTTransformer(module).transform_module(ast)

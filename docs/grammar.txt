@@ -1,6 +1,11 @@
-program
- : (usa_stmt)* ( declaration | NEWLINE )* EOF
+module
+ : (module_annotation)? (usa_stmt)* ( declaration | NEWLINE )* EOF
  ;
+
+module_annotation
+ : AT annotation
+ ;
+
 
 usa_stmt
  : USA STRING (scoped_usa | item_usa)? end_stmt

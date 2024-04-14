@@ -29,6 +29,7 @@ class TokenType(Enum):
     LBRACKET = "["
     RBRACKET = "]"
     AT = "@"
+    DOUBLEAT = "@@"
     COLON = ":"
     QMARK = "?"
     DOUBLECOLON = "::"
