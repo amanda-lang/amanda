@@ -5,22 +5,6 @@ from amanda.compiler.module import Module
 from amanda.compiler.symbols.base import Symbol, TypeVar, Typed, Type
 
 
-class ModuleSym(Symbol):
-    def __init__(self, name: str, module: Module):
-        super().__init__(name)
-        self.name = name
-        self.module = module
-
-    def can_evaluate(self) -> bool:
-        return False
-
-    def is_type(self) -> bool:
-        return False
-
-    def is_callable(self) -> bool:
-        return False
-
-
 class VariableSymbol(Typed):
     def __init__(self, name: str, var_type: Type, module: Module):
         super().__init__(name, var_type, module)

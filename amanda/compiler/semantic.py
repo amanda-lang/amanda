@@ -8,7 +8,14 @@ from amanda.compiler.tokens import TokenType as TT, Token
 import amanda.compiler.ast as ast
 import amanda.compiler.symbols.core as symbols
 from amanda.compiler.types.builtins import SrcBuiltins, builtin_types, Builtins
-from amanda.compiler.types.core import Primitive, Type, Types, Vector, Registo
+from amanda.compiler.types.core import (
+    ModuleTy,
+    Primitive,
+    Type,
+    Types,
+    Vector,
+    Registo,
+)
 from amanda.compiler.error import AmandaError
 from amanda.compiler.builtinfn import BUILTINS, BuiltinFn
 from amanda.config import STD_LIB
@@ -237,6 +244,8 @@ class Analyzer(ast.Visitor):
                 f"Erro ao importar o módulo '{module.fpath}'. inclusão cíclica detectada"
             )
 
+        prev_module = self.ctx_module
+        self.ctx_module = module
         self.imports[module.fpath] = module
         # TODO: Handle errors while loading another module
         if alias:
@@ -244,12 +253,12 @@ class Analyzer(ast.Visitor):
             analyzer.imports = self.imports
             module.ast = analyzer.visit_program(parse(module.fpath))
             self.assert_can_use_ident(self.ctx_node, alias)
-            self.global_scope.define(alias, symbols.ModuleSym(alias, module))
+            self.global_scope.define(
+                alias, symbols.VariableSymbol(alias, ModuleTy(module), module)
+            )
         else:
-            prev_module = self.ctx_module
-            self.ctx_module = module
             module.ast = self.visit_program(parse(module.fpath))
-            self.ctx_module = prev_module
+        self.ctx_module = prev_module
         module.loaded = True
 
     def visit_usa(self, node: ast.Usa):
@@ -743,6 +752,10 @@ class Analyzer(ast.Visitor):
         # is expression
         self.visit(lhs)
         # Set node types
+        if isinstance(lhs.eval_type, ModuleTy):
+            self.error(
+                f"Atribuição inválida. Não pode atribuir valores a um módulo"
+            )
         node.eval_type = lhs.eval_type
         node.prom_type = None
         # Set promotion type for right side

@@ -2,6 +2,7 @@ from __future__ import annotations
 from enum import auto, IntEnum, Enum
 from dataclasses import dataclass
 from typing import Mapping, cast, ClassVar
+from amanda.compiler.module import Module
 from amanda.compiler.symbols.base import Symbol, Type, TypeVar, Typed
 from amanda.compiler.symbols.core import VariableSymbol, MethodSym
 from amanda.compiler.tokens import TokenType as TT
@@ -23,6 +24,7 @@ class Types(IntEnum):
     # to avoid setting eval_type to null on ast nodes
     TUNKNOWN = auto()
     TGENERIC = auto()
+    TMODULE = auto()
     # Special type to represent nullable values
     TOpcao = auto()
 
@@ -182,6 +184,54 @@ class Primitive(Type):
         raise NotImplementedError(
             "Bind must be implemented for types that support generics"
         )
+
+
+@dataclass
+class ModuleTy(Type):
+
+    def __init__(self, module: Module):
+        super().__init__("Module", zero_initialized=False)
+        self.module = module
+
+    def __eq__(self, other: object) -> bool:
+        return self.module == other
+
+    def is_generic(self) -> bool:
+        return False
+
+    def __str__(self) -> str:
+        return self.name
+
+    def is_primitive(self) -> bool:
+        return False
+
+    def promotion_to(self, other: Type) -> Type | None:
+        return None
+
+    def supports_fields(self) -> bool:
+        return True
+
+    def binop(self, op: TT, rhs: Type) -> Type | None:
+        return None
+
+    def unaryop(self, op: TT) -> Type | None:
+        return None
+
+    def supports_index_get(self) -> bool:
+        return False
+
+    def supports_index_set(self) -> bool:
+        return False
+
+    def supports_tam(self) -> bool:
+        return False
+
+    def define_method(self, method: Symbol):
+        raise NotImplementedError("Methods can't be defined on module")
+
+    def get_property(self, prop: str) -> Symbol | None:
+        self.module.ast.symbols.resolve(prop)
+        raise NotImplementedError("Not implemented yet")
 
 
 class Vector(Type):
