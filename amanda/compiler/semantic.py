@@ -380,11 +380,13 @@ class Analyzer(ast.Visitor):
         symbol = symbols.FunctionSymbol(
             name, function_type, module=self.ctx_module
         )
+        symbol.set_annotations(node.annotations)
         scope, _ = self.make_func_symbol(name, node, symbol)
         # Native functions don't have a body, so there's nothing to visit
+        if symbol.is_builtin():
+            return
         if node.is_native:
             return
-
         self.validate_return(
             node,
             function_type,

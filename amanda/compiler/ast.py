@@ -352,7 +352,7 @@ class FunctionDecl(ASTNode):
         name: Token,
         params: list[Param],
         block: Block | None = None,
-        annotations: list[Annotation] | None = None,
+        annotations: list[Annotation],
         func_type: Type | None,
     ):
         super().__init__(name)
@@ -377,11 +377,15 @@ class MethodDecl(FunctionDecl):
         block: Block,
         return_ty: Type,
         params: List[Param],
-        annotations: list[Annotation] | None,
+        annotations: list[Annotation],
         generic_params: list[GenericParam] | None,
     ):
         super().__init__(
-            name=name, block=block, func_type=return_ty, params=params
+            name=name,
+            block=block,
+            func_type=return_ty,
+            params=params,
+            annotations=list(),
         )
         self.annotations = annotations
         self.generic_params = generic_params

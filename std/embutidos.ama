@@ -1,23 +1,32 @@
 # Este módulo contém as declarações de funções que já vêm com a linguagem
 # E estão disponíveis em todos os programas
+@@embutido(nome = "embutidos")
 
 
 # Funções de entrada functions
-func nativa leia(mensagem: texto): texto
-func nativa leia_int(mensagem: texto): int
-func nativa leia_real(mensagem: texto): real
+@embutido
+func leia(mensagem: texto): texto fim
+@embutido
+func leia_int(mensagem: texto): int fim
+@embutido
+func leia_real(mensagem: texto): real fim
 
 
 # Funções de saída
-
-func nativa escreva(item: indef)
-func nativa escrevaln(item: indef)
+@embutido
+func escreva(item: indef) fim
+@embutido
+func escrevaln(item: indef) fim
 
 # Para colecções
-func nativa vec(tipo: indef, tam: int): indef
-func nativa tam(seq: indef): int
-func nativa anexa(vec: indef, valor: indef)
-func nativa remova(vec: indef, indice: int): indef
+@embutido
+func vec(tipo: indef, tam: int): indef fim
+@embutido
+func tam(seq: indef): int fim
+@embutido
+func anexa(vec: indef, valor: indef) fim
+@embutido
+func remova(vec: indef, indice: int): indef fim
 
 
 # 'Metaprogramação'
@@ -26,22 +35,23 @@ func nativa remova(vec: indef, indice: int): indef
 
 
 # Funções para trabalhar com texto
-func nativa txt_contem(palheiro: texto, agulha: texto): bool
+@embutido
+func txt_contem(palheiro: texto, agulha: texto): bool fim
 
 #Funções e constantes matemáticas
 PI: real
-func nativa abs(valor: real): real
-func nativa expoente(x: real, y: real): real
-func nativa raizqd(valor: real): real
-func nativa arredonda(valor: real): int
-func nativa piso(valor: real): int
-func nativa teto(valor: real): int
-func nativa sen(valor: real): real
-func nativa cos(valor: real): real
-func nativa tan(valor: real): real
-func nativa log(valor: real, base: real): real
-func nativa grausprad(valor: real): real
-func nativa radpgraus(valor: real): real
+@embutido func abs(valor: real): real fim
+@embutido func expoente(x: real, y: real): real fim
+@embutido func raizqd(valor: real): real fim
+@embutido func arredonda(valor: real): int fim
+@embutido func piso(valor: real): int fim
+@embutido func teto(valor: real): int fim
+@embutido func sen(valor: real): real fim
+@embutido func cos(valor: real): real fim
+@embutido func tan(valor: real): real fim
+@embutido func log(valor: real, base: real): real fim
+@embutido func grausprad(valor: real): real fim
+@embutido func radpgraus(valor: real): real fim
 
 
 @embutido(item = "Opcao")

@@ -389,7 +389,6 @@ class Parser:
                 self.error(
                     "As anotações devem ser seguidas de uma função, método ou registo"
                 )
-
         if self.match(TT.FUNC):
             return self.function_decl(annotations)
         elif self.match(TT.MET):
@@ -448,7 +447,11 @@ class Parser:
             else:
                 func_type = self.type()
         return ast.FunctionDecl(
-            name=name, block=None, func_type=func_type, params=params
+            name=name,
+            block=None,
+            func_type=func_type,
+            params=params,
+            annotations=list(),
         )
 
     def native_func_decl(self):
@@ -458,7 +461,7 @@ class Parser:
         self.end_stmt()
         return function
 
-    def method_decl(self, annotations: list[ast.Annotation] | None):
+    def method_decl(self, annotations: list[ast.Annotation]):
         self.consume(TT.MET)
         generic_params = self.generic_params()
         ty = self.type()
@@ -913,7 +916,7 @@ class Parser:
         self.consume(TT.RPAR)
         return ast.Annotation(annotation_name, attrs)
 
-    def annotations(self) -> list[ast.Annotation] | None:
+    def annotations(self) -> list[ast.Annotation]:
         annotations = []
         while self.match(TT.AT):
             self.consume(TT.AT)
