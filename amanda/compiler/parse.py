@@ -303,10 +303,8 @@ class Parser:
     def module(self):
         module = ast.Module()
         imports = []
-        mod_annotations = []
         self.skip_newlines()
-        while self.match(TT.DOUBLEAT):
-            mod_annotations.append(self.module_annotation())
+        mod_annotations = self.module_annotations()
         while self.match(TT.USA):
             imports.append(self.usa_stmt())
             self.skip_newlines()
@@ -321,7 +319,7 @@ class Parser:
                 self.append_child(module, child)
         return module
 
-    def module_annotation(self) -> list[ast.Annotation]:
+    def module_annotations(self) -> list[ast.Annotation]:
         annotations = []
         while self.match(TT.DOUBLEAT):
             self.consume(TT.DOUBLEAT)
@@ -895,10 +893,11 @@ class Parser:
         return node
 
     def annotation_body(self) -> ast.Annotation:
-        annotation_name = self.consume(TT.IDENTIFIER).lexeme
+        tok = self.consume(TT.IDENTIFIER)
+        annotation_name = tok.lexeme
         attrs = {}
         if not self.match(TT.LPAR):
-            return ast.Annotation(annotation_name, attrs)
+            return ast.Annotation(annotation_name, attrs, tok)
         self.consume(TT.LPAR)
         if self.match(TT.RPAR):
             self.error(
@@ -914,7 +913,7 @@ class Parser:
             if self.match(TT.COMMA):
                 self.consume(TT.COMMA)
         self.consume(TT.RPAR)
-        return ast.Annotation(annotation_name, attrs)
+        return ast.Annotation(annotation_name, attrs, tok)
 
     def annotations(self) -> list[ast.Annotation]:
         annotations = []

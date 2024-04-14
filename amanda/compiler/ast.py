@@ -30,6 +30,7 @@ def node_of_type(node: ASTNode, ty: PyTy[T]) -> TypeGuard[T]:
 class Annotation:
     name: str
     attrs: dict[str, str]
+    location_tok: Token
 
 
 class ASTNode:
@@ -72,7 +73,7 @@ class ASTNode:
 
 class Block(ASTNode):
     def __init__(self, children: list[ASTNode] | None = None):
-        super().__init__(Token(TT.PROGRAM, "", 0, 0))
+        super().__init__(Token(TT.PROGRAM, "", 1, 1))
         self.children: List[ASTNode] = children if children else []
         self.symbols = None
 
@@ -82,11 +83,11 @@ class Block(ASTNode):
 
 @dataclass
 class Module(Block):
-    annotations: list[Annotation] | None = None
+    annotations: list[Annotation]
 
     def __init__(self, children: list[ASTNode] | None = None, annotations=None):
         super().__init__(children)
-        self.annotations = annotations
+        self.annotations = annotations if annotations else []
 
 
 class Usa(ASTNode):

@@ -7,3 +7,4 @@ class Module:
     fpath: str
     ast: Any = None
     loaded: bool = False
+    builtin: bool = False

@@ -34,6 +34,7 @@ DIRS = [
     join(TEST_DIR, "set"),
     join(TEST_DIR, "methods"),
     join(TEST_DIR, "nulo"),
+    join(TEST_DIR, "annotations"),
 ]
 
 passed = 0

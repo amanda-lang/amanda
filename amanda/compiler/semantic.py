@@ -105,6 +105,12 @@ class Analyzer(ast.Visitor):
             self.ctx_module.fpath, message, self.ctx_node.token.line
         )
 
+    def error_with_loc(self, loc_tok: Token, code, **kwargs) -> NoReturn:
+        message = code.format(**kwargs)
+        raise AmandaError.common_error(
+            self.ctx_module.fpath, message, loc_tok.line
+        )
+
     def is_valid_name(self, name):
         """Checks whether name is a python keyword, reserved var or
         python builtin object"""
@@ -224,7 +230,21 @@ class Analyzer(ast.Visitor):
         for child in children:
             self.visit(child)
 
+    def validate_builtin_module(self, annotations: list[ast.Annotation]):
+        builtin_annotation = list(
+            filter(lambda s: s.name == "embutido", annotations)
+        )
+        if not builtin_annotation:
+            return
+        if path.dirname(self.ctx_module.fpath) != STD_LIB:
+            self.error_with_loc(
+                builtin_annotation[0].location_tok,
+                "Anotação inválida. Apenas módulos nativos podem conter a anotação 'embutido'",
+            )
+        self.ctx_module.builtin = True
+
     def visit_module(self, node: ast.Module):
+        self.validate_builtin_module(node.annotations)
         # Since each function has it's own local scope,
         # The top level global scope will have it's own "locals"
         self.visit_children(node.children)
