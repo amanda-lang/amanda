@@ -229,7 +229,7 @@ class Analyzer(ast.Visitor):
         # The top level global scope will have it's own "locals"
         self.visit_children(node.children)
         node.symbols = self.global_scope
-        return transform(node)
+        return transform(node, self.ctx_module)
 
     def load_module(self, module: Module, alias: str | None = None):
         existing_mod = self.imports.get(module.fpath)
@@ -258,8 +258,8 @@ class Analyzer(ast.Visitor):
             )
         else:
             module.ast = self.visit_program(parse(module.fpath))
-        self.ctx_module = prev_module
         module.loaded = True
+        self.ctx_module = prev_module
 
     def visit_usa(self, node: ast.Usa):
         fpath = node.module.lexeme.replace("'", "").replace('"', "")
@@ -377,7 +377,9 @@ class Analyzer(ast.Visitor):
         self.validate_num_params(node)
 
         function_type = self.get_type(node.func_type)
-        symbol = symbols.FunctionSymbol(name, function_type, self.ctx_module)
+        symbol = symbols.FunctionSymbol(
+            name, function_type, module=self.ctx_module
+        )
         scope, _ = self.make_func_symbol(name, node, symbol)
         # Native functions don't have a body, so there's nothing to visit
         if node.is_native:
@@ -861,7 +863,9 @@ class Analyzer(ast.Visitor):
         self.visit(node.expression)
         # Define control variable for loop
         name = node.expression.name.lexeme
-        sym = symbols.VariableSymbol(name, self.ctx_scope.resolve("int"))
+        sym = symbols.VariableSymbol(
+            name, self.ctx_scope.resolve("int"), self.ctx_module
+        )
         scope = symbols.Scope(self.ctx_scope)
         self.define_symbol(sym, self.scope_depth + 1, scope)
         self.visit(node.statement, scope)

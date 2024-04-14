@@ -26,6 +26,7 @@ class FunctionSymbol(Typed):
         self,
         name: str,
         func_type: Type,
+        *,
         module: Module,
         params: dict[str, VariableSymbol] = {},
         entrypoint=False,
@@ -73,7 +74,9 @@ class FunctionSymbol(Typed):
         if self.type.is_type_var():
             return_ty = ty_args[self.type.name]
 
-        return FunctionSymbol(self.name, return_ty, params)
+        return FunctionSymbol(
+            self.name, return_ty, module=self.module, params=params
+        )
 
 
 class MethodSym(FunctionSymbol):
@@ -86,7 +89,7 @@ class MethodSym(FunctionSymbol):
         module: Module,
         params: dict[str, VariableSymbol] = {},
     ):
-        super().__init__(name, return_ty, module, params=params)
+        super().__init__(name, return_ty, module=module, params=params)
         self.target_ty = target_ty
         self.return_ty = return_ty
         self.is_property = True

@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import amanda.compiler.ast as ast
+from amanda.compiler.module import Module
 from amanda.compiler.symbols.base import Type
 from amanda.compiler.tokens import TokenType as TT, Token
 from amanda.compiler.ast import node_of_type
@@ -17,6 +18,8 @@ def var_node(name: str, tok: Token) -> ast.Variable:
 
 @dataclass
 class ASTTransformer:
+    module: Module
+
     def transform(self, node, args=None) -> ast.ASTNode:
         node_class = type(node).__name__.lower()
         method_name = f"transform_{node_class}"
@@ -118,7 +121,7 @@ class ASTTransformer:
         method_sym = cast(MethodSym, node.symbol)
         instance = cast(ast.Get, node.callee).target
         method_sym.params = {
-            "alvo": VariableSymbol("alvo", method_sym.return_ty),
+            "alvo": VariableSymbol("alvo", method_sym.return_ty, self.module),
             **method_sym.params,
         }
         node.fargs.insert(0, instance)
@@ -144,5 +147,5 @@ class ASTTransformer:
         return node
 
 
-def transform(program: ast.Program) -> ast.Program:
-    return ASTTransformer().transform_program(program)
+def transform(program: ast.Program, module: Module) -> ast.Program:
+    return ASTTransformer(module).transform_program(program)
