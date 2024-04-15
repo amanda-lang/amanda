@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, TYPE_CHECKING
+from typing import Any
 
 
 @dataclass

@@ -19,7 +19,7 @@ def write_file(name, code):
         output.write(code)
 
 
-def run_frontend(filename):
+def run_frontend(filename) -> tuple:
     try:
         program = parse(filename)
         valid_program = Analyzer(filename, Module(filename)).visit_module(
@@ -32,7 +32,8 @@ def run_frontend(filename):
 
 def run_file(args):
     compiler = ByteGen()
-    bin_obj = compiler.compile(run_frontend(args.file), {})
+    module, imports = run_frontend(args.file)
+    bin_obj = compiler.compile(module, imports)
 
     if args.debug:
         write_file("debug.amasm", compiler.make_debug_asm())

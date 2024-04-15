@@ -181,6 +181,14 @@ class ByteGen:
             if type(symbol) in sym_types:
                 self.get_table_index(name, self.NAME_TABLE)
 
+        compiled_imports = []
+        for mod in imports.values():
+            module_out = ByteGen().compile(mod.ast, {})
+            idx = len(compiled_imports)
+            compiled_imports.append(module_out)
+            self.imports[mod.fpath] = idx
+            pass
+
         self.compile_block(program)
         assert self.depth == -1, "A block was not exited in some local scope!"
         # Add halt ops
@@ -214,8 +222,8 @@ class ByteGen:
             "functions": self.funcs,
             "registos": self.registos,
             "src_map": src_map,
+            "imports": compiled_imports,
         }
-
         return bindump.dumps(module)
 
     def new_label(self) -> int:
@@ -611,15 +619,13 @@ class ByteGen:
 
     def gen_functiondecl(self, node: ast.FunctionDecl):
         func_symbol = node.symbol
+
         name = func_symbol.name
         name_idx = self.get_table_index(func_symbol.name, self.NAME_TABLE)
         func_end = self.new_label()
-
         self.append_op(OpCode.JUMP, func_end)
         func_start = self.new_label()
-
         block = node.block
-
         prev_func_locals = self.func_locals
         self.func_locals = {}
         for param in func_symbol.params.values():
@@ -627,13 +633,15 @@ class ByteGen:
             idx = len(self.func_locals)
             self.func_locals[local] = idx
 
-        self.enter_block(block.symbols)
-        for child in block.children:
-            self.gen(child)
+        if not func_symbol.is_builtin():
+            self.enter_block(block.symbols)
+            for child in block.children:
+                self.gen(child)
+            self.exit_block()
+
         # default return
         self.load_const("falso")
         self.append_op(OpCode.RETURN)
-        self.exit_block()
         num_locals = len(self.func_locals)
         self.func_locals = prev_func_locals
 

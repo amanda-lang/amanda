@@ -1,7 +1,7 @@
 from __future__ import annotations
 import sys
 from os import path
-from typing import Any, Literal, Optional, ClassVar, cast
+from typing import Any, Literal, Optional, ClassVar, cast, NoReturn
 from dataclasses import dataclass
 
 
@@ -63,7 +63,7 @@ def fmt_error(context: str, error: AmandaError) -> str:
     return f"\n{err_header}\n    {context}\n{err_msg}\n"
 
 
-def throw_error(err: AmandaError) -> None:
+def throw_error(err: AmandaError) -> NoReturn:
     # Attempt to get error line from file
     filename = path.abspath(err.fpath)
     assert path.isfile(filename), "Invalid filename supplied to error"

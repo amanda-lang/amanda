@@ -243,13 +243,13 @@ class Analyzer(ast.Visitor):
             )
         self.ctx_module.builtin = True
 
-    def visit_module(self, node: ast.Module):
+    def visit_module(self, node: ast.Module) -> tuple[ast.Module, dict]:
         self.validate_builtin_module(node.annotations)
         # Since each function has it's own local scope,
         # The top level global scope will have it's own "locals"
         self.visit_children(node.children)
         node.symbols = self.global_scope
-        return transform(node, self.ctx_module)
+        return transform(node, self.ctx_module), self.imports
 
     def load_module(self, module: Module, alias: str | None = None):
         existing_mod = self.imports.get(module.fpath)
@@ -271,13 +271,15 @@ class Analyzer(ast.Visitor):
         if alias:
             analyzer = Analyzer(module.fpath, module)
             analyzer.imports = self.imports
-            module.ast = analyzer.visit_module(parse(module.fpath))
+            ast, _ = analyzer.visit_module(parse(module.fpath))
+            module.ast = ast
             self.assert_can_use_ident(self.ctx_node, alias)
             self.global_scope.define(
                 alias, symbols.VariableSymbol(alias, ModuleTy(module), module)
             )
         else:
-            module.ast = self.visit_module(parse(module.fpath))
+            ast, _ = self.visit_module(parse(module.fpath))
+            module.ast = ast
         module.loaded = True
         self.ctx_module = prev_module
 
@@ -403,6 +405,7 @@ class Analyzer(ast.Visitor):
         symbol.set_annotations(node.annotations)
         scope, _ = self.make_func_symbol(name, node, symbol)
         # Native functions don't have a body, so there's nothing to visit
+        node.symbol = symbol
         if symbol.is_builtin():
             return
         if node.is_native:
@@ -492,6 +495,7 @@ class Analyzer(ast.Visitor):
             )
             self.check_function_body(node, symbol, scope)
         # TODO: Refactor method definitions to not rely on the underlying type
+        node.symbol = symbol
         target_ty.define_method(symbol)
         self.leave_ty_ctx()
 
