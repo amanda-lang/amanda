@@ -208,6 +208,9 @@ class ModuleTy(Type):
     def promotion_to(self, other: Type) -> Type | None:
         return None
 
+    def is_module(self) -> bool:
+        return True
+
     def supports_fields(self) -> bool:
         return True
 

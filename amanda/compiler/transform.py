@@ -4,7 +4,11 @@ from amanda.compiler.module import Module
 from amanda.compiler.symbols.base import Type
 from amanda.compiler.tokens import TokenType as TT, Token
 from amanda.compiler.ast import node_of_type
-from amanda.compiler.symbols.core import MethodSym, VariableSymbol
+from amanda.compiler.symbols.core import (
+    FunctionSymbol,
+    MethodSym,
+    VariableSymbol,
+)
 from amanda.compiler.types.builtins import Builtins, SrcBuiltins
 
 from typing import cast, Callable
@@ -118,16 +122,25 @@ class ASTTransformer:
             and callee.member.lexeme == "valor_ou"
         ):
             return ast.Unwrap(option=callee.target, default_val=node.fargs[0])
-        method_sym = cast(MethodSym, node.symbol)
-        instance = cast(ast.Get, node.callee).target
-        method_sym.params = {
-            "alvo": VariableSymbol("alvo", method_sym.return_ty, self.module),
-            **method_sym.params,
-        }
-        node.fargs.insert(0, instance)
-        var = var_node(method_sym.name, node.token)
+
+        if callee.of_type(ast.Get) and callee.target.eval_type.is_module():
+            # A call to a function in other module
+            sym = cast(FunctionSymbol, node.symbol)
+            var = var_node(sym.name, node.token)
+            call_node = ast.Call(callee=var, fargs=node.fargs)
+            call_node.symbol = sym
+            return call_node
+        else:
+            sym = cast(MethodSym, node.symbol)
+            instance = cast(ast.Get, node.callee).target
+            sym.params = {
+                "alvo": VariableSymbol("alvo", sym.return_ty, self.module),
+                **sym.params,
+            }
+            node.fargs.insert(0, instance)
+        var = var_node(sym.name, node.token)
         call_node = ast.Call(callee=var, fargs=node.fargs)
-        call_node.symbol = method_sym
+        call_node.symbol = sym
         return call_node
 
     def transform_get(self, node: ast.Get):
@@ -140,7 +153,6 @@ class ASTTransformer:
         )
 
     def transform_module(self, node: ast.Module) -> ast.Module:
-
         for child in node.children:
             self.transform(child)
 

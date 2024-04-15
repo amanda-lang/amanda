@@ -243,13 +243,16 @@ class Analyzer(ast.Visitor):
             )
         self.ctx_module.builtin = True
 
-    def visit_module(self, node: ast.Module) -> tuple[ast.Module, dict]:
+    def visit_module(self, node: ast.Module) -> tuple[Module, dict]:
         self.validate_builtin_module(node.annotations)
         # Since each function has it's own local scope,
         # The top level global scope will have it's own "locals"
         self.visit_children(node.children)
         node.symbols = self.global_scope
-        return transform(node, self.ctx_module), self.imports
+        transformed = transform(node, self.ctx_module)
+        self.ctx_module.ast = transformed
+
+        return self.ctx_module, self.imports
 
     def load_module(self, module: Module, alias: str | None = None):
         existing_mod = self.imports.get(module.fpath)
@@ -271,15 +274,13 @@ class Analyzer(ast.Visitor):
         if alias:
             analyzer = Analyzer(module.fpath, module)
             analyzer.imports = self.imports
-            ast, _ = analyzer.visit_module(parse(module.fpath))
-            module.ast = ast
+            analyzer.visit_module(parse(module.fpath))
             self.assert_can_use_ident(self.ctx_node, alias)
             self.global_scope.define(
                 alias, symbols.VariableSymbol(alias, ModuleTy(module), module)
             )
         else:
-            ast, _ = self.visit_module(parse(module.fpath))
-            module.ast = ast
+            self.visit_module(parse(module.fpath))
         module.loaded = True
         self.ctx_module = prev_module
 
@@ -637,6 +638,10 @@ class Analyzer(ast.Visitor):
         if not ty.is_primitive():
             self.error(
                 f"O objecto do tipo '{ty}' não possui o atributo '{field}'"
+            )
+        elif isinstance(ty, ModuleTy):
+            self.error(
+                f"O módulo '{ty.module.fpath}' não possui o item '{field}'"
             )
         self.error(f"O tipo '{ty}' não possui o método '{field}'")
 

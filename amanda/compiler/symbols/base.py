@@ -101,6 +101,9 @@ class Type(Symbol):
     def is_callable(self) -> bool:
         return False
 
+    def is_module(self) -> bool:
+        return False
+
     def is_operable(self) -> bool:
         return False
 

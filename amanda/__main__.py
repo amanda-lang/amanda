@@ -31,9 +31,9 @@ def run_frontend(filename) -> tuple:
 
 
 def run_file(args):
-    compiler = ByteGen()
     module, imports = run_frontend(args.file)
-    bin_obj = compiler.compile(module, imports)
+    compiler = ByteGen(module)
+    bin_obj = compiler.compile(imports)
 
     if args.debug:
         write_file("debug.amasm", compiler.make_debug_asm())
