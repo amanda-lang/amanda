@@ -330,6 +330,7 @@ fn build_module<'bin>(mut prog_data: HashMap<String, BSONType>) -> Module<'bin> 
             locals: entry_locals as usize,
         },
         functions,
+        globals: Default::default(),
         registos,
         imports,
     }
