@@ -1,4 +1,5 @@
 use crate::ama_value::AmaValue;
+use crate::module::Module;
 use crate::values::function::AmaFunc;
 use crate::values::registo::Registo;
 use std::borrow::Cow;
@@ -14,20 +15,6 @@ pub enum Const {
     Double(f64),
     Bool(bool),
     None,
-}
-
-#[derive(Debug)]
-pub struct Module<'a> {
-    pub name: String,
-    pub builtin: bool,
-    pub constants: Vec<AmaValue<'a>>,
-    pub names: Vec<String>,
-    pub code: Vec<u8>,
-    pub main: AmaFunc<'a>,
-    pub functions: Vec<AmaFunc<'a>>,
-    pub registos: Vec<Registo<'a>>,
-    pub src_map: Vec<usize>,
-    pub imports: Vec<Module<'a>>,
 }
 
 impl Const {

@@ -7,6 +7,7 @@ mod ama_value;
 mod binload;
 mod builtins;
 mod errors;
+mod module;
 mod opcode;
 mod values;
 mod vm;

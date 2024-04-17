@@ -4,7 +4,7 @@ use crate::ama_value;
 use crate::ama_value::{AmaValue, RcCell};
 use crate::values::function::{AmaFunc};
 use crate::values::registo::{Tabela, RegObj};
-use crate::binload::Module;
+use crate::module::Module;
 use crate::builtins;
 use crate::errors::AmaErr;
 use crate::alloc::{Alloc, Ref};
