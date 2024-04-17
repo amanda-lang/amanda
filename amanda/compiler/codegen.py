@@ -1,3 +1,4 @@
+from os import path
 import sys
 from typing import List, cast, Sequence
 from io import StringIO, BytesIO
@@ -168,7 +169,9 @@ class ByteGen:
         )  # Maps source lines to bytecode offset
         self.modules: dict[str, int] = {}
 
-    def compile(self, imports: dict[str, Module]) -> bytes:
+    def compile(
+        self, imports: dict[str, Module], raw: bool = True
+    ) -> bytes | dict:
         """Compiles an amanda ast into bytecode ops.
         Returns a serialized object that contains the bytecode and
         other info used at runtime.
@@ -188,17 +191,15 @@ class ByteGen:
                 self.get_table_index(name, self.NAME_TABLE)
 
         compiled_imports = []
-        print(imports)
         for mod in imports.values():
             if mod.fpath in self.modules:
                 continue
             compiler = ByteGen(mod)
             compiler.modules = self.modules
-            module_out = compiler.compile({})
+            module_out = compiler.compile({}, raw=False)
             idx = len(compiled_imports)
             compiled_imports.append(module_out)
             self.modules[mod.fpath] = idx
-        print(self.modules)
 
         self.compile_block(program)
         assert self.depth == -1, "A block was not exited in some local scope!"
@@ -226,6 +227,8 @@ class ByteGen:
             offsets.append(lineno)
             src_map.extend(offsets)
         module = {
+            "name": path.split(self.ctx_module.fpath)[1],
+            "builtin": 1 if self.ctx_module.builtin else 0,
             "entry_locals": len(self.func_locals),
             "constants": list(self.const_table.keys()),
             "names": list(self.names.keys()),
@@ -235,6 +238,8 @@ class ByteGen:
             "src_map": src_map,
             "imports": compiled_imports,
         }
+        if not raw:
+            return module
         return bindump.dumps(module)
 
     def new_label(self) -> int:
@@ -402,7 +407,6 @@ class ByteGen:
     def load_variable(self, symbol: Symbol):
         name = symbol.name
         sym_module = cast(symbols.Typed, symbol).module.fpath
-        print("Symbol: ", name)
         if symbol.is_global and sym_module != self.ctx_module.fpath:
             self.append_op(
                 OpCode.LOAD_MODULE_VAR,
@@ -413,6 +417,9 @@ class ByteGen:
             self.append_op(OpCode.GET_GLOBAL, self.names[name])
         else:
             self.append_op(OpCode.GET_LOCAL, self.func_locals[symbol.out_id])
+
+    def gen_usa(self, node: ast.Usa):
+        pass
 
     def gen_variable(self, node: ast.Variable):
         name = node.token.lexeme

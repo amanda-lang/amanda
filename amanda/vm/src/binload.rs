@@ -1,4 +1,3 @@
-use crate::alloc::{Alloc, Ref};
 use crate::ama_value::AmaValue;
 use crate::values::function::AmaFunc;
 use crate::values::registo::Registo;
@@ -19,6 +18,8 @@ pub enum Const {
 
 #[derive(Debug)]
 pub struct Module<'a> {
+    pub name: String,
+    pub builtin: bool,
     pub constants: Vec<AmaValue<'a>>,
     pub names: Vec<String>,
     pub code: Vec<u8>,
@@ -26,6 +27,7 @@ pub struct Module<'a> {
     pub functions: Vec<AmaFunc<'a>>,
     pub registos: Vec<Registo<'a>>,
     pub src_map: Vec<usize>,
+    pub imports: Vec<Module<'a>>,
 }
 
 impl Const {
@@ -245,6 +247,10 @@ pub fn consume_const<'a>(constant: Const) -> AmaValue<'a> {
 pub fn load_bin<'bin>(amac_bin: &'bin mut [u8]) -> Module<'bin> {
     //Skip size bytes
     let mut prog_data = unpack_bson_doc(amac_bin);
+    build_module(prog_data)
+}
+
+fn build_module<'bin>(mut prog_data: HashMap<String, BSONType>) -> Module<'bin> {
     let raw_consts = prog_data.remove("constants").unwrap().take_vec();
     let mut constants = Vec::with_capacity(raw_consts.len());
     raw_consts
@@ -308,7 +314,22 @@ pub fn load_bin<'bin>(amac_bin: &'bin mut [u8]) -> Module<'bin> {
             unreachable!("registo should be an array of registos")
         };
 
+    let builtin = if bson_take!(BSONType::Int, prog_data.remove("builtin").unwrap()) == 0 {
+        false
+    } else {
+        true
+    };
+
+    let name = bson_take!(BSONType::String, prog_data.remove("name").unwrap());
+
+    let imports = bson_take!(BSONType::Array, prog_data.remove("imports").unwrap())
+        .into_iter()
+        .map(|module| build_module(bson_take!(BSONType::Doc, module)))
+        .collect();
+
     Module {
+        name,
+        builtin,
         constants,
         names,
         code: ops,
@@ -323,6 +344,7 @@ pub fn load_bin<'bin>(amac_bin: &'bin mut [u8]) -> Module<'bin> {
         },
         functions,
         registos,
+        imports,
     }
 }
 
