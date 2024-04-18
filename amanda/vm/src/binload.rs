@@ -1,5 +1,5 @@
 use crate::ama_value::AmaValue;
-use crate::module::Module;
+use crate::modules::module::Module;
 use crate::values::function::AmaFunc;
 use crate::values::registo::Registo;
 use std::borrow::Cow;

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt::Write;
 use std::borrow::Cow;
 use crate::ama_value;
@@ -8,6 +9,7 @@ use crate::modules::module::{Module, MGlobals};
 use crate::errors::AmaErr;
 use crate::alloc::{Alloc, Ref};
 use crate::opcode::OpCode;
+use crate::modules::builtins;
 use unicode_segmentation::UnicodeSegmentation;
 use std::convert::From;
 use std::mem;
@@ -65,6 +67,7 @@ pub struct AmaVM<'a> {
     frames: FrameStack<'a>,
     values: Vec<AmaValue<'a>>,
     alloc: Alloc<'a>, 
+    builtin_defs: MGlobals<'a>, 
     imports: &'a Vec<Module<'a>>, 
     sp: isize
 }
@@ -81,11 +84,13 @@ fn offset_to_line(offset: usize, src_map: &Vec<usize>) -> usize {
 
 impl<'a> AmaVM<'a> {
     pub fn new(imports: &'a Vec<Module<'a>>, alloc: Alloc<'a>) -> Self {
+        let builtin_defs = builtins::builtin_defs();
         AmaVM {
             module: None,
             frames: FrameStack::new(),
             values: vec![AmaValue::None; DEFAULT_STACK_SIZE],
             alloc, 
+            builtin_defs, 
             imports, 
             sp: -1,
         }

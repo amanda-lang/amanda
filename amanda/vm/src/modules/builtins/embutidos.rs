@@ -1,15 +1,12 @@
-use crate::alloc::{Alloc, Ref};
+use super::AmaResult;
+use crate::alloc::Alloc;
 use crate::ama_value::AmaValue;
-use crate::errors::AmaErr;
 use crate::values::amatype::Type;
 use crate::values::function::{FuncArgs, NativeFunc};
 use std::borrow::Cow;
 use std::io;
 use std::io::Write;
 use unicode_segmentation::UnicodeSegmentation;
-
-/*Helpers*/
-type AmaResult<'a> = Result<AmaValue<'a>, AmaErr>;
 
 /* Builtin functions*/
 fn escrevaln<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
@@ -229,7 +226,15 @@ fn new_builtin<'a>(
     (name, (AmaValue::NativeFn(NativeFunc { name, func })))
 }
 
-pub fn load_builtins<'a>() -> [(&'a str, AmaValue<'a>); 27] {
+declarations! {
+    fn(escrevaln),
+    fn(leia),
+    var(AmaValue::Type(Type::Int)),
+
+}
+
+/*
+pub fn declarations<'a>() -> [(&'a str, AmaValue<'a>); 27] {
     [
         new_builtin("escrevaln", escrevaln),
         new_builtin("escreva", escreva),
@@ -259,4 +264,4 @@ pub fn load_builtins<'a>() -> [(&'a str, AmaValue<'a>); 27] {
         new_builtin("grausprad", grausprad),
         new_builtin("radpgraus", radpgraus),
     ]
-}
+}*/
