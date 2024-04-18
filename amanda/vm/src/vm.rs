@@ -4,16 +4,13 @@ use crate::ama_value;
 use crate::ama_value::{AmaValue, RcCell};
 use crate::values::function::{AmaFunc};
 use crate::values::registo::{Tabela, RegObj};
-use crate::module::{Module, MGlobals};
-use crate::builtins;
+use crate::modules::module::{Module, MGlobals};
 use crate::errors::AmaErr;
 use crate::alloc::{Alloc, Ref};
 use crate::opcode::OpCode;
 use unicode_segmentation::UnicodeSegmentation;
-use std::collections::HashMap;
 use std::convert::From;
 use std::mem;
-use std::iter::FromIterator;
 
 const RECURSION_LIMIT: usize = 1000;
 const DEFAULT_STACK_SIZE: usize = 256;
