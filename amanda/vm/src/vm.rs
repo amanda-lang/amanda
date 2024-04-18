@@ -68,6 +68,7 @@ pub struct AmaVM<'a> {
     frames: FrameStack<'a>,
     values: Vec<AmaValue<'a>>,
     alloc: Alloc<'a>, 
+    imports: &'a Vec<Module<'a>>, 
     sp: isize
 }
 
@@ -82,12 +83,13 @@ fn offset_to_line(offset: usize, src_map: &Vec<usize>) -> usize {
 }
 
 impl<'a> AmaVM<'a> {
-    pub fn new(alloc: Alloc<'a>) -> Self {
+    pub fn new(imports: &'a Vec<Module<'a>>, alloc: Alloc<'a>) -> Self {
         AmaVM {
             module: None,
             frames: FrameStack::new(),
             values: vec![AmaValue::None; DEFAULT_STACK_SIZE],
             alloc, 
+            imports, 
             sp: -1,
         }
     }
@@ -154,11 +156,13 @@ impl<'a> AmaVM<'a> {
         self.frames.sp = -1;
     }
 
-    pub fn run(&mut self, module: &'a Module<'a>) -> Result<(), AmaErr> {
-        for module in &module.imports {
-            module.initialize();
-            self.run(module)?;
-            self.reset();
+    pub fn run(&mut self, module: &'a Module<'a>, is_main: bool) -> Result<(), AmaErr> {
+        if is_main {
+            for module in self.imports {
+                module.initialize();
+                self.run(module, false)?;
+                self.reset();
+            }
         }
         self.module = Some(module);
         self.init(self.module.unwrap().main);

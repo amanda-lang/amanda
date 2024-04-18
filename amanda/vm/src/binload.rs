@@ -231,10 +231,15 @@ pub fn consume_const<'a>(constant: Const) -> AmaValue<'a> {
     }
 }
 
-pub fn load_bin<'bin>(amac_bin: &'bin mut [u8]) -> Module<'bin> {
+pub fn load_bin<'bin>(amac_bin: &'bin mut [u8]) -> (Module<'bin>, Vec<Module<'bin>>) {
     //Skip size bytes
     let mut prog_data = unpack_bson_doc(amac_bin);
-    build_module(prog_data)
+    let imports = bson_take!(BSONType::Array, prog_data.remove("imports").unwrap())
+        .into_iter()
+        .map(|module| build_module(bson_take!(BSONType::Doc, module)))
+        .collect();
+    let module = build_module(prog_data);
+    (module, imports)
 }
 
 fn build_module<'bin>(mut prog_data: HashMap<String, BSONType>) -> Module<'bin> {
@@ -309,11 +314,6 @@ fn build_module<'bin>(mut prog_data: HashMap<String, BSONType>) -> Module<'bin> 
 
     let name = bson_take!(BSONType::String, prog_data.remove("name").unwrap());
 
-    let imports = bson_take!(BSONType::Array, prog_data.remove("imports").unwrap())
-        .into_iter()
-        .map(|module| build_module(bson_take!(BSONType::Doc, module)))
-        .collect();
-
     Module {
         name,
         builtin,
@@ -332,7 +332,6 @@ fn build_module<'bin>(mut prog_data: HashMap<String, BSONType>) -> Module<'bin> 
         functions,
         globals: Default::default(),
         registos,
-        imports,
     }
 }
 

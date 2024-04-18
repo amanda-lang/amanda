@@ -18,7 +18,6 @@ pub struct Module<'a> {
     pub globals: RefCell<MGlobals<'a>>,
     pub registos: Vec<Registo<'a>>,
     pub src_map: Vec<usize>,
-    pub imports: Vec<Module<'a>>,
 }
 
 impl Module<'_> {
