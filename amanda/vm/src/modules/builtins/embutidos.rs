@@ -1,3 +1,4 @@
+use super::utils::definitions;
 use super::AmaResult;
 use crate::alloc::Alloc;
 use crate::ama_value::AmaValue;
@@ -36,7 +37,7 @@ fn leia<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
         "Removing wrong char"
     );
 
-    Ok((AmaValue::Str(Cow::Owned(input))))
+    Ok(AmaValue::Str(Cow::Owned(input)))
 }
 
 fn leia_int<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
@@ -47,7 +48,7 @@ fn leia_int<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> 
         if let Err(_) = maybe_int {
             Err("Valor introduzido não é um inteiro válido".to_string())
         } else {
-            Ok((AmaValue::Int(maybe_int.unwrap())))
+            Ok(AmaValue::Int(maybe_int.unwrap()))
         }
     } else {
         unreachable!()
@@ -62,7 +63,7 @@ fn leia_real<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a>
         if let Err(_) = maybe_double {
             Err("Valor introduzido não é um número real válido".to_string())
         } else {
-            Ok((AmaValue::F64(maybe_double.unwrap())))
+            Ok(AmaValue::F64(maybe_double.unwrap()))
         }
     } else {
         unreachable!()
@@ -72,10 +73,10 @@ fn leia_real<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a>
 fn tam<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     let value = &args[0];
     match value {
-        AmaValue::Str(string) => {
-            Ok((AmaValue::Int((&string as &str).graphemes(true).count() as i64)))
-        }
-        AmaValue::Vector(vec) => Ok((AmaValue::Int(vec.borrow().len() as i64))),
+        AmaValue::Str(string) => Ok(AmaValue::Int(
+            (&string as &str).graphemes(true).count() as i64
+        )),
+        AmaValue::Vector(vec) => Ok(AmaValue::Int(vec.borrow().len() as i64)),
         _ => unreachable!("function called with something of invalid type"),
     }
 }
@@ -102,10 +103,10 @@ fn build_vec<'a>(
     let size = dims[dim].take_int() as usize;
     if dim == n_dims {
         match el_type {
-            Type::Int => vec![(AmaValue::Int(0)); size as usize],
-            Type::Real => vec![(AmaValue::F64(0.0)); size],
-            Type::Bool => vec![(AmaValue::Bool(false)); size],
-            Type::Texto => vec![(AmaValue::Str(Cow::Owned(String::new()))); size],
+            Type::Int => vec![AmaValue::Int(0); size as usize],
+            Type::Real => vec![AmaValue::F64(0.0); size],
+            Type::Bool => vec![AmaValue::Bool(false); size],
+            Type::Texto => vec![AmaValue::Str(Cow::Owned(String::new())); size],
             _ => unreachable!("Only primitives types should have this"),
         }
     } else {
@@ -134,7 +135,7 @@ fn vec<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     }
     let built_vec = build_vec(0, n_dims - 1, dims, el_type, alloc);
     let vec = AmaValue::Vector(alloc.alloc_ref(built_vec));
-    Ok((vec))
+    Ok(vec)
 }
 
 fn anexa<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
@@ -158,64 +159,64 @@ fn remova<'a>(args: FuncArgs<'a, '_>, _: &mut Alloc<'a>) -> AmaResult<'a> {
 
 fn abs<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     let number = args[0].take_float();
-    Ok((AmaValue::F64(number.abs())))
+    Ok(AmaValue::F64(number.abs()))
 }
 
 fn expoente<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     let base = args[0].take_float();
     let exp = args[1].take_float();
-    Ok((AmaValue::F64(base.powf(exp))))
+    Ok(AmaValue::F64(base.powf(exp)))
 }
 
 fn raizqd<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     let number = args[0].take_float();
-    Ok((AmaValue::F64(number.sqrt())))
+    Ok(AmaValue::F64(number.sqrt()))
 }
 
 fn arredonda<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     let number = args[0].take_float();
-    Ok((AmaValue::Int(number.round() as i64)))
+    Ok(AmaValue::Int(number.round() as i64))
 }
 
 fn piso<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     let number = args[0].take_float();
-    Ok((AmaValue::Int(number.floor() as i64)))
+    Ok(AmaValue::Int(number.floor() as i64))
 }
 
 fn teto<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     let number = args[0].take_float();
-    Ok((AmaValue::Int(number.ceil() as i64)))
+    Ok(AmaValue::Int(number.ceil() as i64))
 }
 
 fn sen<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     let number = args[0].take_float();
-    Ok((AmaValue::F64(number.sin())))
+    Ok(AmaValue::F64(number.sin()))
 }
 
 fn cos<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     let number = args[0].take_float();
-    Ok((AmaValue::F64(number.cos())))
+    Ok(AmaValue::F64(number.cos()))
 }
 
 fn tan<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     let number = args[0].take_float();
-    Ok((AmaValue::F64(number.tan())))
+    Ok(AmaValue::F64(number.tan()))
 }
 
 fn log<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     let number = args[0].take_float();
     let base = args[1].take_float();
-    Ok((AmaValue::F64(number.log(base))))
+    Ok(AmaValue::F64(number.log(base)))
 }
 
 fn grausprad<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     let degrees = args[0].take_float();
-    Ok((AmaValue::F64(degrees.to_radians())))
+    Ok(AmaValue::F64(degrees.to_radians()))
 }
 
 fn radpgraus<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     let rad = args[0].take_float();
-    Ok((AmaValue::F64(rad.to_degrees())))
+    Ok(AmaValue::F64(rad.to_degrees()))
 }
 
 #[inline]
@@ -226,42 +227,33 @@ fn new_builtin<'a>(
     (name, (AmaValue::NativeFn(NativeFunc { name, func })))
 }
 
-declarations! {
+definitions! {
+    var(int, AmaValue::Type(Type::Int)),
+    var(real, AmaValue::Type(Type::Real)),
+    var(bool, AmaValue::Type(Type::Bool)),
+    var(texto, AmaValue::Type(Type::Texto)),
+    var(PI, AmaValue::F64(std::f64::consts::PI)),
     fn(escrevaln),
+    fn(escreva),
     fn(leia),
-    var(AmaValue::Type(Type::Int)),
-
+    fn(leia),
+    fn(leia_int),
+    fn(leia_real),
+    fn(tam),
+    fn(vec),
+    fn(anexa),
+    fn(remova),
+    fn(txt_contem),
+    fn(abs),
+    fn(raizqd),
+    fn(expoente),
+    fn(arredonda),
+    fn(piso),
+    fn(teto),
+    fn(sen),
+    fn(cos),
+    fn(tan),
+    fn(log),
+    fn(grausprad),
+    fn(radpgraus)
 }
-
-/*
-pub fn declarations<'a>() -> [(&'a str, AmaValue<'a>); 27] {
-    [
-        new_builtin("escrevaln", escrevaln),
-        new_builtin("escreva", escreva),
-        new_builtin("leia", leia),
-        new_builtin("leia_int", leia_int),
-        new_builtin("leia_real", leia_real),
-        new_builtin("tam", tam),
-        new_builtin("vec", vec),
-        new_builtin("anexa", anexa),
-        new_builtin("remova", remova),
-        new_builtin("txt_contem", txt_contem),
-        ("int", AmaValue::Type(Type::Int)),
-        ("real", AmaValue::Type(Type::Real)),
-        ("bool", AmaValue::Type(Type::Bool)),
-        ("texto", AmaValue::Type(Type::Texto)),
-        ("PI", AmaValue::F64(std::f64::consts::PI)),
-        new_builtin("abs", abs),
-        new_builtin("raizqd", raizqd),
-        new_builtin("expoente", expoente),
-        new_builtin("arredonda", arredonda),
-        new_builtin("piso", piso),
-        new_builtin("teto", teto),
-        new_builtin("sen", sen),
-        new_builtin("cos", cos),
-        new_builtin("tan", tan),
-        new_builtin("log", log),
-        new_builtin("grausprad", grausprad),
-        new_builtin("radpgraus", radpgraus),
-    ]
-}*/
