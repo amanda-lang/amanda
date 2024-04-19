@@ -1,4 +1,4 @@
-macro_rules! definition {
+macro_rules! export {
     (fn($fn:expr)) => {
         (
             stringify!($fn),
@@ -14,15 +14,15 @@ macro_rules! definition {
     };
 }
 
-macro_rules! definitions {
+macro_rules! exports {
     (
         $($rule:ident($($es: expr),+)),+
     ) => {
 
-        pub fn declarations<'a>() -> rustc_hash::FxHashMap<&'a str, AmaValue<'a>> {
+        pub fn exports<'a>() -> rustc_hash::FxHashMap<&'a str, AmaValue<'a>> {
             let mut map: rustc_hash::FxHashMap<&'a str, AmaValue<'a>> = Default::default();
             $(
-                let (ident, val) = super::utils::definition!($rule($($es),+));
+                let (ident, val) = super::utils::export!($rule($($es),+));
                 map.insert(ident, val);
             )+
             map
@@ -30,10 +30,18 @@ macro_rules! definitions {
     };
 }
 
-macro_rules! builtin_registry {
-    () => {};
+macro_rules! builtin_defs {
+    ($($mod:ident),+) => {
+        pub fn definitions<'a>() -> BuiltinDefs<'a> {
+            let mut defs: BuiltinDefs<'a> = Default::default();
+            $(
+                defs.insert(stringify!($mod), $mod::exports());
+            )+
+            defs
+        }
+    };
 }
 
-pub(super) use builtin_registry;
-pub(super) use definition;
-pub(super) use definitions;
+pub(super) use builtin_defs;
+pub(super) use export;
+pub(super) use exports;

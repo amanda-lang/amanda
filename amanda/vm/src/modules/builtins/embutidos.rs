@@ -1,4 +1,4 @@
-use super::utils::definitions;
+use super::utils::exports;
 use super::AmaResult;
 use crate::alloc::Alloc;
 use crate::ama_value::AmaValue;
@@ -227,7 +227,7 @@ fn new_builtin<'a>(
     (name, (AmaValue::NativeFn(NativeFunc { name, func })))
 }
 
-definitions! {
+exports! {
     var(int, AmaValue::Type(Type::Int)),
     var(real, AmaValue::Type(Type::Real)),
     var(bool, AmaValue::Type(Type::Bool)),

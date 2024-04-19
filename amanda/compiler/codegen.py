@@ -227,7 +227,7 @@ class ByteGen:
             offsets.append(lineno)
             src_map.extend(offsets)
         module = {
-            "name": path.split(self.ctx_module.fpath)[1],
+            "name": path.split(self.ctx_module.fpath)[1].replace(".ama", ""),
             "builtin": 1 if self.ctx_module.builtin else 0,
             "entry_locals": len(self.func_locals),
             "constants": list(self.const_table.keys()),

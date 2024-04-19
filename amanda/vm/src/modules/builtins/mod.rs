@@ -5,7 +5,9 @@ mod utils;
 
 /*Helpers*/
 type AmaResult<'a> = Result<AmaValue<'a>, AmaErr>;
+pub(crate) type BuiltinDefs<'a> =
+    rustc_hash::FxHashMap<&'a str, rustc_hash::FxHashMap<&'a str, AmaValue<'a>>>;
 
-utils::builtin_registry! {
-    embutidos,
+utils::builtin_defs! {
+    embutidos
 }

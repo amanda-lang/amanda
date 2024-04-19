@@ -67,7 +67,7 @@ pub struct AmaVM<'a> {
     frames: FrameStack<'a>,
     values: Vec<AmaValue<'a>>,
     alloc: Alloc<'a>, 
-    builtin_defs: MGlobals<'a>, 
+    builtin_defs: builtins::BuiltinDefs<'a>, 
     imports: &'a Vec<Module<'a>>, 
     sp: isize
 }
@@ -84,7 +84,7 @@ fn offset_to_line(offset: usize, src_map: &Vec<usize>) -> usize {
 
 impl<'a> AmaVM<'a> {
     pub fn new(imports: &'a Vec<Module<'a>>, alloc: Alloc<'a>) -> Self {
-        let builtin_defs = builtins::builtin_defs();
+        let builtin_defs = builtins::definitions();
         AmaVM {
             module: None,
             frames: FrameStack::new(),
@@ -161,7 +161,7 @@ impl<'a> AmaVM<'a> {
     pub fn run(&mut self, module: &'a Module<'a>, is_main: bool) -> Result<(), AmaErr> {
         if is_main {
             for module in self.imports {
-                module.initialize();
+                module.initialize(&self.builtin_defs);
                 self.run(module, false)?;
                 self.reset();
             }
