@@ -3,7 +3,7 @@ use std::fmt::Write;
 use std::borrow::Cow;
 use crate::ama_value;
 use crate::ama_value::{AmaValue, RcCell};
-use crate::values::function::{AmaFunc};
+use crate::values::function::{AmaFunc, FuncModule};
 use crate::values::registo::{Tabela, RegObj};
 use crate::modules::module::{Module, MGlobals};
 use crate::errors::AmaErr;
@@ -63,7 +63,9 @@ impl<'a> FrameStack<'a> {
 
 pub struct AmaVM<'a> {
     //globals: &'a mut MGlobals<'a>, 
-    module: Option<&'a Module<'a>>,
+
+    main_module: &'a Module<'a>, 
+    ctx_module: Option<&'a Module<'a>>,
     frames: FrameStack<'a>,
     values: Vec<AmaValue<'a>>,
     alloc: Alloc<'a>, 
@@ -83,10 +85,11 @@ fn offset_to_line(offset: usize, src_map: &Vec<usize>) -> usize {
 }
 
 impl<'a> AmaVM<'a> {
-    pub fn new(imports: &'a Vec<Module<'a>>, alloc: Alloc<'a>) -> Self {
+    pub fn new(main_module: &'a Module<'a>, imports: &'a Vec<Module<'a>>, alloc: Alloc<'a>) -> Self {
         let builtin_defs = builtins::definitions();
         AmaVM {
-            module: None,
+            main_module, 
+            ctx_module: None,
             frames: FrameStack::new(),
             values: vec![AmaValue::None; DEFAULT_STACK_SIZE],
             alloc, 
@@ -97,7 +100,7 @@ impl<'a> AmaVM<'a> {
     }
 
     fn init(&mut self, main: AmaFunc<'a>) {
-        self.sp = -1;
+        self.sp = self.values.len() as isize - 1;
         self.frames.push(main).unwrap();
         self.frames.peek_mut().bp = if self.sp > -1 { 0 } else { -1 };
     }
@@ -128,7 +131,7 @@ impl<'a> AmaVM<'a> {
 
     fn get_byte(&mut self) -> u8 {
         self.frames.peek_mut().ip += 1;
-        self.module.unwrap().code[self.frames.peek().ip]
+        self.ctx_module.unwrap().code[self.frames.peek().ip]
     }
 
     fn get_u16_arg(&mut self) -> u16 {
@@ -154,36 +157,46 @@ impl<'a> AmaVM<'a> {
     }
 
     fn reset(&mut self) {
-        self.sp = -1;
+        self.sp = self.values.len() as isize - 1;
         self.frames.sp = -1;
     }
 
-    pub fn run(&mut self, module: &'a Module<'a>, is_main: bool) -> Result<(), AmaErr> {
-        if is_main {
+    pub fn run(&mut self, module: &'a Module<'a>) -> Result<(), AmaErr> {
+        let is_main_module = std::ptr::eq(self.main_module, module);
+        if  is_main_module {
             for module in self.imports {
                 module.initialize(&self.builtin_defs);
-                self.run(module, false)?;
+                self.run(module)?;
                 self.reset();
             }
         }
-        self.module = Some(module);
-        self.init(self.module.unwrap().main);
+        module.initialize(&self.builtin_defs);
+        self.ctx_module = Some(module);
+        self.init(self.ctx_module.unwrap().main);
 
         loop {
-            let op = self.module.unwrap().code[self.frames.peek().ip];
+            let op = self.ctx_module.unwrap().code[self.frames.peek().ip];
             self.frames.peek_mut().last_i = self.frames.peek().ip;
             match OpCode::from(&op) {
                 OpCode::LoadConst => {
                     let idx = self.get_u16_arg();
-                    self.op_push(self.module.unwrap().constants[idx as usize].clone());
+                    self.op_push(self.ctx_module.unwrap().constants[idx as usize].clone());
                 }
                 OpCode::LoadName => {
                     let idx = self.get_u16_arg();
-                    self.op_push(AmaValue::Str(Cow::Borrowed(&self.module.unwrap().names[idx as usize])));
+                    self.op_push(AmaValue::Str(Cow::Borrowed(&self.ctx_module.unwrap().names[idx as usize])));
+                }
+                OpCode::LoadModuleDef => {
+                    let mod_idx = self.get_u64_arg() as usize;
+                    let def = self.get_u64_arg() as usize;
+                    let module_defs = self.imports[mod_idx].globals.borrow();
+                    let name = self.ctx_module.unwrap().names[def].as_str();
+                    let val = module_defs.get(name).expect("Illegal access to definition.");
+                    self.op_push(val.clone());
                 }
                 OpCode::LoadRegisto => {
                     let idx = self.get_u16_arg() as usize;
-                    self.op_push(AmaValue::Registo(&self.module.unwrap().registos[idx]))
+                    self.op_push(AmaValue::Registo(&self.ctx_module.unwrap().registos[idx]))
                 }
                 OpCode::Mostra => println!("{}", self.op_pop()),
                 //Binary Operations
@@ -289,15 +302,15 @@ impl<'a> AmaVM<'a> {
                 }
                 OpCode::GetGlobal => {
                     let id_idx = self.get_u16_arg() as usize;
-                    let id: &str = &self.module.unwrap().names[id_idx];
-                    let global = self.module.unwrap().globals.borrow().get(id).unwrap().clone();
+                    let id: &str = &self.ctx_module.unwrap().names[id_idx];
+                    let global = self.ctx_module.unwrap().globals.borrow().get(id).unwrap().clone();
                     self.op_push(global);
                 }
                 OpCode::SetGlobal => {
                     let id_idx = self.get_u16_arg() as usize;
-                    let id: &str = &self.module.unwrap().names[id_idx];
+                    let id: &str = &self.ctx_module.unwrap().names[id_idx];
                     let value = self.op_pop();
-                    self.module.unwrap().globals.borrow_mut().insert(id, value);
+                    self.ctx_module.unwrap().globals.borrow_mut().insert(id, value);
                 }
                 OpCode::Jump => {
                     let addr = self.get_u64_arg() as usize;
@@ -339,6 +352,9 @@ impl<'a> AmaVM<'a> {
                             }
                             //Set return addr in caller
                             self.frames.peek_mut().ip += 1;
+                            if let FuncModule::Imported(mod_idx) = func.module {
+                                self.ctx_module.replace(&self.imports[mod_idx]);
+                            }
                             if let Err(()) = self.frames.push(func) {
                                 return self.panic_and_throw("Limite máximo de recursão atingido");
                             }
@@ -368,6 +384,12 @@ impl<'a> AmaVM<'a> {
                     self.sp = if frame_bp > -1 { frame_bp - 1 } else { self.sp };
                     self.frames.pop().unwrap();
                     self.op_push(val);
+                    let ctx_module = if let FuncModule::Imported(mod_idx) = self.frames.peek().module {
+                        &self.imports[mod_idx]
+                    } else {
+                        self.main_module
+                    };
+                    self.ctx_module.replace(ctx_module);
                     continue;
                 }
                 OpCode::BuildStr => {
@@ -501,14 +523,14 @@ impl<'a> AmaVM<'a> {
             if frames_sp == 0 {
                 err_str.push_str(&format!(
                     "Erro na linha {}: {}.",
-                    offset_to_line(func.last_i, &self.module.unwrap().src_map),
+                    offset_to_line(func.last_i, &self.ctx_module.unwrap().src_map),
                     error
                 ));
                 break;
             }
             err_str.push_str(&format!(
                 "    Linha {}, na função {}\n",
-                offset_to_line(func.last_i, &self.module.unwrap().src_map),
+                offset_to_line(func.last_i, &self.ctx_module.unwrap().src_map),
                 func.name
             ));
             frames_sp = self.frames.sp;
@@ -518,11 +540,12 @@ impl<'a> AmaVM<'a> {
 
     fn print_debug_info(&self) {
         println!("[Function]: {}", self.frames.peek().name);
+        println!("[Function locals]: {}", self.frames.peek().locals);
         println!("[IP]: {}", self.frames.peek().ip);
         println!("[SP]: {}", self.sp);
         println!(
             "[OP]: {:?}",
-            OpCode::from(&self.module.unwrap().code[self.frames.peek().ip])
+            OpCode::from(&self.ctx_module.unwrap().code[self.frames.peek().ip])
         );
         println!("[BP]: {}", self.frames.peek().bp);
         println!("[STACK]: {:?}", self.values);

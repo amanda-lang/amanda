@@ -41,12 +41,13 @@ pub enum OpCode {
     SetProp,
     Unwrap,
     IsNull,
+    LoadModuleDef,
     Halt = 255,
 }
 
 impl From<&u8> for OpCode {
     fn from(number: &u8) -> Self {
-        let ops: [OpCode; 38] = [
+        let ops: [OpCode; 39] = [
             OpCode::Mostra,
             OpCode::LoadConst,
             OpCode::LoadName,
@@ -85,6 +86,7 @@ impl From<&u8> for OpCode {
             OpCode::SetProp,
             OpCode::Unwrap,
             OpCode::IsNull,
+            OpCode::LoadModuleDef,
         ];
         if *number == 0xff {
             OpCode::Halt

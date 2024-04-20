@@ -94,7 +94,7 @@ class OpCode(Enum):
     OP_ISNULL = auto()
     # Get the value of a global declared in another module. arg-1 (64-bit) is the index of the module in the table of imported modules,
     # arg-2 (64-bit) is the index to the name of the var on the constant table.
-    LOAD_MODULE_VAR = auto()
+    LOAD_MODULE_DEF = auto()
     # Stops execution of the VM. Must always be added to stop execution of the vm
     HALT = 0xFF
 
@@ -127,7 +127,7 @@ class OpCode(Enum):
                 return OP_SIZE * 3
             case OpCode.JUMP | OpCode.JUMP_IF_FALSE:
                 return OP_SIZE * 9
-            case OpCode.LOAD_MODULE_VAR:
+            case OpCode.LOAD_MODULE_DEF:
                 return OP_SIZE * 17
             case _:
                 return OP_SIZE
@@ -169,6 +169,29 @@ class ByteGen:
         )  # Maps source lines to bytecode offset
         self.modules: dict[str, int] = {}
 
+    def compile_builtin(self, raw: bool = True) -> bytes | dict:
+        self.append_op(OpCode.HALT)
+        ops = BytesIO()
+        for op in self.ops:
+            ops.write(self.write_op_bytes(op))
+        code = ops.getvalue()
+        ops.close()
+        module = {
+            "name": path.split(self.ctx_module.fpath)[1].replace(".ama", ""),
+            "builtin": 1,
+            "entry_locals": 0,
+            "constants": [],
+            "names": [],
+            "ops": code,
+            "functions": self.funcs,
+            "registos": self.registos,
+            "src_map": [-1],
+            "imports": [],
+        }
+        if not raw:
+            return module
+        return bindump.dumps(module)
+
     def compile(
         self, imports: dict[str, Module], raw: bool = True
     ) -> bytes | dict:
@@ -186,20 +209,26 @@ class ByteGen:
             symbols.FunctionSymbol,
             Primitive,
         )
+        if self.ctx_module.builtin:
+            return self.compile_builtin(raw)
+
         for name, symbol in program.symbols.symbols.items():
             if type(symbol) in sym_types:
                 self.get_table_index(name, self.NAME_TABLE)
 
+        for mod in imports.values():
+            idx = len(self.modules)
+            self.modules[mod.fpath] = idx
+
         compiled_imports = []
         for mod in imports.values():
-            if mod.fpath in self.modules:
+            if mod.fpath in self.modules and mod.compiled:
                 continue
             compiler = ByteGen(mod)
             compiler.modules = self.modules
             module_out = compiler.compile({}, raw=False)
-            idx = len(compiled_imports)
             compiled_imports.append(module_out)
-            self.modules[mod.fpath] = idx
+            mod.compiled = True
 
         self.compile_block(program)
         assert self.depth == -1, "A block was not exited in some local scope!"
@@ -409,7 +438,7 @@ class ByteGen:
         sym_module = cast(symbols.Typed, symbol).module.fpath
         if symbol.is_global and sym_module != self.ctx_module.fpath:
             self.append_op(
-                OpCode.LOAD_MODULE_VAR,
+                OpCode.LOAD_MODULE_DEF,
                 self.modules[sym_module],
                 self.names[name],
             )
@@ -687,6 +716,7 @@ class ByteGen:
                 "name": name,
                 "start_ip": self.labels[func_start],
                 "locals": num_locals,
+                "module": (self.modules.get(func_symbol.module.fpath, -1)),
             }
         )
 

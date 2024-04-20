@@ -188,7 +188,9 @@ class Analyzer(ast.Visitor):
                 return reg.bind(**generic_args)
             return cast(Type, type_symbol)
         elif type(type_node) == ast.ArrayType:
-            vec_ty = Vector(self.get_type(type_node.element_type))
+            vec_ty = Vector(
+                self.ctx_module, self.get_type(type_node.element_type)
+            )
             return (
                 SrcBuiltins.Opcao.bind(T=vec_ty)
                 if type_node.maybe_ty
@@ -506,7 +508,12 @@ class Analyzer(ast.Visitor):
         # TODO: Notify in case of duplicate generic param
         # TODO: Make sure to throw an error for unused generic params
         return (
-            set(map(lambda t: TypeVar(t.name.lexeme), node.generic_params))
+            set(
+                map(
+                    lambda t: TypeVar(t.name.lexeme, self.ctx_module),
+                    node.generic_params,
+                )
+            )
             if node.generic_params
             else set()
         )
@@ -528,6 +535,7 @@ class Analyzer(ast.Visitor):
 
         registo = Registo(
             name,
+            self.ctx_module,
             cast(dict[str, symbols.VariableSymbol], reg_scope.symbols),
             ty_params=generic_params,
         )
@@ -604,7 +612,7 @@ class Analyzer(ast.Visitor):
     def visit_listliteral(self, node):
         elements = node.elements
         list_type = self.get_type(node.list_type)
-        node.eval_type = Vector(list_type)
+        node.eval_type = Vector(self.ctx_module, list_type)
         if len(elements) == 0:
             return
         for i, element in enumerate(elements):
@@ -993,9 +1001,9 @@ class Analyzer(ast.Visitor):
             if type(el_type) == Vector:
                 self.error(f"O tipo de um vector deve ser um tipo simples")
             # Set type based on dimensions
-            vec_type = Vector(el_type)
+            vec_type = Vector(self.ctx_module, el_type)
             for i in range(len(node.fargs[1:]) - 1):
-                vec_type = Vector(vec_type)
+                vec_type = Vector(self.ctx_module, vec_type)
             node.eval_type = vec_type
         elif fn == BuiltinFn.ANEXA:
             vec_expr = node.fargs[0]

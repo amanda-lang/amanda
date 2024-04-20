@@ -8,3 +8,4 @@ class Module:
     ast: Any = None
     loaded: bool = False
     builtin: bool = False
+    compiled: bool = False

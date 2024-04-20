@@ -1,6 +1,7 @@
 use crate::ama_value::AmaValue;
 use crate::modules::module::Module;
 use crate::values::function::AmaFunc;
+use crate::values::function::FuncModule;
 use crate::values::registo::Registo;
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -193,14 +194,20 @@ macro_rules! bson_take {
     };
 }
 
-fn doc_into_amafn<'a>(doc: BSONType) -> (String, usize, usize) {
+fn doc_into_amafn<'a>(doc: BSONType) -> (String, usize, usize, FuncModule) {
     if let BSONType::Doc(mut func) = doc {
         let start_ip = bson_take!(BSONType::Int, func.remove("start_ip").unwrap()) as usize;
+        let module = bson_take!(BSONType::Int, func.remove("module").unwrap()) as isize;
 
         (
             bson_take!(BSONType::String, func.remove("name").unwrap()),
             start_ip,
             bson_take!(BSONType::Int, func.remove("locals").unwrap()) as usize,
+            if module >= 0 {
+                FuncModule::Imported(module as usize)
+            } else {
+                FuncModule::Main
+            },
         )
     } else {
         unreachable!("functions should be an array of functions")
@@ -273,7 +280,7 @@ fn build_module<'bin>(mut prog_data: HashMap<String, BSONType>) -> Module<'bin> 
             funcs
                 .into_iter()
                 .map(|func| {
-                    let (name, start_ip, locals) = doc_into_amafn(func);
+                    let (name, start_ip, locals, module) = doc_into_amafn(func);
                     AmaFunc {
                         //TODO: Check if i should be leaking memory
                         name: Box::leak(name.into_boxed_str()),
@@ -282,6 +289,7 @@ fn build_module<'bin>(mut prog_data: HashMap<String, BSONType>) -> Module<'bin> 
                         last_i: start_ip,
                         ip: start_ip,
                         locals,
+                        module,
                     }
                 })
                 .collect()
@@ -328,6 +336,7 @@ fn build_module<'bin>(mut prog_data: HashMap<String, BSONType>) -> Module<'bin> 
             last_i: 0,
             ip: 0,
             locals: entry_locals as usize,
+            module: FuncModule::Main,
         },
         functions,
         globals: Default::default(),

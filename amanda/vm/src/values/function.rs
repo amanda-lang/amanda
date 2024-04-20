@@ -22,6 +22,12 @@ impl<'a> Debug for NativeFunc<'a> {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub enum FuncModule {
+    Main,
+    Imported(usize),
+}
+
+#[derive(Debug, Clone, Copy)]
 pub struct AmaFunc<'a> {
     pub name: &'a str,
     pub start_ip: usize,
@@ -29,4 +35,5 @@ pub struct AmaFunc<'a> {
     pub last_i: usize,
     pub bp: isize,
     pub locals: usize,
+    pub module: FuncModule,
 }

@@ -38,8 +38,8 @@ class Types(IntEnum):
 class Primitive(Type):
     methods: ClassVar[dict[Types, dict[str, MethodSym]]] = {}
 
-    def __init__(self, tag: Types, zero_initialized: bool):
-        super().__init__(str(tag), zero_initialized=zero_initialized)
+    def __init__(self, module: Module, tag: Types, zero_initialized: bool):
+        super().__init__(str(tag), module, zero_initialized=zero_initialized)
         self.tag = tag
         self.is_global = True
 
@@ -189,8 +189,8 @@ class Primitive(Type):
 @dataclass
 class ModuleTy(Type):
 
-    def __init__(self, module: Module):
-        super().__init__("Module", zero_initialized=False)
+    def __init__(self, *, importing_mod: Module, module: Module):
+        super().__init__("Module", importing_mod, zero_initialized=False)
         self.module = module
 
     def __eq__(self, other: object) -> bool:
@@ -238,8 +238,8 @@ class ModuleTy(Type):
 
 
 class Vector(Type):
-    def __init__(self, element_type: Type):
-        super().__init__(str(Types.TVEC))
+    def __init__(self, module: Module, element_type: Type):
+        super().__init__(str(Types.TVEC), module)
         self.element_type: Type = element_type
 
     def get_type(self) -> Type:
@@ -306,10 +306,11 @@ class Registo(Type):
     def __init__(
         self,
         name: str,
+        module: Module,
         fields: dict[str, VariableSymbol],
         ty_params: set[TypeVar] | None = None,
     ):
-        super().__init__(name)
+        super().__init__(name, module)
         self.name = name
         self.fields = fields
         self.methods: dict[str, MethodSym] = {}
@@ -399,7 +400,7 @@ class ConstructedTy(Type):
     bound_ty_args: dict[str, Type]
 
     def __init__(self, generic_ty: Type, bound_ty_args):
-        super().__init__(generic_ty.name)
+        super().__init__(generic_ty.name, generic_ty.module)
         self.generic_ty = generic_ty
         self.bound_ty_args = bound_ty_args
 

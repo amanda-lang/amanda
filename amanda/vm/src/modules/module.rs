@@ -31,7 +31,7 @@ impl<'a> Module<'a> {
                         self.globals.borrow_mut().insert(*def, val.clone());
                     }
                 }
-                None => panic!("Module {} has not yet been declared!!!", self.name),
+                None => panic!("Builtin module '{}' has not yet been defined!!!", self.name),
             }
         } else {
             for func in self.functions.iter() {

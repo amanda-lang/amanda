@@ -5,6 +5,7 @@ from typing import Any, TYPE_CHECKING
 
 from dataclasses import dataclass
 
+from amanda.compiler.module import Module
 from amanda.compiler.tokens import TokenType
 
 if TYPE_CHECKING:
@@ -44,11 +45,13 @@ class Type(Symbol):
     def __init__(
         self,
         name: str,
+        module: Module,
         zero_initialized: bool = False,
     ):
         super().__init__(name)
         self.zero_initialized = zero_initialized
         self.is_global = True
+        self.module = module
 
     @abstractmethod
     def __eq__(self, other: object) -> bool: ...
@@ -156,8 +159,8 @@ class TypeVar(Type):
     name: str
     constraints: list
 
-    def __init__(self, name: str):
-        super().__init__(name)
+    def __init__(self, name: str, module: Module):
+        super().__init__(name, module)
         self.zero_initialized = False
         self.is_global = False
         self.constraints = []
