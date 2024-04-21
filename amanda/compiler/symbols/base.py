@@ -13,10 +13,16 @@ if TYPE_CHECKING:
 
 
 class Symbol(ABC):
-    def __init__(self, name: str, annotations: list[Annotation] | None = None):
+    def __init__(
+        self,
+        name: str,
+        module: Module,
+        annotations: list[Annotation] | None = None,
+    ):
         self.name = name
         self.out_id = name  # symbol id in compiled source program
         self.is_property = False  # Avoid this repitition
+        self.module = module
         self.is_global = False
         self.annotations: list[Annotation] = (
             annotations if annotations is not None else []
@@ -39,6 +45,9 @@ class Symbol(ABC):
     def is_builtin(self) -> bool:
         return any(map(lambda s: s.name == "embutido", self.annotations))
 
+    def is_external(self, ctx_mod: Module) -> bool:
+        return self.module.fpath != ctx_mod.fpath
+
 
 @dataclass
 class Type(Symbol):
@@ -48,10 +57,9 @@ class Type(Symbol):
         module: Module,
         zero_initialized: bool = False,
     ):
-        super().__init__(name)
+        super().__init__(name, module)
         self.zero_initialized = zero_initialized
         self.is_global = True
-        self.module = module
 
     @abstractmethod
     def __eq__(self, other: object) -> bool: ...
@@ -127,6 +135,9 @@ class Type(Symbol):
 
     def check_cast(self, other: Type) -> bool:
         return self.cast_to(other) or other.cast_from(self)
+
+    def is_external(self, ctx_mod: Module) -> bool:
+        return self.module.fpath != ctx_mod.fpath
 
     def promote_to(self, other: Type) -> Type | None:
         result = self.promotion_to(other)
@@ -212,9 +223,8 @@ class TypeVar(Type):
 
 class Typed(Symbol):
     def __init__(self, name: str, ty: Type, module: Module):
-        super().__init__(name)
+        super().__init__(name, module)
         self.type = ty
-        self.module = module
 
     @abstractmethod
     def can_evaluate(self) -> bool: ...

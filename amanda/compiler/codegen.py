@@ -436,7 +436,7 @@ class ByteGen:
     def load_variable(self, symbol: Symbol):
         name = symbol.name
         sym_module = cast(symbols.Typed, symbol).module.fpath
-        if sym_module != self.ctx_module.fpath:
+        if symbol.is_external(self.ctx_module):
             self.append_op(
                 OpCode.LOAD_MODULE_DEF,
                 self.modules[sym_module],
