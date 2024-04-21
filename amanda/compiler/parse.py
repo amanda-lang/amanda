@@ -332,20 +332,24 @@ class Parser:
         alias = None
         if not self.match(TT.ARROW):
             self.end_stmt()
-            return ast.Usa(token, module=module, alias=alias)
+            return ast.Usa(token, usa_mode=ast.UsaMode.Global, module=module)
         self.consume(TT.ARROW)
         if self.match(TT.IDENTIFIER):
             alias = self.consume(TT.IDENTIFIER)
-            return ast.Usa(token, module=module, alias=alias)
-        elif self.match(TT.LBRACE):
-            self.consume(TT.LBRACE)
+            return ast.Usa(
+                token, usa_mode=ast.UsaMode.Scoped, module=module, alias=alias
+            )
+        elif self.match(TT.LBRACKET):
+            self.consume(TT.LBRACKET)
             idents: list[str] = []
             idents.append(self.consume(TT.IDENTIFIER).lexeme)
             while self.match(TT.COMMA):
                 self.consume(TT.COMMA)
                 idents.append(self.consume(TT.IDENTIFIER).lexeme)
-            self.consume(TT.RBRACE)
-            return ast.ItemUsa(token, module, idents)
+            self.consume(TT.RBRACKET)
+            return ast.Usa(
+                token, usa_mode=ast.UsaMode.Item, module=module, items=idents
+            )
         else:
             self.error(
                 "Instrução 'usa' inválida. Esperava-se um identificador ou uma lista de identificadores"

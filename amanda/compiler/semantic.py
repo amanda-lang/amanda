@@ -66,7 +66,7 @@ class Analyzer(ast.Visitor):
             ), f"Invalid import path provided:  '{dir_path}'"
 
         # Load builtin module
-        self.load_module(builtin_module)
+        self.load_module(builtin_module, ast.UsaMode.Global)
         SrcBuiltins.init_embutidos(self.global_scope)
 
     # Helper methods
@@ -268,7 +268,19 @@ class Analyzer(ast.Visitor):
 
         return self.ctx_module, self.imports
 
-    def load_module(self, module: Module, alias: str | None = None):
+    def load_module_scoped(self, module: Module) -> tuple[Module, dict]:
+        analyzer = Analyzer(module.fpath, self.import_paths, module)
+        analyzer.imports = self.imports
+        return analyzer.visit_module(parse(module.fpath))
+
+    def load_module(
+        self,
+        module: Module,
+        mode: ast.UsaMode,
+        *,
+        alias: str | None = None,
+        usa_items: list[str] | None = None,
+    ):
         existing_mod = self.imports.get(module.fpath)
         # Module has already been loaded
         if existing_mod and existing_mod.loaded:
@@ -285,21 +297,37 @@ class Analyzer(ast.Visitor):
         self.ctx_module = module
         self.imports[module.fpath] = module
         # TODO: Handle errors while loading another module
-        if alias:
-            analyzer = Analyzer(module.fpath, self.import_paths, module)
-            analyzer.imports = self.imports
-            analyzer.visit_module(parse(module.fpath))
-            self.assert_can_use_ident(self.ctx_node, alias)
-            self.global_scope.define(
-                alias,
-                symbols.VariableSymbol(
+        match mode:
+            case ast.UsaMode.Global:
+                self.visit_module(parse(module.fpath))
+            case ast.UsaMode.Scoped:
+                if not alias:
+                    raise TypeError("Arg 'alias' should not be None")
+                self.load_module_scoped(module)
+                self.assert_can_use_ident(self.ctx_node, alias)
+                self.global_scope.define(
                     alias,
-                    ModuleTy(module=module, importing_mod=self.ctx_module),
-                    module,
-                ),
-            )
-        else:
-            self.visit_module(parse(module.fpath))
+                    symbols.VariableSymbol(
+                        alias,
+                        ModuleTy(module=module, importing_mod=self.ctx_module),
+                        module,
+                    ),
+                )
+            case ast.UsaMode.Item:
+                imported_mod, _ = self.load_module_scoped(module)
+                if not usa_items:
+                    raise TypeError("Arg 'usa_items' should not be None")
+                mod_symtab: symbols.Scope = imported_mod.ast.symbols
+                for item in usa_items:
+                    sym = mod_symtab.resolve(item)
+                    if not sym:
+                        self.ctx_module = prev_module
+                        self.error(
+                            f"Erro ao importar módulo. O item '{item}' não foi declarado no módulo '{module.fpath}'"
+                        )
+                    self.assert_can_use_ident(self.ctx_node, item)
+                    self.global_scope.define(item, sym)
+
         module.loaded = True
         self.ctx_module = prev_module
 
@@ -331,7 +359,12 @@ class Analyzer(ast.Visitor):
             self.error(err_msg)
 
         module = Module(mod_path)
-        self.load_module(module, node.alias.lexeme if node.alias else None)
+        self.load_module(
+            module,
+            node.usa_mode,
+            alias=node.alias.lexeme if node.alias else None,
+            usa_items=node.items,
+        )
 
     def assert_can_use_ident(self, node: ast.ASTNode, name: str):
         in_use = self.ctx_scope.get(name)

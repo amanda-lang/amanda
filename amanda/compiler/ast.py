@@ -1,4 +1,5 @@
 from __future__ import annotations
+import enum
 from amanda.compiler.tokens import Token, TokenType as TT
 import amanda.compiler.types.core as types
 from amanda.compiler.types.builtins import Builtins
@@ -90,20 +91,27 @@ class Module(Block):
         self.annotations = annotations if annotations else []
 
 
+class UsaMode(enum.Enum):
+    Scoped = enum.auto()
+    Item = enum.auto()
+    Global = enum.auto()
+
+
 class Usa(ASTNode):
     def __init__(
-        self, token: Token, *, module: Token, alias: Token | None = None
+        self,
+        token: Token,
+        *,
+        usa_mode: UsaMode,
+        module: Token,
+        alias: Token | None = None,
+        items: list[str] | None = None,
     ):
         super().__init__(token)
+        self.usa_mode = usa_mode
         self.module = module
         self.alias = alias
-
-
-class ItemUsa(ASTNode):
-    def __init__(self, token: Token, module: Token, idents: list[str]):
-        super().__init__(token)
-        self.module = module
-        self.idents = idents
+        self.items = items if items else []
 
 
 class Expr(ASTNode):

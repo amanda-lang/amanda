@@ -1,7 +1,7 @@
 #Importa 'abs' e 'raiz' do módulo 'std/mat'
-usa "mat" => [abs, raiz]
+usa "mat" => [abs, raizqd]
 
-abs(-1)
-raiz(4)
+escrevaln(abs(-1))
+escrevaln(raizqd(4))
 
-#[output]:1 2.0
+#[output]:1.0 2.0
