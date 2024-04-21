@@ -116,8 +116,9 @@ class ASTTransformer:
             self.transform(farg)
 
         # Ignore non-local and non-property symbols
-        is_module_def = node.symbol.module.fpath == self.module
-        if not node.symbol.is_property and is_module_def:
+        if not node.symbol.is_property and not node.symbol.is_external(
+            self.module
+        ):
             return node
 
         callee = node.callee
