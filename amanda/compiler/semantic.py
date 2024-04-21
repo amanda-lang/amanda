@@ -278,7 +278,7 @@ class Analyzer(ast.Visitor):
         # is seen again, but it is not loaded yet
         if existing_mod and not existing_mod.loaded:
             self.error(
-                f"Erro ao importar o módulo '{module.fpath}'. inclusão cíclica detectada"
+                f"Erro ao importar o módulo '{module.fpath}'. Inclusão cíclica detectada"
             )
 
         prev_module = self.ctx_module

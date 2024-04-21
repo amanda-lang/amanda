@@ -1,7 +1,7 @@
-#Imports 'abs' and 'raiz' from 'std/mat' module
-usa "tests/test_data/baz_bar" => [bar, baz]
+#Importa 'abs' e 'raiz' do módulo 'std/mat'
+usa "mat" => [abs, raiz]
 
-baz()
-bar()
+abs(-1)
+raiz(4)
 
-#[output]:bar baz
+#[output]:1 2.0

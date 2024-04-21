@@ -1,4 +1,4 @@
 usa "tests/test_data/crazy_imp_2"
 
 foo()
-#[output]:Erro: Erro ao importar módulo. inclusão cíclica detectada.
+#[output]:Erro: Erro ao importar o módulo '/home/stacks/files/personal/Projects/amanda/tests/test_data/crazy_imp_2.ama'. Inclusão cíclica detectada.

@@ -3,3 +3,4 @@
 usa "tests/test_data/baz" => baz
 
 baz.baz()
+#[output]: baz
