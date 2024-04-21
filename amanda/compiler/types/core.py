@@ -193,6 +193,9 @@ class ModuleTy(Type):
         super().__init__("Module", importing_mod, zero_initialized=False)
         self.module = module
 
+    def get_symbols(self):
+        return self.module.ast.symbols
+
     def __eq__(self, other: object) -> bool:
         return self.module == other
 

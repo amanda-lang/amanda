@@ -1,0 +1,5 @@
+usa "tests/test_data/bar" => bar
+
+reg: bar.Bar = bar.Bar()
+reg.bar()
+#[output]: bar

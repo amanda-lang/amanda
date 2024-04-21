@@ -42,9 +42,9 @@ class Analyzer(ast.Visitor):
         # Dirs to be used when resolving relative imports
         self.import_paths = [STD_LIB, *import_paths]
         # Just to have quick access to things like types and e.t.c
-        self.global_scope = symbols.Scope()
+        self.global_scope: symbols.Scope = symbols.Scope()
         self.scope_depth = 0
-        self.ctx_scope = self.global_scope
+        self.ctx_scope: symbols.Scope = self.global_scope
         self.ctx_node: Optional[ast.ASTNode] = None
         self.ctx_reg = None
         self.ctx_func = None
@@ -165,51 +165,77 @@ class Analyzer(ast.Visitor):
     ) -> dict[str, Type]:
         return {t_var.name: self.get_type(t_arg.arg) for t_var, t_arg in args}
 
+    def get_mod_or_err(self, scope: symbols.Scope, mod_id: str) -> ModuleTy:
+        mod = scope.resolve_typed(mod_id)
+        if not mod or not isinstance(mod.type, ModuleTy):
+            self.error(
+                f"Especificação de tipo inválida. O identificador '{mod_id}' não foi reconhecido como um módulo"
+            )
+        return mod.type
+
+    def construct_ty(self, type_node: ast.Type, type_symbol: Type) -> Type:
+        if type_node.maybe_ty:
+            return SrcBuiltins.Opcao.bind(T=type_symbol)
+        if type_node.generic_args and len(type_node.generic_args):
+            generic_args = type_node.generic_args
+            # Sort out generics
+            if not type_symbol.is_generic():
+                self.error(
+                    f"O tipo '{type_symbol}' não espera receber nenhum argumento de tipo genérico."
+                )
+            reg = cast(Registo, type_symbol)
+            if len(reg.ty_params) != len(generic_args):
+                self.error(
+                    f"O tipo '{type_symbol}' esperava receber {len(reg.ty_params)} argumento de tipo, mas recebeu {len(generic_args)}"
+                )
+            generic_args = self.get_generic_args(
+                zip(reg.ty_params, generic_args)
+            )
+            # If all type arguments are type vars, return the generic type.
+            if all(
+                map(
+                    lambda x: isinstance(x, TypeVar),
+                    generic_args.values(),
+                )
+            ):
+                return reg
+            return reg.bind(**generic_args)
+        return cast(Type, type_symbol)
+
     def get_type(self, type_node: ast.Type) -> Type:
         if not type_node:
             return cast(Type, self.ctx_scope.resolve("vazio"))
-
-        node_t = type(type_node)
-        if node_t == ast.Variable:
-            return self.get_type_variable(type_node)  # type: ignore
-        elif node_t == ast.Type:
-            type_id = type_node.name.lexeme
-            type_symbol = self.get_type_sym_or_err(type_id)
-            if type_node.maybe_ty:
-                return SrcBuiltins.Opcao.bind(T=type_symbol)
-            if type_node.generic_args and len(type_node.generic_args):
-                generic_args = type_node.generic_args
-                # Sort out generics
-                if not type_symbol.is_generic():
-                    self.error(
-                        f"O tipo '{type_id}' não espera receber nenhum argumento de tipo genérico."
-                    )
-                reg = cast(Registo, type_symbol)
-                if len(reg.ty_params) != len(generic_args):
-                    self.error(
-                        f"O tipo '{type_id}' esperava receber {len(reg.ty_params)} argumento de tipo, mas recebeu {len(generic_args)}"
-                    )
-                generic_args = self.get_generic_args(
-                    zip(reg.ty_params, generic_args)
+        match type_node:
+            case ast.Variable():
+                return self.get_type_variable(type_node)  # type: ignore
+            case ast.ArrayType():
+                vec_ty = Vector(
+                    self.ctx_module, self.get_type(type_node.element_type)
                 )
-                # If all type arguments are type vars, return the generic type.
-                if all(
-                    map(lambda x: isinstance(x, TypeVar), generic_args.values())
-                ):
-                    return reg
-                return reg.bind(**generic_args)
-            return cast(Type, type_symbol)
-        elif type(type_node) == ast.ArrayType:
-            vec_ty = Vector(
-                self.ctx_module, self.get_type(type_node.element_type)
-            )
-            return (
-                SrcBuiltins.Opcao.bind(T=vec_ty)
-                if type_node.maybe_ty
-                else vec_ty
-            )
-        else:
-            return Builtins.Unknown
+                return (
+                    SrcBuiltins.Opcao.bind(T=vec_ty)
+                    if type_node.maybe_ty
+                    else vec_ty
+                )
+            case ast.TypePath(components=components):
+                head = components[0]
+                mod = self.get_mod_or_err(self.ctx_scope, head)
+                for component in components[1:-1]:
+                    mod = self.get_mod_or_err(mod.get_symbols(), component)
+
+                ty_id = components[-1]
+                sym = mod.get_property(ty_id)
+                if not isinstance(sym, Type):
+                    self.error(
+                        f"O módulo '{mod.module.fpath}' não possui o tipo '{ty_id}'"
+                    )
+                return self.construct_ty(type_node, sym)
+            case ast.Type():
+                type_id = type_node.name.lexeme
+                type_symbol = self.get_type_sym_or_err(type_id)
+                return self.construct_ty(type_node, type_symbol)
+            case _:
+                raise NotImplementedError("Unknown type node.")
 
     def types_match(self, expected: Type, received: Type):
         return expected == received or received.promote_to(expected)
@@ -747,7 +773,9 @@ class Analyzer(ast.Visitor):
             and not field_sym.can_evaluate()
         ):
             self.error(self.INVALID_REF, name=field_sym.name)
-        node.eval_type = field_sym.type
+        node.eval_type = (
+            field_sym if isinstance(field_sym, Type) else field_sym.type
+        )
         return field_sym
 
     def visit_set(self, node):

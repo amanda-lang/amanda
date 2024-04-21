@@ -407,9 +407,22 @@ class Parser:
             self.consume(TT.QMARK)
         return nullable
 
+    def type_path(self, head: Token) -> ast.Type:
+        tok = head
+        components = [head.lexeme]
+        while self.match(TT.DOT):
+            self.consume(TT.DOT)
+            components.append(self.consume(TT.IDENTIFIER).lexeme)
+        generic_args = self.generic_args()
+        return ast.TypePath(
+            tok, components, self._is_maybe_type(), generic_args
+        )
+
     def type(self) -> ast.Type:
         if self.match(TT.IDENTIFIER):
             name = self.consume(TT.IDENTIFIER)
+            if self.match(TT.DOT):
+                return self.type_path(name)
             generic_args = self.generic_args()
             return ast.Type(name, self._is_maybe_type(), generic_args)
         elif self.match(TT.LBRACKET):

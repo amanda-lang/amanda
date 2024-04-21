@@ -459,6 +459,26 @@ class Type(ASTNode):
         self.generic_args = generic_args
 
 
+@dataclass
+class TypePath(Type):
+    components: list[str]
+    maybe_ty: bool
+    generic_args: list[GenericArg] | None
+
+    def __init__(
+        self,
+        tok: Token,
+        components: list[str],
+        maybe_ty: bool,
+        generic_args: list[GenericArg] | None,
+    ):
+        super().__init__(tok, maybe_ty, generic_args)
+        self.components = components
+        self.maybe_ty = maybe_ty
+        self.generic_args = generic_args
+
+
+@dataclass
 class ArrayType(Type):
     element_type: Type
 

@@ -52,9 +52,17 @@ generic_args
   ;
 
 type
-  :  IDENTIFIER generic_args?  QMARK? 
+  :  type_id generic_args?  QMARK? 
   | LBRACKET type RBRACKET QMARK?
   ;
+type_id
+  : IDENTIFIER
+  | path
+  ; 
+
+path
+ : IDENTIFIER (DOT IDENTIFIER)+
+ ;
 
 function_header
   : IDENTIFIER LPAR formal_parameter_section? RPAR COL (type | VAZIO)
