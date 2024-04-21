@@ -6,7 +6,7 @@ from enum import Enum, auto
 from amanda.compiler.symbols.base import Symbol
 import amanda.compiler.symbols.core as symbols
 from amanda.compiler.types.builtins import Builtins
-from amanda.compiler.types.core import Primitive, Type
+from amanda.compiler.types.core import Primitive, Registo, Type
 import amanda.compiler.ast as ast
 from amanda.compiler.tokens import TokenType as TT
 from amanda.compiler.error import AmandaError, throw_error
@@ -437,6 +437,8 @@ class ByteGen:
         name = symbol.name
         sym_module = cast(symbols.Typed, symbol).module.fpath
         if symbol.is_external(self.ctx_module):
+            # Guarantee item is in the name table
+            self.get_table_index(name, self.NAME_TABLE)
             self.append_op(
                 OpCode.LOAD_MODULE_DEF,
                 self.modules[sym_module],
@@ -729,6 +731,7 @@ class ByteGen:
         # Push and store params
         for arg in node.fargs:
             self.gen(arg)
+
         self.gen(node.callee)
         if func.is_type():
             self.append_op(OpCode.BUILD_OBJ, len(node.fargs))

@@ -1,0 +1,5 @@
+usa "tests/test_data/bar"
+
+reg: Bar = Bar()
+reg.bar()
+#[output]:bar
