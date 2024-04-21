@@ -22,7 +22,7 @@ def write_file(name, code):
 def run_frontend(filename) -> tuple:
     try:
         program = parse(filename)
-        valid_program = Analyzer(filename, Module(filename)).visit_module(
+        valid_program = Analyzer(filename, [], Module(filename)).visit_module(
             program
         )
         return valid_program

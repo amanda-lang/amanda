@@ -7,7 +7,12 @@ from amanda.compiler.symbols.base import TypeVar, Typed
 from amanda.compiler.tokens import TokenType as TT, Token
 import amanda.compiler.ast as ast
 import amanda.compiler.symbols.core as symbols
-from amanda.compiler.types.builtins import SrcBuiltins, builtin_types, Builtins
+from amanda.compiler.types.builtins import (
+    SrcBuiltins,
+    builtin_types,
+    Builtins,
+    builtin_module,
+)
 from amanda.compiler.types.core import (
     ModuleTy,
     Primitive,
@@ -31,9 +36,11 @@ class Analyzer(ast.Visitor):
     ID_IN_USE = "O identificador '{name}' já foi declarado neste escopo"
     INVALID_REF = "o identificador '{name}' não é uma referência válida"
 
-    def __init__(self, filename: str, module: Module):
+    def __init__(self, filename: str, import_paths: list[str], module: Module):
         # Relative path to the file being run
         self.filename = filename
+        # Dirs to be used when resolving relative imports
+        self.import_paths = [STD_LIB, *import_paths]
         # Just to have quick access to things like types and e.t.c
         self.global_scope = symbols.Scope()
         self.scope_depth = 0
@@ -52,9 +59,14 @@ class Analyzer(ast.Visitor):
         for type_id, sym in builtin_types:
             self.global_scope.define(type_id, sym)
 
+        # Validate dirs
+        for dir_path in self.import_paths:
+            assert path.isdir(
+                dir_path
+            ), f"Invalid import path provided:  '{dir_path}'"
+
         # Load builtin module
-        module = Module(path.join(STD_LIB, "embutidos.ama"))
-        self.load_module(module)
+        self.load_module(builtin_module)
         SrcBuiltins.init_embutidos(self.global_scope)
 
     # Helper methods
@@ -286,6 +298,17 @@ class Analyzer(ast.Visitor):
         module.loaded = True
         self.ctx_module = prev_module
 
+    def resolve_import(self, fpath: str) -> str | None:
+        # Try to resolve path using cwd
+        if path.isfile(fpath):
+            return path.abspath(fpath)
+        # Attempt to resolve using the import_paths
+        for dir_path in self.import_paths:
+            mod_path = path.join(dir_path, fpath)
+            if path.isfile(path.join(dir_path, fpath)):
+                return path.abspath(mod_path)
+        return None
+
     def visit_usa(self, node: ast.Usa):
         fpath = node.module.lexeme.replace("'", "").replace('"', "")
         # Check if path refers to a valid file
@@ -297,10 +320,11 @@ class Analyzer(ast.Visitor):
         if tail.split(".")[-1] != "ama":
             tail = tail + ".ama"
         fpath = path.join(head, tail)
-        if not path.isfile(fpath):
+
+        mod_path = self.resolve_import(fpath)
+        if not mod_path:
             self.error(err_msg)
 
-        mod_path = path.abspath(fpath)
         module = Module(mod_path)
         self.load_module(module, node.alias.lexeme if node.alias else None)
 

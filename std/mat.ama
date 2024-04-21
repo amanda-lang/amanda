@@ -1,0 +1,18 @@
+# Este módulo contém de funções matemáticas essenciais
+@@embutido(nome = "mat")
+
+
+#Funções e constantes matemáticas
+PI: real
+@embutido func abs(valor: real): real fim
+@embutido func expoente(x: real, y: real): real fim
+@embutido func raizqd(valor: real): real fim
+@embutido func arredonda(valor: real): int fim
+@embutido func piso(valor: real): int fim
+@embutido func teto(valor: real): int fim
+@embutido func sen(valor: real): real fim
+@embutido func cos(valor: real): real fim
+@embutido func tan(valor: real): real fim
+@embutido func log(valor: real, base: real): real fim
+@embutido func grausprad(valor: real): real fim
+@embutido func radpgraus(valor: real): real fim

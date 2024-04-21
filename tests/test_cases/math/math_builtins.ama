@@ -1,3 +1,5 @@
+usa "mat";
+
 escrevaln(arredonda(expoente(9, 2)))
 escrevaln(abs(-9))
 escrevaln(abs(9))
