@@ -23,6 +23,7 @@ def var_node(name: str, tok: Token) -> ast.Variable:
 @dataclass
 class ASTTransformer:
     module: Module
+    program: ast.Module
 
     def transform(self, node, args=None) -> ast.ASTNode:
         node_class = type(node).__name__.lower()
@@ -113,9 +114,16 @@ class ASTTransformer:
         self.transform(node.callee)
         for farg in node.fargs:
             self.transform(farg)
-        if not node.symbol.is_property:
+
+        # Ignore non-local and non-property symbols
+        is_module_def = node.symbol.module.fpath == self.module
+        if not node.symbol.is_property and is_module_def:
             return node
+
         callee = node.callee
+        if not callee.of_type(ast.Get):
+            return node
+
         if (
             isinstance(callee, ast.Get)
             and self._is_option(callee.target.eval_type)
@@ -124,13 +132,19 @@ class ASTTransformer:
             return ast.Unwrap(option=callee.target, default_val=node.fargs[0])
 
         if callee.of_type(ast.Get) and callee.target.eval_type.is_module():
-            # A call to a function in other module
+            # A call to a function in another module via a module alias
             sym = cast(FunctionSymbol, node.symbol)
+            # Add func symbol to symbol table
+            # Prefix with the name of the module to avoid overwriting
+            # other methods with the same name, from different modules
+            sym.name = sym.out_id = f"{callee}::{sym.name}"
             var = var_node(sym.name, node.token)
             call_node = ast.Call(callee=var, fargs=node.fargs)
             call_node.symbol = sym
+            self.program.symbols.define(sym.name, sym)
             return call_node
         else:
+            # Common method call
             sym = cast(MethodSym, node.symbol)
             instance = cast(ast.Get, node.callee).target
             sym.params = {
@@ -160,4 +174,4 @@ class ASTTransformer:
 
 
 def transform(ast: ast.Module, module: Module) -> ast.Module:
-    return ASTTransformer(module).transform_module(ast)
+    return ASTTransformer(module, ast).transform_module(ast)

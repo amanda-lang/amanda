@@ -233,8 +233,7 @@ class ModuleTy(Type):
         raise NotImplementedError("Methods can't be defined on module")
 
     def get_property(self, prop: str) -> Symbol | None:
-        self.module.ast.symbols.resolve(prop)
-        raise NotImplementedError("Not implemented yet")
+        return self.module.ast.symbols.resolve(prop)
 
 
 class Vector(Type):

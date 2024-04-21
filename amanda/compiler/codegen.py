@@ -436,13 +436,14 @@ class ByteGen:
     def load_variable(self, symbol: Symbol):
         name = symbol.name
         sym_module = cast(symbols.Typed, symbol).module.fpath
-        if symbol.is_global and sym_module != self.ctx_module.fpath:
+        if sym_module != self.ctx_module.fpath:
             self.append_op(
                 OpCode.LOAD_MODULE_DEF,
                 self.modules[sym_module],
                 self.names[name],
             )
-        elif symbol.is_global:
+            return
+        if symbol.is_global:
             self.append_op(OpCode.GET_GLOBAL, self.names[name])
         else:
             self.append_op(OpCode.GET_LOCAL, self.func_locals[symbol.out_id])

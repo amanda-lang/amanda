@@ -286,12 +286,17 @@ class Analyzer(ast.Visitor):
         self.imports[module.fpath] = module
         # TODO: Handle errors while loading another module
         if alias:
-            analyzer = Analyzer(module.fpath, module)
+            analyzer = Analyzer(module.fpath, self.import_paths, module)
             analyzer.imports = self.imports
             analyzer.visit_module(parse(module.fpath))
             self.assert_can_use_ident(self.ctx_node, alias)
             self.global_scope.define(
-                alias, symbols.VariableSymbol(alias, ModuleTy(module), module)
+                alias,
+                symbols.VariableSymbol(
+                    alias,
+                    ModuleTy(module=module, importing_mod=self.ctx_module),
+                    module,
+                ),
             )
         else:
             self.visit_module(parse(module.fpath))
