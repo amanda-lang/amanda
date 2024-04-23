@@ -1,0 +1,7 @@
+#Importa 'abs' e 'raiz' do módulo 'std/mat'
+usa "mat" => [abs, raizqd, hkk]
+
+escrevaln(abs(-1))
+escrevaln(raizqd(4))
+
+#[output]: Erro: Erro ao importar módulo. O item 'hkk' não foi declarado no módulo '/home/stacks/files/personal/Projects/amanda/std/mat.ama'.

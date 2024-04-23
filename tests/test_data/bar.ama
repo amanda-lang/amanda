@@ -2,7 +2,6 @@ func bar()
     mostra "bar"
 fim
 
-
 registo Bar 
 
 fim

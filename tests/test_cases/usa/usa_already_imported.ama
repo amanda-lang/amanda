@@ -1,0 +1,5 @@
+usa "embutidos" => escrevaln
+
+escrevaln("Hello world!")
+
+#[output]: Erro: O identificador 'escrevaln' já foi declarado neste escopo.

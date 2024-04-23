@@ -299,6 +299,36 @@ class Analyzer(ast.Visitor):
         analyzer.imports = self.imports
         return analyzer.visit_module(parse(module.fpath))
 
+    def define_module_alias(self, module: Module, alias: str):
+        if not alias:
+            raise TypeError("Arg 'alias' should not be None")
+        self.assert_can_use_ident(self.ctx_node, alias)
+        self.global_scope.define(
+            alias,
+            symbols.VariableSymbol(
+                alias,
+                ModuleTy(module=module, importing_mod=self.ctx_module),
+                module,
+            ),
+        )
+
+    def define_module_items(
+        self, *, imported_mod: Module, prev_module: Module, usa_items: list[str]
+    ):
+        if not usa_items:
+            raise TypeError("Arg 'usa_items' should not be None")
+        mod_symtab: symbols.Scope = imported_mod.ast.symbols
+        for item in usa_items:
+            sym = mod_symtab.resolve(item)
+            if not sym:
+                self.ctx_module = prev_module
+                self.error(
+                    f"Erro ao importar módulo. O item '{item}' não foi declarado no módulo '{imported_mod.fpath}'"
+                )
+            self.ctx_module = prev_module
+            self.assert_can_use_ident(self.ctx_node, item)
+            self.global_scope.define(item, sym)
+
     def load_module(
         self,
         module: Module,
@@ -310,7 +340,16 @@ class Analyzer(ast.Visitor):
         existing_mod = self.imports.get(module.fpath)
         # Module has already been loaded
         if existing_mod and existing_mod.loaded:
-            return
+            match mode:
+                case ast.UsaMode.Scoped:
+                    self.define_module_alias(module, alias)
+                case ast.UsaMode.Item:
+                    self.define_module_items(
+                        imported_mod=existing_mod,
+                        prev_module=self.ctx_module,
+                        usa_items=usa_items,
+                    )
+
         # Check for a cycle
         # A cycle occurs when a previously seen module
         # is seen again, but it is not loaded yet
@@ -330,29 +369,17 @@ class Analyzer(ast.Visitor):
                 if not alias:
                     raise TypeError("Arg 'alias' should not be None")
                 self.load_module_scoped(module)
-                self.assert_can_use_ident(self.ctx_node, alias)
-                self.global_scope.define(
-                    alias,
-                    symbols.VariableSymbol(
-                        alias,
-                        ModuleTy(module=module, importing_mod=self.ctx_module),
-                        module,
-                    ),
-                )
+                self.define_module_alias(module, alias)
+
             case ast.UsaMode.Item:
-                imported_mod, _ = self.load_module_scoped(module)
                 if not usa_items:
                     raise TypeError("Arg 'usa_items' should not be None")
-                mod_symtab: symbols.Scope = imported_mod.ast.symbols
-                for item in usa_items:
-                    sym = mod_symtab.resolve(item)
-                    if not sym:
-                        self.ctx_module = prev_module
-                        self.error(
-                            f"Erro ao importar módulo. O item '{item}' não foi declarado no módulo '{module.fpath}'"
-                        )
-                    self.assert_can_use_ident(self.ctx_node, item)
-                    self.global_scope.define(item, sym)
+                imported_mod, _ = self.load_module_scoped(module)
+                self.define_module_items(
+                    imported_mod=imported_mod,
+                    prev_module=prev_module,
+                    usa_items=usa_items,
+                )
 
         module.loaded = True
         self.ctx_module = prev_module

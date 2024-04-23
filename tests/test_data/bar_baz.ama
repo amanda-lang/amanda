@@ -5,3 +5,7 @@ fim
 func bar()
     escrevaln("bar")
 fim
+
+func ehlo()
+
+fim
