@@ -810,6 +810,10 @@ class Analyzer(ast.Visitor):
         expr = node.expr
         # evaluate sides
         self.visit(target)
+        if target.target.eval_type.is_module():
+            self.error(
+                f"Atribuição inválida. As variáveis globais de um módulo importado não podem ser modificadas externamente"
+            )
         self.visit(expr)
         expr.prom_type = expr.eval_type.promote_to(target.eval_type)
         if not self.types_match(target.eval_type, expr.eval_type):
