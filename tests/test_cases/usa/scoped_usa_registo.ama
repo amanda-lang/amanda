@@ -2,4 +2,7 @@ usa "tests/test_data/bar" => bar
 
 reg: bar.Bar = bar.Bar()
 reg.bar()
-#[output]: bar
+
+reg2: bar.Bar? = nulo
+escrevaln(reg2)
+#[output]: bar nulo
