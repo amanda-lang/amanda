@@ -115,13 +115,13 @@ class ASTTransformer:
         for farg in node.fargs:
             self.transform(farg)
 
-        # Ignore non-local and non-property symbols
         if not node.symbol.is_property and not node.symbol.is_external(
             self.module
         ):
             return node
 
         callee = node.callee
+
         if not callee.of_type(ast.Get):
             return node
 
@@ -160,12 +160,20 @@ class ASTTransformer:
 
     def transform_get(self, node: ast.Get):
         self.transform(node.target)
-        return (
-            ast.Unwrap(option=node.target, default_val=None)
-            if node.target.eval_type.is_constructed_from(SrcBuiltins.Opcao)
-            and node.member.lexeme == "valor"
-            else node
-        )
+        if node.target.eval_type.is_module():
+            imp_mod = node.target.eval_type
+            sym = imp_mod.module.ast.symbols.resolve(node.member.lexeme)
+            sym.name = sym.out_id = f"{imp_mod.module.fpath}::{sym.name}"
+            var = var_node(sym.name, node.token)
+            self.program.symbols.define(sym.name, sym)
+            return var
+        else:
+            return (
+                ast.Unwrap(option=node.target, default_val=None)
+                if node.target.eval_type.is_constructed_from(SrcBuiltins.Opcao)
+                and node.member.lexeme == "valor"
+                else node
+            )
 
     def transform_module(self, node: ast.Module) -> ast.Module:
         for child in node.children:

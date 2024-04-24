@@ -299,7 +299,9 @@ class Analyzer(ast.Visitor):
         analyzer.imports = self.imports
         return analyzer.visit_module(parse(module.fpath))
 
-    def define_module_alias(self, module: Module, alias: str):
+    def define_module_alias(
+        self, alias: str, *, importing_mod, imported_mod: Module
+    ):
         if not alias:
             raise TypeError("Arg 'alias' should not be None")
         self.assert_can_use_ident(self.ctx_node, alias)
@@ -307,8 +309,8 @@ class Analyzer(ast.Visitor):
             alias,
             symbols.VariableSymbol(
                 alias,
-                ModuleTy(module=module, importing_mod=self.ctx_module),
-                module,
+                ModuleTy(module=imported_mod, importing_mod=importing_mod),
+                imported_mod,
             ),
         )
 
@@ -342,13 +344,20 @@ class Analyzer(ast.Visitor):
         if existing_mod and existing_mod.loaded:
             match mode:
                 case ast.UsaMode.Scoped:
-                    self.define_module_alias(module, alias)
+                    self.define_module_alias(
+                        str(alias),
+                        importing_mod=self.ctx_module,
+                        imported_mod=existing_mod,
+                    )
                 case ast.UsaMode.Item:
                     self.define_module_items(
                         imported_mod=existing_mod,
                         prev_module=self.ctx_module,
                         usa_items=usa_items,
                     )
+                case _:
+                    pass
+            return
 
         # Check for a cycle
         # A cycle occurs when a previously seen module
@@ -368,8 +377,10 @@ class Analyzer(ast.Visitor):
             case ast.UsaMode.Scoped:
                 if not alias:
                     raise TypeError("Arg 'alias' should not be None")
-                self.load_module_scoped(module)
-                self.define_module_alias(module, alias)
+                imported_mod, _ = self.load_module_scoped(module)
+                self.define_module_alias(
+                    alias, importing_mod=prev_module, imported_mod=module
+                )
 
             case ast.UsaMode.Item:
                 if not usa_items:
@@ -913,6 +924,11 @@ class Analyzer(ast.Visitor):
         # Check rhs of assignment
         # is expression
         self.visit(lhs)
+        sym = self.ctx_scope.resolve_typed(lhs.token.lexeme)
+        if sym.is_external(self.ctx_module):
+            self.error(
+                f"Atribuição inválida. As variáveis globais de um módulo importado não podem ser modificadas externamente"
+            )
         # Set node types
         if isinstance(lhs.eval_type, ModuleTy):
             self.error(

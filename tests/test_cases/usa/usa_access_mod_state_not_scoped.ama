@@ -1,0 +1,7 @@
+usa "tests/test_data/stateful_mod"
+#usa "tests/test_data/stateful_mod" => stateful_mod
+
+state = 1
+escrevaln(state)
+
+#[output]: Erro: Atribuição inválida. As variáveis globais de um módulo importado não podem ser modificadas externamente.

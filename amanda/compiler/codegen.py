@@ -436,9 +436,10 @@ class ByteGen:
     def load_variable(self, symbol: Symbol):
         name = symbol.name
         sym_module = cast(symbols.Typed, symbol).module.fpath
+        typed_sym = cast(symbols.Typed, symbol)
+        # Guarantee item is in the name table
+        self.get_table_index(name, self.NAME_TABLE)
         if symbol.is_external(self.ctx_module):
-            # Guarantee item is in the name table
-            self.get_table_index(name, self.NAME_TABLE)
             self.append_op(
                 OpCode.LOAD_MODULE_DEF,
                 self.modules[sym_module],
