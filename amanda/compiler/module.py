@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Any
+from os import path
 
 
 @dataclass
@@ -9,3 +10,7 @@ class Module:
     loaded: bool = False
     builtin: bool = False
     compiled: bool = False
+
+    def __str__(self) -> str:
+        _, tail = path.split(self.fpath)
+        return f"{tail}"

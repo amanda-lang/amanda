@@ -39,9 +39,7 @@ class FunctionSymbol(Typed):
 
     def __str__(self):
         params = ",".join(self.params)
-        return (
-            f"<{self.__class__.__name__}: ({self.name},{self.type}) ({params})>"
-        )
+        return f"<{self.__class__.__name__}: ({self.module}::{self.name},{self.type}) ({params})>"
 
     def can_evaluate(self):
         return False
@@ -96,9 +94,7 @@ class MethodSym(FunctionSymbol):
 
     def __str__(self):
         params = ",".join(self.params)
-        return (
-            f"<{self.__class__.__name__}: ({self.name},{self.type}) ({params})>"
-        )
+        return f"<{self.__class__.__name__}: ({self.module}::{self.name},{self.type}) ({params})>"
 
     def bind(self, **ty_args: Type) -> Typed:
         new_fn = cast(FunctionSymbol, super().bind(**ty_args))

@@ -3,7 +3,6 @@ import amanda.compiler.ast as ast
 from amanda.compiler.module import Module
 from amanda.compiler.symbols.base import Type
 from amanda.compiler.tokens import TokenType as TT, Token
-from amanda.compiler.ast import node_of_type
 from amanda.compiler.symbols.core import (
     FunctionSymbol,
     MethodSym,
@@ -132,6 +131,7 @@ class ASTTransformer:
         ):
             return ast.Unwrap(option=callee.target, default_val=node.fargs[0])
 
+        var: ast.Variable
         if callee.of_type(ast.Get) and callee.target.eval_type.is_module():
             # A call to a function in another module via a module alias
             sym = cast(FunctionSymbol, node.symbol)
@@ -139,12 +139,13 @@ class ASTTransformer:
             # Prefix with the name of the module to avoid overwriting
             # other methods with the same name, from different modules
             sym.name = sym.out_id = f"{callee}::{sym.name}"
-            var = var_node(sym.name, node.token)
+            self.program.symbols.define(sym.name, sym)
+            """
             call_node = ast.Call(callee=var, fargs=node.fargs)
             call_node.symbol = sym
-            self.program.symbols.define(sym.name, sym)
             return call_node
-        else:
+            """
+        elif isinstance(node.symbol, MethodSym):
             # Common method call
             sym = cast(MethodSym, node.symbol)
             instance = cast(ast.Get, node.callee).target
@@ -153,6 +154,11 @@ class ASTTransformer:
                 **sym.params,
             }
             node.fargs.insert(0, instance)
+            if sym.is_external(self.module):
+                sym.name = sym.out_id = f"{sym.module.fpath}::{sym.name}"
+                self.program.symbols.define(sym.name, sym)
+        else:
+            raise NotImplementedError("Unknown case")
         var = var_node(sym.name, node.token)
         call_node = ast.Call(callee=var, fargs=node.fargs)
         call_node.symbol = sym
