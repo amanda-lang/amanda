@@ -1,9 +1,22 @@
-program
- : (usa_stmt)* ( declaration | NEWLINE )* EOF
+module
+ : (module_annotation)? (usa_stmt)* ( declaration | NEWLINE )* EOF
  ;
 
+module_annotation
+ : AT annotation
+ ;
+
+
 usa_stmt
- : USA STRING (COMO IDENTIFIER)? end_stmt
+ : USA STRING (scoped_usa | item_usa)? end_stmt
+ ;
+
+scoped_usa
+ : ARROW IDENTIFIER
+ ;
+
+item_usa
+ : ARROW LBRACKET IDENTIFIER+ RBRACKET
  ;
 
 
@@ -39,9 +52,17 @@ generic_args
   ;
 
 type
-  :  IDENTIFIER generic_args?  QMARK? 
+  :  type_id generic_args?  QMARK? 
   | LBRACKET type RBRACKET QMARK?
   ;
+type_id
+  : IDENTIFIER
+  | path
+  ; 
+
+path
+ : IDENTIFIER (DOT IDENTIFIER)+
+ ;
 
 function_header
   : IDENTIFIER LPAR formal_parameter_section? RPAR COL (type | VAZIO)

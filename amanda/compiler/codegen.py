@@ -1,3 +1,4 @@
+from os import path
 import sys
 from typing import List, cast, Sequence
 from io import StringIO, BytesIO
@@ -5,11 +6,12 @@ from enum import Enum, auto
 from amanda.compiler.symbols.base import Symbol
 import amanda.compiler.symbols.core as symbols
 from amanda.compiler.types.builtins import Builtins
-from amanda.compiler.types.core import Primitive, Type
+from amanda.compiler.types.core import Primitive, Registo, Type
 import amanda.compiler.ast as ast
 from amanda.compiler.tokens import TokenType as TT
 from amanda.compiler.error import AmandaError, throw_error
 from amanda.compiler import bindump
+from amanda.compiler.module import Module
 import struct
 
 
@@ -90,6 +92,9 @@ class OpCode(Enum):
     # Checks if value at TOS is null. if it is, pushes 'true', else, pushes false
     # 8-bit arg indicates whether to panic in case of null or to use the 8-bit arg at TOS - 1
     OP_ISNULL = auto()
+    # Get the value of a global declared in another module. arg-1 (64-bit) is the index of the module in the table of imported modules,
+    # arg-2 (64-bit) is the index to the name of the var on the constant table.
+    LOAD_MODULE_DEF = auto()
     # Stops execution of the VM. Must always be added to stop execution of the vm
     HALT = 0xFF
 
@@ -98,34 +103,34 @@ class OpCode(Enum):
         # uses
         num_ops = len(list(OpCode))
         assert (
-            num_ops == 39
+            num_ops == 40
         ), f"Please update the size of ops after adding a new Op. New size: {num_ops}"
-        if self in (
-            OpCode.CALL_FUNCTION,
-            OpCode.CAST,
-            OpCode.BUILD_STR,
-            OpCode.BUILD_VEC,
-            OpCode.BUILD_OBJ,
-            OpCode.OP_UNWRAP,
-        ):
-            return OP_SIZE * 2
-        elif self in (
-            OpCode.LOAD_CONST,
-            OpCode.LOAD_NAME,
-            OpCode.SET_LOCAL,
-            OpCode.GET_LOCAL,
-            OpCode.GET_GLOBAL,
-            OpCode.SET_GLOBAL,
-            OpCode.LOAD_REGISTO,
-        ):
-            return OP_SIZE * 3
-        elif self in (
-            OpCode.JUMP,
-            OpCode.JUMP_IF_FALSE,
-        ):
-            return OP_SIZE * 9
-        else:
-            return OP_SIZE
+        match self:
+            case (
+                OpCode.CALL_FUNCTION
+                | OpCode.CAST
+                | OpCode.BUILD_STR
+                | OpCode.BUILD_VEC
+                | OpCode.BUILD_OBJ
+                | OpCode.OP_UNWRAP
+            ):
+                return OP_SIZE * 2
+            case (
+                OpCode.LOAD_CONST
+                | OpCode.LOAD_NAME
+                | OpCode.SET_LOCAL
+                | OpCode.GET_LOCAL
+                | OpCode.GET_GLOBAL
+                | OpCode.SET_GLOBAL
+                | OpCode.LOAD_REGISTO
+            ):
+                return OP_SIZE * 3
+            case OpCode.JUMP | OpCode.JUMP_IF_FALSE:
+                return OP_SIZE * 9
+            case OpCode.LOAD_MODULE_DEF:
+                return OP_SIZE * 17
+            case _:
+                return OP_SIZE
 
     def __str__(self) -> str:
         return str(self.value)
@@ -142,7 +147,7 @@ class ByteGen:
     CONST_TABLE = 0
     NAME_TABLE = 1
 
-    def __init__(self):
+    def __init__(self, module: Module):
         self.depth: int = -1
         self.ama_lineno: int = 1  # tracks lineno in input amanda src
         self.program_symtab: symbols.Scope = None  # type: ignore
@@ -156,17 +161,45 @@ class ByteGen:
         self.registos = []
         self.ip: int = 0  # Current bytecode offset
         self.lineno: int = -1
+        self.ctx_module: Module = module
         self.ctx_loop_start: int = -1
         self.ctx_loop_exit: int = -1
         self.src_map: dict[int, list[int]] = (
             {}
         )  # Maps source lines to bytecode offset
+        self.modules: dict[str, int] = {}
 
-    def compile(self, program) -> bytes:
+    def compile_builtin(self, raw: bool = True) -> bytes | dict:
+        self.append_op(OpCode.HALT)
+        ops = BytesIO()
+        for op in self.ops:
+            ops.write(self.write_op_bytes(op))
+        code = ops.getvalue()
+        ops.close()
+        module = {
+            "name": path.split(self.ctx_module.fpath)[1].replace(".ama", ""),
+            "builtin": 1,
+            "entry_locals": 0,
+            "constants": [],
+            "names": [],
+            "ops": code,
+            "functions": self.funcs,
+            "registos": self.registos,
+            "src_map": [-1],
+            "imports": [],
+        }
+        if not raw:
+            return module
+        return bindump.dumps(module)
+
+    def compile(
+        self, imports: dict[str, Module], raw: bool = True
+    ) -> bytes | dict:
         """Compiles an amanda ast into bytecode ops.
         Returns a serialized object that contains the bytecode and
         other info used at runtime.
         """
+        program = self.ctx_module.ast
         self.program_symtab = self.scope_symtab = program.symbols
         # Define builtin constants
         self.get_table_index("verdadeiro", self.CONST_TABLE)
@@ -176,9 +209,26 @@ class ByteGen:
             symbols.FunctionSymbol,
             Primitive,
         )
+        if self.ctx_module.builtin:
+            return self.compile_builtin(raw)
+
         for name, symbol in program.symbols.symbols.items():
             if type(symbol) in sym_types:
                 self.get_table_index(name, self.NAME_TABLE)
+
+        for mod in imports.values():
+            idx = len(self.modules)
+            self.modules[mod.fpath] = idx
+
+        compiled_imports = []
+        for mod in imports.values():
+            if mod.fpath in self.modules and mod.compiled:
+                continue
+            compiler = ByteGen(mod)
+            compiler.modules = self.modules
+            module_out = compiler.compile({}, raw=False)
+            compiled_imports.append(module_out)
+            mod.compiled = True
 
         self.compile_block(program)
         assert self.depth == -1, "A block was not exited in some local scope!"
@@ -206,6 +256,8 @@ class ByteGen:
             offsets.append(lineno)
             src_map.extend(offsets)
         module = {
+            "name": path.split(self.ctx_module.fpath)[1].replace(".ama", ""),
+            "builtin": 1 if self.ctx_module.builtin else 0,
             "entry_locals": len(self.func_locals),
             "constants": list(self.const_table.keys()),
             "names": list(self.names.keys()),
@@ -213,8 +265,10 @@ class ByteGen:
             "functions": self.funcs,
             "registos": self.registos,
             "src_map": src_map,
+            "imports": compiled_imports,
         }
-
+        if not raw:
+            return module
         return bindump.dumps(module)
 
     def new_label(self) -> int:
@@ -276,6 +330,15 @@ class ByteGen:
         elif op.op_size() == OP_SIZE * 9:
             u64 = self.format_u64_arg(args[0])
             return bytes([op.value, *u64])
+        elif op.op_size() == OP_SIZE * 17:
+            return bytes(
+                [
+                    op.value,
+                    *self.format_u64_arg(args[0]),
+                    *self.format_u64_arg(args[1]),
+                ]
+            )
+
         else:
             raise NotImplementedError(
                 f"Encoding of op {op.name} has not yet been implemented"
@@ -372,10 +435,24 @@ class ByteGen:
 
     def load_variable(self, symbol: Symbol):
         name = symbol.name
+        sym_module = cast(symbols.Typed, symbol).module.fpath
+        typed_sym = cast(symbols.Typed, symbol)
+        # Guarantee item is in the name table
+        self.get_table_index(name, self.NAME_TABLE)
+        if symbol.is_external(self.ctx_module):
+            self.append_op(
+                OpCode.LOAD_MODULE_DEF,
+                self.modules[sym_module],
+                self.names[name],
+            )
+            return
         if symbol.is_global:
             self.append_op(OpCode.GET_GLOBAL, self.names[name])
         else:
             self.append_op(OpCode.GET_LOCAL, self.func_locals[symbol.out_id])
+
+    def gen_usa(self, node: ast.Usa):
+        pass
 
     def gen_variable(self, node: ast.Variable):
         name = node.token.lexeme
@@ -610,15 +687,13 @@ class ByteGen:
 
     def gen_functiondecl(self, node: ast.FunctionDecl):
         func_symbol = node.symbol
+
         name = func_symbol.name
         name_idx = self.get_table_index(func_symbol.name, self.NAME_TABLE)
         func_end = self.new_label()
-
         self.append_op(OpCode.JUMP, func_end)
         func_start = self.new_label()
-
         block = node.block
-
         prev_func_locals = self.func_locals
         self.func_locals = {}
         for param in func_symbol.params.values():
@@ -626,13 +701,15 @@ class ByteGen:
             idx = len(self.func_locals)
             self.func_locals[local] = idx
 
-        self.enter_block(block.symbols)
-        for child in block.children:
-            self.gen(child)
+        if not func_symbol.is_builtin():
+            self.enter_block(block.symbols)
+            for child in block.children:
+                self.gen(child)
+            self.exit_block()
+
         # default return
         self.load_const("falso")
         self.append_op(OpCode.RETURN)
-        self.exit_block()
         num_locals = len(self.func_locals)
         self.func_locals = prev_func_locals
 
@@ -643,6 +720,7 @@ class ByteGen:
                 "name": name,
                 "start_ip": self.labels[func_start],
                 "locals": num_locals,
+                "module": (self.modules.get(func_symbol.module.fpath, -1)),
             }
         )
 
@@ -654,6 +732,7 @@ class ByteGen:
         # Push and store params
         for arg in node.fargs:
             self.gen(arg)
+
         self.gen(node.callee)
         if func.is_type():
             self.append_op(OpCode.BUILD_OBJ, len(node.fargs))

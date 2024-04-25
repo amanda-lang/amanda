@@ -1,4 +1,5 @@
 from __future__ import annotations
+import enum
 from amanda.compiler.tokens import Token, TokenType as TT
 import amanda.compiler.types.core as types
 from amanda.compiler.types.builtins import Builtins
@@ -30,6 +31,7 @@ def node_of_type(node: ASTNode, ty: PyTy[T]) -> TypeGuard[T]:
 class Annotation:
     name: str
     attrs: dict[str, str]
+    location_tok: Token
 
 
 class ASTNode:
@@ -72,7 +74,7 @@ class ASTNode:
 
 class Block(ASTNode):
     def __init__(self, children: list[ASTNode] | None = None):
-        super().__init__(Token(TT.PROGRAM, "", 0, 0))
+        super().__init__(Token(TT.PROGRAM, "", 1, 1))
         self.children: List[ASTNode] = children if children else []
         self.symbols = None
 
@@ -80,16 +82,36 @@ class Block(ASTNode):
         self.children.append(node)
 
 
+@dataclass
+class Module(Block):
+    annotations: list[Annotation]
+
+    def __init__(self, children: list[ASTNode] | None = None, annotations=None):
+        super().__init__(children)
+        self.annotations = annotations if annotations else []
+
+
+class UsaMode(enum.Enum):
+    Scoped = enum.auto()
+    Item = enum.auto()
+    Global = enum.auto()
+
+
 class Usa(ASTNode):
-    def __init__(self, token, *, module="", alias=None):
+    def __init__(
+        self,
+        token: Token,
+        *,
+        usa_mode: UsaMode,
+        module: Token,
+        alias: Token | None = None,
+        items: list[str] | None = None,
+    ):
         super().__init__(token)
+        self.usa_mode = usa_mode
         self.module = module
         self.alias = alias
-
-
-class Program(Block):
-
-    pass
+        self.items = items if items else []
 
 
 class Expr(ASTNode):
@@ -339,7 +361,7 @@ class FunctionDecl(ASTNode):
         name: Token,
         params: list[Param],
         block: Block | None = None,
-        annotations: list[Annotation] | None = None,
+        annotations: list[Annotation],
         func_type: Type | None,
     ):
         super().__init__(name)
@@ -364,11 +386,15 @@ class MethodDecl(FunctionDecl):
         block: Block,
         return_ty: Type,
         params: List[Param],
-        annotations: list[Annotation] | None,
+        annotations: list[Annotation],
         generic_params: list[GenericParam] | None,
     ):
         super().__init__(
-            name=name, block=block, func_type=return_ty, params=params
+            name=name,
+            block=block,
+            func_type=return_ty,
+            params=params,
+            annotations=list(),
         )
         self.annotations = annotations
         self.generic_params = generic_params
@@ -433,6 +459,26 @@ class Type(ASTNode):
         self.generic_args = generic_args
 
 
+@dataclass
+class TypePath(Type):
+    components: list[str]
+    maybe_ty: bool
+    generic_args: list[GenericArg] | None
+
+    def __init__(
+        self,
+        tok: Token,
+        components: list[str],
+        maybe_ty: bool,
+        generic_args: list[GenericArg] | None,
+    ):
+        super().__init__(tok, maybe_ty, generic_args)
+        self.components = components
+        self.maybe_ty = maybe_ty
+        self.generic_args = generic_args
+
+
+@dataclass
 class ArrayType(Type):
     element_type: Type
 

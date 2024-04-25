@@ -1,0 +1,8 @@
+usa "tests/test_data/stateful_mod" => stateful_mod
+
+
+
+escrevaln(stateful_mod.state)
+stateful_mod.incrementa()
+escrevaln(stateful_mod.state)
+#[output]: 0 1

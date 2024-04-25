@@ -5,6 +5,7 @@ from typing import Any, TYPE_CHECKING
 
 from dataclasses import dataclass
 
+from amanda.compiler.module import Module
 from amanda.compiler.tokens import TokenType
 
 if TYPE_CHECKING:
@@ -12,10 +13,16 @@ if TYPE_CHECKING:
 
 
 class Symbol(ABC):
-    def __init__(self, name: str, annotations: list[Annotation] | None = None):
+    def __init__(
+        self,
+        name: str,
+        module: Module,
+        annotations: list[Annotation] | None = None,
+    ):
         self.name = name
         self.out_id = name  # symbol id in compiled source program
         self.is_property = False  # Avoid this repitition
+        self.module = module
         self.is_global = False
         self.annotations: list[Annotation] = (
             annotations if annotations is not None else []
@@ -38,15 +45,19 @@ class Symbol(ABC):
     def is_builtin(self) -> bool:
         return any(map(lambda s: s.name == "embutido", self.annotations))
 
+    def is_external(self, ctx_mod: Module) -> bool:
+        return self.module.fpath != ctx_mod.fpath
+
 
 @dataclass
 class Type(Symbol):
     def __init__(
         self,
         name: str,
+        module: Module,
         zero_initialized: bool = False,
     ):
-        super().__init__(name)
+        super().__init__(name, module)
         self.zero_initialized = zero_initialized
         self.is_global = True
 
@@ -101,6 +112,9 @@ class Type(Symbol):
     def is_callable(self) -> bool:
         return False
 
+    def is_module(self) -> bool:
+        return False
+
     def is_operable(self) -> bool:
         return False
 
@@ -121,6 +135,9 @@ class Type(Symbol):
 
     def check_cast(self, other: Type) -> bool:
         return self.cast_to(other) or other.cast_from(self)
+
+    def is_external(self, ctx_mod: Module) -> bool:
+        return self.module.fpath != ctx_mod.fpath
 
     def promote_to(self, other: Type) -> Type | None:
         result = self.promotion_to(other)
@@ -153,8 +170,8 @@ class TypeVar(Type):
     name: str
     constraints: list
 
-    def __init__(self, name: str):
-        super().__init__(name)
+    def __init__(self, name: str, module: Module):
+        super().__init__(name, module)
         self.zero_initialized = False
         self.is_global = False
         self.constraints = []
@@ -205,8 +222,8 @@ class TypeVar(Type):
 
 
 class Typed(Symbol):
-    def __init__(self, name: str, ty: Type):
-        super().__init__(name)
+    def __init__(self, name: str, ty: Type, module: Module):
+        super().__init__(name, module)
         self.type = ty
 
     @abstractmethod

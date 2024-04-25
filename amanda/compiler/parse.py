@@ -195,7 +195,7 @@ class Lexer:
             TT.IDENTIFIER, result, self.line, self.pos - (len(result) + 1)
         )
 
-    def delimeters(self) -> Token | None:
+    def common_toks(self) -> Token | None:
         char = self.current_char
 
         match (is_ambiguous_char(char), char, self.lookahead()):
@@ -233,24 +233,22 @@ class Lexer:
             # EOF
             self.advance()
             return Token(Lexer.EOF, "", line=self.line, col=self.pos - 1)
-        if self.current_char == "\n":
+        elif self.current_char == "\n":
             return self.newline()
-        if self.current_char in ("+", "-", "*", "/", "%"):
-            return self.arit_operators()
-        if self.current_char in ("<", ">", "!", "="):
-            return self.comparison_operators()
-        if self.current_char.isdigit():
-            return self.number()
-        if self.current_char == "'" or self.current_char == '"':
+        elif self.current_char == "'" or self.current_char == '"':
             return self.string()
-        if self.current_char.isalpha() or self.current_char == "_":
+        elif self.current_char.isalpha() or self.current_char == "_":
             if self.current_char == "f" and self.lookahead() in ('"', "'"):
                 return self.format_str()
             return self.identifier()
-        if self.current_char in Token.TOKENS:
-            return self.delimeters()
-        if self.current_char == Lexer.EOF:
+        elif self.current_char.isdigit():
+            return self.number()
+        elif self.current_char == Lexer.EOF:
             return Token(Lexer.EOF, "", line=self.line, col=self.pos)
+        tok = self.common_toks()
+        if tok:
+            return tok
+
         self.error(self.INVALID_SYMBOL, symbol=self.current_char)
 
 
@@ -300,34 +298,62 @@ class Parser:
         return self.lookahead.token == token
 
     def parse(self):
-        return self.program()
+        return self.module()
 
-    def program(self):
-        program = ast.Program()
+    def module(self):
+        module = ast.Module()
         imports = []
         self.skip_newlines()
+        mod_annotations = self.module_annotations()
         while self.match(TT.USA):
             imports.append(self.usa_stmt())
             self.skip_newlines()
 
-        self.append_child(program, imports)
+        self.append_child(module, imports)
+        module.annotations = mod_annotations
         while not self.match(Lexer.EOF):
             if self.match(TT.NEWLINE):
                 self.consume(TT.NEWLINE)
             else:
                 child = self.declaration()
-                self.append_child(program, child)
-        return program
+                self.append_child(module, child)
+        return module
+
+    def module_annotations(self) -> list[ast.Annotation]:
+        annotations = []
+        while self.match(TT.DOUBLEAT):
+            self.consume(TT.DOUBLEAT)
+            annotations.append(self.annotation_body())
+        return annotations
 
     def usa_stmt(self):
         token = self.consume(TT.USA)
         module = self.consume(TT.STRING)
         alias = None
-        if self.match(TT.COMO):
-            self.consume(TT.COMO)
+        if not self.match(TT.ARROW):
+            self.end_stmt()
+            return ast.Usa(token, usa_mode=ast.UsaMode.Global, module=module)
+        self.consume(TT.ARROW)
+        if self.match(TT.IDENTIFIER):
             alias = self.consume(TT.IDENTIFIER)
-        self.end_stmt()
-        return ast.Usa(token, module=module, alias=alias)
+            return ast.Usa(
+                token, usa_mode=ast.UsaMode.Scoped, module=module, alias=alias
+            )
+        elif self.match(TT.LBRACKET):
+            self.consume(TT.LBRACKET)
+            idents: list[str] = []
+            idents.append(self.consume(TT.IDENTIFIER).lexeme)
+            while self.match(TT.COMMA):
+                self.consume(TT.COMMA)
+                idents.append(self.consume(TT.IDENTIFIER).lexeme)
+            self.consume(TT.RBRACKET)
+            return ast.Usa(
+                token, usa_mode=ast.UsaMode.Item, module=module, items=idents
+            )
+        else:
+            self.error(
+                "Instrução 'usa' inválida. Esperava-se um identificador ou uma lista de identificadores"
+            )
 
     def block(self):
         block = ast.Block()
@@ -365,7 +391,6 @@ class Parser:
                 self.error(
                     "As anotações devem ser seguidas de uma função, método ou registo"
                 )
-
         if self.match(TT.FUNC):
             return self.function_decl(annotations)
         elif self.match(TT.MET):
@@ -382,9 +407,22 @@ class Parser:
             self.consume(TT.QMARK)
         return nullable
 
+    def type_path(self, head: Token) -> ast.Type:
+        tok = head
+        components = [head.lexeme]
+        while self.match(TT.DOT):
+            self.consume(TT.DOT)
+            components.append(self.consume(TT.IDENTIFIER).lexeme)
+        generic_args = self.generic_args()
+        return ast.TypePath(
+            tok, components, self._is_maybe_type(), generic_args
+        )
+
     def type(self) -> ast.Type:
         if self.match(TT.IDENTIFIER):
             name = self.consume(TT.IDENTIFIER)
+            if self.match(TT.DOT):
+                return self.type_path(name)
             generic_args = self.generic_args()
             return ast.Type(name, self._is_maybe_type(), generic_args)
         elif self.match(TT.LBRACKET):
@@ -424,7 +462,11 @@ class Parser:
             else:
                 func_type = self.type()
         return ast.FunctionDecl(
-            name=name, block=None, func_type=func_type, params=params
+            name=name,
+            block=None,
+            func_type=func_type,
+            params=params,
+            annotations=list(),
         )
 
     def native_func_decl(self):
@@ -434,7 +476,7 @@ class Parser:
         self.end_stmt()
         return function
 
-    def method_decl(self, annotations: list[ast.Annotation] | None):
+    def method_decl(self, annotations: list[ast.Annotation]):
         self.consume(TT.MET)
         generic_params = self.generic_params()
         ty = self.type()
@@ -867,32 +909,34 @@ class Parser:
             node = ast.BinOp(op, left=node, right=self.unary())
         return node
 
-    def annotations(self) -> list[ast.Annotation] | None:
+    def annotation_body(self) -> ast.Annotation:
+        tok = self.consume(TT.IDENTIFIER)
+        annotation_name = tok.lexeme
+        attrs = {}
+        if not self.match(TT.LPAR):
+            return ast.Annotation(annotation_name, attrs, tok)
+        self.consume(TT.LPAR)
+        if self.match(TT.RPAR):
+            self.error(
+                f"A anotação {annotation_name} deve especificar atributos. Caso não possua atributos, remova os parênteses"
+            )
+        while not self.match(TT.RPAR):
+            attr = self.consume(
+                TT.IDENTIFIER, "Esperava-se o nome do atributo da anotação"
+            )
+            self.consume(TT.EQUAL)
+            value = self.consume(TT.STRING)
+            attrs[attr.lexeme] = value.lexeme
+            if self.match(TT.COMMA):
+                self.consume(TT.COMMA)
+        self.consume(TT.RPAR)
+        return ast.Annotation(annotation_name, attrs, tok)
+
+    def annotations(self) -> list[ast.Annotation]:
         annotations = []
         while self.match(TT.AT):
             self.consume(TT.AT)
-            annotation_name = self.consume(TT.IDENTIFIER).lexeme
-            attrs = {}
-            if not self.match(TT.LPAR):
-                annotations.append(ast.Annotation(annotation_name, attrs))
-                continue
-            self.consume(TT.LPAR)
-            if self.match(TT.RPAR):
-                self.error(
-                    f"A anotação {annotation_name} deve especificar atributos. Caso não possua atributos, remova os parênteses"
-                )
-            while not self.match(TT.RPAR):
-                attr = self.consume(
-                    TT.IDENTIFIER, "Esperava-se o nome do atributo da anotação"
-                )
-                self.consume(TT.EQUAL)
-                value = self.consume(TT.STRING)
-                attrs[attr.lexeme] = value.lexeme
-                if self.match(TT.COMMA):
-                    self.consume(TT.COMMA)
-            self.consume(TT.RPAR)
-            annotations.append(ast.Annotation(annotation_name, attrs))
-
+            annotations.append(self.annotation_body())
         return annotations
 
     def unary(self):
@@ -1118,6 +1162,6 @@ class Parser:
 def parse(filename):
     with open(filename, encoding="utf-8") as src_file:
         src = StringIO(src_file.read())
-    program = Parser(filename, src).parse()
-    program.tag_children()
-    return program
+    module = Parser(filename, src).parse()
+    module.tag_children()
+    return module

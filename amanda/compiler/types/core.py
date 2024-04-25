@@ -2,6 +2,7 @@ from __future__ import annotations
 from enum import auto, IntEnum, Enum
 from dataclasses import dataclass
 from typing import Mapping, cast, ClassVar
+from amanda.compiler.module import Module
 from amanda.compiler.symbols.base import Symbol, Type, TypeVar, Typed
 from amanda.compiler.symbols.core import VariableSymbol, MethodSym
 from amanda.compiler.tokens import TokenType as TT
@@ -23,6 +24,7 @@ class Types(IntEnum):
     # to avoid setting eval_type to null on ast nodes
     TUNKNOWN = auto()
     TGENERIC = auto()
+    TMODULE = auto()
     # Special type to represent nullable values
     TOpcao = auto()
 
@@ -36,8 +38,8 @@ class Types(IntEnum):
 class Primitive(Type):
     methods: ClassVar[dict[Types, dict[str, MethodSym]]] = {}
 
-    def __init__(self, tag: Types, zero_initialized: bool):
-        super().__init__(str(tag), zero_initialized=zero_initialized)
+    def __init__(self, module: Module, tag: Types, zero_initialized: bool):
+        super().__init__(str(tag), module, zero_initialized=zero_initialized)
         self.tag = tag
         self.is_global = True
 
@@ -184,9 +186,62 @@ class Primitive(Type):
         )
 
 
+@dataclass
+class ModuleTy(Type):
+
+    def __init__(self, *, importing_mod: Module, module: Module):
+        super().__init__("Module", importing_mod, zero_initialized=False)
+        self.module = module
+
+    def get_symbols(self):
+        return self.module.ast.symbols
+
+    def __eq__(self, other: object) -> bool:
+        return self.module == other
+
+    def is_generic(self) -> bool:
+        return False
+
+    def __str__(self) -> str:
+        return self.name
+
+    def is_primitive(self) -> bool:
+        return False
+
+    def promotion_to(self, other: Type) -> Type | None:
+        return None
+
+    def is_module(self) -> bool:
+        return True
+
+    def supports_fields(self) -> bool:
+        return True
+
+    def binop(self, op: TT, rhs: Type) -> Type | None:
+        return None
+
+    def unaryop(self, op: TT) -> Type | None:
+        return None
+
+    def supports_index_get(self) -> bool:
+        return False
+
+    def supports_index_set(self) -> bool:
+        return False
+
+    def supports_tam(self) -> bool:
+        return False
+
+    def define_method(self, method: Symbol):
+        raise NotImplementedError("Methods can't be defined on module")
+
+    def get_property(self, prop: str) -> Symbol | None:
+        return self.module.ast.symbols.resolve(prop)
+
+
 class Vector(Type):
-    def __init__(self, element_type: Type):
-        super().__init__(str(Types.TVEC))
+    def __init__(self, module: Module, element_type: Type):
+        super().__init__(str(Types.TVEC), module)
         self.element_type: Type = element_type
 
     def get_type(self) -> Type:
@@ -253,10 +308,11 @@ class Registo(Type):
     def __init__(
         self,
         name: str,
+        module: Module,
         fields: dict[str, VariableSymbol],
         ty_params: set[TypeVar] | None = None,
     ):
-        super().__init__(name)
+        super().__init__(name, module)
         self.name = name
         self.fields = fields
         self.methods: dict[str, MethodSym] = {}
@@ -346,7 +402,7 @@ class ConstructedTy(Type):
     bound_ty_args: dict[str, Type]
 
     def __init__(self, generic_ty: Type, bound_ty_args):
-        super().__init__(generic_ty.name)
+        super().__init__(generic_ty.name, generic_ty.module)
         self.generic_ty = generic_ty
         self.bound_ty_args = bound_ty_args
 

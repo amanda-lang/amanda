@@ -1,0 +1,4 @@
+usa "tests/test_data/bar_baz" => [ehlo]
+usa "tests/test_data/baz" => [ehlo]
+
+#[output]: Erro: O identificador 'ehlo' já foi declarado neste escopo.

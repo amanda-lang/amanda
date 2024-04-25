@@ -1,0 +1,5 @@
+state: int = 0
+
+func incrementa()
+    state += 1
+fim

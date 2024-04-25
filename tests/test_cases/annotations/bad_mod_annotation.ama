@@ -1,0 +1,7 @@
+@@embutido(nome = "bad_builtin")
+
+
+
+
+
+#[output]: Erro: Anotação inválida. Apenas módulos nativos podem conter a anotação 'embutido'.

@@ -1,6 +1,7 @@
-use crate::alloc::{Alloc, Ref};
 use crate::ama_value::AmaValue;
+use crate::modules::module::Module;
 use crate::values::function::AmaFunc;
+use crate::values::function::FuncModule;
 use crate::values::registo::Registo;
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -15,17 +16,6 @@ pub enum Const {
     Double(f64),
     Bool(bool),
     None,
-}
-
-#[derive(Debug)]
-pub struct Module<'a> {
-    pub constants: Vec<AmaValue<'a>>,
-    pub names: Vec<String>,
-    pub code: Vec<u8>,
-    pub main: AmaFunc<'a>,
-    pub functions: Vec<AmaFunc<'a>>,
-    pub registos: Vec<Registo<'a>>,
-    pub src_map: Vec<usize>,
 }
 
 impl Const {
@@ -204,14 +194,20 @@ macro_rules! bson_take {
     };
 }
 
-fn doc_into_amafn<'a>(doc: BSONType) -> (String, usize, usize) {
+fn doc_into_amafn<'a>(doc: BSONType) -> (String, usize, usize, FuncModule) {
     if let BSONType::Doc(mut func) = doc {
         let start_ip = bson_take!(BSONType::Int, func.remove("start_ip").unwrap()) as usize;
+        let module = bson_take!(BSONType::Int, func.remove("module").unwrap()) as isize;
 
         (
             bson_take!(BSONType::String, func.remove("name").unwrap()),
             start_ip,
             bson_take!(BSONType::Int, func.remove("locals").unwrap()) as usize,
+            if module >= 0 {
+                FuncModule::Imported(module as usize)
+            } else {
+                FuncModule::Main
+            },
         )
     } else {
         unreachable!("functions should be an array of functions")
@@ -242,9 +238,18 @@ pub fn consume_const<'a>(constant: Const) -> AmaValue<'a> {
     }
 }
 
-pub fn load_bin<'bin>(amac_bin: &'bin mut [u8]) -> Module<'bin> {
+pub fn load_bin<'bin>(amac_bin: &'bin mut [u8]) -> (Module<'bin>, Vec<Module<'bin>>) {
     //Skip size bytes
     let mut prog_data = unpack_bson_doc(amac_bin);
+    let imports = bson_take!(BSONType::Array, prog_data.remove("imports").unwrap())
+        .into_iter()
+        .map(|module| build_module(bson_take!(BSONType::Doc, module)))
+        .collect();
+    let module = build_module(prog_data);
+    (module, imports)
+}
+
+fn build_module<'bin>(mut prog_data: HashMap<String, BSONType>) -> Module<'bin> {
     let raw_consts = prog_data.remove("constants").unwrap().take_vec();
     let mut constants = Vec::with_capacity(raw_consts.len());
     raw_consts
@@ -275,15 +280,16 @@ pub fn load_bin<'bin>(amac_bin: &'bin mut [u8]) -> Module<'bin> {
             funcs
                 .into_iter()
                 .map(|func| {
-                    let (name, start_ip, locals) = doc_into_amafn(func);
+                    let (name, start_ip, locals, module) = doc_into_amafn(func);
                     AmaFunc {
                         //TODO: Check if i should be leaking memory
                         name: Box::leak(name.into_boxed_str()),
                         bp: -1,
-                        start_ip: start_ip,
+                        start_ip,
                         last_i: start_ip,
                         ip: start_ip,
-                        locals: locals,
+                        locals,
+                        module,
                     }
                 })
                 .collect()
@@ -308,7 +314,17 @@ pub fn load_bin<'bin>(amac_bin: &'bin mut [u8]) -> Module<'bin> {
             unreachable!("registo should be an array of registos")
         };
 
+    let builtin = if bson_take!(BSONType::Int, prog_data.remove("builtin").unwrap()) == 0 {
+        false
+    } else {
+        true
+    };
+
+    let name = bson_take!(BSONType::String, prog_data.remove("name").unwrap());
+
     Module {
+        name,
+        builtin,
         constants,
         names,
         code: ops,
@@ -320,8 +336,10 @@ pub fn load_bin<'bin>(amac_bin: &'bin mut [u8]) -> Module<'bin> {
             last_i: 0,
             ip: 0,
             locals: entry_locals as usize,
+            module: FuncModule::Main,
         },
         functions,
+        globals: Default::default(),
         registos,
     }
 }

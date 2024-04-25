@@ -1,9 +1,13 @@
 from dataclasses import dataclass
 import amanda.compiler.ast as ast
+from amanda.compiler.module import Module
 from amanda.compiler.symbols.base import Type
 from amanda.compiler.tokens import TokenType as TT, Token
-from amanda.compiler.ast import node_of_type
-from amanda.compiler.symbols.core import MethodSym, VariableSymbol
+from amanda.compiler.symbols.core import (
+    FunctionSymbol,
+    MethodSym,
+    VariableSymbol,
+)
 from amanda.compiler.types.builtins import Builtins, SrcBuiltins
 
 from typing import cast, Callable
@@ -17,6 +21,9 @@ def var_node(name: str, tok: Token) -> ast.Variable:
 
 @dataclass
 class ASTTransformer:
+    module: Module
+    program: ast.Module
+
     def transform(self, node, args=None) -> ast.ASTNode:
         node_class = type(node).__name__.lower()
         method_name = f"transform_{node_class}"
@@ -106,43 +113,80 @@ class ASTTransformer:
         self.transform(node.callee)
         for farg in node.fargs:
             self.transform(farg)
-        if not node.symbol.is_property:
+
+        if not node.symbol.is_property and not node.symbol.is_external(
+            self.module
+        ):
             return node
+
         callee = node.callee
+
+        if not callee.of_type(ast.Get):
+            return node
+
         if (
             isinstance(callee, ast.Get)
             and self._is_option(callee.target.eval_type)
             and callee.member.lexeme == "valor_ou"
         ):
             return ast.Unwrap(option=callee.target, default_val=node.fargs[0])
-        method_sym = cast(MethodSym, node.symbol)
-        instance = cast(ast.Get, node.callee).target
-        method_sym.params = {
-            "alvo": VariableSymbol("alvo", method_sym.return_ty),
-            **method_sym.params,
-        }
-        node.fargs.insert(0, instance)
-        var = var_node(method_sym.name, node.token)
+
+        var: ast.Variable
+        if callee.of_type(ast.Get) and callee.target.eval_type.is_module():
+            # A call to a function in another module via a module alias
+            sym = cast(FunctionSymbol, node.symbol)
+            # Add func symbol to symbol table
+            # Prefix with the name of the module to avoid overwriting
+            # other methods with the same name, from different modules
+            sym.name = sym.out_id = f"{callee}::{sym.name}"
+            self.program.symbols.define(sym.name, sym)
+            """
+            call_node = ast.Call(callee=var, fargs=node.fargs)
+            call_node.symbol = sym
+            return call_node
+            """
+        elif isinstance(node.symbol, MethodSym):
+            # Common method call
+            sym = cast(MethodSym, node.symbol)
+            instance = cast(ast.Get, node.callee).target
+            sym.params = {
+                "alvo": VariableSymbol("alvo", sym.return_ty, self.module),
+                **sym.params,
+            }
+            node.fargs.insert(0, instance)
+            if sym.is_external(self.module):
+                sym.name = sym.out_id = f"{sym.module.fpath}::{sym.name}"
+                self.program.symbols.define(sym.name, sym)
+        else:
+            raise NotImplementedError("Unknown case")
+        var = var_node(sym.name, node.token)
         call_node = ast.Call(callee=var, fargs=node.fargs)
-        call_node.symbol = method_sym
+        call_node.symbol = sym
         return call_node
 
     def transform_get(self, node: ast.Get):
         self.transform(node.target)
-        return (
-            ast.Unwrap(option=node.target, default_val=None)
-            if node.target.eval_type.is_constructed_from(SrcBuiltins.Opcao)
-            and node.member.lexeme == "valor"
-            else node
-        )
+        if node.target.eval_type.is_module():
+            imp_mod = node.target.eval_type
+            sym = imp_mod.module.ast.symbols.resolve(node.member.lexeme)
+            sym.name = sym.out_id = f"{imp_mod.module.fpath}::{sym.name}"
+            var = var_node(sym.name, node.token)
+            self.program.symbols.define(sym.name, sym)
+            return var
+        else:
+            return (
+                ast.Unwrap(option=node.target, default_val=None)
+                if node.target.eval_type.is_constructed_from(SrcBuiltins.Opcao)
+                and node.member.lexeme == "valor"
+                else node
+            )
 
-    def transform_program(self, node: ast.Program) -> ast.Program:
-
+    def transform_module(self, node: ast.Module) -> ast.Module:
         for child in node.children:
             self.transform(child)
 
         return node
 
 
-def transform(program: ast.Program) -> ast.Program:
-    return ASTTransformer().transform_program(program)
+def transform(ast: ast.Module, module: Module) -> ast.Module:
+    return ASTTransformer(module, ast).transform_module(ast)

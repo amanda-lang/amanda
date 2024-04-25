@@ -1,2 +1,2 @@
 usa "./tests/test_cases/usa/self_import.ama"
-#[output]:Erro: Erro ao importar módulo. inclusão cíclica detectada.
+#[output]:Erro: Erro ao importar o módulo '/home/stacks/files/personal/Projects/amanda/tests/test_cases/usa/self_import.ama'. Inclusão cíclica detectada.

@@ -1,18 +1,23 @@
 from typing import ClassVar, cast
+from amanda.compiler.module import Module
 from amanda.compiler.types.core import Primitive, Registo, Types
 from amanda.compiler.symbols.base import Type, TypeVar
 from amanda.compiler.symbols.core import Scope, VariableSymbol, MethodSym
+from amanda.config import STD_LIB
+import os.path as path
+
+builtin_module = Module(path.join(STD_LIB, "embutidos.ama"))
 
 
 class Builtins:
-    Int = Primitive(Types.TINT, True)
-    Real = Primitive(Types.TREAL, True)
-    Bool = Primitive(Types.TBOOL, True)
-    Texto = Primitive(Types.TTEXTO, True)
-    Vazio = Primitive(Types.TVAZIO, False)
-    Indef = Primitive(Types.TINDEF, False)
-    Nulo = Primitive(Types.TNULO, False)
-    Unknown = Primitive(Types.TUNKNOWN, False)
+    Int = Primitive(builtin_module, Types.TINT, True)
+    Real = Primitive(builtin_module, Types.TREAL, True)
+    Bool = Primitive(builtin_module, Types.TBOOL, True)
+    Texto = Primitive(builtin_module, Types.TTEXTO, True)
+    Vazio = Primitive(builtin_module, Types.TVAZIO, False)
+    Indef = Primitive(builtin_module, Types.TINDEF, False)
+    Nulo = Primitive(builtin_module, Types.TNULO, False)
+    Unknown = Primitive(builtin_module, Types.TUNKNOWN, False)
 
 
 class SrcBuiltins:

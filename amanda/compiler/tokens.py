@@ -9,19 +9,6 @@ class TokenType(Enum):
     EOF = "_EOF_"
     # Special token used for program node
     PROGRAM = "PROGRAM"
-    # Enum used to represents all the different
-    # tokens in the amanda grammar
-    # ARIT OPERATORS
-    PLUS = "+"
-    MINUS = "-"
-    STAR = "*"
-    SLASH = "/"
-    DOUBLESLASH = "//"
-    MODULO = "%"
-    PLUSEQ = "+="
-    MINUSEQ = "-="
-    STAREQ = "*="
-    SLASHEQ = "/="
 
     # LITERALS
     INTEGER = "inteiro"
@@ -42,10 +29,26 @@ class TokenType(Enum):
     LBRACKET = "["
     RBRACKET = "]"
     AT = "@"
+    DOUBLEAT = "@@"
     COLON = ":"
     QMARK = "?"
     DOUBLECOLON = "::"
+    ARROW = "=>"
     NEWLINE = "\\n"
+
+    # Enum used to represents all the different
+    # tokens in the amanda grammar
+    # ARIT OPERATORS
+    PLUS = "+"
+    MINUS = "-"
+    STAR = "*"
+    SLASH = "/"
+    DOUBLESLASH = "//"
+    MODULO = "%"
+    PLUSEQ = "+="
+    MINUSEQ = "-="
+    STAREQ = "*="
+    SLASHEQ = "/="
 
     # LOGIC OP
     LESS = "<"
@@ -94,7 +97,7 @@ def build_tokens_dict() -> Dict[str, TokenType]:
     """Build a dictionary of reserved keywords."""
     tt_list = list(TokenType)
     start_index = tt_list.index(TokenType.LPAR)
-    end_index = tt_list.index(TokenType.NEWLINE)
+    end_index = tt_list.index(TokenType.DOUBLEEQUAL)
 
     return {
         token_type.value.lower(): token_type
@@ -139,8 +142,16 @@ def build_reserved_keywords() -> Dict[str, Token]:
     return reserved_keywords
 
 
+_ambiguous_chars = [
+    tt.value[0]
+    for tt in TokenType
+    if len(tt.value) > 1 and tt.value in Token.TOKENS
+]
+
+
 def is_ambiguous_char(char: str) -> bool:
-    return char in (".", ":")
+
+    return char in _ambiguous_chars
 
 
 KEYWORDS = build_reserved_keywords()

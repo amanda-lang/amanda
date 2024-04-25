@@ -1,14 +1,26 @@
-import copy
 import keyword
 from os import path
 from typing import Iterable, NoReturn, Optional, List, cast, Tuple
+from amanda.compiler.module import Module
 from amanda.compiler.parse import parse
 from amanda.compiler.symbols.base import TypeVar, Typed
 from amanda.compiler.tokens import TokenType as TT, Token
 import amanda.compiler.ast as ast
 import amanda.compiler.symbols.core as symbols
-from amanda.compiler.types.builtins import SrcBuiltins, builtin_types, Builtins
-from amanda.compiler.types.core import Primitive, Type, Types, Vector, Registo
+from amanda.compiler.types.builtins import (
+    SrcBuiltins,
+    builtin_types,
+    Builtins,
+    builtin_module,
+)
+from amanda.compiler.types.core import (
+    ModuleTy,
+    Primitive,
+    Type,
+    Types,
+    Vector,
+    Registo,
+)
 from amanda.compiler.error import AmandaError
 from amanda.compiler.builtinfn import BUILTINS, BuiltinFn
 from amanda.config import STD_LIB
@@ -24,20 +36,22 @@ class Analyzer(ast.Visitor):
     ID_IN_USE = "O identificador '{name}' já foi declarado neste escopo"
     INVALID_REF = "o identificador '{name}' não é uma referência válida"
 
-    def __init__(self, filename, module):
+    def __init__(self, filename: str, import_paths: list[str], module: Module):
         # Relative path to the file being run
         self.filename = filename
+        # Dirs to be used when resolving relative imports
+        self.import_paths = [STD_LIB, *import_paths]
         # Just to have quick access to things like types and e.t.c
-        self.global_scope = symbols.Scope()
+        self.global_scope: symbols.Scope = symbols.Scope()
         self.scope_depth = 0
-        self.ctx_scope = self.global_scope
+        self.ctx_scope: symbols.Scope = self.global_scope
         self.ctx_node: Optional[ast.ASTNode] = None
         self.ctx_reg = None
         self.ctx_func = None
         self.in_loop = False
         self.imports = {}
         # Module currently being executed
-        self.ctx_module = module
+        self.ctx_module: Module = module
         # Scope used primarily to store generic types
         self.ty_ctx: symbols.Scope = symbols.Scope()
 
@@ -45,9 +59,14 @@ class Analyzer(ast.Visitor):
         for type_id, sym in builtin_types:
             self.global_scope.define(type_id, sym)
 
+        # Validate dirs
+        for dir_path in self.import_paths:
+            assert path.isdir(
+                dir_path
+            ), f"Invalid import path provided:  '{dir_path}'"
+
         # Load builtin module
-        module = symbols.Module(path.join(STD_LIB, "embutidos.ama"))
-        self.load_module(module)
+        self.load_module(builtin_module, ast.UsaMode.Global)
         SrcBuiltins.init_embutidos(self.global_scope)
 
     # Helper methods
@@ -98,6 +117,12 @@ class Analyzer(ast.Visitor):
             self.ctx_module.fpath, message, self.ctx_node.token.line
         )
 
+    def error_with_loc(self, loc_tok: Token, code, **kwargs) -> NoReturn:
+        message = code.format(**kwargs)
+        raise AmandaError.common_error(
+            self.ctx_module.fpath, message, loc_tok.line
+        )
+
     def is_valid_name(self, name):
         """Checks whether name is a python keyword, reserved var or
         python builtin object"""
@@ -140,49 +165,77 @@ class Analyzer(ast.Visitor):
     ) -> dict[str, Type]:
         return {t_var.name: self.get_type(t_arg.arg) for t_var, t_arg in args}
 
+    def get_mod_or_err(self, scope: symbols.Scope, mod_id: str) -> ModuleTy:
+        mod = scope.resolve_typed(mod_id)
+        if not mod or not isinstance(mod.type, ModuleTy):
+            self.error(
+                f"Especificação de tipo inválida. O identificador '{mod_id}' não foi reconhecido como um módulo"
+            )
+        return mod.type
+
+    def construct_ty(self, type_node: ast.Type, type_symbol: Type) -> Type:
+        if type_node.maybe_ty:
+            return SrcBuiltins.Opcao.bind(T=type_symbol)
+        if type_node.generic_args and len(type_node.generic_args):
+            generic_args = type_node.generic_args
+            # Sort out generics
+            if not type_symbol.is_generic():
+                self.error(
+                    f"O tipo '{type_symbol}' não espera receber nenhum argumento de tipo genérico."
+                )
+            reg = cast(Registo, type_symbol)
+            if len(reg.ty_params) != len(generic_args):
+                self.error(
+                    f"O tipo '{type_symbol}' esperava receber {len(reg.ty_params)} argumento de tipo, mas recebeu {len(generic_args)}"
+                )
+            generic_args = self.get_generic_args(
+                zip(reg.ty_params, generic_args)
+            )
+            # If all type arguments are type vars, return the generic type.
+            if all(
+                map(
+                    lambda x: isinstance(x, TypeVar),
+                    generic_args.values(),
+                )
+            ):
+                return reg
+            return reg.bind(**generic_args)
+        return cast(Type, type_symbol)
+
     def get_type(self, type_node: ast.Type) -> Type:
         if not type_node:
             return cast(Type, self.ctx_scope.resolve("vazio"))
-
-        node_t = type(type_node)
-        if node_t == ast.Variable:
-            return self.get_type_variable(type_node)  # type: ignore
-        elif node_t == ast.Type:
-            type_id = type_node.name.lexeme
-            type_symbol = self.get_type_sym_or_err(type_id)
-            if type_node.maybe_ty:
-                return SrcBuiltins.Opcao.bind(T=type_symbol)
-            if type_node.generic_args and len(type_node.generic_args):
-                generic_args = type_node.generic_args
-                # Sort out generics
-                if not type_symbol.is_generic():
-                    self.error(
-                        f"O tipo '{type_id}' não espera receber nenhum argumento de tipo genérico."
-                    )
-                reg = cast(Registo, type_symbol)
-                if len(reg.ty_params) != len(generic_args):
-                    self.error(
-                        f"O tipo '{type_id}' esperava receber {len(reg.ty_params)} argumento de tipo, mas recebeu {len(generic_args)}"
-                    )
-                generic_args = self.get_generic_args(
-                    zip(reg.ty_params, generic_args)
+        match type_node:
+            case ast.Variable():
+                return self.get_type_variable(type_node)  # type: ignore
+            case ast.ArrayType():
+                vec_ty = Vector(
+                    self.ctx_module, self.get_type(type_node.element_type)
                 )
-                # If all type arguments are type vars, return the generic type.
-                if all(
-                    map(lambda x: isinstance(x, TypeVar), generic_args.values())
-                ):
-                    return reg
-                return reg.bind(**generic_args)
-            return cast(Type, type_symbol)
-        elif type(type_node) == ast.ArrayType:
-            vec_ty = Vector(self.get_type(type_node.element_type))
-            return (
-                SrcBuiltins.Opcao.bind(T=vec_ty)
-                if type_node.maybe_ty
-                else vec_ty
-            )
-        else:
-            return Builtins.Unknown
+                return (
+                    SrcBuiltins.Opcao.bind(T=vec_ty)
+                    if type_node.maybe_ty
+                    else vec_ty
+                )
+            case ast.TypePath(components=components):
+                head = components[0]
+                mod = self.get_mod_or_err(self.ctx_scope, head)
+                for component in components[1:-1]:
+                    mod = self.get_mod_or_err(mod.get_symbols(), component)
+
+                ty_id = components[-1]
+                sym = mod.get_property(ty_id)
+                if not isinstance(sym, Type):
+                    self.error(
+                        f"O módulo '{mod.module.fpath}' não possui o tipo '{ty_id}'"
+                    )
+                return self.construct_ty(type_node, sym)
+            case ast.Type():
+                type_id = type_node.name.lexeme
+                type_symbol = self.get_type_sym_or_err(type_id)
+                return self.construct_ty(type_node, type_symbol)
+            case _:
+                raise NotImplementedError("Unknown type node.")
 
     def types_match(self, expected: Type, received: Type):
         return expected == received or received.promote_to(expected)
@@ -217,33 +270,141 @@ class Analyzer(ast.Visitor):
         for child in children:
             self.visit(child)
 
-    def visit_program(self, node: ast.Program):
+    def validate_builtin_module(self, annotations: list[ast.Annotation]):
+        builtin_annotation = list(
+            filter(lambda s: s.name == "embutido", annotations)
+        )
+        if not builtin_annotation:
+            return
+        if path.dirname(self.ctx_module.fpath) != STD_LIB:
+            self.error_with_loc(
+                builtin_annotation[0].location_tok,
+                "Anotação inválida. Apenas módulos nativos podem conter a anotação 'embutido'",
+            )
+        self.ctx_module.builtin = True
+
+    def visit_module(self, node: ast.Module) -> tuple[Module, dict]:
+        self.validate_builtin_module(node.annotations)
         # Since each function has it's own local scope,
         # The top level global scope will have it's own "locals"
         self.visit_children(node.children)
         node.symbols = self.global_scope
-        return transform(node)
+        transformed = transform(node, self.ctx_module)
+        self.ctx_module.ast = transformed
 
-    def load_module(self, module):
+        return self.ctx_module, self.imports
+
+    def load_module_scoped(self, module: Module) -> tuple[Module, dict]:
+        analyzer = Analyzer(module.fpath, self.import_paths, module)
+        analyzer.imports = self.imports
+        return analyzer.visit_module(parse(module.fpath))
+
+    def define_module_alias(
+        self, alias: str, *, importing_mod, imported_mod: Module
+    ):
+        if not alias:
+            raise TypeError("Arg 'alias' should not be None")
+        self.assert_can_use_ident(self.ctx_node, alias)
+        self.global_scope.define(
+            alias,
+            symbols.VariableSymbol(
+                alias,
+                ModuleTy(module=imported_mod, importing_mod=importing_mod),
+                imported_mod,
+            ),
+        )
+
+    def define_module_items(
+        self, *, imported_mod: Module, prev_module: Module, usa_items: list[str]
+    ):
+        if not usa_items:
+            raise TypeError("Arg 'usa_items' should not be None")
+        mod_symtab: symbols.Scope = imported_mod.ast.symbols
+        for item in usa_items:
+            sym = mod_symtab.resolve(item)
+            if not sym:
+                self.ctx_module = prev_module
+                self.error(
+                    f"Erro ao importar módulo. O item '{item}' não foi declarado no módulo '{imported_mod.fpath}'"
+                )
+            self.ctx_module = prev_module
+            self.assert_can_use_ident(self.ctx_node, item)
+            self.global_scope.define(item, sym)
+
+    def load_module(
+        self,
+        module: Module,
+        mode: ast.UsaMode,
+        *,
+        alias: str | None = None,
+        usa_items: list[str] | None = None,
+    ):
         existing_mod = self.imports.get(module.fpath)
         # Module has already been loaded
         if existing_mod and existing_mod.loaded:
+            match mode:
+                case ast.UsaMode.Scoped:
+                    self.define_module_alias(
+                        str(alias),
+                        importing_mod=self.ctx_module,
+                        imported_mod=existing_mod,
+                    )
+                case ast.UsaMode.Item:
+                    self.define_module_items(
+                        imported_mod=existing_mod,
+                        prev_module=self.ctx_module,
+                        usa_items=usa_items,
+                    )
+                case _:
+                    pass
             return
+
         # Check for a cycle
         # A cycle occurs when a previously seen module
         # is seen again, but it is not loaded yet
         if existing_mod and not existing_mod.loaded:
-            self.error(f"Erro ao importar módulo. inclusão cíclica detectada")
+            self.error(
+                f"Erro ao importar o módulo '{module.fpath}'. Inclusão cíclica detectada"
+            )
 
         prev_module = self.ctx_module
         self.ctx_module = module
         self.imports[module.fpath] = module
-
         # TODO: Handle errors while loading another module
-        module.ast = self.visit_program(parse(module.fpath))
+        match mode:
+            case ast.UsaMode.Global:
+                self.visit_module(parse(module.fpath))
+            case ast.UsaMode.Scoped:
+                if not alias:
+                    raise TypeError("Arg 'alias' should not be None")
+                imported_mod, _ = self.load_module_scoped(module)
+                self.define_module_alias(
+                    alias, importing_mod=prev_module, imported_mod=module
+                )
+
+            case ast.UsaMode.Item:
+                if not usa_items:
+                    raise TypeError("Arg 'usa_items' should not be None")
+                imported_mod, _ = self.load_module_scoped(module)
+                self.define_module_items(
+                    imported_mod=imported_mod,
+                    prev_module=prev_module,
+                    usa_items=usa_items,
+                )
 
         module.loaded = True
         self.ctx_module = prev_module
+
+    def resolve_import(self, fpath: str) -> str | None:
+        # Try to resolve path using cwd
+        if path.isfile(fpath):
+            return path.abspath(fpath)
+        # Attempt to resolve using the import_paths
+        for dir_path in self.import_paths:
+            mod_path = path.join(dir_path, fpath)
+            if path.isfile(path.join(dir_path, fpath)):
+                return path.abspath(mod_path)
+        return None
 
     def visit_usa(self, node: ast.Usa):
         fpath = node.module.lexeme.replace("'", "").replace('"', "")
@@ -256,23 +417,32 @@ class Analyzer(ast.Visitor):
         if tail.split(".")[-1] != "ama":
             tail = tail + ".ama"
         fpath = path.join(head, tail)
-        if not path.isfile(fpath):
+
+        mod_path = self.resolve_import(fpath)
+        if not mod_path:
             self.error(err_msg)
 
-        mod_path = path.abspath(fpath)
-        module = symbols.Module(mod_path)
-        self.load_module(module)
+        module = Module(mod_path)
+        self.load_module(
+            module,
+            node.usa_mode,
+            alias=node.alias.lexeme if node.alias else None,
+            usa_items=node.items,
+        )
 
-    def visit_vardecl(self, node: ast.VarDecl):
-        name = node.name.lexeme
+    def assert_can_use_ident(self, node: ast.ASTNode, name: str):
         in_use = self.ctx_scope.get(name)
         if in_use and not self.ctx_reg:
             self.error(self.ID_IN_USE, name=name)
         elif in_use and self.ctx_reg:
             self.ctx_node = node
             self.error(f"O atributo '{name}' já foi declarado neste registo")
+
+    def visit_vardecl(self, node: ast.VarDecl):
+        name = node.name.lexeme
+        self.assert_can_use_ident(node, name)
         var_type = self.get_type(node.var_type)
-        symbol = symbols.VariableSymbol(name, var_type)
+        symbol = symbols.VariableSymbol(name, var_type, self.ctx_module)
         self.define_symbol(symbol, self.scope_depth, self.ctx_scope)
         node.var_type = var_type  # type: ignore
         assign = node.assign
@@ -358,12 +528,17 @@ class Analyzer(ast.Visitor):
         self.validate_num_params(node)
 
         function_type = self.get_type(node.func_type)
-        symbol = symbols.FunctionSymbol(name, function_type)
+        symbol = symbols.FunctionSymbol(
+            name, function_type, module=self.ctx_module
+        )
+        symbol.set_annotations(node.annotations)
         scope, _ = self.make_func_symbol(name, node, symbol)
         # Native functions don't have a body, so there's nothing to visit
+        node.symbol = symbol
+        if symbol.is_builtin():
+            return
         if node.is_native:
             return
-
         self.validate_return(
             node,
             function_type,
@@ -419,7 +594,10 @@ class Analyzer(ast.Visitor):
         # Checking return type
         return_ty = self.get_type(node.return_ty)
         symbol = symbols.MethodSym(
-            method_name, target_ty=target_ty, return_ty=return_ty
+            method_name,
+            target_ty=target_ty,
+            return_ty=return_ty,
+            module=self.ctx_module,
         )
         symbol.set_annotations(node.annotations)
 
@@ -428,7 +606,7 @@ class Analyzer(ast.Visitor):
 
         # add alvo param
         self.define_symbol(
-            symbols.VariableSymbol("alvo", target_ty),
+            symbols.VariableSymbol("alvo", target_ty, self.ctx_module),
             self.scope_depth + 1,
             scope,
         )
@@ -446,6 +624,7 @@ class Analyzer(ast.Visitor):
             )
             self.check_function_body(node, symbol, scope)
         # TODO: Refactor method definitions to not rely on the underlying type
+        node.symbol = symbol
         target_ty.define_method(symbol)
         self.leave_ty_ctx()
 
@@ -455,7 +634,12 @@ class Analyzer(ast.Visitor):
         # TODO: Notify in case of duplicate generic param
         # TODO: Make sure to throw an error for unused generic params
         return (
-            set(map(lambda t: TypeVar(t.name.lexeme), node.generic_params))
+            set(
+                map(
+                    lambda t: TypeVar(t.name.lexeme, self.ctx_module),
+                    node.generic_params,
+                )
+            )
             if node.generic_params
             else set()
         )
@@ -477,6 +661,7 @@ class Analyzer(ast.Visitor):
 
         registo = Registo(
             name,
+            self.ctx_module,
             cast(dict[str, symbols.VariableSymbol], reg_scope.symbols),
             ty_params=generic_params,
         )
@@ -503,7 +688,7 @@ class Analyzer(ast.Visitor):
         method_sym = cast(symbols.MethodSym, self.ctx_func)
 
         node.eval_type = method_sym.target_ty
-        symbol = symbols.VariableSymbol("alvo", node.eval_type)
+        symbol = symbols.VariableSymbol("alvo", node.eval_type, self.ctx_module)
         node.var_symbol = symbol
         return symbol
 
@@ -516,7 +701,7 @@ class Analyzer(ast.Visitor):
     def visit_param(self, node):
         name = node.name.lexeme
         var_type = self.get_type(node.param_type)
-        return symbols.VariableSymbol(name, var_type)
+        return symbols.VariableSymbol(name, var_type, self.ctx_module)
 
     def visit_fmtstr(self, node):
         txt_type = self.global_scope.resolve("texto")
@@ -553,7 +738,7 @@ class Analyzer(ast.Visitor):
     def visit_listliteral(self, node):
         elements = node.elements
         list_type = self.get_type(node.list_type)
-        node.eval_type = Vector(list_type)
+        node.eval_type = Vector(self.ctx_module, list_type)
         if len(elements) == 0:
             return
         for i, element in enumerate(elements):
@@ -575,6 +760,7 @@ class Analyzer(ast.Visitor):
         if not sym:
             self.error(f"o identificador '{name}' não foi declarado")
         elif not sym.can_evaluate():
+            self.ctx_node = node
             self.error(self.INVALID_REF, name=name)
         node.eval_type = sym.type
         node.var_symbol = sym
@@ -586,6 +772,10 @@ class Analyzer(ast.Visitor):
         if not ty.is_primitive():
             self.error(
                 f"O objecto do tipo '{ty}' não possui o atributo '{field}'"
+            )
+        elif isinstance(ty, ModuleTy):
+            self.error(
+                f"O módulo '{ty.module.fpath}' não possui o item '{field}'"
             )
         self.error(f"O tipo '{ty}' não possui o método '{field}'")
 
@@ -621,7 +811,9 @@ class Analyzer(ast.Visitor):
             and not field_sym.can_evaluate()
         ):
             self.error(self.INVALID_REF, name=field_sym.name)
-        node.eval_type = field_sym.type
+        node.eval_type = (
+            field_sym if isinstance(field_sym, Type) else field_sym.type
+        )
         return field_sym
 
     def visit_set(self, node):
@@ -629,6 +821,10 @@ class Analyzer(ast.Visitor):
         expr = node.expr
         # evaluate sides
         self.visit(target)
+        if target.target.eval_type.is_module():
+            self.error(
+                f"Atribuição inválida. As variáveis globais de um módulo importado não podem ser modificadas externamente"
+            )
         self.visit(expr)
         expr.prom_type = expr.eval_type.promote_to(target.eval_type)
         if not self.types_match(target.eval_type, expr.eval_type):
@@ -728,7 +924,16 @@ class Analyzer(ast.Visitor):
         # Check rhs of assignment
         # is expression
         self.visit(lhs)
+        sym = self.ctx_scope.resolve_typed(lhs.token.lexeme)
+        if sym.is_external(self.ctx_module):
+            self.error(
+                f"Atribuição inválida. As variáveis globais de um módulo importado não podem ser modificadas externamente"
+            )
         # Set node types
+        if isinstance(lhs.eval_type, ModuleTy):
+            self.error(
+                f"Atribuição inválida. Não pode atribuir valores a um módulo"
+            )
         node.eval_type = lhs.eval_type
         node.prom_type = None
         # Set promotion type for right side
@@ -834,7 +1039,9 @@ class Analyzer(ast.Visitor):
         self.visit(node.expression)
         # Define control variable for loop
         name = node.expression.name.lexeme
-        sym = symbols.VariableSymbol(name, self.ctx_scope.resolve("int"))
+        sym = symbols.VariableSymbol(
+            name, self.ctx_scope.resolve("int"), self.ctx_module
+        )
         scope = symbols.Scope(self.ctx_scope)
         self.define_symbol(sym, self.scope_depth + 1, scope)
         self.visit(node.statement, scope)
@@ -931,9 +1138,9 @@ class Analyzer(ast.Visitor):
             if type(el_type) == Vector:
                 self.error(f"O tipo de um vector deve ser um tipo simples")
             # Set type based on dimensions
-            vec_type = Vector(el_type)
+            vec_type = Vector(self.ctx_module, el_type)
             for i in range(len(node.fargs[1:]) - 1):
-                vec_type = Vector(vec_type)
+                vec_type = Vector(self.ctx_module, vec_type)
             node.eval_type = vec_type
         elif fn == BuiltinFn.ANEXA:
             vec_expr = node.fargs[0]

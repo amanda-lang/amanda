@@ -1,0 +1,6 @@
+#Imports all the definitions in a the std/mat.ama
+#file and makes them available through the 'mat'
+usa "tests/test_data/baz" => baz
+
+baz.baz()
+#[output]: baz

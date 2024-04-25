@@ -1,8 +1,5 @@
 use crate::ama_value::{AmaValue, RcCell};
-use crate::opcode::OpCode;
 use std::cell::RefCell;
-use std::hash::{Hash, Hasher};
-use std::ptr;
 use std::rc::Rc;
 
 #[derive(Debug)]
@@ -28,12 +25,6 @@ impl<'a> Ref<'a> {
          */
         unsafe { &mut (*(*self.0).inner) }
     }
-}
-
-macro_rules! raw_from_box {
-    ($target: expr) => {
-        Box::into_raw(Box::new($target))
-    };
 }
 
 #[derive(Debug)]
