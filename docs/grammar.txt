@@ -24,6 +24,7 @@ annotation: @IDENTIFIER (LPAR IDENTIFIER EQUAL STRING (, IDENTIFIER EQUAL STRING
 
 declaration
   | registo_declaration
+  | uniao_declaration
   | function_declaration
   | method_declaration
   | stmt
@@ -32,6 +33,19 @@ declaration
 
 registo_declaration
   : annotation* REGISTO IDENTIFIER generic_params? reg_body FIM
+  ;
+
+uniao_declaration
+  : annotation* UNIAO IDENTIFIER generic_params? uniao_body FIM
+  ;
+
+
+uniao_body
+  : (variant (COMMA variant)* )?
+  ;
+
+variant
+  : IDENTIFER (LPAR type (COMMA type)*  RPAR)? 
   ;
 
 reg_body

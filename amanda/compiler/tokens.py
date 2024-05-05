@@ -90,6 +90,7 @@ class TokenType(Enum):
     NULO = "NULO"
     VAZIO = "VAZIO"
     NATIVA = "NATIVA"
+    UNIAO = "UNIAO"
     CLASSE = "CLASSE"
 
 

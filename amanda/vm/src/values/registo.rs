@@ -34,7 +34,6 @@ impl<'a> RegObj<'a> {
         mut fields: Drain<'_, AmaValue<'a>>,
     ) -> RegObj<'a> {
         let mut state = Tabela::default();
-        let mut pair = (AmaValue::None, AmaValue::None);
         loop {
             let maybe_key = fields.next();
             if maybe_key.is_none() {
@@ -44,12 +43,6 @@ impl<'a> RegObj<'a> {
             let value = fields.next().expect("Key always comes with value");
             state.insert(key, value);
         }
-        /*
-        let init_pairs = fields
-            .step_by(2)
-            .zip(fields[1..].iter().step_by(2))
-            .map(|pair| (pair.0, pair.1));
-        let state = Tabela::from_iter(init_pairs);*/
         RegObj { registo, state }
     }
 

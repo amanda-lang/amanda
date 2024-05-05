@@ -421,6 +421,31 @@ class Registo(ASTNode):
         self.generic_params = generic_params
 
 
+@dataclass
+class UniaoVariant(ASTNode):
+    def __init__(self, name: Token, params: list[Type]):
+        super().__init__(name)
+        self.name = name
+        self.params = params
+
+
+@dataclass
+class Uniao(ASTNode):
+    def __init__(
+        self,
+        *,
+        name: Token,
+        variants: list[UniaoVariant],
+        annotations: list[Annotation],
+        generic_params: list[GenericParam],
+    ):
+        super().__init__(name)
+        self.name = name
+        self.variants = variants
+        self.generic_params = generic_params
+        self.annotations = annotations
+
+
 class GenericParam(ASTNode):
     def __init__(
         self,

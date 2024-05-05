@@ -383,11 +383,16 @@ class Parser:
             body.add_child(child)
 
     def declaration(self):
-        annotations = None
+        annotations = []
         if self.match(TT.AT):
             annotations = self.annotations()
             self.skip_newlines()
-            if self.lookahead.token not in (TT.FUNC, TT.MET, TT.REGISTO):
+            if self.lookahead.token not in (
+                TT.FUNC,
+                TT.MET,
+                TT.REGISTO,
+                TT.UNIAO,
+            ):
                 self.error(
                     "As anotações devem ser seguidas de uma função, método ou registo"
                 )
@@ -397,6 +402,8 @@ class Parser:
             return self.method_decl(annotations)
         elif self.match(TT.REGISTO):
             return self.registo_decl(annotations)
+        elif self.match(TT.UNIAO):
+            return self.uniao_decl(annotations)
         else:
             return self.statement()
 
@@ -548,7 +555,7 @@ class Parser:
         else:
             return None
 
-    def generic_params(self) -> list[ast.GenericParam] | None:
+    def generic_params(self) -> list[ast.GenericParam]:
         params = []
         if self.match(TT.LBRACKET):
             self.consume(TT.LBRACKET)
@@ -565,7 +572,52 @@ class Parser:
             self.consume(TT.RBRACKET)
             return params
         else:
-            return None
+            return []
+
+    def uniao_decl(self, annotations: list[ast.Annotation]):
+        self.consume(TT.UNIAO)
+        name = self.consume(TT.IDENTIFIER)
+        generic_params = self.generic_params()
+        variants = self.uniao_body()
+        self.consume(
+            TT.FIM, "O corpo de uma união deve ser terminado com o símbolo fim"
+        )
+        return ast.Uniao(
+            name=name,
+            generic_params=generic_params,
+            variants=variants,
+            annotations=annotations,
+        )
+
+    def uniao_body(self) -> list[ast.UniaoVariant]:
+        variants = []
+        self.skip_newlines()
+        if self.match(TT.IDENTIFIER):
+            variants.append(self.uniao_variant())
+            self.skip_newlines()
+            while self.match(TT.COMMA):
+                self.skip_newlines()
+                self.consume(TT.COMMA)
+                self.skip_newlines()
+                variants.append(self.uniao_variant())
+        self.skip_newlines()
+        return variants
+
+    def uniao_variant(self) -> ast.UniaoVariant:
+        name = self.consume(TT.IDENTIFIER)
+        params: list[ast.Type] = []
+        if self.match(TT.LPAR):
+            self.consume(TT.LPAR)
+            self.skip_newlines()
+            params.append(self.type())
+            while self.match(TT.COMMA):
+                self.skip_newlines()
+                self.consume(TT.COMMA)
+                self.skip_newlines()
+                params.append(self.type())
+                self.skip_newlines()
+            self.consume(TT.RPAR)
+        return ast.UniaoVariant(name, params)
 
     def registo_decl(self, annotations: list[ast.Annotation] | None):
         self.consume(TT.REGISTO)
