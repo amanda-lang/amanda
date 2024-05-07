@@ -9,7 +9,7 @@ from amanda.compiler.symbols.core import Module
 from amanda.compiler.error import AmandaError, handle_exception, throw_error
 from amanda.compiler.parse import parse
 from amanda.compiler.compile import Generator
-from amanda.compiler.semantic import Analyzer
+from amanda.compiler.check.core import Analyzer
 from amanda.compiler.codegen import ByteGen
 from amanda.libamanda import run_module
 
