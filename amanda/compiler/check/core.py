@@ -650,6 +650,9 @@ class Analyzer(ast.Visitor):
             ctx.define(param.name, param)
         return ctx
 
+    def visit_uniao(self, node: ast.Uniao):
+        raise NotImplementedError("Not implemented")
+
     def visit_registo(self, node: ast.Registo):
         name = node.name.lexeme
         reg_scope = symbols.Scope(self.ctx_scope)

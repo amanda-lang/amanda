@@ -5,6 +5,10 @@ from typing import Any, Literal, Optional, ClassVar, cast, NoReturn
 from dataclasses import dataclass
 
 
+class Errors:
+    ID_IN_USE = "O identificador '{name}' já foi declarado neste escopo"
+
+
 @dataclass
 class AmandaError(Exception):
     # error types
