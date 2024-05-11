@@ -25,6 +25,7 @@ from amanda.compiler.error import AmandaError
 from amanda.compiler.builtinfn import BUILTINS, BuiltinFn
 from amanda.config import STD_LIB
 from amanda.compiler.transform import transform
+import amanda.compiler.check.uniao as uniao
 
 
 MAX_AMA_INT = 2**63 - 1
@@ -651,7 +652,7 @@ class Analyzer(ast.Visitor):
         return ctx
 
     def visit_uniao(self, node: ast.Uniao):
-        raise NotImplementedError("Not implemented")
+        uniao.check_uniao(node, self)
 
     def visit_registo(self, node: ast.Registo):
         name = node.name.lexeme

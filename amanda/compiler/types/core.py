@@ -4,7 +4,11 @@ from dataclasses import dataclass
 from typing import Mapping, cast, ClassVar
 from amanda.compiler.module import Module
 from amanda.compiler.symbols.base import Symbol, Type, TypeVar, Typed
-from amanda.compiler.symbols.core import VariableSymbol, MethodSym
+from amanda.compiler.symbols.core import (
+    FunctionSymbol,
+    VariableSymbol,
+    MethodSym,
+)
 from amanda.compiler.tokens import TokenType as TT
 
 
@@ -387,6 +391,135 @@ class Registo(Type):
         return self.name
 
     def get_property(self, prop) -> Symbol | None:
+        return self.fields.get(prop, self.methods.get(prop))
+
+    def define_method(self, method: Symbol):
+        self.methods[method.name] = cast(MethodSym, method)
+
+    def supports_fields(self) -> bool:
+        return True
+
+
+@dataclass
+class Variant(Typed):
+    uniao: Uniao
+    name: str
+    params: list[Type]
+
+    def __init__(self, uniao: Uniao, name: str, params: list[Type]):
+        super().__init__(name, uniao, uniao.module)
+        self.uniao = uniao
+        self.params = params
+
+    def can_evaluate(self):
+        return len(self.params) == 0
+
+    def is_callable(self):
+        return len(self.params) > 0
+
+    def bind(self, **ty_args: Type) -> Typed:
+        raise NotImplementedError("Not implemented for união yet")
+        if not self.type.is_type_var():
+            return self
+        return VariableSymbol(self.name, ty_args[self.type.name], self.module)
+
+
+@dataclass
+class Uniao(Type):
+    name: str
+    module: Module
+    variants: dict[str, Variant]
+    ty_params: set[TypeVar]
+
+    def __init__(
+        self,
+        name: str,
+        module: Module,
+        variants: dict[str, Variant],
+        ty_params: set[TypeVar] | None = None,
+    ):
+        super().__init__(name, module)
+        self.name = name
+        self.variants = variants
+        self.methods: dict[str, MethodSym] = {}
+        self.ty_params: set[TypeVar] = ty_params if ty_params else set()
+        self._ty_names = set(map(lambda t: t.name, self.ty_params))
+
+    def add_variant(self, name: str, params: list[Type]):
+        self.variants[name] = Variant(self, name, params)
+
+    def contains_variant(self, name: str) -> bool:
+        return name in self.variants
+
+    def is_callable(self) -> bool:
+        return False
+
+    def _is_opcao(self) -> bool:
+        return False
+
+    def supports_index_get(self) -> bool:
+        return False
+
+    def supports_index_set(self) -> bool:
+        return False
+
+    def supports_tam(self) -> bool:
+        return False
+
+    def is_generic(self) -> bool:
+        return self.ty_params is not None
+
+    def is_primitive(self) -> bool:
+        return False
+
+    def binop(self, op: TT, rhs: Type) -> Type | None:
+        from amanda.compiler.types.builtins import Builtins
+
+        match (self, op, rhs):
+            case [_, (TT.DOUBLEEQUAL | TT.NOTEQUAL), Registo()]:
+                return Builtins.Bool
+            case [Registo(name="Opcao"), (TT.DOUBLEEQUAL | TT.NOTEQUAL), _]:
+                return Builtins.Bool
+            case _:
+                return None
+
+    def unaryop(self, op: TT) -> Type | None:
+        return None
+
+    def promotion_to(self, other: Type) -> Type | None:
+        if not isinstance(other, Primitive) and not isinstance(
+            other, ConstructedTy
+        ):
+            return None
+
+        if isinstance(other, ConstructedTy) and other.name == str(Types.TOpcao):
+            if other.generic_ty == self:
+                return other
+
+        return (
+            other
+            if isinstance(other, Primitive) and other.tag in (Types.TINDEF,)
+            else None
+        )
+
+    def bind(self, **ty_args: Type) -> ConstructedTy:
+        if self.ty_params is None:
+            raise NotImplementedError(
+                "Cannot bind type params of non generic Registo"
+            )
+        for ty_arg in ty_args:
+            if ty_arg not in self._ty_names:
+                raise ValueError(f"Invalid type argument: {ty_arg}")
+        return ConstructedTy(self, ty_args)
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, Registo) and self.name == other.name
+
+    def __str__(self) -> str:
+        return self.name
+
+    def get_property(self, prop) -> Symbol | None:
+        raise NotImplementedError("Not implemented!!!")
         return self.fields.get(prop, self.methods.get(prop))
 
     def define_method(self, method: Symbol):

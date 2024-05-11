@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 class Errors:
     ID_IN_USE = "O identificador '{name}' já foi declarado neste escopo"
+    VARIANT_ALREADY_DECLARED = "A variante '{variant}' já foi declarada anteriormente na união '{uniao}'"
 
 
 @dataclass
