@@ -46,10 +46,10 @@ func processar_cmd(cmd: texto)
     #Definir qual o operador
     resultado: int = 0
     escolha operador:
-        caso "+": resultado = op1::int + op2::int
-        caso "-": resultado = op1::int - op2::int
-        caso "*": resultado = op1::int * op2::int
-        caso "/": resultado = op1::int // op2::int
+        caso "+": resultado = op1:>int + op2:>int
+        caso "-": resultado = op1:>int - op2:>int
+        caso "*": resultado = op1:>int * op2:>int
+        caso "/": resultado = op1:>int // op2:>int
         senao: 
             escrevaln(err_msg)
             retorna

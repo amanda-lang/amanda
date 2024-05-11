@@ -1,3 +1,3 @@
-escrevaln("p"::int)
+escrevaln("p":>int)
 
 #[output]: Erro na linha 1: A sequência de caracteres 'p' não é um inteiro válido.

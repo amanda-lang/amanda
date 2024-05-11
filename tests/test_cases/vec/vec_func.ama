@@ -11,7 +11,7 @@ func fmt_lista(lx: [int], sep : texto)
     resultado : texto
     tamanho: int = tam(lx)
     para i de 0..tamanho faca
-        valor : texto = lx[i]::texto
+        valor : texto = lx[i]:>texto
         se i == tamanho - 1 entao
             resultado = f"{resultado}{valor}"
         senao

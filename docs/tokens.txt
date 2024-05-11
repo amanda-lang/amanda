@@ -79,6 +79,7 @@ RBRACKET : ]
 COLON : ":"
 QMARK : "?"
 DOUBLECOLON: "::"
+CAST: ":>"
 ARROW: "=>"
 NEWLINE : "\n"
 COMMENTS: "#"

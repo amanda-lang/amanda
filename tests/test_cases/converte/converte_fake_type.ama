@@ -1,5 +1,5 @@
 
-mostra 8::undeclared
+mostra 8:>undeclared
 
 
 #[output]:Erro: o tipo 'undeclared' não foi declarado.

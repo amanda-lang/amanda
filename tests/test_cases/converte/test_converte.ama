@@ -1,6 +1,6 @@
-mostra 8::real
-mostra 8::texto
-mostra 8::bool
-mostra 8::int
+mostra 8:>real
+mostra 8:>texto
+mostra 8:>bool
+mostra 8:>int
 
 #[output]:8.0 8 verdadeiro 8 

@@ -1,5 +1,5 @@
 
-lista_r: [real] = 1::[int]
+lista_r: [real] = 1:>[int]
 
 
 

@@ -33,6 +33,7 @@ class TokenType(Enum):
     COLON = ":"
     QMARK = "?"
     DOUBLECOLON = "::"
+    CAST = ":>"
     ARROW = "=>"
     NEWLINE = "\\n"
 

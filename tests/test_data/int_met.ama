@@ -1,5 +1,5 @@
 usa 'mat'
 
 met int::exp(alvo, exp: int): int
-    retorna expoente(alvo, exp)::int
+    retorna expoente(alvo, exp):>int
 fim

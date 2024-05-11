@@ -1021,8 +1021,8 @@ class Parser:
                 identifier = self.lookahead
                 self.consume(TT.IDENTIFIER)
                 expr = ast.Get(target=expr, member=identifier)
-        if self.match(TT.DOUBLECOLON):
-            token = self.consume(TT.DOUBLECOLON)
+        if self.match(TT.CAST):
+            token = self.consume(TT.CAST)
             new_type = self.type()
             return ast.Converta(token, expr, new_type)
         return expr
