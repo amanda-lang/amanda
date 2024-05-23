@@ -1120,19 +1120,32 @@ class Parser:
     def primary(self):
         current = self.lookahead.token
         expr = None
-        if current in (
+        if self.match(TT.IDENTIFIER):
+            expr = ast.Variable(self.lookahead)
+            self.consume(TT.IDENTIFIER)
+            # Try and parse ::
+            if self.match(TT.DOUBLECOLON):
+                path = [expr]
+                while self.match(TT.DOUBLECOLON):
+                    self.consume(TT.DOUBLECOLON)
+                    path.append(
+                        ast.Variable(
+                            self.consume(
+                                TT.IDENTIFIER,
+                                "Expressão de caminho inválida. Esperava-se um identificador após o símbolo '::'",
+                            )
+                        )
+                    )
+                expr = ast.Path(path)
+        elif current in (
             TT.INTEGER,
             TT.REAL,
             TT.STRING,
             TT.NULO,
-            TT.IDENTIFIER,
             TT.VERDADEIRO,
             TT.FALSO,
         ):
-            if self.match(TT.IDENTIFIER):
-                expr = ast.Variable(self.lookahead)
-            else:
-                expr = ast.Constant(self.lookahead)
+            expr = ast.Constant(self.lookahead)
             self.consume(current)
         elif self.match(TT.LBRACKET):
             token = self.consume(TT.LBRACKET)

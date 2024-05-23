@@ -771,6 +771,12 @@ class Analyzer(ast.Visitor):
         assert node.var_symbol
         return sym
 
+    def visit_path(self, node: ast.Path):
+        components = node.components
+        current_expr = components[0]
+        for component in components[1:]:
+            pass
+
     def _bad_prop_err(self, ty: Type, field: str):
         # TODO: Add context to bad prop error on Option types
         if not ty.is_primitive():

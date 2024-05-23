@@ -8,6 +8,7 @@ from typing import (
     Any,
     List,
     Optional,
+    Sequence,
     Type as PyTy,
     TypeVar,
     Callable,
@@ -352,6 +353,15 @@ class Unwrap(Expr):
         super().__init__(option.token)
         self.option = option
         self.default_val = default_val
+
+
+@dataclass
+class Path(Expr):
+    components: Sequence[Expr]
+
+    def __init__(self, components: Sequence[Expr]):
+        super().__init__(components[0].token)
+        self.components = components
 
 
 class FunctionDecl(ASTNode):
