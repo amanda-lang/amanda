@@ -18,6 +18,7 @@ from amanda.compiler.types.core import (
     Primitive,
     Type,
     Types,
+    Uniao,
     Vector,
     Registo,
 )
@@ -755,7 +756,7 @@ class Analyzer(ast.Visitor):
             element.prom_type = element_type.promote_to(list_type)
 
     # TODO: Rename this to 'name' or 'identifier'
-    def visit_variable(self, node):
+    def visit_variable(self, node: ast.Variable):
         name = node.token.lexeme
         sym = cast(
             symbols.Typed,
@@ -773,9 +774,27 @@ class Analyzer(ast.Visitor):
 
     def visit_path(self, node: ast.Path):
         components = node.components
-        current_expr = components[0]
+        name = components[0].token.lexeme
+        current_sym: symbols.Typed | None = self.ctx_scope.resolve(
+            components[0].token.lexeme
+        )  # type: ignore
+        if not current_sym:
+            self.error(f"o identificador '{name}' não foi declarado")
+
         for component in components[1:]:
-            pass
+            match current_sym:
+                case Uniao(name=name, variants=variants):
+                    variant = component.token.lexeme
+                    if variant not in variants:
+                        self.error(
+                            f"A união '{name}' não possui a variante '{variant}'"
+                        )
+                    current_sym = variants[variant]
+                case _:
+                    self.error(
+                        f"O item '{current_sym.name}' não possui sub-itens"
+                    )
+        node.eval_type = current_sym.type
 
     def _bad_prop_err(self, ty: Type, field: str):
         # TODO: Add context to bad prop error on Option types

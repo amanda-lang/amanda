@@ -357,9 +357,9 @@ class Unwrap(Expr):
 
 @dataclass
 class Path(Expr):
-    components: Sequence[Expr]
+    components: Sequence[Variable]
 
-    def __init__(self, components: Sequence[Expr]):
+    def __init__(self, components: Sequence[Variable]):
         super().__init__(components[0].token)
         self.components = components
 

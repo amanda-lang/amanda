@@ -473,36 +473,18 @@ class Uniao(Type):
         return False
 
     def binop(self, op: TT, rhs: Type) -> Type | None:
-        from amanda.compiler.types.builtins import Builtins
-
-        match (self, op, rhs):
-            case [_, (TT.DOUBLEEQUAL | TT.NOTEQUAL), Registo()]:
-                return Builtins.Bool
-            case [Registo(name="Opcao"), (TT.DOUBLEEQUAL | TT.NOTEQUAL), _]:
-                return Builtins.Bool
-            case _:
-                return None
+        return None
 
     def unaryop(self, op: TT) -> Type | None:
         return None
 
     def promotion_to(self, other: Type) -> Type | None:
-        if not isinstance(other, Primitive) and not isinstance(
-            other, ConstructedTy
-        ):
-            return None
-
-        if isinstance(other, ConstructedTy) and other.name == str(Types.TOpcao):
-            if other.generic_ty == self:
-                return other
-
-        return (
-            other
-            if isinstance(other, Primitive) and other.tag in (Types.TINDEF,)
-            else None
-        )
+        return None
 
     def bind(self, **ty_args: Type) -> ConstructedTy:
+        raise NotImplementedError(
+            "Cannot bind type params of non generic Registo"
+        )
         if self.ty_params is None:
             raise NotImplementedError(
                 "Cannot bind type params of non generic Registo"
@@ -513,7 +495,7 @@ class Uniao(Type):
         return ConstructedTy(self, ty_args)
 
     def __eq__(self, other: object) -> bool:
-        return isinstance(other, Registo) and self.name == other.name
+        return isinstance(other, Uniao) and self.name == other.name
 
     def __str__(self) -> str:
         return self.name
