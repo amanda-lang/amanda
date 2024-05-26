@@ -761,7 +761,10 @@ class ByteGen:
             self.gen(arg)
 
         self.gen(node.callee)
-        if func.is_type():
+        if isinstance(func, Variant):
+            self.append_op(OpCode.BUILD_VARIANT, len(node.fargs))
+            return
+        elif func.is_type():
             self.append_op(OpCode.BUILD_OBJ, len(node.fargs))
         else:
             self.append_op(OpCode.CALL_FUNCTION, len(node.fargs))

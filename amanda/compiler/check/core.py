@@ -795,6 +795,18 @@ class Analyzer(ast.Visitor):
                     self.error(
                         f"O item '{current_sym.name}' não possui sub-itens"
                     )
+
+        # If variant not referenced in the context of a call
+        # and it has params, error out
+        if (
+            not node.child_of(ast.Call)
+            and isinstance(current_sym, Variant)
+            and len(current_sym.params) > 0
+        ):
+            self.error(
+                f"A variante '{current_sym.name}' da união '{current_sym.uniao.name}' deve ser inicializada com os devidos argumentos"
+            )
+
         node.eval_type = current_sym.type
         node.symbol = current_sym
 

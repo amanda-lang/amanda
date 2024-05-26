@@ -13,6 +13,7 @@ use crate::modules::builtins;
 use unicode_segmentation::UnicodeSegmentation;
 use std::convert::From;
 use std::mem;
+use std::rc::Rc;
 
 const RECURSION_LIMIT: usize = 1000;
 const DEFAULT_STACK_SIZE: usize = 256;
@@ -175,6 +176,9 @@ impl<'a> AmaVM<'a> {
         self.init(self.ctx_module.unwrap().main);
 
         loop {
+            if is_main_module {
+                //self.print_debug_info();
+            }
             let op = self.ctx_module.unwrap().code[self.frames.peek().ip];
             self.frames.peek_mut().last_i = self.frames.peek().ip;
             match OpCode::from(&op) {
@@ -449,8 +453,14 @@ impl<'a> AmaVM<'a> {
                     let args = self.get_byte() as isize;
                     let tag = self.op_pop().take_int() as u64;
                     if args == 0 {
-                        self.op_push(AmaValue::Variant(tag, None))
-                    }
+                        self.op_push(AmaValue::Variant(tag, None));
+                        self.frames.peek_mut().ip += 1;
+                        continue;
+                    } 
+                    let start = (self.sp - (args - 1))  as usize;
+                    let args = self.values.drain(start..= self.sp as usize).into_iter().collect();
+                    self.sp = (start - 1) as isize;
+                    self.op_push(AmaValue::Variant(tag, Some(Rc::new(args))));
                 }
                 OpCode::GetProp => {
                     let field = self.op_pop();
@@ -548,6 +558,8 @@ impl<'a> AmaVM<'a> {
     fn print_debug_info(&self) {
         println!("[Function]: {}", self.frames.peek().name);
         println!("[Function locals]: {}", self.frames.peek().locals);
+
+        println!("[Instructions]: {:?}", self.ctx_module.unwrap().code);
         println!("[IP]: {}", self.frames.peek().ip);
         println!("[SP]: {}", self.sp);
         println!(

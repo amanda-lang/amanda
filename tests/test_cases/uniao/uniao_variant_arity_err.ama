@@ -1,0 +1,10 @@
+uniao Resposta
+    Sim,
+    Nao, 
+    Talvez, 
+    Justificada(texto)
+fim  
+
+r1: Resposta = Resposta::Justificada()
+escrevaln(r1)
+#[output]: Erro: número incorrecto de argumentos para o constructor da Variante 'Resposta::Justificada'. Esperava 1 argumento(s), porém recebeu 0.
