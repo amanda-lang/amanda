@@ -19,6 +19,7 @@ from amanda.compiler.types.core import (
     Type,
     Types,
     Uniao,
+    Variant,
     Vector,
     Registo,
 )
@@ -1100,29 +1101,41 @@ class Analyzer(ast.Visitor):
         callee = node.callee
         calle_type = type(callee)
         sym: Typed
-        if calle_type == ast.Variable:
-            name = callee.token.lexeme
-            sym = self.ctx_scope.resolve_typed(name)
-            if not sym:
-                # TODO: Use the default error message for this
-                self.error(
-                    f"o identificador '{name}' não foi definido neste escopo"
+        match callee:
+            case ast.Variable():
+                name = callee.token.lexeme
+                sym = self.ctx_scope.resolve_typed(name)
+                if not sym:
+                    # TODO: Use the default error message for this
+                    self.error(
+                        f"o identificador '{name}' não foi definido neste escopo"
+                    )
+            case ast.Get():
+                sym = self.visit(callee)
+            case ast.Path():
+                self.visit(callee)
+                sym = callee.symbol
+                if not sym.is_callable():
+                    # TODO: Improve this error message
+                    self.error(
+                        f"a variante '{sym.name}' não declara nenhum argumento."
+                    )
+            case _:
+                message = (
+                    f"Não pode invocar o resultado de uma invocação"
+                    if calle_type == ast.Call
+                    else f"o símbolo '{node.callee.token.lexeme}' não é invocável"
                 )
-        elif calle_type == ast.Get:
-            sym = self.visit(callee)
-        else:
-            message = (
-                f"Não pode invocar o resultado de uma invocação"
-                if calle_type == ast.Call
-                else f"o símbolo '{node.callee.token.lexeme}' não é invocável"
-            )
-            self.error(message)
-            return
+                self.error(message)
+
         if sym.name in BUILTINS:
             self.builtin_call(BUILTINS[sym.name], node)
         elif isinstance(sym, Registo):
             self.validate_initializer(sym, node.fargs)
             node.eval_type = sym
+        elif isinstance(sym, Variant):
+            node.eval_type = sym.uniao
+            uniao.validate_variant_init(self, sym, node.fargs)
         else:
             self.validate_call(cast(symbols.FunctionSymbol, sym), node.fargs)
             node.eval_type = sym.type
@@ -1256,7 +1269,6 @@ class Analyzer(ast.Visitor):
 
     def validate_initializer(self, sym: Registo, fargs: List[ast.NamedArg]):
         # Check call arity
-
         if len(fargs) != len(sym.fields):
             self.error(
                 f"número incorrecto de argumentos para o inicializador do registo '{sym.name}'. Esperava {len(sym.fields)} argumento(s), porém recebeu {len(fargs)}"
