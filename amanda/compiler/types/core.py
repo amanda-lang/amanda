@@ -417,6 +417,9 @@ class Variant(Typed):
     def is_callable(self):
         return len(self.params) > 0
 
+    def variant_id(self) -> str:
+        return f"{self.module.fpath}::{self.uniao.name}::{self.name}"
+
     def bind(self, **ty_args: Type) -> Typed:
         raise NotImplementedError("Not implemented for união yet")
         if not self.type.is_type_var():
@@ -479,7 +482,11 @@ class Uniao(Type):
         return None
 
     def promotion_to(self, other: Type) -> Type | None:
-        return None
+        return (
+            other
+            if isinstance(other, Primitive) and other.tag in (Types.TINDEF,)
+            else None
+        )
 
     def bind(self, **ty_args: Type) -> ConstructedTy:
         raise NotImplementedError(

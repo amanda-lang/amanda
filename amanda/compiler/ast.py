@@ -358,6 +358,7 @@ class Unwrap(Expr):
 @dataclass
 class Path(Expr):
     components: Sequence[Variable]
+    resolved_item: symbols.Typed | None = None
 
     def __init__(self, components: Sequence[Variable]):
         super().__init__(components[0].token)

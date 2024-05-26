@@ -795,6 +795,7 @@ class Analyzer(ast.Visitor):
                         f"O item '{current_sym.name}' não possui sub-itens"
                     )
         node.eval_type = current_sym.type
+        node.symbol = current_sym
 
     def _bad_prop_err(self, ty: Type, field: str):
         # TODO: Add context to bad prop error on Option types

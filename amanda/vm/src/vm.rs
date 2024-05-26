@@ -445,6 +445,13 @@ impl<'a> AmaVM<'a> {
                     //Drop values
                     //self.values.drain(self.sp as usize + 1..);
                 }
+                OpCode::BuildVariant => {
+                    let args = self.get_byte() as isize;
+                    let tag = self.op_pop().take_int() as u64;
+                    if args == 0 {
+                        self.op_push(AmaValue::Variant(tag, None))
+                    }
+                }
                 OpCode::GetProp => {
                     let field = self.op_pop();
                     let reg_ref = self.op_pop();

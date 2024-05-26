@@ -6,7 +6,7 @@ from enum import Enum, auto
 from amanda.compiler.symbols.base import Symbol
 import amanda.compiler.symbols.core as symbols
 from amanda.compiler.types.builtins import Builtins
-from amanda.compiler.types.core import Primitive, Registo, Type
+from amanda.compiler.types.core import Primitive, Registo, Type, Uniao, Variant
 import amanda.compiler.ast as ast
 from amanda.compiler.tokens import TokenType as TT
 from amanda.compiler.error import AmandaError, throw_error
@@ -95,6 +95,8 @@ class OpCode(Enum):
     # Get the value of a global declared in another module. arg-1 (64-bit) is the index of the module in the table of imported modules,
     # arg-2 (64-bit) is the index to the name of the var on the constant table.
     LOAD_MODULE_DEF = auto()
+    # Builds a new variant object. The argument of the op is the number of variant constructor args. Expects the variant unique tag id to be TOS.
+    BUILD_VARIANT = auto()
     # Stops execution of the VM. Must always be added to stop execution of the vm
     HALT = 0xFF
 
@@ -103,7 +105,7 @@ class OpCode(Enum):
         # uses
         num_ops = len(list(OpCode))
         assert (
-            num_ops == 40
+            num_ops == 41
         ), f"Please update the size of ops after adding a new Op. New size: {num_ops}"
         match self:
             case (
@@ -113,6 +115,7 @@ class OpCode(Enum):
                 | OpCode.BUILD_VEC
                 | OpCode.BUILD_OBJ
                 | OpCode.OP_UNWRAP
+                | OpCode.BUILD_VARIANT
             ):
                 return OP_SIZE * 2
             case (
@@ -138,6 +141,8 @@ class OpCode(Enum):
 
 Instruction = tuple[OpCode, tuple[int, ...]]
 
+uniao_tag_attr = "_field"
+
 
 class ByteGen:
     """
@@ -154,6 +159,7 @@ class ByteGen:
         self.scope_symtab: symbols.Scope = None  # type: ignore
         self.func_locals: dict[str, int] = {}
         self.const_table: dict[str, int] = {}
+        self.uniao_variants: dict[str, int] = {}
         self.names = {}
         self.labels = {}
         self.ops: list[Instruction] = []
@@ -414,7 +420,12 @@ class ByteGen:
             self.gen(child)
         self.exit_block()
 
-    def get_table_index(self, item: str, table):
+    def get_variant_index(self, variant: Variant) -> int:
+        return self.uniao_variants.setdefault(
+            variant.variant_id(), len(self.uniao_variants)
+        )
+
+    def get_table_index(self, item: str | int, table):
         # TODO: Make load const instruction use 64 bit arg
         tab = self.const_table if table == self.CONST_TABLE else self.names
         if item in tab:
@@ -466,6 +477,22 @@ class ByteGen:
         var_scope = self.scope_symtab.resolve_scope(name, self.depth)
         self.load_variable(symbol)
         self.gen_auto_cast(prom_type)
+
+    def gen_path(self, node: ast.Path):
+        # raise ValueError("Symbol should have been resolved before codegen!")
+        symbol = node.symbol
+        if not symbol:
+            raise ValueError("Symbol should have been resolved before codegen!")
+        match symbol:
+            case Variant():
+                tag = self.uniao_variants[symbol.variant_id()]
+                self.load_const(self.get_table_index(tag, self.CONST_TABLE))
+                if not symbol.is_callable():
+                    # No args means we can generate the code for creating the variant here
+                    self.append_op(OpCode.BUILD_VARIANT, 0)
+            case _:
+                raise NotImplementedError("Cannot generate code for symbol")
+        return
 
     def gen_vardecl(self, node):
         assign = node.assign
@@ -835,6 +862,13 @@ class ByteGen:
         )
         self.append_op(OpCode.LOAD_REGISTO, len(self.registos) - 1)
         self.set_variable(self.scope_symtab.resolve(name))
+
+    def gen_uniao(self, node: ast.Uniao):
+        name = node.name.lexeme
+        sym: Uniao = self.scope_symtab.resolve_typed(name)
+        self.get_table_index(name, self.NAME_TABLE)
+        for variant in sym.variants.values():
+            self.get_variant_index(variant)
 
     def gen_noop(self, node: ast.NoOp):
         pass
