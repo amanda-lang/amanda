@@ -508,8 +508,7 @@ class Uniao(Type):
         return self.name
 
     def get_property(self, prop) -> Symbol | None:
-        raise NotImplementedError("Not implemented!!!")
-        return self.fields.get(prop, self.methods.get(prop))
+        return self.methods.get(prop)
 
     def define_method(self, method: Symbol):
         self.methods[method.name] = cast(MethodSym, method)
