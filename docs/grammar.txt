@@ -103,6 +103,12 @@ body
   :( declaration | NEWLINE )*
   ;
 
+block
+  : FACA 
+     ( declaration | NEWLINE )* 
+    FIM
+  ;
+
 
 formal_parameter_section
   : IDENTIFIER COLON type (COMMA formal_parameter_section)*
@@ -119,6 +125,7 @@ stmt
   | decl_stmt
   | quebra_stmt
   | continua_stmt
+  | iguala_stmt
   ;
 
 escolha_stmt
@@ -127,6 +134,17 @@ escolha_stmt
     (senao equality COLON body)?
     FIM 
   ;
+
+iguala_stmt
+  : IGUALA equality (iguala_arm (, iguala_arm)*)? FIM
+  ;
+iguala_arm
+  : pattern ARROW (equality | block)
+  ;
+pattern
+  : ??? 
+  ;
+
 
 retorna_stmt
   : RETORNA equality? end_stmt

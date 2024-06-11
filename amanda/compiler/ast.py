@@ -265,6 +265,26 @@ class Escolha(ASTNode):
         self.default_case = default_case
 
 
+class IgualaArm(ASTNode):
+    pattern: Pattern
+    body: Expr | Block
+
+    def __init__(self, token: Token, pattern: Pattern, body: Expr | Block):
+        super().__init__(token)
+        self.pattern = pattern
+        self.body = body
+
+
+class Iguala(ASTNode):
+    target: Expr
+    arms: list[IgualaArm]
+
+    def __init__(self, token: Token, target: Expr, arms: list[IgualaArm]):
+        super().__init__(token)
+        self.target = target
+        self.arms = arms
+
+
 class Para(ASTNode):
     def __init__(self, token, expression: ParaExpr, statement: Block):
         super().__init__(token)
@@ -358,7 +378,7 @@ class Unwrap(Expr):
 @dataclass
 class Path(Expr):
     components: Sequence[Variable]
-    resolved_item: symbols.Typed | None = None
+    symbol: symbols.Typed | None = None
 
     def __init__(self, components: Sequence[Variable]):
         super().__init__(components[0].token)

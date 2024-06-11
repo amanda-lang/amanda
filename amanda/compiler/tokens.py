@@ -84,6 +84,7 @@ class TokenType(Enum):
     COMO = "como"
     ALVO = "alvo"
     REGISTO = "registo"
+    IGUALA = "IGUALA"
     INC = "INC"
     FIM = "FIM"
     FUNC = "FUNC"

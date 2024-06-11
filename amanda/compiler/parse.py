@@ -686,6 +686,8 @@ class Parser:
             return self.escolha_stmt()
         elif self.match(TT.QUEBRA) or self.match(TT.CONTINUA):
             return self.loop_ctl_statement()
+        elif self.match(TT.IGUALA):
+            return self.iguala_stmt()
         else:
             return self.decl_stmt()
 
@@ -781,6 +783,39 @@ class Parser:
             default_case = self.block()
         self.consume(TT.FIM)
         return ast.Escolha(token, expression, cases, default_case)
+
+    def iguala_arm(self):
+        self.skip_newlines()
+        pattern = self.pattern()
+        self.consume(TT.ARROW)
+        self.skip_newlines()
+        body = None
+        if self.match(TT.FACA):
+            self.consume(TT.FACA)
+            body = self.block()
+            self.consume(
+                TT.FIM,
+                "Os blocos de uma alternativa da instrução iguala devem ser terminados com a palavra reservada 'fim'.",
+            )
+        else:
+            body = self.equality()
+        self.skip_newlines()
+        return ast.IgualaArm(pattern, body)
+
+    def iguala_stmt(self):
+        tok = self.consume(TT.IGUALA)
+        target = self.equality()
+        arms = []
+        while not self.match(TT.FIM):
+            arms.append(self.iguala_arm())
+            while self.match(TT.COMMA):
+                self.consume(TT.COMMA)
+                arms.append(self.iguala_arm())
+        self.consume(
+            TT.FIM,
+            "Esperava-se encontrar o token 'fim' no final da instrução iguala.",
+        )
+        return ast.Iguala(tok, target, arms)
 
     def for_expression(self):
         name = self.consume(TT.IDENTIFIER)

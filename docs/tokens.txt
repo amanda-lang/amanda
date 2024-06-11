@@ -45,6 +45,7 @@ DE : de
 CONTINUA: continua
 quebra: quebra
 FUNC : func
+IGUALA: iguala
 MET: met
 INC : inc
 FIM : fim
