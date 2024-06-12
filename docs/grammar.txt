@@ -141,10 +141,22 @@ iguala_stmt
 iguala_arm
   : pattern ARROW (equality | block)
   ;
+
 pattern
-  : ??? 
+  : capture_or_adt_pattern
+  | constant_pattern
   ;
 
+capture_or_adt_pattern
+  : IDENTIFIER (DOUBLECOLON IDENTFIER)* (LPAR pattern (COMMA pattern)* RPAR)? 
+
+constant_pattern
+  : INTEGER 
+  | REAL
+  | STRING
+  | VERDADEIRO
+  | FALSO
+  ;
 
 retorna_stmt
   : RETORNA equality? end_stmt
@@ -259,7 +271,7 @@ primary
   | FALSO
   | LPAR equality RPAR
   | LBRACKET type COLON args? RBRACKET
-  | IDENTIFIER 
+  | IDENTIFIER (DOUBLECOLON IDENTFIER)*
   | NULO
   | alvo
   ;

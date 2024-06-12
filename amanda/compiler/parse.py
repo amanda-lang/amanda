@@ -784,10 +784,37 @@ class Parser:
         self.consume(TT.FIM)
         return ast.Escolha(token, expression, cases, default_case)
 
+    def pattern(self) -> ast.Pattern:
+        start_expr = self.primary()
+        match start_expr:
+            case ast.Path() | ast.Variable():
+                return self.capture_or_adt_pattern(start_expr)
+            case ast.Constant():
+                return ast.LiteralPattern(start_expr)
+            case _:
+                self.error("Padrão inválido")
+
+    def capture_or_adt_pattern(
+        self, ty: ast.Path | ast.Variable
+    ) -> ast.ADTPattern | ast.VarPattern:
+        if not self.match(TT.LPAR):
+            # ADT pattern with no args e.g enum variant
+            return ast.VarPattern(ty)
+        self.consume(TT.LPAR)
+        # Parse first argument to see what type of pattern it is
+        args = []
+        args.append(self.pattern())
+        self.skip_newlines()
+        while self.match(TT.COMMA):
+            self.consume(TT.COMMA)
+            args.append(self.pattern())
+        self.consume(TT.RPAR)
+        return ast.ADTPattern(ty, args)
+
     def iguala_arm(self):
         self.skip_newlines()
         pattern = self.pattern()
-        self.consume(TT.ARROW)
+        tok = self.consume(TT.ARROW)
         self.skip_newlines()
         body = None
         if self.match(TT.FACA):
@@ -800,7 +827,7 @@ class Parser:
         else:
             body = self.equality()
         self.skip_newlines()
-        return ast.IgualaArm(pattern, body)
+        return ast.IgualaArm(tok, pattern, body)
 
     def iguala_stmt(self):
         tok = self.consume(TT.IGUALA)
@@ -1209,6 +1236,8 @@ class Parser:
         elif self.match(TT.ALVO):
             expr = ast.Alvo(self.lookahead)
             self.consume(TT.ALVO)
+        elif self.match(TT.IGUALA):
+            expr = self.iguala_stmt()
         else:
             self.error(
                 f"início inválido de expressão: '{self.lookahead.lexeme}'"

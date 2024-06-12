@@ -8,6 +8,7 @@ from typing import (
     Any,
     List,
     Optional,
+    Protocol,
     Sequence,
     Type as PyTy,
     TypeVar,
@@ -265,6 +266,35 @@ class Escolha(ASTNode):
         self.default_case = default_case
 
 
+class LiteralPattern(ASTNode):
+    literal: Constant
+
+    def __init__(self, literal: Constant):
+        super().__init__(literal.token)
+        self.literal = literal
+
+
+class VarPattern(ASTNode):
+    var: Path | Variable
+
+    def __init__(self, var: Path | Variable):
+        super().__init__(var.token)
+        self.var = var
+
+
+class ADTPattern(ASTNode):
+    adt: Path | Variable
+    args: list[Pattern]
+
+    def __init__(self, adt: Path | Variable, args: list[Pattern]):
+        super().__init__(adt.token)
+        self.adt = adt
+        self.args = args
+
+
+Pattern = LiteralPattern | ADTPattern | VarPattern
+
+
 class IgualaArm(ASTNode):
     pattern: Pattern
     body: Expr | Block
@@ -275,7 +305,7 @@ class IgualaArm(ASTNode):
         self.body = body
 
 
-class Iguala(ASTNode):
+class Iguala(Expr):
     target: Expr
     arms: list[IgualaArm]
 
