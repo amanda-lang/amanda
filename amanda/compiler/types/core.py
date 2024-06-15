@@ -1,9 +1,15 @@
 from __future__ import annotations
 from enum import auto, IntEnum, Enum
 from dataclasses import dataclass
-from typing import Mapping, cast, ClassVar
+from typing import Literal, Mapping, cast, ClassVar
 from amanda.compiler.module import Module
-from amanda.compiler.symbols.base import Symbol, Type, TypeVar, Typed
+from amanda.compiler.symbols.base import (
+    Symbol,
+    Type,
+    TypeVar,
+    Typed,
+    Constructor,
+)
 from amanda.compiler.symbols.core import (
     FunctionSymbol,
     VariableSymbol,
@@ -618,3 +624,26 @@ class ConstructedTy(Type):
             ty_arg = self.bound_ty_args["T"]
             return f"{ty_arg}?"
         return self.name
+
+
+@dataclass
+class VariantCons(Constructor):
+    uniao: Uniao
+    name: str
+    args: list[Type]
+
+
+@dataclass
+class BoolCons(Constructor):
+    val: Literal[0, 1]
+
+    def index(self) -> int:
+        return self.val
+
+
+@dataclass
+class IntCons(Constructor):
+    val: int
+
+    def index(self) -> int:
+        return 0

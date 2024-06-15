@@ -1,7 +1,8 @@
 from __future__ import annotations
 from abc import abstractmethod, ABC
 from dataclasses import dataclass
-from typing import Any, TYPE_CHECKING
+from enum import Enum
+from typing import Any, TYPE_CHECKING, Literal, Protocol
 
 from dataclasses import dataclass
 
@@ -240,3 +241,9 @@ class Typed(Symbol):
 
     def __str__(self):
         return f"<{self.__class__.__name__} ({self.name},{self.out_id},{self.type})>"
+
+
+@dataclass
+class Constructor(Protocol):
+
+    def index(self) -> int: ...

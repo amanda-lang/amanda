@@ -796,10 +796,10 @@ class Parser:
 
     def capture_or_adt_pattern(
         self, ty: ast.Path | ast.Variable
-    ) -> ast.ADTPattern | ast.VarPattern:
+    ) -> ast.ADTPattern | ast.BindingPattern:
         if not self.match(TT.LPAR):
             # ADT pattern with no args e.g enum variant
-            return ast.VarPattern(ty)
+            return ast.BindingPattern(ty)
         self.consume(TT.LPAR)
         # Parse first argument to see what type of pattern it is
         args = []

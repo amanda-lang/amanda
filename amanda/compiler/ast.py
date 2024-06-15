@@ -266,15 +266,16 @@ class Escolha(ASTNode):
         self.default_case = default_case
 
 
-class LiteralPattern(ASTNode):
-    literal: Constant
+@dataclass
+class IntPattern(ASTNode):
+    val: Token
 
-    def __init__(self, literal: Constant):
-        super().__init__(literal.token)
-        self.literal = literal
+    def __init__(self, val: Token):
+        super().__init__(val)
+        self.val = val
 
 
-class VarPattern(ASTNode):
+class BindingPattern(ASTNode):
     var: Path | Variable
 
     def __init__(self, var: Path | Variable):
@@ -292,7 +293,7 @@ class ADTPattern(ASTNode):
         self.args = args
 
 
-Pattern = LiteralPattern | ADTPattern | VarPattern
+Pattern = IntPattern | ADTPattern | BindingPattern
 
 
 class IgualaArm(ASTNode):

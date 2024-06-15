@@ -28,6 +28,7 @@ from amanda.compiler.builtinfn import BUILTINS, BuiltinFn
 from amanda.config import STD_LIB
 from amanda.compiler.transform import transform
 import amanda.compiler.check.uniao as uniao
+import amanda.compiler.check.iguala as igualacheck
 
 
 MAX_AMA_INT = 2**63 - 1
@@ -1062,6 +1063,9 @@ class Analyzer(ast.Visitor):
         default_case = node.default_case
         if default_case:
             self.visit(default_case)
+
+    def visit_iguala(self, node: ast.Iguala):
+        igualacheck.check_iguala(self, node)
 
     def visit_enquanto(self, node: ast.Enquanto):
         self.visit(node.condition)
