@@ -798,8 +798,13 @@ class Parser:
         self, ty: ast.Path | ast.Variable
     ) -> ast.ADTPattern | ast.BindingPattern:
         if not self.match(TT.LPAR):
-            # ADT pattern with no args e.g enum variant
-            return ast.BindingPattern(ty)
+            match ty:
+                case ast.Path():
+                    return ast.ADTPattern(ty, [])
+                case ast.Variable():
+                    return ast.BindingPattern(ty)
+                case _:
+                    raise NotImplementedError("Unreachable!")
         self.consume(TT.LPAR)
         # Parse first argument to see what type of pattern it is
         args = []

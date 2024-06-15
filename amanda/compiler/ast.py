@@ -267,23 +267,26 @@ class Escolha(ASTNode):
 
 
 @dataclass
-class IntPattern(ASTNode):
+class IntPattern(Expr):
     val: Token
 
     def __init__(self, val: Token):
         super().__init__(val)
         self.val = val
+        self.eval_type = Builtins.Int
 
 
-class BindingPattern(ASTNode):
-    var: Path | Variable
+@dataclass
+class BindingPattern(Expr):
+    var: Variable
 
-    def __init__(self, var: Path | Variable):
+    def __init__(self, var: Variable):
         super().__init__(var.token)
         self.var = var
 
 
-class ADTPattern(ASTNode):
+@dataclass
+class ADTPattern(Expr):
     adt: Path | Variable
     args: list[Pattern]
 
@@ -291,9 +294,6 @@ class ADTPattern(ASTNode):
         super().__init__(adt.token)
         self.adt = adt
         self.args = args
-
-
-Pattern = IntPattern | ADTPattern | BindingPattern
 
 
 class IgualaArm(ASTNode):
@@ -304,6 +304,9 @@ class IgualaArm(ASTNode):
         super().__init__(token)
         self.pattern = pattern
         self.body = body
+
+
+Pattern = IntPattern | ADTPattern | BindingPattern
 
 
 class Iguala(Expr):

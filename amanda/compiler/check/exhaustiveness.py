@@ -95,6 +95,7 @@ Decision = DFailure | DGuard | DSuccess | DSwitch
 
 
 # A case in a decision tree to test against a variable.
+@dataclass
 class Case:
     # The constructor to test against an input variable.
     constructor: Constructor
@@ -268,7 +269,7 @@ class IgualaCompiler:
 
         branch_var = self.branch_variable(rows)
 
-        if not branch_var.has_finite_constructors:
+        if not branch_var.type.has_finite_constructors():
             match branch_var.type:
                 case Builtins.Int:
                     (cases, fallback) = self.compile_int_cases(rows, branch_var)
@@ -299,7 +300,7 @@ class IgualaCompiler:
     def compile_int_cases(
         self,
         rows: list[Row],
-        branch_var: Variable,
+        branch_var: VariableSymbol,
     ) -> tuple[list[Case], Decision]:
         raw_cases = []
         fallback_rows = []
@@ -326,7 +327,7 @@ class IgualaCompiler:
                 fallback_rows.append(row)
 
         for _, _, rows in raw_cases:
-            rows.append(fallback_rows)
+            rows.extend(fallback_rows)
 
         cases = list(
             map(
@@ -366,8 +367,8 @@ class IgualaCompiler:
     def compile_constructor_cases(
         self,
         rows: list[Row],
-        branch_var: Variable,
-        cases: list[tuple[Constructor, list[Variable], list[Row]]],
+        branch_var: VariableSymbol,
+        cases: list[tuple[Constructor, list[VariableSymbol], list[Row]]],
     ) -> list[Case]:
         for row in rows:
             if col := row.remove_column(branch_var):
@@ -378,11 +379,11 @@ class IgualaCompiler:
                     idx = cons.index()
                     cols = row.columns
                     for var, pat in zip(cases[idx][1], args):
-                        cols.push(Column(var, pat))
+                        cols.append(Column(var, pat))
                     cases[idx][2].push(Row(cols, row.guard, row.body))
             else:
                 for _, _, rows in cases:
-                    rows.push(row)
+                    rows.append(row)
 
         return list(
             map(
@@ -422,16 +423,16 @@ class IgualaCompiler:
 
     # Given a row, returns the variable in that row that's referred to the
     # most across all rows.
-    def branch_variable(self, rows: list[Row]) -> Variable:
-        counts: dict[str, int] = {}
+    def branch_variable(self, rows: list[Row]) -> VariableSymbol:
+        counts: dict[int, int] = {}
         for row in rows:
             for col in row.columns:
-                old_count = counts.setdefault(col.variable, 0)
-                counts[col.variable.name] = old_count + 1
+                old_count = counts.setdefault(id(col.variable), 0)
+                counts[id(col.variable)] = old_count + 1
         return max(
-            map(lambda col: col.variable, rows[0].columns),
-            lambda var: counts[var.name],
-        )
+            map(lambda col: id(col.variable), rows[0].columns),
+            key=lambda var: counts[var],  # type: ignore
+        )  # type: ignore
 
     # Returns a new variable to use in the decision tree.
     #
@@ -442,5 +443,5 @@ class IgualaCompiler:
         self.variable_id += 1
         return var
 
-    def new_variables(self, types: list[Type]) -> list[Variable]:
+    def new_variables(self, types: list[Type]) -> list[VariableSymbol]:
         return [self.new_variable(t) for t in types]

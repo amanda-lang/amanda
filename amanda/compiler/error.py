@@ -8,6 +8,9 @@ from dataclasses import dataclass
 class Errors:
     ID_IN_USE = "O identificador '{name}' já foi declarado neste escopo"
     VARIANT_ALREADY_DECLARED = "A variante '{variant}' já foi declarada anteriormente na união '{uniao}'"
+    VOID_FN_MATCH_TARGET = "Funções sem retorno não podem ser usadas como o alvo da instrução 'iguala'"
+    VARIANT_TAKES_NO_ARGS = "Padrão inválido. A variante '{variant}' não espera receber nenhum argumento"
+    INVALID_PATTERN_ARG = "Argumento {n} do padrão inválido. Esperava-se um argumento do tipo '{param_type}' mas recebeu o tipo '{eval_type}'"
 
 
 @dataclass
