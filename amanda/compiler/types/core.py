@@ -16,6 +16,7 @@ from amanda.compiler.symbols.core import (
     MethodSym,
 )
 from amanda.compiler.tokens import TokenType as TT
+from utils.tycheck import unreachable
 
 
 # Enum of types that are "known" to the compiler and may have
@@ -194,6 +195,21 @@ class Primitive(Type):
         raise NotImplementedError(
             "Bind must be implemented for types that support generics"
         )
+
+    def has_finite_constructors(self) -> bool:
+        match self.tag:
+            case Types.TBOOL:
+                return True
+            case _:
+                return False
+
+    def get_constructors(self) -> list[Constructor]:
+
+        match self.tag:
+            case Types.TBOOL:
+                return [BoolCons(0), BoolCons(1)]
+            case _:
+                unreachable("Constructor requested for infinite type")
 
 
 @dataclass
@@ -408,12 +424,14 @@ class Registo(Type):
 
 @dataclass
 class Variant(Typed):
+    tag: int
     uniao: Uniao
     name: str
     params: list[Type]
 
-    def __init__(self, uniao: Uniao, name: str, params: list[Type]):
+    def __init__(self, tag: int, uniao: Uniao, name: str, params: list[Type]):
         super().__init__(name, uniao, uniao.module)
+        self.tag = tag
         self.uniao = uniao
         self.params = params
 
@@ -425,6 +443,9 @@ class Variant(Typed):
 
     def variant_id(self) -> str:
         return f"{self.module.fpath}::{self.uniao.name}::{self.name}"
+
+    def qualified_name(self) -> str:
+        return f"{self.uniao.name}::{self.name}"
 
     def bind(self, **ty_args: Type) -> Typed:
         raise NotImplementedError("Not implemented for união yet")
@@ -455,7 +476,7 @@ class Uniao(Type):
         self._ty_names = set(map(lambda t: t.name, self.ty_params))
 
     def add_variant(self, name: str, params: list[Type]):
-        self.variants[name] = Variant(self, name, params)
+        self.variants[name] = Variant(len(self.variants), self, name, params)
 
     def contains_variant(self, name: str) -> bool:
         return name in self.variants
@@ -515,6 +536,17 @@ class Uniao(Type):
 
     def get_property(self, prop) -> Symbol | None:
         return self.methods.get(prop)
+
+    def has_finite_constructors(self) -> bool:
+        return True
+
+    def get_constructors(self) -> list[Constructor]:
+        return [
+            VariantCons(
+                variant.tag, self, variant.qualified_name(), variant.params
+            )
+            for variant in self.variants.values()
+        ]
 
     def define_method(self, method: Symbol):
         self.methods[method.name] = cast(MethodSym, method)
@@ -628,9 +660,16 @@ class ConstructedTy(Type):
 
 @dataclass
 class VariantCons(Constructor):
+    tag: int
     uniao: Uniao
     name: str
-    args: list[Type]
+    cons_args: list[Type]
+
+    def index(self) -> int:
+        return self.tag
+
+    def args(self) -> list[Type]:
+        return self.cons_args
 
 
 @dataclass
@@ -640,6 +679,9 @@ class BoolCons(Constructor):
     def index(self) -> int:
         return self.val
 
+    def args(self) -> list[Type]:
+        return []
+
 
 @dataclass
 class IntCons(Constructor):
@@ -647,3 +689,6 @@ class IntCons(Constructor):
 
     def index(self) -> int:
         return 0
+
+    def args(self) -> list[Type]:
+        return []

@@ -160,6 +160,11 @@ class Scope:
     def count(self) -> int:
         return len(self.symbols)
 
+    def new_unique_var(self, type: Type, module: Module) -> VariableSymbol:
+        symbol = VariableSymbol(f"_r{self.count()}_", type, module)
+        self.define(symbol.name, symbol)
+        return symbol
+
     def __str__(self) -> str:
         symbols = [
             f"{symbol}:{sym_obj}" for symbol, sym_obj in self.symbols.items()

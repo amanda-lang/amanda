@@ -834,7 +834,6 @@ class Analyzer(ast.Visitor):
             self.error("O Tipo '{ty_sym.name}' nenhum atributo ou método")
         ty_sym = target.eval_type  # type: ignore
         field = node.member.lexeme
-        print(ty_sym)
         field_sym = cast(Typed, ty_sym.get_property(field))
 
         if field_sym is None:

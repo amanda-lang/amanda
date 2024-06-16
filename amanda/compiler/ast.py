@@ -1,5 +1,6 @@
 from __future__ import annotations
 import enum
+from amanda.compiler.symbols.base import Constructor
 from amanda.compiler.tokens import Token, TokenType as TT
 import amanda.compiler.types.core as types
 from amanda.compiler.types.builtins import Builtins
@@ -160,7 +161,10 @@ class Lista(Expr):
         self.expression = expression
 
 
+@dataclass
 class Alvo(Expr):
+    var_symbol: symbols.VariableSymbol | None
+
     def __init__(self, token):
         super().__init__(token)
         self.var_symbol = None
@@ -182,6 +186,16 @@ class UnaryOp(Expr):
     def __init__(self, token: Token, *, operand: Expr):
         super().__init__(token)
         self.operand = operand
+
+
+@dataclass
+class YieldBlock(Expr):
+    children: list[ASTNode]
+
+    def __init__(self, token: Token, children: list[ASTNode]):
+
+        super().__init__(token)
+        self.children = children
 
 
 class VarDecl(ASTNode):
@@ -289,18 +303,20 @@ class BindingPattern(Expr):
 class ADTPattern(Expr):
     adt: Path | Variable
     args: list[Pattern]
+    cons: Constructor | None
 
     def __init__(self, adt: Path | Variable, args: list[Pattern]):
         super().__init__(adt.token)
         self.adt = adt
         self.args = args
+        self.cons = None
 
 
 class IgualaArm(ASTNode):
     pattern: Pattern
-    body: Expr | Block
+    body: YieldBlock
 
-    def __init__(self, token: Token, pattern: Pattern, body: Expr | Block):
+    def __init__(self, token: Token, pattern: Pattern, body: YieldBlock):
         super().__init__(token)
         self.pattern = pattern
         self.body = body
@@ -312,11 +328,13 @@ Pattern = IntPattern | ADTPattern | BindingPattern
 class Iguala(Expr):
     target: Expr
     arms: list[IgualaArm]
+    target_binding: symbols.VariableSymbol | None = None
 
     def __init__(self, token: Token, target: Expr, arms: list[IgualaArm]):
         super().__init__(token)
         self.target = target
         self.arms = arms
+        self.target_binding = None
 
 
 class Para(ASTNode):

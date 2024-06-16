@@ -7,11 +7,13 @@ from __future__ import annotations
 # <https://github.com/yorickpeterse/pattern-matching-in-rust>. Thank you Yorick!
 from dataclasses import dataclass
 from amanda.compiler.check.checker import Checker
+from amanda.compiler.module import Module
 from amanda.compiler.symbols.base import Constructor, Type
 from amanda.compiler.symbols.core import Scope, VariableSymbol
 from amanda.compiler.types.builtins import Builtins
 import amanda.compiler.ast as ast
 from amanda.compiler.types.core import BoolCons, IntCons, VariantCons
+from utils.tycheck import unreachable, unwrap
 
 
 @dataclass
@@ -23,7 +25,7 @@ class Body:
     #
     # We just use an integer for the sake of simplicity, but normally this
     # would be an AST node, or perhaps an index to an array of AST nodes.
-    value: ast.Block
+    value: ast.YieldBlock
 
 
 # A column in a pattern matching table.
@@ -81,7 +83,7 @@ class DGuard:
 class DSwitch:
     variable: VariableSymbol
     cases: list[Case]
-    fallback: Decision
+    fallback: Decision | None
 
 
 # A pattern is matched and the right-hand value is to be returned.
@@ -121,7 +123,7 @@ class Case:
 @dataclass
 class Diagnostics:
     missing: bool
-    reachable: list[ast.Block]
+    reachable: list[ast.YieldBlock]
 
 
 # Information about a single constructor/value (aka term) being tested, used
@@ -165,7 +167,7 @@ class Match:
 
     def add_missing_patterns(
         self,
-        node: Decision,
+        node: Decision | None,
         terms: list[Term],
         missing: set[str],
     ):
@@ -216,17 +218,15 @@ class Match:
                     self.add_missing_patterns(node, terms, missing)
 
 
-"""
-"""
-
-
 @dataclass
 class IgualaCompiler:
     scope: Scope
+    ctx_module: Module
     diagnostics: Diagnostics
 
-    def __init__(self, scope: Scope):
+    def __init__(self, scope: Scope, ctx_module: Module):
         self.scope = scope
+        self.ctx_module = ctx_module
         self.diagnostics = Diagnostics(False, [])
 
     def compile(self, iguala: ast.Iguala) -> Match:
@@ -238,7 +238,14 @@ class IgualaCompiler:
         )
 
     def _into_rows(self, iguala: ast.Iguala) -> list[Row]:
-        raise NotImplementedError("To be implemented")
+        return [
+            Row(
+                columns=[Column(unwrap(iguala.target_binding), arm.pattern)],
+                guard=None,
+                body=Body([], arm.body),
+            )
+            for arm in iguala.arms
+        ]
 
     def _expand_or_patterns(self, rows: list[Row]):
         raise NotImplementedError("To be implemented")
@@ -274,15 +281,15 @@ class IgualaCompiler:
                 case Builtins.Int:
                     (cases, fallback) = self.compile_int_cases(rows, branch_var)
                     return DSwitch(branch_var, cases, fallback)
-                case _:
+                case ty:
                     raise NotImplementedError(
-                        "Unknown infinite constructor type"
+                        f"Unknown infinite constructor type: {ty}"
                     )
 
         constructors = branch_var.type.get_constructors()
         cases = list(
             map(
-                lambda cons: (cons[0], self.new_variables(cons[1])),
+                lambda cons: (cons, self.new_variables(cons.args()), []),
                 constructors,
             )
         )
@@ -374,13 +381,13 @@ class IgualaCompiler:
             if col := row.remove_column(branch_var):
                 if isinstance(col.pattern, ast.ADTPattern):
                     pattern = col.pattern
-                    cons = pattern.cons
+                    cons = unwrap(pattern.cons)
                     args = pattern.args
                     idx = cons.index()
                     cols = row.columns
                     for var, pat in zip(cases[idx][1], args):
                         cols.append(Column(var, pat))
-                    cases[idx][2].push(Row(cols, row.guard, row.body))
+                    cases[idx][2].append(Row(cols, row.guard, row.body))
             else:
                 for _, _, rows in cases:
                     rows.append(row)
@@ -416,8 +423,8 @@ class IgualaCompiler:
 
         for col in all_cols:
             match col.pattern:
-                case ast.ast.BindingPattern(var):
-                    row.body.bindings.append((var, col.variable))
+                case ast.BindingPattern(var):
+                    row.body.bindings.append((var.token.lexeme, col.variable))
                 case _:
                     row.columns.append(col)
 
@@ -430,8 +437,8 @@ class IgualaCompiler:
                 old_count = counts.setdefault(id(col.variable), 0)
                 counts[id(col.variable)] = old_count + 1
         return max(
-            map(lambda col: id(col.variable), rows[0].columns),
-            key=lambda var: counts[var],  # type: ignore
+            map(lambda col: col.variable, rows[0].columns),
+            key=lambda var: counts[id(var)],  # type: ignore
         )  # type: ignore
 
     # Returns a new variable to use in the decision tree.
@@ -439,9 +446,7 @@ class IgualaCompiler:
     # In a real compiler you'd have to ensure these variables don't conflict
     # with other variables.
     def new_variable(self, ty: Type) -> VariableSymbol:
-        var = Variable(type_id)
-        self.variable_id += 1
-        return var
+        return self.scope.new_unique_var(ty, self.ctx_module)
 
     def new_variables(self, types: list[Type]) -> list[VariableSymbol]:
         return [self.new_variable(t) for t in types]

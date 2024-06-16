@@ -823,14 +823,15 @@ class Parser:
         self.skip_newlines()
         body = None
         if self.match(TT.FACA):
-            self.consume(TT.FACA)
-            body = self.block()
+            tok = self.consume(TT.FACA)
+            body = ast.YieldBlock(tok, self.block().children)
             self.consume(
                 TT.FIM,
-                "Os blocos de uma alternativa da instrução iguala devem ser terminados com a palavra reservada 'fim'.",
+                "Os blocos de uma alternativa da 'instrução' iguala devem ser terminados com a palavra reservada 'fim'.",
             )
         else:
-            body = self.equality()
+            expr = self.equality()
+            body = ast.YieldBlock(expr.token, [expr])
         self.skip_newlines()
         return ast.IgualaArm(tok, pattern, body)
 
