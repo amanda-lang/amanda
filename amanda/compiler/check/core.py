@@ -803,6 +803,7 @@ class Analyzer(ast.Visitor):
             not node.child_of(ast.Call)
             and isinstance(current_sym, Variant)
             and len(current_sym.params) > 0
+            and not node.child_of(ast.ADTPattern)
         ):
             self.error(
                 f"A variante '{current_sym.name}' da união '{current_sym.uniao.name}' deve ser inicializada com os devidos argumentos"
