@@ -69,6 +69,7 @@ class TokenType(Enum):
     FALSO = "FALSO"
     CASO = "CASO"
     RETORNA = "RETORNA"
+    PRODUZ = "PRODUZ"
     SE = "SE"
     SENAO = "SENAO"
     SENAOSE = "SENAOSE"

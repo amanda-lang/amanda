@@ -103,7 +103,7 @@ body
   :( declaration | NEWLINE )*
   ;
 
-block
+yield_block
   : FACA 
      ( declaration | NEWLINE )* 
     FIM
@@ -119,6 +119,7 @@ stmt
   : mostra_stmt
   | escolha_stmt
   | retorna_stmt
+  | produz_stmt
   | se_stmt
   | enquanto_stmt
   | para_stmt
@@ -139,7 +140,7 @@ iguala_stmt
   : IGUALA equality (iguala_arm (, iguala_arm)*)? FIM
   ;
 iguala_arm
-  : pattern ARROW (equality | block)
+  : pattern ARROW (equality | yield_block)
   ;
 
 pattern
@@ -160,6 +161,10 @@ constant_pattern
 
 retorna_stmt
   : RETORNA equality? end_stmt
+  ;
+
+produz_stmt
+  : PRODUZ equality end_stmt
   ;
 
 mostra_stmt

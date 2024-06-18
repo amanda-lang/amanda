@@ -191,11 +191,13 @@ class UnaryOp(Expr):
 @dataclass
 class YieldBlock(Expr):
     children: list[ASTNode]
+    symbols: symbols.Scope | None = None
 
     def __init__(self, token: Token, children: list[ASTNode]):
 
         super().__init__(token)
         self.children = children
+        self.symbols = None
 
 
 class VarDecl(ASTNode):
@@ -215,7 +217,10 @@ class Assign(Expr):
         self.right: Expr = right  # type: ignore
 
 
+@dataclass
 class Statement(ASTNode):
+    exp: Expr | None
+
     def __init__(self, token: Token, exp: Expr | None = None):
         super().__init__(token)
         self.exp = exp
@@ -226,6 +231,10 @@ class LoopCtlStmt(Statement):
 
 
 class Retorna(Statement):
+    pass
+
+
+class Produz(Statement):
     pass
 
 

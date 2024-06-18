@@ -23,12 +23,13 @@ from amanda.compiler.types.core import (
     Vector,
     Registo,
 )
-from amanda.compiler.error import AmandaError
+from amanda.compiler.error import AmandaError, Errors
 from amanda.compiler.builtinfn import BUILTINS, BuiltinFn
 from amanda.config import STD_LIB
 from amanda.compiler.transform import transform
 import amanda.compiler.check.uniao as uniao
 import amanda.compiler.check.iguala as igualacheck
+from utils.tycheck import unwrap
 
 
 MAX_AMA_INT = 2**63 - 1
@@ -52,6 +53,7 @@ class Analyzer(ast.Visitor):
         self.ctx_node: Optional[ast.ASTNode] = None
         self.ctx_reg = None
         self.ctx_func = None
+        self.ctx_yield_block: ast.YieldBlock | None = None
         self.in_loop = False
         self.imports = {}
         # Module currently being executed
@@ -254,7 +256,7 @@ class Analyzer(ast.Visitor):
         self.ty_ctx = scope
 
     def leave_scope(self):
-        self.ctx_scope = cast(symbols.Scope, self.ctx_scope).enclosing_scope
+        self.ctx_scope = unwrap(unwrap(self.ctx_scope).enclosing_scope)
         self.scope_depth -= 1
 
     def leave_ty_ctx(self):
@@ -705,6 +707,17 @@ class Analyzer(ast.Visitor):
         node.symbols = self.ctx_scope
         self.leave_scope()
 
+    def visit_yieldblock(self, node: ast.YieldBlock):
+        self.enter_scope()
+        prev_yield_block = self.ctx_yield_block
+        self.ctx_yield_block = node
+
+        self.visit_children(node.children)
+
+        self.ctx_yield_block = prev_yield_block
+        node.symbols = self.ctx_scope
+        self.leave_scope()
+
     def visit_param(self, node):
         name = node.name.lexeme
         var_type = self.get_type(node.param_type)
@@ -1024,6 +1037,17 @@ class Analyzer(ast.Visitor):
             self.error(
                 f"expressão de retorno inválida. O tipo do valor de retorno é incompatível com o tipo de retorno da função"
             )
+
+    def visit_produz(self, node: ast.Produz):
+        if not self.ctx_yield_block:
+            self.ctx_node = node
+            self.error(Errors.PRODUZ_OUTSIDE_BLOCK)
+        block_last_instruction = self.ctx_yield_block.children[-1]
+        if block_last_instruction != node:
+            self.error(Errors.PRODUZ_MUST_BE_LAST_INSTRUCTION)
+        expr = unwrap(node.exp)
+        self.visit(expr)
+        self.ctx_yield_block.eval_type = expr.eval_type
 
     def visit_senaose(self, node: ast.SenaoSe):
         self.visit(node.condition)

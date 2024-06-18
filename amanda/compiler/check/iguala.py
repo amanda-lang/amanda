@@ -38,11 +38,36 @@ def check_iguala(checker: Checker, iguala: ast.Iguala):
 
     compiler = IgualaCompiler(scope, checker.ctx_module)
     tree = compiler.compile(iguala)
-    pprint.pprint(tree)
     if tree.diagnostics.missing:
-        pprint.pprint(tree.missing_patterns())
+        # Non-exhaustive pattern matching. Report error
+        if target.eval_type.has_finite_constructors():
+            missing_patterns = "\n".join(
+                [f"* {pattern} => ... " for pattern in tree.missing_patterns()]
+            )
+            checker.error_with_loc(
+                iguala.token,
+                Errors.NON_EXHAUSTIVE_PATTERN_MATCH_FINITE,
+                ty=target.eval_type,
+                missing_patterns=missing_patterns,
+            )
+        else:
+            checker.error_with_loc(
+                iguala.token,
+                Errors.NON_EXHAUSTIVE_PATTERN_MATCH_INFINITE,
+            )
+    # Validate reachable blocks
+    first_block = tree.diagnostics.reachable[0]
+    checker.visit(first_block)
+    iguala.eval_type = first_block.eval_type
+    for block in tree.diagnostics.reachable[1:]:
+        checker.visit(block)
+        if block.eval_type != iguala.eval_type:
+            checker.error(
+                Errors.IGUALA_BLOCK_BAD_RETURN_TY,
+                expected=iguala.eval_type,
+                actual=block.eval_type,
+            )
     checker.leave_scope()
-    tycheck.unreachable("Stop!")
 
 
 def check_pattern(checker: Checker, arm: ast.IgualaArm, target_ty: Type):
@@ -52,15 +77,12 @@ def check_pattern(checker: Checker, arm: ast.IgualaArm, target_ty: Type):
             sym = tycheck.unwrap(
                 adt.symbol if isinstance(adt, ast.Path) else adt.var_symbol
             )
-            if not sym.is_callable() and args:
-                checker.error(Errors.VARIANT_TAKES_NO_ARGS, variant=sym)
             match sym:
                 case Variant(params=params):
-                    if target_ty != sym.uniao:
+                    if not sym.is_callable() and args:
                         checker.error(
-                            Errors.INVALID_PATTERN_TYPE,
-                            expected=target_ty,
-                            received=sym.uniao,
+                            Errors.VARIANT_TAKES_NO_ARGS,
+                            variant=sym.qualified_name(),
                         )
                     for pattern, ty in zip(args, params):
                         match pattern:
@@ -75,16 +97,17 @@ def check_pattern(checker: Checker, arm: ast.IgualaArm, target_ty: Type):
                 sym.tag, sym.uniao, sym.qualified_name(), sym.params
             )
         case ast.IntPattern():
-            if target_ty != Builtins.Int:
-                checker.error(
-                    Errors.INVALID_PATTERN_TYPE,
-                    expected=target_ty,
-                    received=Builtins.Int,
-                )
+            arm.pattern.eval_type = Builtins.Int
         case ast.BindingPattern():
             arm.pattern.eval_type = target_ty
         case _:
             tycheck.unreachable("Unhandled pattern type")
+    if target_ty != arm.pattern.eval_type:
+        checker.error(
+            Errors.INVALID_PATTERN_TYPE,
+            expected=target_ty,
+            received=arm.pattern.eval_type,
+        )
 
 
 def check_arm(checker: Checker, iguala: ast.Iguala, arm: ast.IgualaArm):

@@ -1,0 +1,5 @@
+iguala escreva("teste")
+    _ => falso
+fim
+
+#[output]: Erro: Funções sem retorno não podem ser usadas como o alvo da instrução 'iguala'.

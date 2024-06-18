@@ -1,0 +1,15 @@
+uniao Resposta
+    Sim,
+    Nao, 
+    Talvez, 
+    Justificada(texto)
+fim  
+
+r1: Resposta = Resposta::Nao
+
+iguala r1
+    Resposta::Nao(arg1) => verdadeiro, 
+    _ => falso
+fim
+
+#[output]: Erro: Padrão inválido. A variante 'Resposta::Nao' não espera receber nenhum argumento.

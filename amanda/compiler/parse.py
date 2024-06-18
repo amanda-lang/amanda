@@ -7,6 +7,7 @@ from amanda.compiler.tokens import Token
 from amanda.compiler.tokens import KEYWORDS as TK_KEYWORDS
 from amanda.compiler.error import AmandaError
 import amanda.compiler.ast as ast
+from utils.tycheck import unreachable
 
 
 # TODO: Stop concatenating strings. Use buffers instead
@@ -676,6 +677,8 @@ class Parser:
             return self.mostra_statement()
         elif self.match(TT.RETORNA):
             return self.retorna_statement()
+        elif self.match(TT.PRODUZ):
+            return self.produz_statement()
         elif self.match(TT.ENQUANTO):
             return self.enquanto_stmt()
         elif self.match(TT.SE):
@@ -708,6 +711,12 @@ class Parser:
             exp = None
         else:
             exp = self.equality()
+        self.end_stmt()
+        return ast.Retorna(token, exp)
+
+    def produz_statement(self):
+        token = self.consume(TT.PRODUZ)
+        exp = self.equality()
         self.end_stmt()
         return ast.Retorna(token, exp)
 
@@ -789,8 +798,12 @@ class Parser:
         match start_expr:
             case ast.Path() | ast.Variable():
                 return self.capture_or_adt_pattern(start_expr)
-            case ast.Constant():
-                return ast.LiteralPattern(start_expr)
+            case ast.Constant(token=token):
+                match token.token:
+                    case TT.INTEGER:
+                        return ast.IntPattern(token)
+                    case _:
+                        unreachable("Unhandled constant pattern")
             case _:
                 self.error("Padrão inválido")
 
@@ -831,7 +844,7 @@ class Parser:
             )
         else:
             expr = self.equality()
-            body = ast.YieldBlock(expr.token, [expr])
+            body = ast.YieldBlock(expr.token, [ast.Produz(expr.token, expr)])
         self.skip_newlines()
         return ast.IgualaArm(tok, pattern, body)
 
