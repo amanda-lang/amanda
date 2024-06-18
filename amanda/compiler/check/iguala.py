@@ -70,6 +70,23 @@ def check_iguala(checker: Checker, iguala: ast.Iguala):
     checker.leave_scope()
 
 
+def check_binding_pattern(
+    checker: Checker, arm: ast.IgualaArm, target_ty: Type, var: ast.Variable
+):
+    arm.pattern.eval_type = target_ty
+    scope = tycheck.unwrap(arm.body.symbols)
+    var_name = var.token.lexeme
+    if var_name in scope.symbols:
+        checker.error_with_loc(
+            var.token, Errors.BINDING_ALREADY_IN_USE, var=var_name
+        )
+    checker.define_symbol(
+        symbols.VariableSymbol(var.token.lexeme, target_ty, checker.ctx_module),
+        checker.scope_depth + 1,
+        scope,
+    )
+
+
 def check_pattern(checker: Checker, arm: ast.IgualaArm, target_ty: Type):
     match arm.pattern:
         case ast.ADTPattern(adt, args):
@@ -86,8 +103,8 @@ def check_pattern(checker: Checker, arm: ast.IgualaArm, target_ty: Type):
                         )
                     for pattern, ty in zip(args, params):
                         match pattern:
-                            case ast.BindingPattern():
-                                pattern.eval_type = ty
+                            case ast.BindingPattern(var=var):
+                                check_binding_pattern(checker, arm, ty, var)
                             case _:
                                 check_pattern(checker, arm, ty)
                 case _:
@@ -99,20 +116,7 @@ def check_pattern(checker: Checker, arm: ast.IgualaArm, target_ty: Type):
         case ast.IntPattern():
             arm.pattern.eval_type = Builtins.Int
         case ast.BindingPattern(var=var):
-            arm.pattern.eval_type = target_ty
-            scope = tycheck.unwrap(arm.body.symbols)
-            var_name = var.token.lexeme
-            if var_name in scope.symbols:
-                checker.error_with_loc(
-                    var.token, Errors.BINDING_ALREADY_IN_USE, var=var_name
-                )
-            checker.define_symbol(
-                symbols.VariableSymbol(
-                    var.token.lexeme, target_ty, checker.ctx_module
-                ),
-                checker.scope_depth + 1,
-                scope,
-            )
+            check_binding_pattern(checker, arm, target_ty, var)
         case _:
             tycheck.unreachable("Unhandled pattern type")
     if arm.pattern.eval_type != target_ty:

@@ -11,7 +11,7 @@ class Errors:
     VOID_FN_MATCH_TARGET = "Funções sem retorno não podem ser usadas como o alvo da instrução 'iguala'"
     VARIANT_TAKES_NO_ARGS = "Padrão inválido. A variante '{variant}' não espera receber nenhum argumento"
     BINDING_ALREADY_IN_USE = (
-        "Padrão inválido. A variável '{var}' já foi utilizada neste padrão."
+        "Padrão inválido. A variável '{var}' já foi utilizada neste padrão"
     )
     INVALID_PATTERN_ARG = "Argumento {n} do padrão inválido. Esperava-se um argumento do tipo '{param_type}' mas recebeu o tipo '{eval_type}'"
     INVALID_PATTERN_TYPE = "Padrão inválido. Esperava-se um padrão do tipo '{expected}' mas utilizou-se um do tipo '{received}'"

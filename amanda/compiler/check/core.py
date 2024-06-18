@@ -256,7 +256,7 @@ class Analyzer(ast.Visitor):
         self.ty_ctx = scope
 
     def leave_scope(self):
-        self.ctx_scope = unwrap(unwrap(self.ctx_scope).enclosing_scope)
+        self.ctx_scope = unwrap(self.ctx_scope).enclosing_scope
         self.scope_depth -= 1
 
     def leave_ty_ctx(self):
