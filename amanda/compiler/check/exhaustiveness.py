@@ -319,8 +319,9 @@ class IgualaCompiler:
                 cons = None
                 match col.pattern:
                     case ast.IntPattern(val):
-                        key = (val, val)
-                        cons = IntCons(int(val.lexeme))
+                        num = int(val.lexeme)
+                        key = (num, num)
+                        cons = IntCons(num)
                     case _:
                         raise NotImplementedError("Invalid pattern")
 

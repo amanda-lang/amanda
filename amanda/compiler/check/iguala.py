@@ -102,7 +102,7 @@ def check_pattern(checker: Checker, arm: ast.IgualaArm, target_ty: Type):
             arm.pattern.eval_type = target_ty
         case _:
             tycheck.unreachable("Unhandled pattern type")
-    if target_ty != arm.pattern.eval_type:
+    if arm.pattern.eval_type != target_ty:
         checker.error(
             Errors.INVALID_PATTERN_TYPE,
             expected=target_ty,

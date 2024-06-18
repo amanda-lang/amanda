@@ -1,0 +1,15 @@
+uniao Resposta
+    Sim,
+    Nao, 
+    Talvez, 
+    Justificada(texto)
+fim  
+
+r1: Resposta = Resposta::Nao
+
+iguala r1
+    Resposta::Nao => verdadeiro, 
+    _ => "hello"
+fim
+
+#[output]: Erro: Retorno da alternativa iguala inválido. Esperava-se o tipo 'texto' mas o bloco retorna o tipo 'bool'.
