@@ -708,10 +708,11 @@ class Analyzer(ast.Visitor):
         self.leave_scope()
 
     def visit_yieldblock(self, node: ast.YieldBlock):
-        self.enter_scope()
+        self.enter_scope(node.symbols)
         prev_yield_block = self.ctx_yield_block
         self.ctx_yield_block = node
 
+        node.eval_type = Builtins.Vazio
         self.visit_children(node.children)
 
         self.ctx_yield_block = prev_yield_block

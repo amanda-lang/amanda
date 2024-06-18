@@ -98,8 +98,21 @@ def check_pattern(checker: Checker, arm: ast.IgualaArm, target_ty: Type):
             )
         case ast.IntPattern():
             arm.pattern.eval_type = Builtins.Int
-        case ast.BindingPattern():
+        case ast.BindingPattern(var=var):
             arm.pattern.eval_type = target_ty
+            scope = tycheck.unwrap(arm.body.symbols)
+            var_name = var.token.lexeme
+            if var_name in scope.symbols:
+                checker.error_with_loc(
+                    var.token, Errors.BINDING_ALREADY_IN_USE, var=var_name
+                )
+            checker.define_symbol(
+                symbols.VariableSymbol(
+                    var.token.lexeme, target_ty, checker.ctx_module
+                ),
+                checker.scope_depth + 1,
+                scope,
+            )
         case _:
             tycheck.unreachable("Unhandled pattern type")
     if arm.pattern.eval_type != target_ty:
@@ -112,4 +125,5 @@ def check_pattern(checker: Checker, arm: ast.IgualaArm, target_ty: Type):
 
 def check_arm(checker: Checker, iguala: ast.Iguala, arm: ast.IgualaArm):
     # 1. Check pattern
+    arm.body.symbols = symbols.Scope(checker.ctx_scope)
     check_pattern(checker, arm, iguala.target.eval_type)

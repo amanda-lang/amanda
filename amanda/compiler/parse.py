@@ -718,7 +718,7 @@ class Parser:
         token = self.consume(TT.PRODUZ)
         exp = self.equality()
         self.end_stmt()
-        return ast.Retorna(token, exp)
+        return ast.Produz(token, exp)
 
     def se_statement(self):
         token = self.consume(TT.SE)
