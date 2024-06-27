@@ -11,6 +11,9 @@ import pprint
 
 
 def check_iguala(checker: Checker, iguala: ast.Iguala):
+    scope = symbols.Scope(checker.ctx_scope)
+    checker.enter_scope(scope)
+
     target = iguala.target
     checker.visit(target)
     if target.eval_type == Builtins.Vazio:
@@ -19,9 +22,6 @@ def check_iguala(checker: Checker, iguala: ast.Iguala):
     for arm in iguala.arms:
         check_arm(checker, iguala, arm)
 
-    # initialize iguala compiler
-    scope = symbols.Scope(checker.ctx_scope)
-    checker.enter_scope(scope)
     # if target is not a reference to a var, must store it in a var
     # so that it can be used later
     match target:
