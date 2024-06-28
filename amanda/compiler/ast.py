@@ -245,9 +245,9 @@ class Mostra(Statement):
 class Se(ASTNode):
     def __init__(
         self,
-        token,
-        condition,
-        then_branch,
+        token: Token,
+        condition: Expr,
+        then_branch: Block,
         *,
         elsif_branches=None,
         else_branch=None,
@@ -300,6 +300,16 @@ class IntPattern(Expr):
 
 
 @dataclass
+class StrPattern(Expr):
+    val: Token
+
+    def __init__(self, val: Token):
+        super().__init__(val)
+        self.val = val
+        self.eval_type = Builtins.Int
+
+
+@dataclass
 class BindingPattern(Expr):
     var: Variable
 
@@ -338,6 +348,7 @@ class Iguala(Expr):
     target: Expr
     arms: list[IgualaArm]
     target_binding: symbols.VariableSymbol | None = None
+    ir: Any = None
 
     def __init__(self, token: Token, target: Expr, arms: list[IgualaArm]):
         super().__init__(token)

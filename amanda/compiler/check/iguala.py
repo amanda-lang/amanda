@@ -67,6 +67,7 @@ def check_iguala(checker: Checker, iguala: ast.Iguala):
                 expected=iguala.eval_type,
                 actual=block.eval_type,
             )
+    iguala.ir = tree
     checker.leave_scope()
 
 
@@ -105,8 +106,12 @@ def check_pattern(checker: Checker, arm: ast.IgualaArm, target_ty: Type):
                         match pattern:
                             case ast.BindingPattern(var=var):
                                 check_binding_pattern(checker, arm, ty, var)
+                            case ast.IntPattern():
+                                pattern.eval_type = Builtins.Int
+                            case ast.StrPattern():
+                                pattern.eval_type = Builtins.Texto
                             case _:
-                                check_pattern(checker, arm, ty)
+                                tycheck.unreachable("unknown subpattern")
                 case _:
                     tycheck.unreachable("Unhandled ADT sym")
             arm.pattern.eval_type = sym.uniao
@@ -115,6 +120,8 @@ def check_pattern(checker: Checker, arm: ast.IgualaArm, target_ty: Type):
             )
         case ast.IntPattern():
             arm.pattern.eval_type = Builtins.Int
+        case ast.StrPattern():
+            arm.pattern.eval_type = Builtins.Texto
         case ast.BindingPattern(var=var):
             check_binding_pattern(checker, arm, target_ty, var)
         case _:

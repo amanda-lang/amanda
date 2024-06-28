@@ -12,8 +12,15 @@ from amanda.compiler.symbols.base import Constructor, Type
 from amanda.compiler.symbols.core import Scope, VariableSymbol
 from amanda.compiler.types.builtins import Builtins
 import amanda.compiler.ast as ast
-from amanda.compiler.types.core import BoolCons, IntCons, VariantCons
+import amanda.compiler.tokens as tokens
+from amanda.compiler.types.core import BoolCons, IntCons, StrCons, VariantCons
 from utils.tycheck import unreachable, unwrap
+
+
+def var_node(name: str) -> ast.Variable:
+    return ast.Variable(
+        token=tokens.Token(tokens.TokenType.IDENTIFIER, name),
+    )
 
 
 @dataclass
@@ -74,7 +81,7 @@ class DGuard:
     3. The sub tree to evaluate when the guard fails.
     """
 
-    condition: int
+    condition: ast.ASTNode
     success: Body
     failure: Decision
 
@@ -217,6 +224,22 @@ class Match:
                 if node := fallback:
                     self.add_missing_patterns(node, terms, missing)
 
+    def declare_block_symbols(self):
+        self._declare_block_symbols(self.tree)
+
+    def _declare_block_symbols(self, tree: Decision):
+        match tree:
+            case DSuccess(body):
+                for name, var in body.bindings:
+                    unwrap(body.value.symbols).define(
+                        name, VariableSymbol(name, var.type, var.module)
+                    )
+            case DSwitch(cases=cases):
+                for case in cases:
+                    self._declare_block_symbols(case.body)
+            case _:
+                pass
+
 
 @dataclass
 class IgualaCompiler:
@@ -278,8 +301,10 @@ class IgualaCompiler:
 
         if not branch_var.type.has_finite_constructors():
             match branch_var.type:
-                case Builtins.Int:
-                    (cases, fallback) = self.compile_int_cases(rows, branch_var)
+                case Builtins.Int | Builtins.Texto:
+                    (cases, fallback) = self.compile_infinite_cases(
+                        rows, branch_var
+                    )
                     return DSwitch(branch_var, cases, fallback)
                 case ty:
                     raise NotImplementedError(
@@ -304,7 +329,7 @@ class IgualaCompiler:
     #
     # Integers have an infinite number of constructors, so we specialise the
     # compilation of integer and range patterns.
-    def compile_int_cases(
+    def compile_infinite_cases(
         self,
         rows: list[Row],
         branch_var: VariableSymbol,
@@ -322,6 +347,10 @@ class IgualaCompiler:
                         num = int(val.lexeme)
                         key = (num, num)
                         cons = IntCons(num)
+                    case ast.StrPattern(val):
+                        val = val.lexeme
+                        key = val
+                        cons = StrCons(val)
                     case _:
                         raise NotImplementedError("Invalid pattern")
 

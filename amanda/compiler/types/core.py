@@ -478,6 +478,9 @@ class Uniao(Type):
     def add_variant(self, name: str, params: list[Type]):
         self.variants[name] = Variant(len(self.variants), self, name, params)
 
+    def variant_by_tag(self, tag: int) -> Variant:
+        return list(filter(lambda x: x.tag == tag, self.variants.values()))[0]
+
     def contains_variant(self, name: str) -> bool:
         return name in self.variants
 
@@ -686,6 +689,17 @@ class BoolCons(Constructor):
 @dataclass
 class IntCons(Constructor):
     val: int
+
+    def index(self) -> int:
+        return 0
+
+    def args(self) -> list[Type]:
+        return []
+
+
+@dataclass
+class StrCons(Constructor):
+    val: str
 
     def index(self) -> int:
         return 0

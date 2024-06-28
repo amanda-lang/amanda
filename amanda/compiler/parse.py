@@ -802,6 +802,8 @@ class Parser:
                 match token.token:
                     case TT.INTEGER:
                         return ast.IntPattern(token)
+                    case TT.STRING:
+                        return ast.StrPattern(token)
                     case _:
                         unreachable("Unhandled constant pattern")
             case _:
