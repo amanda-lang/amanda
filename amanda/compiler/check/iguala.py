@@ -56,6 +56,7 @@ def check_iguala(checker: Checker, iguala: ast.Iguala):
                 Errors.NON_EXHAUSTIVE_PATTERN_MATCH_INFINITE,
             )
     # Validate reachable blocks
+    tree.declare_block_symbols()
     first_block = tree.diagnostics.reachable[0]
     checker.visit(first_block)
     iguala.eval_type = first_block.eval_type

@@ -784,7 +784,7 @@ class ByteGen:
 
     def gen_iguala_case_bindings(self, var: symbols.VariableSymbol, case: Case):
         match case.constructor:
-            case VariantCons():
+            case VariantCons(name=name):
                 cargs = case.arguments
                 if not cargs:
                     return
@@ -793,9 +793,8 @@ class ByteGen:
                     idx = self.declare_local(arg)
                     self.load_const(idx)
                 self.append_op(OpCode.BIND_MATCH_ARGS, len(cargs))
-
-            case _:
-                unreachable("Constructor should not take args")
+            case x:
+                pass
         pass
 
     def gen_iguala_cases(
@@ -806,8 +805,8 @@ class ByteGen:
 
         first_case = cases[0]
         # Generate test
-        self.gen_iguala_test(var, first_case.constructor)
         self.gen_iguala_case_bindings(var, first_case)
+        self.gen_iguala_test(var, first_case.constructor)
 
         self.append_op(OpCode.JUMP_IF_FALSE, after_block)
         self.gen_iguala_from_ir(node, first_case.body)
@@ -816,8 +815,8 @@ class ByteGen:
 
         for case in cases[1:]:
             after_elsif = self.new_label()
+            self.gen_iguala_case_bindings(var, case)
             self.gen_iguala_test(var, case.constructor)
-            self.gen_iguala_case_bindings(var, first_case)
             self.append_op(OpCode.JUMP_IF_FALSE, after_elsif)
             self.gen_iguala_from_ir(node, case.body)
             self.append_op(OpCode.JUMP, after_if)

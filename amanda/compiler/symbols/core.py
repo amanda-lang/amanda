@@ -5,7 +5,11 @@ from amanda.compiler.module import Module
 from amanda.compiler.symbols.base import Symbol, TypeVar, Typed, Type
 
 
+@dataclass
 class VariableSymbol(Typed):
+    name: str
+    type: Type
+
     def __init__(self, name: str, var_type: Type, module: Module):
         super().__init__(name, var_type, module)
 
