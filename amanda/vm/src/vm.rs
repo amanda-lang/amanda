@@ -228,6 +228,15 @@ impl<'a> AmaVM<'a> {
                         self.op_push(result.unwrap());
                     }
                 }
+                OpCode::MatchVariant => {
+                    let expected_tag = self.get_u64_arg();
+                    let obj = self.op_pop();
+                    if let AmaValue::Variant(tag, _) = obj {
+                        self.op_push(AmaValue::Bool(expected_tag == tag));
+                    } else {
+                        unreachable!("Value not a variant");
+                    }
+                }
                 OpCode::IsNull => {
                     let is_null = self.op_pop().is_none();
                     self.op_push(AmaValue::Bool(is_null));
@@ -461,6 +470,26 @@ impl<'a> AmaVM<'a> {
                     let args = self.values.drain(start..= self.sp as usize).into_iter().collect();
                     self.sp = (start - 1) as isize;
                     self.op_push(AmaValue::Variant(tag, Some(Rc::new(args))));
+                }
+                OpCode::BindMatchArgs => {
+                    let args_n = self.get_byte() as usize;
+                    let start = self.sp as usize - (args_n - 1);
+                    println!("Start index: {}", start);
+                    self.print_debug_info();
+                    //TODO: Avoid this vec
+                    let local_indices: Vec<_> = self.values.drain(start..= self.sp as usize).map(|val| val.take_int()).into_iter().collect();
+                    self.sp = (start - 1) as isize;
+                    let object = self.op_pop();
+                    match object {
+                        AmaValue::Variant(_, Some(args)) => {
+                            println!("in here!!!!");
+                            for (i, local_idx) in local_indices.iter().enumerate() {
+                                let idx = self.frames.peek().bp as usize + *local_idx as usize;
+                                self.values[idx] = args[i].clone();
+                            }
+                        }
+                        _ => unreachable!("Bind args should not be implemented for this value! {}", object)
+                    }
                 }
                 OpCode::GetProp => {
                     let field = self.op_pop();

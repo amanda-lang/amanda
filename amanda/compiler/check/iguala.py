@@ -68,6 +68,7 @@ def check_iguala(checker: Checker, iguala: ast.Iguala):
                 expected=iguala.eval_type,
                 actual=block.eval_type,
             )
+    pprint.pprint(tree.tree)
     iguala.ir = tree
     checker.leave_scope()
 

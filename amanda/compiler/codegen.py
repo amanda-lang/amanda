@@ -116,10 +116,10 @@ class OpCode(Enum):
     # Builds a new variant object. The argument of the op is the number of variant constructor args. Expects the variant unique tag id to be TOS.
     BUILD_VARIANT = auto()
     # Binds the arguments of a variant or other supported object to local variables. The argument is the number of arguments to bind (N).
-    # Expects N integers on the stack, where each integer is the index to a slot in the local variables of the current function where value shall be bound.
-    # e.g. for a variant with 3 args:  locals[TOS - 2] = arg0,  locals[TOS - 1] = arg1 and local[TOS] = arg2
+    # Expects the object used for binding and N integers on the stack, where each integer is the index to a slot in the local variables of the current function where value shall be bound.
+    # e.g. for a variant with 3 args:  locals[TOS - 2] = TOS - 3[arg0],  locals[TOS - 1] = TOS - 3[arg1] and local[TOS] = TOS-3[arg2]
     BIND_MATCH_ARGS = auto()
-    # Checks if the variant at TOS is the has the integer tag specified by the 64-bit argument.
+    # Checks if the variant at TOS is has the integer tag specified by the 64-bit argument.
     MATCH_VARIANT = auto()
     # Stops execution of the VM. Must always be added to stop execution of the vm
     HALT = 0xFF
@@ -792,6 +792,7 @@ class ByteGen:
                     # Declare local and push local index into stack
                     idx = self.declare_local(arg)
                     self.load_const(idx)
+                print(f"Constructor: {name} Args: {len(case.arguments)}")
                 self.append_op(OpCode.BIND_MATCH_ARGS, len(cargs))
             case x:
                 pass
@@ -805,8 +806,8 @@ class ByteGen:
 
         first_case = cases[0]
         # Generate test
-        self.gen_iguala_case_bindings(var, first_case)
         self.gen_iguala_test(var, first_case.constructor)
+        self.gen_iguala_case_bindings(var, first_case)
 
         self.append_op(OpCode.JUMP_IF_FALSE, after_block)
         self.gen_iguala_from_ir(node, first_case.body)
@@ -815,8 +816,8 @@ class ByteGen:
 
         for case in cases[1:]:
             after_elsif = self.new_label()
-            self.gen_iguala_case_bindings(var, case)
             self.gen_iguala_test(var, case.constructor)
+            self.gen_iguala_case_bindings(var, case)
             self.append_op(OpCode.JUMP_IF_FALSE, after_elsif)
             self.gen_iguala_from_ir(node, case.body)
             self.append_op(OpCode.JUMP, after_if)
