@@ -42,7 +42,12 @@ def check_iguala(checker: Checker, iguala: ast.Iguala):
         # Non-exhaustive pattern matching. Report error
         if target.eval_type.has_finite_constructors():
             missing_patterns = "\n".join(
-                [f"* {pattern} => ... " for pattern in tree.missing_patterns()]
+                sorted(
+                    [
+                        f"* {pattern} => ... "
+                        for pattern in tree.missing_patterns()
+                    ]
+                )
             )
             checker.error_with_loc(
                 iguala.token,

@@ -11,4 +11,4 @@ iguala r1
     Resposta::Nao => verdadeiro
 fim
 
-#[output]: Erro: A instrução iguala deve especificar alternativas para todos os valores possíveis do tipo 'Resposta'. Padrões em falta: * Resposta::Talvez => ... * Resposta::Justificada(_) => ... * Resposta::Sim => ... .
+#[output]: Erro: A instrução iguala deve especificar alternativas para todos os valores possíveis do tipo 'Resposta'. Padrões em falta:  * Resposta::Justificada(_) => ...  * Resposta::Sim => ...  * Resposta::Talvez => ... .

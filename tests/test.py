@@ -36,6 +36,8 @@ DIRS = [
     join(TEST_DIR, "nulo"),
     join(TEST_DIR, "usa"),
     join(TEST_DIR, "annotations"),
+    join(TEST_DIR, "uniao"),
+    join(TEST_DIR, "iguala"),
 ]
 
 passed = 0
@@ -102,7 +104,17 @@ def load_test_cases(suite):
 
 
 def fmt_error(output):
-    return output.strip().split("\n")[-1].strip()
+    outlines: list[str] = output.strip().split("\n")
+    err_line_found = False
+    err = StringIO()
+    for line in outlines:
+        if line.strip().startswith("Erro"):
+            err_line_found = True
+        if err_line_found:
+            err.write(line + " ")
+    err_str = err.getvalue()
+    err.close()
+    return err_str
 
 
 def run_case(filename):

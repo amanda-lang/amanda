@@ -12,4 +12,4 @@ iguala r1
     _ => falso
 fim
 
-#[output]: Erro: Padrão inválido. A variante 'Resposta::Nao' não espera receber nenhum argumento.
+#[output]: Erro: Padrão inválido. Esperava-se um padrão do tipo 'Resposta' mas utilizou-se um do tipo 'int'.

@@ -5,5 +5,4 @@ uniao Resposta
     Nao
 fim  
 
-
-
+#[output]: Erro: A variante 'Nao' já foi declarada anteriormente na união 'Resposta'.
