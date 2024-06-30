@@ -474,15 +474,12 @@ impl<'a> AmaVM<'a> {
                 OpCode::BindMatchArgs => {
                     let args_n = self.get_byte() as usize;
                     let start = self.sp as usize - (args_n - 1);
-                    println!("Start index: {}", start);
-                    self.print_debug_info();
                     //TODO: Avoid this vec
                     let local_indices: Vec<_> = self.values.drain(start..= self.sp as usize).map(|val| val.take_int()).into_iter().collect();
                     self.sp = (start - 1) as isize;
                     let object = self.op_pop();
                     match object {
                         AmaValue::Variant(_, Some(args)) => {
-                            println!("in here!!!!");
                             for (i, local_idx) in local_indices.iter().enumerate() {
                                 let idx = self.frames.peek().bp as usize + *local_idx as usize;
                                 self.values[idx] = args[i].clone();

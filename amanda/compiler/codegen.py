@@ -517,7 +517,7 @@ class ByteGen:
         match symbol:
             case Variant():
                 tag = self.uniao_variants[symbol.variant_id()]
-                self.load_const(self.get_table_index(tag, self.CONST_TABLE))
+                self.load_const(tag)
                 if not symbol.is_callable():
                     # No args means we can generate the code for creating the variant here
                     self.append_op(OpCode.BUILD_VARIANT, 0)
@@ -783,6 +783,7 @@ class ByteGen:
                 unreachable("Unknown constructor")
 
     def gen_iguala_case_bindings(self, var: symbols.VariableSymbol, case: Case):
+        self.load_variable(var)
         match case.constructor:
             case VariantCons(name=name):
                 cargs = case.arguments
@@ -792,11 +793,9 @@ class ByteGen:
                     # Declare local and push local index into stack
                     idx = self.declare_local(arg)
                     self.load_const(idx)
-                print(f"Constructor: {name} Args: {len(case.arguments)}")
                 self.append_op(OpCode.BIND_MATCH_ARGS, len(cargs))
             case x:
                 pass
-        pass
 
     def gen_iguala_cases(
         self, node: ast.Iguala, var: symbols.VariableSymbol, cases: list[Case]
@@ -807,9 +806,9 @@ class ByteGen:
         first_case = cases[0]
         # Generate test
         self.gen_iguala_test(var, first_case.constructor)
-        self.gen_iguala_case_bindings(var, first_case)
-
         self.append_op(OpCode.JUMP_IF_FALSE, after_block)
+
+        self.gen_iguala_case_bindings(var, first_case)
         self.gen_iguala_from_ir(node, first_case.body)
         self.append_op(OpCode.JUMP, after_if)
         self.patch_label_loc(after_block)
@@ -817,8 +816,9 @@ class ByteGen:
         for case in cases[1:]:
             after_elsif = self.new_label()
             self.gen_iguala_test(var, case.constructor)
-            self.gen_iguala_case_bindings(var, case)
             self.append_op(OpCode.JUMP_IF_FALSE, after_elsif)
+
+            self.gen_iguala_case_bindings(var, case)
             self.gen_iguala_from_ir(node, case.body)
             self.append_op(OpCode.JUMP, after_if)
             self.patch_label_loc(after_elsif)
