@@ -1,3 +1,9 @@
+uniao ResultadoOp
+    Ok(int), 
+    Erro
+fim
+
+
 func e_alg(str: texto): bool
     retorna txt_contem("0123456789", str)
 fim
@@ -9,6 +15,7 @@ fim
 func anexa_txt(espaco: texto, extra: texto): texto
     retorna f"{espaco}{extra}"
 fim
+
 
 func processar_cmd(cmd: texto)
     err_msg: texto = "Comando mal formatado. Comandos devem estar na forma: {operando1} {operador} {operando2}"
@@ -44,17 +51,18 @@ func processar_cmd(cmd: texto)
     fim
 
     #Definir qual o operador
-    resultado: int = 0
-    escolha operador:
-        caso "+": resultado = op1:>int + op2:>int
-        caso "-": resultado = op1:>int - op2:>int
-        caso "*": resultado = op1:>int * op2:>int
-        caso "/": resultado = op1:>int // op2:>int
-        senao: 
-            escrevaln(err_msg)
-            retorna
+    resultado: ResultadoOp = iguala operador
+        "+" => ResultadoOp::Ok(op1:>int + op2:>int),
+        "-" => ResultadoOp::Ok(op1:>int - op2:>int),
+        "*" => ResultadoOp::Ok(op1:>int * op2:>int), 
+        "/" => ResultadoOp::Ok(op1:>int // op2:>int),
+        _ => ResultadoOp::Erro
     fim
-    escrevaln(f"> {resultado}")
+
+    iguala resultado
+        ResultadoOp::Ok(resultado) => escrevaln(f"> {resultado}"), 
+        ResultadoOp::Erro => escrevaln(err_msg)
+    fim 
 fim
 
 func inicio()
