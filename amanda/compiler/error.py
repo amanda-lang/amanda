@@ -24,6 +24,7 @@ class Errors:
     PRODUZ_MUST_BE_LAST_INSTRUCTION = (
         "A instrução 'produz' deve ser a última instrução de um bloco"
     )
+    YIELD_BLOCK_MAY_NOT_CONTAIN_BOTH_PRODUZ_AND_RETURN = "Um bloco não pode conter as instruções 'retorna' e 'produz' ao mesmo tempo"
 
 
 @dataclass

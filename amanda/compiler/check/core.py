@@ -715,6 +715,13 @@ class Analyzer(ast.Visitor):
         node.eval_type = Builtins.Vazio
         self.visit_children(node.children)
 
+        # A yield block cannot produce a value and contain a return
+        # statement (pick one!)
+        if node.eval_type != Builtins.Vazio and node.has_return:
+            self.error(
+                Errors.YIELD_BLOCK_MAY_NOT_CONTAIN_BOTH_PRODUZ_AND_RETURN
+            )
+
         self.ctx_yield_block = prev_yield_block
         node.symbols = self.ctx_scope
         self.leave_scope()
@@ -1028,6 +1035,9 @@ class Analyzer(ast.Visitor):
             self.error(
                 "A instrução de retorno vazia só pode ser usada dentro de uma função vazia"
             )
+
+        if self.ctx_yield_block:
+            self.ctx_yield_block.has_return = True
 
         # Empty return statement, can exit early
         if not expr:

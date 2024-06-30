@@ -192,12 +192,14 @@ class UnaryOp(Expr):
 class YieldBlock(Expr):
     children: list[ASTNode]
     symbols: symbols.Scope | None = None
+    has_return: bool = False
 
     def __init__(self, token: Token, children: list[ASTNode]):
 
         super().__init__(token)
         self.children = children
         self.symbols = None
+        self.has_return = False
 
 
 class VarDecl(ASTNode):
