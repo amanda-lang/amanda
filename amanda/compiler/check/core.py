@@ -100,6 +100,14 @@ class Analyzer(ast.Visitor):
             False if not node.else_branch else self.has_return(node.else_branch)
         )
 
+    def has_return_seiguala(self, node: ast.SeIguala):
+        """Method checks for return within
+        'se iguala' statements"""
+        # If there is no else branch return None immediately
+        return (
+            False if not node.else_branch else self.has_return(node.else_branch)
+        )
+
     def has_return_enquanto(self, node):
         return self.has_return(node.statement)
 
@@ -1101,6 +1109,10 @@ class Analyzer(ast.Visitor):
 
     def visit_iguala(self, node: ast.Iguala):
         igualacheck.check_iguala(self, node)
+
+    def visit_seiguala(self, node: ast.SeIguala):
+        igualacheck.check_se_iguala(self, node)
+        pass
 
     def visit_enquanto(self, node: ast.Enquanto):
         self.visit(node.condition)

@@ -722,6 +722,8 @@ class Parser:
 
     def se_statement(self):
         token = self.consume(TT.SE)
+        if self.match(TT.IGUALA):
+            return self.se_iguala_stmt(token)
         condition = self.equality()
         self.consume(TT.ENTAO)
         then_branch = self.block()
@@ -742,6 +744,26 @@ class Parser:
             elsif_branches=elsif_branches,
             else_branch=else_branch,
         )
+
+    def se_iguala_stmt(self, token: Token):
+        self.consume(TT.IGUALA)
+        target = self.equality()
+        self.consume(TT.ARROW)
+        pattern = self.pattern()
+        self.consume(
+            TT.ENTAO,
+            "Esperava-se o símbolo 'entao' após o padrão da instrução 'se iguala'",
+        )
+        then_branch = self.block()
+        else_branch = None
+        if self.match(TT.SENAO):
+            self.consume(TT.SENAO)
+            else_branch = self.block()
+        self.consume(
+            TT.FIM,
+            "esperava-se a símbolo fim para terminar a directiva 'se iguala'",
+        )
+        return ast.SeIguala(token, target, pattern, then_branch, else_branch)
 
     def senaose_branch(self):
         token = self.consume(TT.SENAOSE)

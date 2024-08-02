@@ -359,6 +359,27 @@ class Iguala(Expr):
         self.target_binding = None
 
 
+class SeIguala(ASTNode):
+    target: Expr
+    pattern: Pattern
+    then_branch: Block
+    else_branch: Block | None
+
+    def __init__(
+        self,
+        token: Token,
+        target: Expr,
+        pattern: Pattern,
+        then_branch: Block,
+        else_branch=None,
+    ):
+        super().__init__(token)
+        self.target = target
+        self.pattern = pattern
+        self.then_branch = then_branch
+        self.else_branch = else_branch
+
+
 class Para(ASTNode):
     def __init__(self, token, expression: ParaExpr, statement: Block):
         super().__init__(token)

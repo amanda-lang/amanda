@@ -175,6 +175,12 @@ se_stmt
   : SE equality ENTAO body (SENAOSE equality ENTAO body)* (SENAO body)? FIM
   ;
 
+se_stmt_or_se_iguala
+  : IGUALA equality ARROW pattern ENTAO body (SENAO body)? FIM
+  : equality ENTAO body (SENAOSE equality ENTAO body)* (SENAO body)? FIM
+  ;
+
+
 enquanto_stmt
   : ENQUANTO equality FACA body FIM
   ;
