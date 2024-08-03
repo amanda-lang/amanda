@@ -763,7 +763,23 @@ class Parser:
             TT.FIM,
             "esperava-se a símbolo fim para terminar a directiva 'se iguala'",
         )
-        return ast.SeIguala(token, target, pattern, then_branch, else_branch)
+
+        then_arm = ast.IgualaArm(
+            pattern.token,
+            pattern,
+            ast.YieldBlock(then_branch.token, then_branch.children),
+        )
+        block = ast.YieldBlock(token, [])
+        if else_branch:
+            block.symbols = else_branch.symbols
+            block.children = else_branch.children
+            block.token = else_branch.token
+        else_arm = ast.IgualaArm(
+            block.token,
+            ast.BindingPattern(ast.Variable(Token(TT.IDENTIFIER, "_"))),
+            block,
+        )
+        return ast.Iguala(token, target, [then_arm, else_arm])
 
     def senaose_branch(self):
         token = self.consume(TT.SENAOSE)

@@ -749,7 +749,6 @@ class ByteGen:
 
     def gen_iguala(self, node: ast.Iguala):
         self.gen_iguala_from_ir(node, node.ir.tree)
-        pass
 
     def gen_iguala_from_ir(self, node: ast.Iguala, decision: Decision):
         match decision:

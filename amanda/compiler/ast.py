@@ -364,6 +364,7 @@ class SeIguala(ASTNode):
     pattern: Pattern
     then_branch: Block
     else_branch: Block | None
+    then_arm: IgualaArm | None
 
     def __init__(
         self,
@@ -378,6 +379,9 @@ class SeIguala(ASTNode):
         self.pattern = pattern
         self.then_branch = then_branch
         self.else_branch = else_branch
+
+    def into_iguala(self, arms: list[IgualaArm]) -> Iguala:
+        return Iguala(self.token, self.target, arms)
 
 
 class Para(ASTNode):

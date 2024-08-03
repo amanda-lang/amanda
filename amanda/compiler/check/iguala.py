@@ -4,27 +4,10 @@ from amanda.compiler.check.exhaustiveness import IgualaCompiler
 import amanda.compiler.symbols.core as symbols
 from amanda.compiler.check.checker import Checker
 from amanda.compiler.error import Errors
+from amanda.compiler.tokens import Token, TokenType
 from amanda.compiler.types.builtins import Builtins
 from amanda.compiler.types.core import Variant, Type, VariantCons
 import utils.tycheck as tycheck
-
-
-def check_se_iguala(checker: Checker, iguala: ast.SeIguala):
-    checker.visit(iguala.target)
-    checker.ctx_node = iguala.pattern
-    arm = ast.IgualaArm(
-        iguala.token, iguala.pattern, ast.YieldBlock(iguala.token, [])
-    )
-    arm.body.symbols = symbols.Scope(checker.ctx_scope)
-    check_pattern(
-        checker,
-        arm,
-        iguala.target.eval_type,
-    )
-    print("checked pattern")
-    checker.visit_block(iguala.then_branch, arm.body.symbols)
-    if iguala.then_branch:
-        checker.visit(iguala.then_branch)
 
 
 def check_iguala(checker: Checker, iguala: ast.Iguala):

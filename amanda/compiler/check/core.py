@@ -100,6 +100,20 @@ class Analyzer(ast.Visitor):
             False if not node.else_branch else self.has_return(node.else_branch)
         )
 
+    def has_return_igualaarm(self, node: ast.IgualaArm):
+        return self.has_return_block(node.body)
+
+    def has_return_iguala(self, node: ast.Iguala):
+        has_return = True
+        has_var_pattern = False
+        for arm in node.arms:
+            has_return = has_return and self.has_return(arm)
+            if not has_return:
+                return False
+            if isinstance(arm.pattern, ast.BindingPattern):
+                has_var_pattern = True
+        return has_return and has_var_pattern
+
     def has_return_seiguala(self, node: ast.SeIguala):
         """Method checks for return within
         'se iguala' statements"""
