@@ -1,0 +1,14 @@
+
+
+
+
+func test(a: int): bool 
+    se a == 1 entao
+    senao
+        retorna falso
+    fim
+fim
+
+
+escrevaln(test(1))
+#[output]: Erro: a função 'test' não possui a instrução 'retorna'.
