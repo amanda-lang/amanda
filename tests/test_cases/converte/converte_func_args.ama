@@ -1,5 +1,5 @@
 func escrevaln1(arg : indef)
-    str : texto = arg::texto
+    str : texto = arg:>texto
     mostra str
 fim
 

@@ -1,0 +1,15 @@
+
+
+a: int = 256
+
+
+iguala a
+    10 => verdadeiro, 
+    x => faca
+        se x > 10 entao
+            produz falso
+        fim
+        produz verdadeiro
+    fim
+fim
+#[output]: Erro: A instrução 'produz' deve ser a última instrução de um bloco.

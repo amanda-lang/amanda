@@ -24,6 +24,7 @@ annotation: @IDENTIFIER (LPAR IDENTIFIER EQUAL STRING (, IDENTIFIER EQUAL STRING
 
 declaration
   | registo_declaration
+  | uniao_declaration
   | function_declaration
   | method_declaration
   | stmt
@@ -32,6 +33,19 @@ declaration
 
 registo_declaration
   : annotation* REGISTO IDENTIFIER generic_params? reg_body FIM
+  ;
+
+uniao_declaration
+  : annotation* UNIAO IDENTIFIER generic_params? uniao_body FIM
+  ;
+
+
+uniao_body
+  : (variant (COMMA variant)* )?
+  ;
+
+variant
+  : IDENTIFER (LPAR type (COMMA type)*  RPAR)? 
   ;
 
 reg_body
@@ -89,6 +103,12 @@ body
   :( declaration | NEWLINE )*
   ;
 
+yield_block
+  : FACA 
+     ( declaration | NEWLINE )* 
+    FIM
+  ;
+
 
 formal_parameter_section
   : IDENTIFIER COLON type (COMMA formal_parameter_section)*
@@ -99,12 +119,14 @@ stmt
   : mostra_stmt
   | escolha_stmt
   | retorna_stmt
+  | produz_stmt
   | se_stmt
   | enquanto_stmt
   | para_stmt
   | decl_stmt
   | quebra_stmt
   | continua_stmt
+  | iguala_stmt
   ;
 
 escolha_stmt
@@ -114,8 +136,35 @@ escolha_stmt
     FIM 
   ;
 
+iguala_stmt
+  : IGUALA equality (iguala_arm (, iguala_arm)*)? FIM
+  ;
+iguala_arm
+  : pattern ARROW (equality | yield_block)
+  ;
+
+pattern
+  : capture_or_adt_pattern
+  | constant_pattern
+  ;
+
+capture_or_adt_pattern
+  : IDENTIFIER (DOUBLECOLON IDENTFIER)* (LPAR pattern (COMMA pattern)* RPAR)? 
+
+constant_pattern
+  : INTEGER 
+  | REAL
+  | STRING
+  | VERDADEIRO
+  | FALSO
+  ;
+
 retorna_stmt
   : RETORNA equality? end_stmt
+  ;
+
+produz_stmt
+  : PRODUZ equality end_stmt
   ;
 
 mostra_stmt
@@ -125,6 +174,12 @@ mostra_stmt
 se_stmt
   : SE equality ENTAO body (SENAOSE equality ENTAO body)* (SENAO body)? FIM
   ;
+
+se_stmt_or_se_iguala
+  : IGUALA equality ARROW pattern ENTAO body (SENAO body)? FIM
+  : equality ENTAO body (SENAOSE equality ENTAO body)* (SENAO body)? FIM
+  ;
+
 
 enquanto_stmt
   : ENQUANTO equality FACA body FIM
@@ -227,7 +282,7 @@ primary
   | FALSO
   | LPAR equality RPAR
   | LBRACKET type COLON args? RBRACKET
-  | IDENTIFIER 
+  | IDENTIFIER (DOUBLECOLON IDENTFIER)*
   | NULO
   | alvo
   ;

@@ -13,6 +13,7 @@ use crate::modules::builtins;
 use unicode_segmentation::UnicodeSegmentation;
 use std::convert::From;
 use std::mem;
+use std::rc::Rc;
 
 const RECURSION_LIMIT: usize = 1000;
 const DEFAULT_STACK_SIZE: usize = 256;
@@ -175,6 +176,9 @@ impl<'a> AmaVM<'a> {
         self.init(self.ctx_module.unwrap().main);
 
         loop {
+            if is_main_module {
+                //self.print_debug_info();
+            }
             let op = self.ctx_module.unwrap().code[self.frames.peek().ip];
             self.frames.peek_mut().last_i = self.frames.peek().ip;
             match OpCode::from(&op) {
@@ -222,6 +226,15 @@ impl<'a> AmaVM<'a> {
                         return self.panic_and_throw(msg);
                     } else {
                         self.op_push(result.unwrap());
+                    }
+                }
+                OpCode::MatchVariant => {
+                    let expected_tag = self.get_u64_arg();
+                    let obj = self.op_pop();
+                    if let AmaValue::Variant(tag, _) = obj {
+                        self.op_push(AmaValue::Bool(expected_tag == tag));
+                    } else {
+                        unreachable!("Value not a variant");
                     }
                 }
                 OpCode::IsNull => {
@@ -445,6 +458,36 @@ impl<'a> AmaVM<'a> {
                     //Drop values
                     //self.values.drain(self.sp as usize + 1..);
                 }
+                OpCode::BuildVariant => {
+                    let args = self.get_byte() as isize;
+                    let tag = self.op_pop().take_int() as u64;
+                    if args == 0 {
+                        self.op_push(AmaValue::Variant(tag, None));
+                        self.frames.peek_mut().ip += 1;
+                        continue;
+                    } 
+                    let start = (self.sp - (args - 1))  as usize;
+                    let args = self.values.drain(start..= self.sp as usize).into_iter().collect();
+                    self.sp = (start - 1) as isize;
+                    self.op_push(AmaValue::Variant(tag, Some(Rc::new(args))));
+                }
+                OpCode::BindMatchArgs => {
+                    let args_n = self.get_byte() as usize;
+                    let start = self.sp as usize - (args_n - 1);
+                    //TODO: Avoid this vec
+                    let local_indices: Vec<_> = self.values.drain(start..= self.sp as usize).map(|val| val.take_int()).into_iter().collect();
+                    self.sp = (start - 1) as isize;
+                    let object = self.op_pop();
+                    match object {
+                        AmaValue::Variant(_, Some(args)) => {
+                            for (i, local_idx) in local_indices.iter().enumerate() {
+                                let idx = self.frames.peek().bp as usize + *local_idx as usize;
+                                self.values[idx] = args[i].clone();
+                            }
+                        }
+                        _ => unreachable!("Bind args should not be implemented for this value! {}", object)
+                    }
+                }
                 OpCode::GetProp => {
                     let field = self.op_pop();
                     let reg_ref = self.op_pop();
@@ -541,6 +584,8 @@ impl<'a> AmaVM<'a> {
     fn print_debug_info(&self) {
         println!("[Function]: {}", self.frames.peek().name);
         println!("[Function locals]: {}", self.frames.peek().locals);
+
+        println!("[Instructions]: {:?}", self.ctx_module.unwrap().code);
         println!("[IP]: {}", self.frames.peek().ip);
         println!("[SP]: {}", self.sp);
         println!(

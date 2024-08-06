@@ -1,12 +1,14 @@
 from __future__ import annotations
 from abc import abstractmethod, ABC
 from dataclasses import dataclass
-from typing import Any, TYPE_CHECKING
+from enum import Enum
+from typing import Any, TYPE_CHECKING, Literal, Protocol
 
 from dataclasses import dataclass
 
 from amanda.compiler.module import Module
 from amanda.compiler.tokens import TokenType
+from utils.tycheck import unreachable
 
 if TYPE_CHECKING:
     from amanda.compiler.ast import Annotation
@@ -96,6 +98,17 @@ class Type(Symbol):
 
     @abstractmethod
     def define_method(self, method: Symbol): ...
+
+    def has_finite_constructors(self) -> bool:
+        return False
+
+    def get_constructors(self) -> list[Constructor]:
+        if self.has_finite_constructors():
+            unreachable(
+                "Method must be implemented for types with finite constructors"
+            )
+        else:
+            unreachable("Type has infinite constructors")
 
     def is_type_var(self) -> bool:
         return False
@@ -240,3 +253,10 @@ class Typed(Symbol):
 
     def __str__(self):
         return f"<{self.__class__.__name__} ({self.name},{self.out_id},{self.type})>"
+
+
+@dataclass
+class Constructor(Protocol):
+
+    def index(self) -> int: ...
+    def args(self) -> list[Type]: ...

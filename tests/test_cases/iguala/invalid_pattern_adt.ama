@@ -1,0 +1,15 @@
+uniao Resposta
+    Sim,
+    Nao, 
+    Talvez, 
+    Justificada(texto)
+fim  
+
+r1: int = 0
+
+iguala r1
+    Resposta::Nao => verdadeiro, 
+    _ => falso
+fim
+
+#[output]: Erro: Padrão inválido. Esperava-se um padrão do tipo 'int' mas utilizou-se um do tipo 'Resposta'.

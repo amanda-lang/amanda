@@ -1,0 +1,36 @@
+uniao Resposta
+    Sim,
+    Nao, 
+    Talvez, 
+    Justificada(texto), 
+    MultiplaEscolha(texto, texto)
+fim  
+
+
+
+met Resposta::respostas_compostas(alvo): [texto]
+    retorna iguala alvo
+        Resposta::MultiplaEscolha(r1, r2) => [texto: r1, r2] , 
+        Resposta::Justificada(r) => [texto: r], 
+        _ => [texto: ]
+    fim
+fim
+
+
+met Resposta::e_sim(alvo): bool
+    se iguala alvo => 1 entao
+        retorna verdadeiro
+    senao
+        retorna falso
+    fim
+fim
+
+
+r1: Resposta = Resposta::MultiplaEscolha("a", "b")
+r2: Resposta = Resposta::Justificada("because yes!")
+
+
+escrevaln(r1.respostas_compostas())
+escrevaln(r2.respostas_compostas())
+escrevaln(r2.e_sim())
+#[output]: Erro: Padrão inválido. Esperava-se um padrão do tipo 'Resposta' mas utilizou-se um do tipo 'int'.

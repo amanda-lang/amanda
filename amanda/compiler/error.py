@@ -5,6 +5,28 @@ from typing import Any, Literal, Optional, ClassVar, cast, NoReturn
 from dataclasses import dataclass
 
 
+class Errors:
+    ID_IN_USE = "O identificador '{name}' já foi declarado neste escopo"
+    VARIANT_ALREADY_DECLARED = "A variante '{variant}' já foi declarada anteriormente na união '{uniao}'"
+    VOID_FN_MATCH_TARGET = "Funções sem retorno não podem ser usadas como o alvo da instrução 'iguala'"
+    VARIANT_TAKES_NO_ARGS = "Padrão inválido. A variante '{variant}' não espera receber nenhum argumento"
+    BINDING_ALREADY_IN_USE = (
+        "Padrão inválido. A variável '{var}' já foi utilizada neste padrão"
+    )
+    INVALID_PATTERN_ARG = "Argumento {n} do padrão inválido. Esperava-se um argumento do tipo '{param_type}' mas recebeu o tipo '{eval_type}'"
+    INVALID_PATTERN_TYPE = "Padrão inválido. Esperava-se um padrão do tipo '{expected}' mas utilizou-se um do tipo '{received}'"
+    NON_EXHAUSTIVE_PATTERN_MATCH_FINITE = "A instrução iguala deve especificar alternativas para todos os valores possíveis do tipo '{ty}'. Padrões em falta: \n{missing_patterns}"
+    NON_EXHAUSTIVE_PATTERN_MATCH_INFINITE = "A instrução iguala deve especificar uma alternativa genérica para o caso das outras alternativas falharem. Padrão em falta: \n * _ => ..."
+    IGUALA_BLOCK_BAD_RETURN_TY = "Retorno da alternativa iguala inválido. Esperava-se o tipo '{expected}' mas o bloco retorna o tipo '{actual}'"
+    PRODUZ_OUTSIDE_BLOCK = (
+        "A instrução 'produz' só pode ser usada dentro de um bloco iguala"
+    )
+    PRODUZ_MUST_BE_LAST_INSTRUCTION = (
+        "A instrução 'produz' deve ser a última instrução de um bloco"
+    )
+    YIELD_BLOCK_MAY_NOT_CONTAIN_BOTH_PRODUZ_AND_RETURN = "Um bloco não pode conter as instruções 'retorna' e 'produz' ao mesmo tempo"
+
+
 @dataclass
 class AmandaError(Exception):
     # error types

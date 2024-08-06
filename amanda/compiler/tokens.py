@@ -7,6 +7,8 @@ from typing import ClassVar, Dict
 class TokenType(Enum):
     # Special eof token
     EOF = "_EOF_"
+    # Special token used for code generated ast nodes
+    GEN = "_GEN_"
     # Special token used for program node
     PROGRAM = "PROGRAM"
 
@@ -33,6 +35,7 @@ class TokenType(Enum):
     COLON = ":"
     QMARK = "?"
     DOUBLECOLON = "::"
+    CAST = ":>"
     ARROW = "=>"
     NEWLINE = "\\n"
 
@@ -68,6 +71,7 @@ class TokenType(Enum):
     FALSO = "FALSO"
     CASO = "CASO"
     RETORNA = "RETORNA"
+    PRODUZ = "PRODUZ"
     SE = "SE"
     SENAO = "SENAO"
     SENAOSE = "SENAOSE"
@@ -83,6 +87,7 @@ class TokenType(Enum):
     COMO = "como"
     ALVO = "alvo"
     REGISTO = "registo"
+    IGUALA = "IGUALA"
     INC = "INC"
     FIM = "FIM"
     FUNC = "FUNC"
@@ -90,6 +95,7 @@ class TokenType(Enum):
     NULO = "NULO"
     VAZIO = "VAZIO"
     NATIVA = "NATIVA"
+    UNIAO = "UNIAO"
     CLASSE = "CLASSE"
 
 
@@ -155,3 +161,4 @@ def is_ambiguous_char(char: str) -> bool:
 
 
 KEYWORDS = build_reserved_keywords()
+gen_token = Token(TokenType.GEN, "_GEN_")

@@ -1,0 +1,29 @@
+uniao Resposta
+    Sim,
+    Nao, 
+    Talvez, 
+    Justificada(texto), 
+    MultiplaEscolha(texto, texto)
+fim  
+
+
+
+met Resposta::respostas_compostas(alvo): [texto]
+    retorna iguala alvo
+        Resposta::MultiplaEscolha(r1, r2) => faca 
+            retorna [texto: ]
+            produz [texto: r1, r2] 
+        fim 
+        Resposta::Justificada(r) => [texto: r], 
+        _ => [texto: ]
+    fim
+fim
+
+r1: Resposta = Resposta::MultiplaEscolha("a", "b")
+r2: Resposta = Resposta::Justificada("because yes!")
+
+
+
+escrevaln(r1.respostas_compostas())
+escrevaln(r2.respostas_compostas())
+#[output]: Erro: Um bloco não pode conter as instruções 'retorna' e 'produz' ao mesmo tempo.

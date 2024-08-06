@@ -1,0 +1,18 @@
+
+uniao Resposta
+    Sim,
+    Nao, 
+    Talvez, 
+    Justificada(texto),
+    DuplaEscolha(texto, texto)
+fim  
+
+r1: Resposta = Resposta::Nao
+
+iguala r1
+    Resposta::Nao => verdadeiro, 
+    Resposta::DuplaEscolha(arg1, arg1) => verdadeiro,
+    _ => falso
+fim
+
+#[output]: Erro: Padrão inválido. A variável 'arg1' já foi utilizada neste padrão.

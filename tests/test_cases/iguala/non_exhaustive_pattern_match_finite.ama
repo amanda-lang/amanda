@@ -1,0 +1,14 @@
+uniao Resposta
+    Sim,
+    Nao, 
+    Talvez, 
+    Justificada(texto)
+fim  
+
+r1: Resposta = Resposta::Nao
+
+iguala r1
+    Resposta::Nao => verdadeiro
+fim
+
+#[output]: Erro: A instrução iguala deve especificar alternativas para todos os valores possíveis do tipo 'Resposta'. Padrões em falta:  * Resposta::Justificada(_) => ...  * Resposta::Sim => ...  * Resposta::Talvez => ... .

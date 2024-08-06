@@ -1,0 +1,26 @@
+uniao Resposta
+    Sim,
+    Nao, 
+    Talvez, 
+    Justificada(texto), 
+    MultiplaEscolha(texto, texto)
+fim  
+
+
+met Resposta::e_sim(alvo): bool 
+    retorna iguala alvo 
+        Resposta::Sim => verdadeiro
+        _ => falso
+    fim
+fim
+
+r1: Resposta = Resposta::Sim
+r2: Resposta = Resposta::Justificada("because yes!")
+
+
+
+escrevaln(r1)
+escrevaln(r2)
+escrevaln(r1.e_sim())
+escrevaln(r2.e_sim())
+#[output]:<Variante(0)> <Variante(3)> verdadeiro falso

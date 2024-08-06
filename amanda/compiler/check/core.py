@@ -18,13 +18,18 @@ from amanda.compiler.types.core import (
     Primitive,
     Type,
     Types,
+    Uniao,
+    Variant,
     Vector,
     Registo,
 )
-from amanda.compiler.error import AmandaError
+from amanda.compiler.error import AmandaError, Errors
 from amanda.compiler.builtinfn import BUILTINS, BuiltinFn
 from amanda.config import STD_LIB
 from amanda.compiler.transform import transform
+import amanda.compiler.check.uniao as uniao
+import amanda.compiler.check.iguala as igualacheck
+from utils.tycheck import unwrap
 
 
 MAX_AMA_INT = 2**63 - 1
@@ -48,6 +53,7 @@ class Analyzer(ast.Visitor):
         self.ctx_node: Optional[ast.ASTNode] = None
         self.ctx_reg = None
         self.ctx_func = None
+        self.ctx_yield_block: ast.YieldBlock | None = None
         self.in_loop = False
         self.imports = {}
         # Module currently being executed
@@ -89,6 +95,31 @@ class Analyzer(ast.Visitor):
     def has_return_se(self, node):
         """Method checks for return within
         'se' statements"""
+        # If there is no else branch return None immediately
+        return (
+            False
+            if not node.else_branch
+            else self.has_return(node.then_branch)
+            and self.has_return(node.else_branch)
+        )
+
+    def has_return_igualaarm(self, node: ast.IgualaArm):
+        return self.has_return_block(node.body)
+
+    def has_return_iguala(self, node: ast.Iguala):
+        has_return = True
+        has_var_pattern = False
+        for arm in node.arms:
+            has_return = has_return and self.has_return(arm)
+            if not has_return:
+                return False
+            if isinstance(arm.pattern, ast.BindingPattern):
+                has_var_pattern = True
+        return has_return and has_var_pattern
+
+    def has_return_seiguala(self, node: ast.SeIguala):
+        """Method checks for return within
+        'se iguala' statements"""
         # If there is no else branch return None immediately
         return (
             False if not node.else_branch else self.has_return(node.else_branch)
@@ -250,7 +281,7 @@ class Analyzer(ast.Visitor):
         self.ty_ctx = scope
 
     def leave_scope(self):
-        self.ctx_scope = cast(symbols.Scope, self.ctx_scope).enclosing_scope
+        self.ctx_scope = unwrap(self.ctx_scope).enclosing_scope
         self.scope_depth -= 1
 
     def leave_ty_ctx(self):
@@ -650,6 +681,9 @@ class Analyzer(ast.Visitor):
             ctx.define(param.name, param)
         return ctx
 
+    def visit_uniao(self, node: ast.Uniao):
+        uniao.check_uniao(node, self)
+
     def visit_registo(self, node: ast.Registo):
         name = node.name.lexeme
         reg_scope = symbols.Scope(self.ctx_scope)
@@ -695,6 +729,25 @@ class Analyzer(ast.Visitor):
     def visit_block(self, node, scope=None):
         self.enter_scope(scope)
         self.visit_children(node.children)
+        node.symbols = self.ctx_scope
+        self.leave_scope()
+
+    def visit_yieldblock(self, node: ast.YieldBlock):
+        self.enter_scope(node.symbols)
+        prev_yield_block = self.ctx_yield_block
+        self.ctx_yield_block = node
+
+        node.eval_type = Builtins.Vazio
+        self.visit_children(node.children)
+
+        # A yield block cannot produce a value and contain a return
+        # statement (pick one!)
+        if node.eval_type != Builtins.Vazio and node.has_return:
+            self.error(
+                Errors.YIELD_BLOCK_MAY_NOT_CONTAIN_BOTH_PRODUZ_AND_RETURN
+            )
+
+        self.ctx_yield_block = prev_yield_block
         node.symbols = self.ctx_scope
         self.leave_scope()
 
@@ -751,7 +804,7 @@ class Analyzer(ast.Visitor):
             element.prom_type = element_type.promote_to(list_type)
 
     # TODO: Rename this to 'name' or 'identifier'
-    def visit_variable(self, node):
+    def visit_variable(self, node: ast.Variable):
         name = node.token.lexeme
         sym = cast(
             symbols.Typed,
@@ -766,6 +819,44 @@ class Analyzer(ast.Visitor):
         node.var_symbol = sym
         assert node.var_symbol
         return sym
+
+    def visit_path(self, node: ast.Path):
+        components = node.components
+        name = components[0].token.lexeme
+        current_sym: symbols.Typed | None = self.ctx_scope.resolve(
+            components[0].token.lexeme
+        )  # type: ignore
+        if not current_sym:
+            self.error(f"o identificador '{name}' não foi declarado")
+
+        for component in components[1:]:
+            match current_sym:
+                case Uniao(name=name, variants=variants):
+                    variant = component.token.lexeme
+                    if variant not in variants:
+                        self.error(
+                            f"A união '{name}' não possui a variante '{variant}'"
+                        )
+                    current_sym = variants[variant]
+                case _:
+                    self.error(
+                        f"O item '{current_sym.name}' não possui sub-itens"
+                    )
+
+        # If variant not referenced in the context of a call
+        # and it has params, error out
+        if (
+            not node.child_of(ast.Call)
+            and isinstance(current_sym, Variant)
+            and len(current_sym.params) > 0
+            and not node.child_of(ast.ADTPattern)
+        ):
+            self.error(
+                f"A variante '{current_sym.name}' da união '{current_sym.uniao.name}' deve ser inicializada com os devidos argumentos"
+            )
+
+        node.eval_type = current_sym.type
+        node.symbol = current_sym
 
     def _bad_prop_err(self, ty: Type, field: str):
         # TODO: Add context to bad prop error on Option types
@@ -970,6 +1061,9 @@ class Analyzer(ast.Visitor):
                 "A instrução de retorno vazia só pode ser usada dentro de uma função vazia"
             )
 
+        if self.ctx_yield_block:
+            self.ctx_yield_block.has_return = True
+
         # Empty return statement, can exit early
         if not expr:
             return
@@ -979,6 +1073,17 @@ class Analyzer(ast.Visitor):
             self.error(
                 f"expressão de retorno inválida. O tipo do valor de retorno é incompatível com o tipo de retorno da função"
             )
+
+    def visit_produz(self, node: ast.Produz):
+        if not self.ctx_yield_block:
+            self.ctx_node = node
+            self.error(Errors.PRODUZ_OUTSIDE_BLOCK)
+        block_last_instruction = self.ctx_yield_block.children[-1]
+        if block_last_instruction != node:
+            self.error(Errors.PRODUZ_MUST_BE_LAST_INSTRUCTION)
+        expr = unwrap(node.exp)
+        self.visit(expr)
+        self.ctx_yield_block.eval_type = expr.eval_type
 
     def visit_senaose(self, node: ast.SenaoSe):
         self.visit(node.condition)
@@ -1018,6 +1123,13 @@ class Analyzer(ast.Visitor):
         default_case = node.default_case
         if default_case:
             self.visit(default_case)
+
+    def visit_iguala(self, node: ast.Iguala):
+        igualacheck.check_iguala(self, node)
+
+    def visit_seiguala(self, node: ast.SeIguala):
+        igualacheck.check_se_iguala(self, node)
+        pass
 
     def visit_enquanto(self, node: ast.Enquanto):
         self.visit(node.condition)
@@ -1070,29 +1182,41 @@ class Analyzer(ast.Visitor):
         callee = node.callee
         calle_type = type(callee)
         sym: Typed
-        if calle_type == ast.Variable:
-            name = callee.token.lexeme
-            sym = self.ctx_scope.resolve_typed(name)
-            if not sym:
-                # TODO: Use the default error message for this
-                self.error(
-                    f"o identificador '{name}' não foi definido neste escopo"
+        match callee:
+            case ast.Variable():
+                name = callee.token.lexeme
+                sym = self.ctx_scope.resolve_typed(name)
+                if not sym:
+                    # TODO: Use the default error message for this
+                    self.error(
+                        f"o identificador '{name}' não foi definido neste escopo"
+                    )
+            case ast.Get():
+                sym = self.visit(callee)
+            case ast.Path():
+                self.visit(callee)
+                sym = callee.symbol
+                if not sym.is_callable():
+                    # TODO: Improve this error message
+                    self.error(
+                        f"a variante '{sym.name}' não declara nenhum argumento."
+                    )
+            case _:
+                message = (
+                    f"Não pode invocar o resultado de uma invocação"
+                    if calle_type == ast.Call
+                    else f"o símbolo '{node.callee.token.lexeme}' não é invocável"
                 )
-        elif calle_type == ast.Get:
-            sym = self.visit(callee)
-        else:
-            message = (
-                f"Não pode invocar o resultado de uma invocação"
-                if calle_type == ast.Call
-                else f"o símbolo '{node.callee.token.lexeme}' não é invocável"
-            )
-            self.error(message)
-            return
+                self.error(message)
+
         if sym.name in BUILTINS:
             self.builtin_call(BUILTINS[sym.name], node)
         elif isinstance(sym, Registo):
             self.validate_initializer(sym, node.fargs)
             node.eval_type = sym
+        elif isinstance(sym, Variant):
+            node.eval_type = sym.uniao
+            uniao.validate_variant_init(self, sym, node.fargs)
         else:
             self.validate_call(cast(symbols.FunctionSymbol, sym), node.fargs)
             node.eval_type = sym.type
@@ -1226,7 +1350,6 @@ class Analyzer(ast.Visitor):
 
     def validate_initializer(self, sym: Registo, fargs: List[ast.NamedArg]):
         # Check call arity
-
         if len(fargs) != len(sym.fields):
             self.error(
                 f"número incorrecto de argumentos para o inicializador do registo '{sym.name}'. Esperava {len(sym.fields)} argumento(s), porém recebeu {len(fargs)}"

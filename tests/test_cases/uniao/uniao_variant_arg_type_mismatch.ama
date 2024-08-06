@@ -1,0 +1,10 @@
+uniao Resposta
+    Sim,
+    Nao, 
+    Talvez, 
+    Justificada(texto)
+fim  
+
+r1: Resposta = Resposta::Justificada(1)
+escrevaln(r1)
+#[output]: Erro: erro no argumento 1. Esperava-se um argumento do tipo 'texto' mas recebeu o tipo 'int'.

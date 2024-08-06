@@ -80,6 +80,7 @@ pub enum AmaValue<'a> {
     Str(Cow<'a, str>),
     Registo(&'a Registo<'a>),
     RegObj(RcCell<RegObj<'a>>),
+    Variant(u64, Option<Rc<Vec<AmaValue<'a>>>>),
 }
 
 impl<'a> AmaValue<'a> {
@@ -241,6 +242,10 @@ impl Clone for AmaValue<'_> {
             AmaValue::Vector(ref vec) => AmaValue::Vector(Rc::clone(vec)),
             AmaValue::RegObj(ref obj) => AmaValue::RegObj(Rc::clone(obj)),
             AmaValue::Registo(reg) => AmaValue::Registo(reg),
+            AmaValue::Variant(tag, items) => match items {
+                Some(ref items) => AmaValue::Variant(*tag, Some(Rc::clone(items))),
+                None => AmaValue::Variant(*tag, None),
+            },
             _ => unimplemented!("Cannot clone value of type"),
         }
     }
@@ -278,6 +283,9 @@ impl Display for AmaValue<'_> {
             AmaValue::None => write!(f, "nulo"),
             AmaValue::RegObj(reg) => {
                 write!(f, "<Instância do tipo {}>", reg.borrow().reg_name())
+            }
+            AmaValue::Variant(tag, _) => {
+                write!(f, "<Variante({})>", tag)
             }
             _ => unimplemented!(),
         }

@@ -1,0 +1,10 @@
+uniao Resposta
+    Sim,
+    Nao, 
+    Talvez, 
+    Justificada(texto)
+fim  
+
+r1: Resposta = Resposta::Justificada
+escrevaln(r1)
+#[output]: Erro: A variante 'Justificada' da união 'Resposta' deve ser inicializada com os devidos argumentos.

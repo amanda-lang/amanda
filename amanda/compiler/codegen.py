@@ -3,16 +3,34 @@ import sys
 from typing import List, cast, Sequence
 from io import StringIO, BytesIO
 from enum import Enum, auto
-from amanda.compiler.symbols.base import Symbol
+from amanda.compiler.check.exhaustiveness import (
+    Case,
+    DSuccess,
+    DSwitch,
+    Decision,
+    Match,
+)
+from amanda.compiler.symbols.base import Constructor, Symbol
 import amanda.compiler.symbols.core as symbols
 from amanda.compiler.types.builtins import Builtins
-from amanda.compiler.types.core import Primitive, Registo, Type
+from amanda.compiler.types.core import (
+    IntCons,
+    Primitive,
+    Registo,
+    StrCons,
+    Type,
+    Uniao,
+    Variant,
+    VariantCons,
+)
 import amanda.compiler.ast as ast
 from amanda.compiler.tokens import TokenType as TT
 from amanda.compiler.error import AmandaError, throw_error
 from amanda.compiler import bindump
 from amanda.compiler.module import Module
 import struct
+
+from utils.tycheck import unwrap, unreachable
 
 
 OP_SIZE = 8
@@ -95,6 +113,14 @@ class OpCode(Enum):
     # Get the value of a global declared in another module. arg-1 (64-bit) is the index of the module in the table of imported modules,
     # arg-2 (64-bit) is the index to the name of the var on the constant table.
     LOAD_MODULE_DEF = auto()
+    # Builds a new variant object. The argument of the op is the number of variant constructor args. Expects the variant unique tag id to be TOS.
+    BUILD_VARIANT = auto()
+    # Binds the arguments of a variant or other supported object to local variables. The argument is the number of arguments to bind (N).
+    # Expects the object used for binding and N integers on the stack, where each integer is the index to a slot in the local variables of the current function where value shall be bound.
+    # e.g. for a variant with 3 args:  locals[TOS - 2] = TOS - 3[arg0],  locals[TOS - 1] = TOS - 3[arg1] and local[TOS] = TOS-3[arg2]
+    BIND_MATCH_ARGS = auto()
+    # Checks if the variant at TOS is has the integer tag specified by the 64-bit argument.
+    MATCH_VARIANT = auto()
     # Stops execution of the VM. Must always be added to stop execution of the vm
     HALT = 0xFF
 
@@ -103,7 +129,7 @@ class OpCode(Enum):
         # uses
         num_ops = len(list(OpCode))
         assert (
-            num_ops == 40
+            num_ops == 43
         ), f"Please update the size of ops after adding a new Op. New size: {num_ops}"
         match self:
             case (
@@ -113,6 +139,8 @@ class OpCode(Enum):
                 | OpCode.BUILD_VEC
                 | OpCode.BUILD_OBJ
                 | OpCode.OP_UNWRAP
+                | OpCode.BUILD_VARIANT
+                | OpCode.BIND_MATCH_ARGS
             ):
                 return OP_SIZE * 2
             case (
@@ -125,7 +153,7 @@ class OpCode(Enum):
                 | OpCode.LOAD_REGISTO
             ):
                 return OP_SIZE * 3
-            case OpCode.JUMP | OpCode.JUMP_IF_FALSE:
+            case OpCode.JUMP | OpCode.JUMP_IF_FALSE | OpCode.MATCH_VARIANT:
                 return OP_SIZE * 9
             case OpCode.LOAD_MODULE_DEF:
                 return OP_SIZE * 17
@@ -137,6 +165,8 @@ class OpCode(Enum):
 
 
 Instruction = tuple[OpCode, tuple[int, ...]]
+
+uniao_tag_attr = "_field"
 
 
 class ByteGen:
@@ -154,6 +184,7 @@ class ByteGen:
         self.scope_symtab: symbols.Scope = None  # type: ignore
         self.func_locals: dict[str, int] = {}
         self.const_table: dict[str, int] = {}
+        self.uniao_variants: dict[str, int] = {}
         self.names = {}
         self.labels = {}
         self.ops: list[Instruction] = []
@@ -414,7 +445,18 @@ class ByteGen:
             self.gen(child)
         self.exit_block()
 
-    def get_table_index(self, item: str, table):
+    def gen_yieldblock(self, node: ast.YieldBlock):
+        self.enter_block(node.symbols)
+        for child in node.children:
+            self.gen(child)
+        self.exit_block()
+
+    def get_variant_index(self, variant: Variant) -> int:
+        return self.uniao_variants.setdefault(
+            variant.variant_id(), len(self.uniao_variants)
+        )
+
+    def get_table_index(self, item: str | int, table):
         # TODO: Make load const instruction use 64 bit arg
         tab = self.const_table if table == self.CONST_TABLE else self.names
         if item in tab:
@@ -467,6 +509,22 @@ class ByteGen:
         self.load_variable(symbol)
         self.gen_auto_cast(prom_type)
 
+    def gen_path(self, node: ast.Path):
+        # raise ValueError("Symbol should have been resolved before codegen!")
+        symbol = node.symbol
+        if not symbol:
+            raise ValueError("Symbol should have been resolved before codegen!")
+        match symbol:
+            case Variant():
+                tag = self.uniao_variants[symbol.variant_id()]
+                self.load_const(tag)
+                if not symbol.is_callable():
+                    # No args means we can generate the code for creating the variant here
+                    self.append_op(OpCode.BUILD_VARIANT, 0)
+            case _:
+                raise NotImplementedError("Cannot generate code for symbol")
+        return
+
     def gen_vardecl(self, node):
         assign = node.assign
         idt = node.name.lexeme
@@ -496,9 +554,13 @@ class ByteGen:
         else:
             local = symbol.out_id
             if local not in self.func_locals:
-                idx = len(self.func_locals)
-                self.func_locals[local] = idx
+                self.declare_local(symbol)
             self.append_op(OpCode.SET_LOCAL, self.func_locals[local])
+
+    def declare_local(self, symbol: Symbol) -> int:
+        idx = len(self.func_locals)
+        self.func_locals[symbol.out_id] = idx
+        return idx
 
     # TODO: Test whether chained assign still with
     # mixture of normal assigns and index set (Potential bug)
@@ -685,6 +747,83 @@ class ByteGen:
         self.patch_label_loc(after_loop)
         self.exit_block()
 
+    def gen_iguala(self, node: ast.Iguala):
+        self.gen_iguala_from_ir(node, node.ir.tree)
+
+    def gen_iguala_from_ir(self, node: ast.Iguala, decision: Decision):
+        match decision:
+            case DSuccess(body):
+                for name, variable in body.bindings:
+                    self.load_variable(variable)
+                    self.set_variable(
+                        unwrap(unwrap(body.value.symbols).resolve(name))
+                    )
+                self.gen(body.value)
+            case DSwitch(variable=var, cases=cases):
+                self.gen_iguala_cases(node, var, cases)
+            case _:
+                unreachable("Invalid decision node")
+        pass
+
+    def gen_iguala_test(
+        self, var: symbols.VariableSymbol, constructor: Constructor
+    ):
+        self.load_variable(var)
+        match constructor:
+            case IntCons(val) | StrCons(val):
+                self.load_const(val)
+                self.append_op(OpCode.OP_EQ)
+            case VariantCons(tag=tag, uniao=uniao):
+                variant = uniao.variant_by_tag(tag)
+                # TODO: Fix this please!!!
+                idx = self.uniao_variants[variant.variant_id()]
+                self.append_op(OpCode.MATCH_VARIANT, idx)
+            case _:
+                unreachable("Unknown constructor")
+
+    def gen_iguala_case_bindings(self, var: symbols.VariableSymbol, case: Case):
+        self.load_variable(var)
+        match case.constructor:
+            case VariantCons(name=name):
+                cargs = case.arguments
+                if not cargs:
+                    return
+                for arg in cargs:
+                    # Declare local and push local index into stack
+                    idx = self.declare_local(arg)
+                    self.load_const(idx)
+                self.append_op(OpCode.BIND_MATCH_ARGS, len(cargs))
+            case x:
+                pass
+
+    def gen_iguala_cases(
+        self, node: ast.Iguala, var: symbols.VariableSymbol, cases: list[Case]
+    ):
+        after_if = self.new_label()
+        after_block = self.new_label()
+
+        first_case = cases[0]
+        # Generate test
+        self.gen_iguala_test(var, first_case.constructor)
+        self.append_op(OpCode.JUMP_IF_FALSE, after_block)
+
+        self.gen_iguala_case_bindings(var, first_case)
+        self.gen_iguala_from_ir(node, first_case.body)
+        self.append_op(OpCode.JUMP, after_if)
+        self.patch_label_loc(after_block)
+
+        for case in cases[1:]:
+            after_elsif = self.new_label()
+            self.gen_iguala_test(var, case.constructor)
+            self.append_op(OpCode.JUMP_IF_FALSE, after_elsif)
+
+            self.gen_iguala_case_bindings(var, case)
+            self.gen_iguala_from_ir(node, case.body)
+            self.append_op(OpCode.JUMP, after_if)
+            self.patch_label_loc(after_elsif)
+
+        self.patch_label_loc(after_if)
+
     def gen_functiondecl(self, node: ast.FunctionDecl):
         func_symbol = node.symbol
 
@@ -734,7 +873,10 @@ class ByteGen:
             self.gen(arg)
 
         self.gen(node.callee)
-        if func.is_type():
+        if isinstance(func, Variant):
+            self.append_op(OpCode.BUILD_VARIANT, len(node.fargs))
+            return
+        elif func.is_type():
             self.append_op(OpCode.BUILD_OBJ, len(node.fargs))
         else:
             self.append_op(OpCode.CALL_FUNCTION, len(node.fargs))
@@ -750,6 +892,9 @@ class ByteGen:
         else:
             self.load_const("falso")
         self.append_op(OpCode.RETURN)
+
+    def gen_produz(self, node: ast.Produz):
+        self.gen(unwrap(node.exp))
 
     def gen_converta(self, node: ast.Converta):
         target_t = node.target.eval_type
@@ -835,6 +980,13 @@ class ByteGen:
         )
         self.append_op(OpCode.LOAD_REGISTO, len(self.registos) - 1)
         self.set_variable(self.scope_symtab.resolve(name))
+
+    def gen_uniao(self, node: ast.Uniao):
+        name = node.name.lexeme
+        sym: Uniao = self.scope_symtab.resolve_typed(name)
+        self.get_table_index(name, self.NAME_TABLE)
+        for variant in sym.variants.values():
+            self.get_variant_index(variant)
 
     def gen_noop(self, node: ast.NoOp):
         pass

@@ -1,5 +1,6 @@
 from __future__ import annotations
 import enum
+from amanda.compiler.symbols.base import Constructor
 from amanda.compiler.tokens import Token, TokenType as TT
 import amanda.compiler.types.core as types
 from amanda.compiler.types.builtins import Builtins
@@ -8,6 +9,8 @@ from typing import (
     Any,
     List,
     Optional,
+    Protocol,
+    Sequence,
     Type as PyTy,
     TypeVar,
     Callable,
@@ -158,7 +161,10 @@ class Lista(Expr):
         self.expression = expression
 
 
+@dataclass
 class Alvo(Expr):
+    var_symbol: symbols.VariableSymbol | None
+
     def __init__(self, token):
         super().__init__(token)
         self.var_symbol = None
@@ -182,6 +188,20 @@ class UnaryOp(Expr):
         self.operand = operand
 
 
+@dataclass
+class YieldBlock(Expr):
+    children: list[ASTNode]
+    symbols: symbols.Scope | None = None
+    has_return: bool = False
+
+    def __init__(self, token: Token, children: list[ASTNode]):
+
+        super().__init__(token)
+        self.children = children
+        self.symbols = None
+        self.has_return = False
+
+
 class VarDecl(ASTNode):
     def __init__(
         self, token: Token, *, name: Token, var_type=None, assign=None
@@ -199,7 +219,10 @@ class Assign(Expr):
         self.right: Expr = right  # type: ignore
 
 
+@dataclass
 class Statement(ASTNode):
+    exp: Expr | None
+
     def __init__(self, token: Token, exp: Expr | None = None):
         super().__init__(token)
         self.exp = exp
@@ -213,6 +236,10 @@ class Retorna(Statement):
     pass
 
 
+class Produz(Statement):
+    pass
+
+
 class Mostra(Statement):
     pass
 
@@ -220,9 +247,9 @@ class Mostra(Statement):
 class Se(ASTNode):
     def __init__(
         self,
-        token,
-        condition,
-        then_branch,
+        token: Token,
+        condition: Expr,
+        then_branch: Block,
         *,
         elsif_branches=None,
         else_branch=None,
@@ -262,6 +289,99 @@ class Escolha(ASTNode):
         self.expression = expression
         self.cases = cases
         self.default_case = default_case
+
+
+@dataclass
+class IntPattern(Expr):
+    val: Token
+
+    def __init__(self, val: Token):
+        super().__init__(val)
+        self.val = val
+        self.eval_type = Builtins.Int
+
+
+@dataclass
+class StrPattern(Expr):
+    val: Token
+
+    def __init__(self, val: Token):
+        super().__init__(val)
+        self.val = val
+        self.eval_type = Builtins.Int
+
+
+@dataclass
+class BindingPattern(Expr):
+    var: Variable
+
+    def __init__(self, var: Variable):
+        super().__init__(var.token)
+        self.var = var
+
+
+@dataclass
+class ADTPattern(Expr):
+    adt: Path | Variable
+    args: list[Pattern]
+    cons: Constructor | None
+
+    def __init__(self, adt: Path | Variable, args: list[Pattern]):
+        super().__init__(adt.token)
+        self.adt = adt
+        self.args = args
+        self.cons = None
+
+
+class IgualaArm(ASTNode):
+    pattern: Pattern
+    body: YieldBlock
+
+    def __init__(self, token: Token, pattern: Pattern, body: YieldBlock):
+        super().__init__(token)
+        self.pattern = pattern
+        self.body = body
+
+
+Pattern = IntPattern | ADTPattern | BindingPattern
+
+
+class Iguala(Expr):
+    target: Expr
+    arms: list[IgualaArm]
+    target_binding: symbols.VariableSymbol | None = None
+    ir: Any = None
+
+    def __init__(self, token: Token, target: Expr, arms: list[IgualaArm]):
+        super().__init__(token)
+        self.target = target
+        self.arms = arms
+        self.target_binding = None
+
+
+class SeIguala(ASTNode):
+    target: Expr
+    pattern: Pattern
+    then_branch: Block
+    else_branch: Block | None
+    then_arm: IgualaArm | None
+
+    def __init__(
+        self,
+        token: Token,
+        target: Expr,
+        pattern: Pattern,
+        then_branch: Block,
+        else_branch=None,
+    ):
+        super().__init__(token)
+        self.target = target
+        self.pattern = pattern
+        self.then_branch = then_branch
+        self.else_branch = else_branch
+
+    def into_iguala(self, arms: list[IgualaArm]) -> Iguala:
+        return Iguala(self.token, self.target, arms)
 
 
 class Para(ASTNode):
@@ -354,6 +474,16 @@ class Unwrap(Expr):
         self.default_val = default_val
 
 
+@dataclass
+class Path(Expr):
+    components: Sequence[Variable]
+    symbol: symbols.Typed | None = None
+
+    def __init__(self, components: Sequence[Variable]):
+        super().__init__(components[0].token)
+        self.components = components
+
+
 class FunctionDecl(ASTNode):
     def __init__(
         self,
@@ -419,6 +549,31 @@ class Registo(ASTNode):
         self.fields = fields
         self.annotations = annotations
         self.generic_params = generic_params
+
+
+@dataclass
+class UniaoVariant(ASTNode):
+    def __init__(self, name: Token, params: list[Type]):
+        super().__init__(name)
+        self.name = name
+        self.params = params
+
+
+@dataclass
+class Uniao(ASTNode):
+    def __init__(
+        self,
+        *,
+        name: Token,
+        variants: list[UniaoVariant],
+        annotations: list[Annotation],
+        generic_params: list[GenericParam],
+    ):
+        super().__init__(name)
+        self.name = name
+        self.variants = variants
+        self.generic_params = generic_params
+        self.annotations = annotations
 
 
 class GenericParam(ASTNode):

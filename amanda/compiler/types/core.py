@@ -1,11 +1,22 @@
 from __future__ import annotations
 from enum import auto, IntEnum, Enum
 from dataclasses import dataclass
-from typing import Mapping, cast, ClassVar
+from typing import Literal, Mapping, cast, ClassVar
 from amanda.compiler.module import Module
-from amanda.compiler.symbols.base import Symbol, Type, TypeVar, Typed
-from amanda.compiler.symbols.core import VariableSymbol, MethodSym
+from amanda.compiler.symbols.base import (
+    Symbol,
+    Type,
+    TypeVar,
+    Typed,
+    Constructor,
+)
+from amanda.compiler.symbols.core import (
+    FunctionSymbol,
+    VariableSymbol,
+    MethodSym,
+)
 from amanda.compiler.tokens import TokenType as TT
+from utils.tycheck import unreachable
 
 
 # Enum of types that are "known" to the compiler and may have
@@ -184,6 +195,21 @@ class Primitive(Type):
         raise NotImplementedError(
             "Bind must be implemented for types that support generics"
         )
+
+    def has_finite_constructors(self) -> bool:
+        match self.tag:
+            case Types.TBOOL:
+                return True
+            case _:
+                return False
+
+    def get_constructors(self) -> list[Constructor]:
+
+        match self.tag:
+            case Types.TBOOL:
+                return [BoolCons(0), BoolCons(1)]
+            case _:
+                unreachable("Constructor requested for infinite type")
 
 
 @dataclass
@@ -397,6 +423,142 @@ class Registo(Type):
 
 
 @dataclass
+class Variant(Typed):
+    tag: int
+    uniao: Uniao
+    name: str
+    params: list[Type]
+
+    def __init__(self, tag: int, uniao: Uniao, name: str, params: list[Type]):
+        super().__init__(name, uniao, uniao.module)
+        self.tag = tag
+        self.uniao = uniao
+        self.params = params
+
+    def can_evaluate(self):
+        return len(self.params) == 0
+
+    def is_callable(self):
+        return len(self.params) > 0
+
+    def variant_id(self) -> str:
+        return f"{self.module.fpath}::{self.uniao.name}::{self.name}"
+
+    def qualified_name(self) -> str:
+        return f"{self.uniao.name}::{self.name}"
+
+    def bind(self, **ty_args: Type) -> Typed:
+        raise NotImplementedError("Not implemented for união yet")
+        if not self.type.is_type_var():
+            return self
+        return VariableSymbol(self.name, ty_args[self.type.name], self.module)
+
+
+@dataclass
+class Uniao(Type):
+    name: str
+    module: Module
+    variants: dict[str, Variant]
+    ty_params: set[TypeVar]
+
+    def __init__(
+        self,
+        name: str,
+        module: Module,
+        variants: dict[str, Variant],
+        ty_params: set[TypeVar] | None = None,
+    ):
+        super().__init__(name, module)
+        self.name = name
+        self.variants = variants
+        self.methods: dict[str, MethodSym] = {}
+        self.ty_params: set[TypeVar] = ty_params if ty_params else set()
+        self._ty_names = set(map(lambda t: t.name, self.ty_params))
+
+    def add_variant(self, name: str, params: list[Type]):
+        self.variants[name] = Variant(len(self.variants), self, name, params)
+
+    def variant_by_tag(self, tag: int) -> Variant:
+        return list(filter(lambda x: x.tag == tag, self.variants.values()))[0]
+
+    def contains_variant(self, name: str) -> bool:
+        return name in self.variants
+
+    def is_callable(self) -> bool:
+        return False
+
+    def _is_opcao(self) -> bool:
+        return False
+
+    def supports_index_get(self) -> bool:
+        return False
+
+    def supports_index_set(self) -> bool:
+        return False
+
+    def supports_tam(self) -> bool:
+        return False
+
+    def is_generic(self) -> bool:
+        return self.ty_params is not None
+
+    def is_primitive(self) -> bool:
+        return False
+
+    def binop(self, op: TT, rhs: Type) -> Type | None:
+        return None
+
+    def unaryop(self, op: TT) -> Type | None:
+        return None
+
+    def promotion_to(self, other: Type) -> Type | None:
+        return (
+            other
+            if isinstance(other, Primitive) and other.tag in (Types.TINDEF,)
+            else None
+        )
+
+    def bind(self, **ty_args: Type) -> ConstructedTy:
+        raise NotImplementedError(
+            "Cannot bind type params of non generic Registo"
+        )
+        if self.ty_params is None:
+            raise NotImplementedError(
+                "Cannot bind type params of non generic Registo"
+            )
+        for ty_arg in ty_args:
+            if ty_arg not in self._ty_names:
+                raise ValueError(f"Invalid type argument: {ty_arg}")
+        return ConstructedTy(self, ty_args)
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, Uniao) and self.name == other.name
+
+    def __str__(self) -> str:
+        return self.name
+
+    def get_property(self, prop) -> Symbol | None:
+        return self.methods.get(prop)
+
+    def has_finite_constructors(self) -> bool:
+        return True
+
+    def get_constructors(self) -> list[Constructor]:
+        return [
+            VariantCons(
+                variant.tag, self, variant.qualified_name(), variant.params
+            )
+            for variant in self.variants.values()
+        ]
+
+    def define_method(self, method: Symbol):
+        self.methods[method.name] = cast(MethodSym, method)
+
+    def supports_fields(self) -> bool:
+        return True
+
+
+@dataclass
 class ConstructedTy(Type):
     generic_ty: Type
     bound_ty_args: dict[str, Type]
@@ -497,3 +659,50 @@ class ConstructedTy(Type):
             ty_arg = self.bound_ty_args["T"]
             return f"{ty_arg}?"
         return self.name
+
+
+@dataclass
+class VariantCons(Constructor):
+    tag: int
+    uniao: Uniao
+    name: str
+    cons_args: list[Type]
+
+    def index(self) -> int:
+        return self.tag
+
+    def args(self) -> list[Type]:
+        return self.cons_args
+
+
+@dataclass
+class BoolCons(Constructor):
+    val: Literal[0, 1]
+
+    def index(self) -> int:
+        return self.val
+
+    def args(self) -> list[Type]:
+        return []
+
+
+@dataclass
+class IntCons(Constructor):
+    val: int
+
+    def index(self) -> int:
+        return 0
+
+    def args(self) -> list[Type]:
+        return []
+
+
+@dataclass
+class StrCons(Constructor):
+    val: str
+
+    def index(self) -> int:
+        return 0
+
+    def args(self) -> list[Type]:
+        return []

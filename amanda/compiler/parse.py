@@ -7,6 +7,7 @@ from amanda.compiler.tokens import Token
 from amanda.compiler.tokens import KEYWORDS as TK_KEYWORDS
 from amanda.compiler.error import AmandaError
 import amanda.compiler.ast as ast
+from utils.tycheck import unreachable
 
 
 # TODO: Stop concatenating strings. Use buffers instead
@@ -383,11 +384,16 @@ class Parser:
             body.add_child(child)
 
     def declaration(self):
-        annotations = None
+        annotations = []
         if self.match(TT.AT):
             annotations = self.annotations()
             self.skip_newlines()
-            if self.lookahead.token not in (TT.FUNC, TT.MET, TT.REGISTO):
+            if self.lookahead.token not in (
+                TT.FUNC,
+                TT.MET,
+                TT.REGISTO,
+                TT.UNIAO,
+            ):
                 self.error(
                     "As anotações devem ser seguidas de uma função, método ou registo"
                 )
@@ -397,6 +403,8 @@ class Parser:
             return self.method_decl(annotations)
         elif self.match(TT.REGISTO):
             return self.registo_decl(annotations)
+        elif self.match(TT.UNIAO):
+            return self.uniao_decl(annotations)
         else:
             return self.statement()
 
@@ -548,7 +556,7 @@ class Parser:
         else:
             return None
 
-    def generic_params(self) -> list[ast.GenericParam] | None:
+    def generic_params(self) -> list[ast.GenericParam]:
         params = []
         if self.match(TT.LBRACKET):
             self.consume(TT.LBRACKET)
@@ -565,7 +573,52 @@ class Parser:
             self.consume(TT.RBRACKET)
             return params
         else:
-            return None
+            return []
+
+    def uniao_decl(self, annotations: list[ast.Annotation]):
+        self.consume(TT.UNIAO)
+        name = self.consume(TT.IDENTIFIER)
+        generic_params = self.generic_params()
+        variants = self.uniao_body()
+        self.consume(
+            TT.FIM, "O corpo de uma união deve ser terminado com o símbolo fim"
+        )
+        return ast.Uniao(
+            name=name,
+            generic_params=generic_params,
+            variants=variants,
+            annotations=annotations,
+        )
+
+    def uniao_body(self) -> list[ast.UniaoVariant]:
+        variants = []
+        self.skip_newlines()
+        if self.match(TT.IDENTIFIER):
+            variants.append(self.uniao_variant())
+            self.skip_newlines()
+            while self.match(TT.COMMA):
+                self.skip_newlines()
+                self.consume(TT.COMMA)
+                self.skip_newlines()
+                variants.append(self.uniao_variant())
+        self.skip_newlines()
+        return variants
+
+    def uniao_variant(self) -> ast.UniaoVariant:
+        name = self.consume(TT.IDENTIFIER)
+        params: list[ast.Type] = []
+        if self.match(TT.LPAR):
+            self.consume(TT.LPAR)
+            self.skip_newlines()
+            params.append(self.type())
+            while self.match(TT.COMMA):
+                self.skip_newlines()
+                self.consume(TT.COMMA)
+                self.skip_newlines()
+                params.append(self.type())
+                self.skip_newlines()
+            self.consume(TT.RPAR)
+        return ast.UniaoVariant(name, params)
 
     def registo_decl(self, annotations: list[ast.Annotation] | None):
         self.consume(TT.REGISTO)
@@ -624,6 +677,8 @@ class Parser:
             return self.mostra_statement()
         elif self.match(TT.RETORNA):
             return self.retorna_statement()
+        elif self.match(TT.PRODUZ):
+            return self.produz_statement()
         elif self.match(TT.ENQUANTO):
             return self.enquanto_stmt()
         elif self.match(TT.SE):
@@ -634,6 +689,8 @@ class Parser:
             return self.escolha_stmt()
         elif self.match(TT.QUEBRA) or self.match(TT.CONTINUA):
             return self.loop_ctl_statement()
+        elif self.match(TT.IGUALA):
+            return self.iguala_stmt()
         else:
             return self.decl_stmt()
 
@@ -657,8 +714,16 @@ class Parser:
         self.end_stmt()
         return ast.Retorna(token, exp)
 
+    def produz_statement(self):
+        token = self.consume(TT.PRODUZ)
+        exp = self.equality()
+        self.end_stmt()
+        return ast.Produz(token, exp)
+
     def se_statement(self):
         token = self.consume(TT.SE)
+        if self.match(TT.IGUALA):
+            return self.se_iguala_stmt(token)
         condition = self.equality()
         self.consume(TT.ENTAO)
         then_branch = self.block()
@@ -679,6 +744,42 @@ class Parser:
             elsif_branches=elsif_branches,
             else_branch=else_branch,
         )
+
+    def se_iguala_stmt(self, token: Token):
+        self.consume(TT.IGUALA)
+        target = self.equality()
+        self.consume(TT.ARROW)
+        pattern = self.pattern()
+        self.consume(
+            TT.ENTAO,
+            "Esperava-se o símbolo 'entao' após o padrão da instrução 'se iguala'",
+        )
+        then_branch = self.block()
+        else_branch = None
+        if self.match(TT.SENAO):
+            self.consume(TT.SENAO)
+            else_branch = self.block()
+        self.consume(
+            TT.FIM,
+            "esperava-se a símbolo fim para terminar a directiva 'se iguala'",
+        )
+
+        then_arm = ast.IgualaArm(
+            pattern.token,
+            pattern,
+            ast.YieldBlock(then_branch.token, then_branch.children),
+        )
+        block = ast.YieldBlock(token, [])
+        if else_branch:
+            block.symbols = else_branch.symbols
+            block.children = else_branch.children
+            block.token = else_branch.token
+        else_arm = ast.IgualaArm(
+            block.token,
+            ast.BindingPattern(ast.Variable(Token(TT.IDENTIFIER, "_"))),
+            block,
+        )
+        return ast.Iguala(token, target, [then_arm, else_arm])
 
     def senaose_branch(self):
         token = self.consume(TT.SENAOSE)
@@ -729,6 +830,78 @@ class Parser:
             default_case = self.block()
         self.consume(TT.FIM)
         return ast.Escolha(token, expression, cases, default_case)
+
+    def pattern(self) -> ast.Pattern:
+        start_expr = self.primary()
+        match start_expr:
+            case ast.Path() | ast.Variable():
+                return self.capture_or_adt_pattern(start_expr)
+            case ast.Constant(token=token):
+                match token.token:
+                    case TT.INTEGER:
+                        return ast.IntPattern(token)
+                    case TT.STRING:
+                        return ast.StrPattern(token)
+                    case _:
+                        unreachable("Unhandled constant pattern")
+            case _:
+                self.error("Padrão inválido")
+
+    def capture_or_adt_pattern(
+        self, ty: ast.Path | ast.Variable
+    ) -> ast.ADTPattern | ast.BindingPattern:
+        if not self.match(TT.LPAR):
+            match ty:
+                case ast.Path():
+                    return ast.ADTPattern(ty, [])
+                case ast.Variable():
+                    return ast.BindingPattern(ty)
+                case _:
+                    raise NotImplementedError("Unreachable!")
+        self.consume(TT.LPAR)
+        # Parse first argument to see what type of pattern it is
+        args = []
+        args.append(self.pattern())
+        self.skip_newlines()
+        while self.match(TT.COMMA):
+            self.consume(TT.COMMA)
+            args.append(self.pattern())
+        self.consume(TT.RPAR)
+        return ast.ADTPattern(ty, args)
+
+    def iguala_arm(self):
+        self.skip_newlines()
+        pattern = self.pattern()
+        tok = self.consume(TT.ARROW)
+        self.skip_newlines()
+        body = None
+        if self.match(TT.FACA):
+            tok = self.consume(TT.FACA)
+            body = ast.YieldBlock(tok, self.block().children)
+            self.consume(
+                TT.FIM,
+                "Os blocos de uma alternativa da 'instrução' iguala devem ser terminados com a palavra reservada 'fim'.",
+            )
+        else:
+            expr = self.equality()
+            body = ast.YieldBlock(expr.token, [ast.Produz(expr.token, expr)])
+        self.skip_newlines()
+        return ast.IgualaArm(tok, pattern, body)
+
+    def iguala_stmt(self):
+        tok = self.consume(TT.IGUALA)
+        target = self.equality()
+        arms = []
+        while not self.match(TT.FIM):
+            arms.append(self.iguala_arm())
+            while self.match(TT.COMMA):
+                self.consume(TT.COMMA)
+                arms.append(self.iguala_arm())
+        self.consume(
+            TT.FIM,
+            "Esperava-se encontrar o token 'fim' no final da instrução iguala.",
+        )
+        return ast.Iguala(tok, target, arms)
 
     def for_expression(self):
         name = self.consume(TT.IDENTIFIER)
@@ -969,8 +1142,8 @@ class Parser:
                 identifier = self.lookahead
                 self.consume(TT.IDENTIFIER)
                 expr = ast.Get(target=expr, member=identifier)
-        if self.match(TT.DOUBLECOLON):
-            token = self.consume(TT.DOUBLECOLON)
+        if self.match(TT.CAST):
+            token = self.consume(TT.CAST)
             new_type = self.type()
             return ast.Converta(token, expr, new_type)
         return expr
@@ -1068,19 +1241,32 @@ class Parser:
     def primary(self):
         current = self.lookahead.token
         expr = None
-        if current in (
+        if self.match(TT.IDENTIFIER):
+            expr = ast.Variable(self.lookahead)
+            self.consume(TT.IDENTIFIER)
+            # Try and parse ::
+            if self.match(TT.DOUBLECOLON):
+                path = [expr]
+                while self.match(TT.DOUBLECOLON):
+                    self.consume(TT.DOUBLECOLON)
+                    path.append(
+                        ast.Variable(
+                            self.consume(
+                                TT.IDENTIFIER,
+                                "Expressão de caminho inválida. Esperava-se um identificador após o símbolo '::'",
+                            )
+                        )
+                    )
+                expr = ast.Path(path)
+        elif current in (
             TT.INTEGER,
             TT.REAL,
             TT.STRING,
             TT.NULO,
-            TT.IDENTIFIER,
             TT.VERDADEIRO,
             TT.FALSO,
         ):
-            if self.match(TT.IDENTIFIER):
-                expr = ast.Variable(self.lookahead)
-            else:
-                expr = ast.Constant(self.lookahead)
+            expr = ast.Constant(self.lookahead)
             self.consume(current)
         elif self.match(TT.LBRACKET):
             token = self.consume(TT.LBRACKET)
@@ -1109,6 +1295,8 @@ class Parser:
         elif self.match(TT.ALVO):
             expr = ast.Alvo(self.lookahead)
             self.consume(TT.ALVO)
+        elif self.match(TT.IGUALA):
+            expr = self.iguala_stmt()
         else:
             self.error(
                 f"início inválido de expressão: '{self.lookahead.lexeme}'"
