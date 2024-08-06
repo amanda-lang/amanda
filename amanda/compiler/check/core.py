@@ -97,7 +97,10 @@ class Analyzer(ast.Visitor):
         'se' statements"""
         # If there is no else branch return None immediately
         return (
-            False if not node.else_branch else self.has_return(node.else_branch)
+            False
+            if not node.else_branch
+            else self.has_return(node.then_branch)
+            and self.has_return(node.else_branch)
         )
 
     def has_return_igualaarm(self, node: ast.IgualaArm):
