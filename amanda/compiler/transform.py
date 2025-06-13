@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import amanda.compiler.ast as ast
 from amanda.compiler.module import Module
-from amanda.compiler.symbols.base import Type
+from amanda.compiler.symbols.base import SymRef, Type
 from amanda.compiler.tokens import TokenType as TT, Token
 from amanda.compiler.symbols.core import (
     FunctionSymbol,
@@ -138,7 +138,7 @@ class ASTTransformer:
             # Add func symbol to symbol table
             # Prefix with the name of the module to avoid overwriting
             # other methods with the same name, from different modules
-            sym.name = sym.out_id = f"{callee}::{sym.name}"
+            sym = SymRef(f"{callee}::{sym.name}", sym)
             self.program.symbols.define(sym.name, sym)
             """
             call_node = ast.Call(callee=var, fargs=node.fargs)
@@ -155,7 +155,9 @@ class ASTTransformer:
             }
             node.fargs.insert(0, instance)
             if sym.is_external(self.module):
-                sym.name = sym.out_id = f"{sym.module.fpath}::{sym.name}"
+                #Use a generated symbol name in order to avoid clashes with existing 
+                #names in the current module
+                sym = SymRef(f"{sym.module.fpath}::{sym.name}", sym)
                 self.program.symbols.define(sym.name, sym)
         else:
             raise NotImplementedError("Unknown case")
@@ -169,7 +171,7 @@ class ASTTransformer:
         if node.target.eval_type.is_module():
             imp_mod = node.target.eval_type
             sym = imp_mod.module.ast.symbols.resolve(node.member.lexeme)
-            sym.name = sym.out_id = f"{imp_mod.module.fpath}::{sym.name}"
+            sym = SymRef(f"{imp_mod.module.fpath}::{sym.name}", sym)
             var = var_node(sym.name, node.token)
             self.program.symbols.define(sym.name, sym)
             return var

@@ -50,6 +50,36 @@ class Symbol(ABC):
     def is_external(self, ctx_mod: Module) -> bool:
         return self.module.fpath != ctx_mod.fpath
 
+    def get_resolved_name(self) -> str: return self.name
+
+class SymRef(Symbol):
+    def __init__(
+        self,
+        name: str, 
+        symbol: Symbol,
+    ):
+        super().__init__(name, symbol.module)
+        self.symbol = symbol
+        self.out_id = self.symbol.name
+
+
+    def can_evaluate(self) -> bool: return self.symbol.can_evaluate()
+
+    def is_type(self) -> bool: return self.symbol.is_type()
+
+    def is_callable(self) -> bool: return self.symbol.is_callable()
+
+    def set_annotations(self, annotations: list[Annotation] | None):
+        self.symbol.set_annotations(annotations)
+
+    def is_builtin(self) -> bool:
+        return any(map(lambda s: s.name == "embutido", self.symbol.annotations))
+
+    def is_external(self, ctx_mod: Module) -> bool:
+        return self.symbol.module.fpath != ctx_mod.fpath
+
+    def get_resolved_name(self) -> str: return self.symbol.name
+
 
 @dataclass
 class Type(Symbol):

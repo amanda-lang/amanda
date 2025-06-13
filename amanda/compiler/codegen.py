@@ -121,6 +121,8 @@ class OpCode(Enum):
     BIND_MATCH_ARGS = auto()
     # Checks if the variant at TOS is has the integer tag specified by the 64-bit argument.
     MATCH_VARIANT = auto()
+    # Specialized instruction to add integers
+    OP_ADD_I = auto()
     # Stops execution of the VM. Must always be added to stop execution of the vm
     HALT = 0xFF
 
@@ -129,7 +131,7 @@ class OpCode(Enum):
         # uses
         num_ops = len(list(OpCode))
         assert (
-            num_ops == 43
+            num_ops == 44
         ), f"Please update the size of ops after adding a new Op. New size: {num_ops}"
         match self:
             case (
@@ -243,9 +245,9 @@ class ByteGen:
         if self.ctx_module.builtin:
             return self.compile_builtin(raw)
 
-        for name, symbol in program.symbols.symbols.items():
-            if type(symbol) in sym_types:
-                self.get_table_index(name, self.NAME_TABLE)
+        #for name, symbol in program.symbols.symbols.items():
+        #    if type(symbol) in sym_types:
+        #        self.get_table_index(name, self.NAME_TABLE)
 
         for mod in imports.values():
             idx = len(self.modules)
@@ -476,7 +478,7 @@ class ByteGen:
         self.gen_auto_cast(node.prom_type)
 
     def load_variable(self, symbol: Symbol):
-        name = symbol.name
+        name = symbol.get_resolved_name()
         sym_module = cast(symbols.Typed, symbol).module.fpath
         typed_sym = cast(symbols.Typed, symbol)
         # Guarantee item is in the name table
@@ -614,6 +616,11 @@ class ByteGen:
                 self.append_op(OpCode.OP_ISNULL)
                 self.append_op(OpCode.OP_NOT)
                 return
+            case (Builtins.Int, TT.PLUS, Builtins.Int): 
+                self.gen(node.left)
+                self.gen(node.right)
+                self.append_op(OpCode.OP_ADD_I)
+                return
 
         self.gen(node.left)
         self.gen(node.right)
@@ -739,7 +746,7 @@ class ByteGen:
         else:
             self.gen(range_expr.inc)
         self.load_variable(control_var)
-        self.append_op(OpCode.OP_ADD)
+        self.append_op(OpCode.OP_ADD_I)
         self.set_variable(control_var)
         self.append_op(OpCode.JUMP, loop)
 
