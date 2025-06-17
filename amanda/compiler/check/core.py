@@ -608,6 +608,13 @@ class Analyzer(ast.Visitor):
         method_id = target_ty.full_field_path(method_name)
         method_desc = f"O método '{method_name}' do tipo '{target_ty}'"
 
+        #Type should belong to the same module that is declaring the method 
+        if target_ty.module.fpath != self.ctx_module.fpath: 
+            self.error(
+                f"Não pode declarar um método para o tipo '{target_ty}' porque foi definido em um módulo externo"
+            )
+
+
         # Check if field exists on target type
         method_sym = target_ty.get_property(method_name)
         if method_sym:

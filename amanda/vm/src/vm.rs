@@ -204,6 +204,11 @@ impl<'a> AmaVM<'a> {
                 }
                 OpCode::Mostra => println!("{}", self.op_pop()),
                 //Binary Operations
+                OpCode::OpAddI => {
+                    let right = self.op_pop().take_int();
+                    let left = self.op_pop().take_int();
+                    self.op_push(AmaValue::Int(left + right));
+                }
                 OpCode::OpAdd
                 | OpCode::OpMinus
                 | OpCode::OpMul
@@ -420,7 +425,7 @@ impl<'a> AmaVM<'a> {
                 OpCode::BuildVec => {
                     let args = self.get_byte() as isize;
                     if args == 0 {
-                        let alloc_ref =self.alloc_ref(Vec::new());
+                        let alloc_ref = self.alloc_ref(Vec::new());
                         self.op_push(AmaValue::Vector(alloc_ref));
                         self.frames.peek_mut().ip += 1;
                         continue;

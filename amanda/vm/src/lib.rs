@@ -33,3 +33,11 @@ pub extern "C" fn run_module(bin_module: *mut u8, size: u32) -> u8 {
         OK
     }
 }
+
+pub fn run_module_safe(module: &mut [u8]) -> Result<(), String> {
+    let alloc = Alloc::new();
+    let (main_module, imports) = binload::load_bin(module);
+
+    let mut vm = AmaVM::new(&main_module, &imports, alloc);
+    vm.run(&main_module)
+}

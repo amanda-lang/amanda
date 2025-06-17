@@ -1,4 +1,4 @@
 usa "tests/test_data/int_met" => int_met
 
-escrevaln(4.exp(2))
+escrevaln(int_met.Int(num: 4).exp(2))
 #[output]: 16

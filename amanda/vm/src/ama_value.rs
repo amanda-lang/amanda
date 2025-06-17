@@ -20,12 +20,14 @@ macro_rules! arith_ops {
         match $res_type {
             Type::Real => Ok(AmaValue::F64($left.take_float() $op $right.take_float())),
             Type::Int => {
+                    /*
                     let result = $left.take_int().$op_fn($right.take_int());
                     if let Some(int) = result {
                         Ok(AmaValue::Int(int))
                     } else {
                         Err("Erro ao realizar operação aritmética. Resultado fora do intervalo de inteiros representáveis")
-                    }
+                    }*/
+                    Ok(AmaValue::Int($left.take_int() $op $right.take_int()))
                 }
             _ => unimplemented!("Operand type not supported"),
         }
@@ -65,6 +67,7 @@ macro_rules! is_fn {
         }
     };
 }
+
 #[derive(Debug)]
 pub enum AmaValue<'a> {
     Int(i64),

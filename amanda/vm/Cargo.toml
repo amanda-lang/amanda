@@ -10,4 +10,4 @@ rustc-hash = "1.1.0"
 
 [lib]
 name = "amanda"
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "lib"]

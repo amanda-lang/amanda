@@ -45,12 +45,13 @@ pub enum OpCode {
     BuildVariant,
     BindMatchArgs,
     MatchVariant,
+    OpAddI,
     Halt = 255,
 }
 
 impl From<&u8> for OpCode {
     fn from(number: &u8) -> Self {
-        let ops: [OpCode; 42] = [
+        let ops: [OpCode; 43] = [
             OpCode::Mostra,
             OpCode::LoadConst,
             OpCode::LoadName,
@@ -93,6 +94,7 @@ impl From<&u8> for OpCode {
             OpCode::BuildVariant,
             OpCode::BindMatchArgs,
             OpCode::MatchVariant,
+            OpCode::OpAddI,
         ];
         if *number == 0xff {
             OpCode::Halt

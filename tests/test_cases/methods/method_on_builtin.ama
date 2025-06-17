@@ -5,4 +5,4 @@ fim
 
 
 escrevaln("hello".contem("a"))
-#[output]: falso
+#[output]: Erro: Não pode declarar um método para o tipo 'texto' porque foi definido em um módulo externo.

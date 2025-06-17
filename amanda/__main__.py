@@ -5,6 +5,7 @@ import os
 import sys
 import subprocess
 from os import path
+from typing import cast
 from amanda.compiler.symbols.core import Module
 from amanda.compiler.error import AmandaError, handle_exception, throw_error
 from amanda.compiler.parse import parse
@@ -19,7 +20,7 @@ def write_file(name, code):
         output.write(code)
 
 
-def run_frontend(filename) -> tuple:
+def run_frontend(filename) -> tuple[Module, dict]:
     try:
         program = parse(filename)
         valid_program = Analyzer(filename, [], Module(filename)).visit_module(
@@ -42,6 +43,14 @@ def run_file(args):
     if exit_code != 0:
         sys.exit(exit_code)
 
+def compile_file(args):
+    module, imports = run_frontend(args.file)
+    compiler = ByteGen(module)
+    bin_obj = compiler.compile(imports)
+    out_file = path.basename(module.fpath).split(".")[0]
+    with open(f"{out_file}.amac", "wb") as out: 
+        out.write(cast(bytes, bin_obj))
+
 
 def main(*args):
     parser = argparse.ArgumentParser()
@@ -50,17 +59,26 @@ def main(*args):
         "-d", "--debug", help="Generate a debug amasm file", action="store_true"
     )
 
+    parser.add_argument(
+        "-c", "--compile", help="compiles the script instead of executing.", action="store_true"
+    )
+
     parser.add_argument("file", help="source file to be executed")
 
     if len(args):
         args = parser.parse_args(args)
     else:
         args = parser.parse_args()
+
+
     if not path.isfile(args.file):
         sys.exit(
             f"The file '{path.abspath(args.file)}' was not found on this system"
         )
-    run_file(args)
+    if args.compile: 
+        compile_file(args)
+    else: 
+        run_file(args)
 
 
 if __name__ == "__main__":

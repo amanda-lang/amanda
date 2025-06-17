@@ -1,5 +1,11 @@
 usa 'mat'
 
-met int::exp(alvo, exp: int): int
-    retorna expoente(alvo, exp):>int
+
+
+registo Int
+    num: int
+fim
+
+met Int::exp(alvo, exp: int): int
+    retorna expoente(alvo.num, exp) :> int
 fim
