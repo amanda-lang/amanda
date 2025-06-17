@@ -76,7 +76,7 @@ pub struct AmaVM<'a> {
 }
 
 //TODO: Make this faster
-fn offset_to_line(offset: usize, src_map: &Vec<usize>) -> usize {
+fn offset_to_line(offset: usize, src_map: &[usize]) -> usize {
     for i in (0..src_map.len()).step_by(3) {
         if offset >= src_map[i] && offset <= src_map[i + 1] {
             return src_map[i + 2];
@@ -256,12 +256,10 @@ impl<'a> AmaVM<'a> {
                             AmaValue::F64(num) => self.op_push(AmaValue::F64(-num)), 
                             _ => panic!("Fatal error!"),
                         };
+                    } else if let AmaValue::Bool(val) = operand {
+                        self.op_push(AmaValue::Bool(!val));
                     } else {
-                        if let AmaValue::Bool(val) = operand {
-                            self.op_push(AmaValue::Bool(!val));
-                        } else {
-                            panic!("Value should always be a bool");
-                        }
+                        panic!("Value should always be a bool");
                     }
                 }
                 OpCode::OpIndexGet => {
@@ -271,7 +269,7 @@ impl<'a> AmaVM<'a> {
                     match target {
                         //TODO - Optimization: Check at compile if string is going to get indexed
                         //generate graphemes ahead of time.
-                        AmaValue::Str(Cow::Borrowed(ref string)) =>{
+                        AmaValue::Str(Cow::Borrowed(string)) =>{
                             if idx < 0 {
                                self.panic_and_throw("Erro de índice inválido. Strings só podem ser indexadas com inteiros positivos")?;
                             }
@@ -402,12 +400,14 @@ impl<'a> AmaVM<'a> {
                     self.sp = if frame_bp > -1 { frame_bp - 1 } else { self.sp };
                     self.frames.pop().unwrap();
                     self.op_push(val);
-                    let ctx_module = if let FuncModule::Imported(mod_idx) = self.frames.peek().module {
+                    let module = if let FuncModule::Imported(mod_idx) = self.frames.peek().module {
                         &self.imports[mod_idx]
                     } else {
                         self.main_module
                     };
-                    self.ctx_module.replace(ctx_module);
+                    if !std::ptr::eq(module, self.ctx_module.expect("ctx_module will always be some")) {
+                        self.ctx_module.replace(module);
+                    }
                     continue;
                 }
                 OpCode::BuildStr => {
