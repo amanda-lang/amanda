@@ -301,14 +301,13 @@ pub fn cast<'a>(value: &AmaValue, target: Type) -> Result<AmaValue<'a>, String> 
         Type::Int => match value {
             AmaValue::F64(_) => Ok(AmaValue::Int(value.take_int())),
             AmaValue::Str(string) => {
-                let maybe_int = string.parse::<i64>();
-                if let Err(_) = maybe_int {
+                if let Ok(int) = string.parse::<i64>() {
+                    Ok(AmaValue::Int(int))
+                } else {
                     Err(format!(
                         "A sequência de caracteres '{}' não é um inteiro válido",
                         string
                     ))
-                } else {
-                    Ok(AmaValue::Int(maybe_int.unwrap()))
                 }
             }
             _ => unimplemented!(
@@ -320,14 +319,13 @@ pub fn cast<'a>(value: &AmaValue, target: Type) -> Result<AmaValue<'a>, String> 
         Type::Real => match value {
             AmaValue::Int(_) => Ok(AmaValue::F64(value.take_float())),
             AmaValue::Str(string) => {
-                let maybe_real = string.parse::<f64>();
-                if let Err(_) = maybe_real {
+                if let Ok(float) = string.parse::<f64>() {
+                    Ok(AmaValue::F64(float))
+                } else {
                     Err(format!(
                         "A sequência de caracteres '{}' não é um número real válido",
                         string
                     ))
-                } else {
-                    Ok(AmaValue::F64(maybe_real.unwrap()))
                 }
             }
             _ => unimplemented!(
@@ -350,7 +348,7 @@ pub fn cast<'a>(value: &AmaValue, target: Type) -> Result<AmaValue<'a>, String> 
     }
 }
 
-impl<'a> PartialEq for AmaValue<'a> {
+impl PartialEq for AmaValue<'_> {
     fn eq(&self, other: &Self) -> bool {
         AmaValue::binop(self, OpCode::OpEq, other)
             .unwrap()
@@ -358,9 +356,9 @@ impl<'a> PartialEq for AmaValue<'a> {
     }
 }
 
-impl<'a> Eq for AmaValue<'a> {}
+impl Eq for AmaValue<'_> {}
 
-impl<'a> Hash for AmaValue<'a> {
+impl Hash for AmaValue<'_> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         match self {
             AmaValue::Int(int) => int.hash(state),
@@ -368,6 +366,15 @@ impl<'a> Hash for AmaValue<'a> {
             AmaValue::Str(string) => string.hash(state),
             _ => unimplemented!("Can't hash whatever type was sent in"),
         };
+    }
+
+    fn hash_slice<H: Hasher>(data: &[Self], state: &mut H)
+    where
+        Self: Sized,
+    {
+        for piece in data {
+            piece.hash(state)
+        }
     }
 }
 
