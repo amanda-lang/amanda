@@ -1,23 +1,22 @@
 use super::utils::exports;
 use super::AmaResult;
-use crate::alloc::Alloc;
 use crate::ama_value::AmaValue;
 use crate::values::amatype::Type;
-use crate::values::function::{FuncArgs, NativeFunc};
+use crate::values::function::{AmaCtx, FuncArgs, NativeFunc};
 use std::borrow::Cow;
 use std::io;
 use std::io::Write;
 use unicode_segmentation::UnicodeSegmentation;
 
 /* Builtin functions*/
-fn escrevaln<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
+fn escrevaln<'a>(args: FuncArgs<'a, '_>, ctx: &mut AmaCtx<'a, '_>) -> AmaResult<'a> {
     let value = &args[0];
 
     println!("{}", value);
     Ok(AmaValue::None)
 }
 
-fn escreva<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
+fn escreva<'a>(args: FuncArgs<'a, '_>, ctx: &mut AmaCtx<'a, '_>) -> AmaResult<'a> {
     let value = &args[0];
 
     print!("{}", value);
@@ -25,8 +24,8 @@ fn escreva<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     Ok(AmaValue::None)
 }
 
-fn leia<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
-    escreva(args, alloc)?;
+fn leia<'a>(args: FuncArgs<'a, '_>, ctx: &mut AmaCtx<'a, '_>) -> AmaResult<'a> {
+    escreva(args, ctx)?;
 
     let mut input = String::from("");
     //TODO: Propagate possible errors to caller
@@ -40,8 +39,8 @@ fn leia<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     Ok(AmaValue::Str(Cow::Owned(input)))
 }
 
-fn leia_int<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
-    let input = leia(args, alloc);
+fn leia_int<'a>(args: FuncArgs<'a, '_>, ctx: &mut AmaCtx<'a, '_>) -> AmaResult<'a> {
+    let input = leia(args, ctx);
     if input.is_ok() {
         //TODO: Propagate possible errors to caller
         let maybe_int = input.unwrap().take_str().parse::<i64>();
@@ -55,8 +54,8 @@ fn leia_int<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> 
     }
 }
 
-fn leia_real<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
-    let input = leia(args, alloc);
+fn leia_real<'a>(args: FuncArgs<'a, '_>, ctx: &mut AmaCtx<'a, '_>) -> AmaResult<'a> {
+    let input = leia(args, ctx);
     if input.is_ok() {
         //TODO: Propagate possible errors to caller
         let maybe_double = input.unwrap().take_str().parse::<f64>();
@@ -70,7 +69,7 @@ fn leia_real<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a>
     }
 }
 
-fn tam<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
+fn tam<'a>(args: FuncArgs<'a, '_>, ctx: &mut AmaCtx<'a, '_>) -> AmaResult<'a> {
     let value = &args[0];
     match value {
         AmaValue::Str(string) => Ok(AmaValue::Int(
@@ -81,7 +80,7 @@ fn tam<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     }
 }
 
-fn txt_contem<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
+fn txt_contem<'a>(args: FuncArgs<'a, '_>, ctx: &mut AmaCtx<'a, '_>) -> AmaResult<'a> {
     let haystack = &args[0];
     let needle = &args[1];
     match (haystack, needle) {
@@ -98,7 +97,7 @@ fn build_vec<'a>(
     n_dims: usize,
     dims: &[AmaValue],
     el_type: Type,
-    alloc: &mut Alloc<'a>,
+    ctx: &mut AmaCtx<'a, '_>,
 ) -> Vec<AmaValue<'a>> {
     let size = dims[dim].take_int() as usize;
     if dim == n_dims {
@@ -109,19 +108,19 @@ fn build_vec<'a>(
             Type::Texto => vec![AmaValue::Str(Cow::Owned(String::new())); size],
             _ => unreachable!("Only primitives types should have this"),
         }
+    } else if size == 0 {
+        Vec::with_capacity(0)
     } else {
-        if size == 0 {
-            Vec::with_capacity(0)
-        } else {
-            let inner = build_vec(dim + 1, n_dims, dims, el_type, alloc);
-            let mut container = Vec::with_capacity(inner.len());
-            container.resize_with(size, || (AmaValue::Vector(alloc.alloc_ref(inner.clone()))));
-            container
-        }
+        let inner = build_vec(dim + 1, n_dims, dims, el_type, ctx);
+        let mut container = Vec::with_capacity(inner.len());
+        container.resize_with(size, || {
+            AmaValue::Vector(ctx.alloc.alloc_ref(inner.clone()))
+        });
+        container
     }
 }
 
-fn vec<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
+fn vec<'a>(args: FuncArgs<'a, '_>, ctx: &mut AmaCtx<'a, '_>) -> AmaResult<'a> {
     let el_type = args[0].take_type();
     let dims = &args[1..];
     let n_dims = dims.len();
@@ -133,12 +132,12 @@ fn vec<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
             ));
         }
     }
-    let built_vec = build_vec(0, n_dims - 1, dims, el_type, alloc);
-    let vec = AmaValue::Vector(alloc.alloc_ref(built_vec));
+    let built_vec = build_vec(0, n_dims - 1, dims, el_type, ctx);
+    let vec = AmaValue::Vector(ctx.alloc.alloc_ref(built_vec));
     Ok(vec)
 }
 
-fn anexa<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
+fn anexa<'a>(args: FuncArgs<'a, '_>, ctx: &mut AmaCtx<'a, '_>) -> AmaResult<'a> {
     let vec = match &args[0] {
         AmaValue::Vector(vec) => vec,
         _ => unreachable!("Something bad is happening"),
@@ -147,7 +146,7 @@ fn anexa<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
     Ok(AmaValue::None)
 }
 
-fn remova<'a>(args: FuncArgs<'a, '_>, _: &mut Alloc<'a>) -> AmaResult<'a> {
+fn remova<'a>(args: FuncArgs<'a, '_>, _: &mut AmaCtx<'a, '_>) -> AmaResult<'a> {
     let vec = &args[0];
     let idx = args[1].take_int();
     vec.vec_index_check(idx)?;
@@ -156,6 +155,7 @@ fn remova<'a>(args: FuncArgs<'a, '_>, _: &mut Alloc<'a>) -> AmaResult<'a> {
         _ => unreachable!("Invalid call!"),
     }
 }
+
 exports! {
     var(int, AmaValue::Type(Type::Int)),
     var(real, AmaValue::Type(Type::Real)),

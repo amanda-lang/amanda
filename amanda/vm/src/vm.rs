@@ -3,7 +3,7 @@ use std::fmt::Write;
 use std::borrow::Cow;
 use crate::ama_value;
 use crate::ama_value::{AmaValue, RcCell};
-use crate::values::function::{AmaFunc, FuncModule};
+use crate::values::function::{AmaCtx, AmaFunc, FuncModule};
 use crate::values::registo::{Tabela, RegObj};
 use crate::modules::module::{Module, MGlobals};
 use crate::errors::AmaErr;
@@ -385,7 +385,7 @@ impl<'a> AmaVM<'a> {
                                 fn_args = &self.values[start..=self.sp as usize];
                                 self.sp = start as isize - 1;
                             }
-                            let result = (native_fn.func)(fn_args, &mut self.alloc);
+                            let result = (native_fn.func)(fn_args, &mut AmaCtx { alloc: &mut self.alloc });
                             if let Err(ref msg) = result {
                                 return self.panic_and_throw(msg);
                             }

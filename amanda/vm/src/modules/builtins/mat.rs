@@ -1,67 +1,66 @@
 use super::utils::exports;
 use super::AmaResult;
-use crate::alloc::Alloc;
 use crate::ama_value::AmaValue;
-use crate::values::function::{FuncArgs, NativeFunc};
+use crate::values::function::{AmaCtx, FuncArgs, NativeFunc};
 
-fn abs<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
+fn abs<'a>(args: FuncArgs<'a, '_>, ctx: &mut AmaCtx<'a, '_>) -> AmaResult<'a> {
     let number = args[0].take_float();
     Ok(AmaValue::F64(number.abs()))
 }
 
-fn expoente<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
+fn expoente<'a>(args: FuncArgs<'a, '_>, ctx: &mut AmaCtx<'a, '_>) -> AmaResult<'a> {
     let base = args[0].take_float();
     let exp = args[1].take_float();
     Ok(AmaValue::F64(base.powf(exp)))
 }
 
-fn raizqd<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
+fn raizqd<'a>(args: FuncArgs<'a, '_>, ctx: &mut AmaCtx<'a, '_>) -> AmaResult<'a> {
     let number = args[0].take_float();
     Ok(AmaValue::F64(number.sqrt()))
 }
 
-fn arredonda<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
+fn arredonda<'a>(args: FuncArgs<'a, '_>, ctx: &mut AmaCtx<'a, '_>) -> AmaResult<'a> {
     let number = args[0].take_float();
     Ok(AmaValue::Int(number.round() as i64))
 }
 
-fn piso<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
+fn piso<'a>(args: FuncArgs<'a, '_>, ctx: &mut AmaCtx<'a, '_>) -> AmaResult<'a> {
     let number = args[0].take_float();
     Ok(AmaValue::Int(number.floor() as i64))
 }
 
-fn teto<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
+fn teto<'a>(args: FuncArgs<'a, '_>, ctx: &mut AmaCtx<'a, '_>) -> AmaResult<'a> {
     let number = args[0].take_float();
     Ok(AmaValue::Int(number.ceil() as i64))
 }
 
-fn sen<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
+fn sen<'a>(args: FuncArgs<'a, '_>, ctx: &mut AmaCtx<'a, '_>) -> AmaResult<'a> {
     let number = args[0].take_float();
     Ok(AmaValue::F64(number.sin()))
 }
 
-fn cos<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
+fn cos<'a>(args: FuncArgs<'a, '_>, ctx: &mut AmaCtx<'a, '_>) -> AmaResult<'a> {
     let number = args[0].take_float();
     Ok(AmaValue::F64(number.cos()))
 }
 
-fn tan<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
+fn tan<'a>(args: FuncArgs<'a, '_>, ctx: &mut AmaCtx<'a, '_>) -> AmaResult<'a> {
     let number = args[0].take_float();
     Ok(AmaValue::F64(number.tan()))
 }
 
-fn log<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
+fn log<'a>(args: FuncArgs<'a, '_>, ctx: &mut AmaCtx<'a, '_>) -> AmaResult<'a> {
     let number = args[0].take_float();
     let base = args[1].take_float();
     Ok(AmaValue::F64(number.log(base)))
 }
 
-fn grausprad<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
+fn grausprad<'a>(args: FuncArgs<'a, '_>, ctx: &mut AmaCtx<'a, '_>) -> AmaResult<'a> {
     let degrees = args[0].take_float();
     Ok(AmaValue::F64(degrees.to_radians()))
 }
 
-fn radpgraus<'a>(args: FuncArgs<'a, '_>, alloc: &mut Alloc<'a>) -> AmaResult<'a> {
+fn radpgraus<'a>(args: FuncArgs<'a, '_>, ctx: &mut AmaCtx<'a, '_>) -> AmaResult<'a> {
     let rad = args[0].take_float();
     Ok(AmaValue::F64(rad.to_degrees()))
 }
